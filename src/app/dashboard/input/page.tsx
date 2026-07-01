@@ -1,208 +1,179 @@
 "use client";
 
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/ui/common";
 import { useToast } from "@/components/ui/toast";
-import { jenisUsahaOptions } from "@/lib/mock-data";
+import { createElectricityEntry } from "@/app/actions/electricity";
 
-const emptyForm = {
-  namaUsaha: "Laundry Berkah",
-  jenisUsaha: "Laundry",
-  lokasiUsaha: "Purwokerto",
-  dayaListrik: "2.200 VA",
-  rataRataTagihan: "1180000",
-  tagihanBulanLalu: "1250000",
-  pemakaianKwh: "868",
-  jamOperasional: "08.00 - 21.00",
-  peralatanListrik: "Mesin cuci 2 unit, mesin pengering, setrika uap, pompa air, lampu LED",
-  catatan: "",
+const inputSchema = z.object({
+  month: z.number().min(1, "Bulan wajib diisi").max(12, "Bulan tidak valid"),
+  year: z.number().min(2020, "Tahun minimal 2020").max(new Date().getFullYear() + 1, "Tahun tidak valid"),
+  usageKwh: z.number().min(1, "Jumlah pemakaian kWh minimal 1 kWh"),
+  costIdr: z.number().min(1000, "Nominal tagihan minimal Rp 1.000"),
+});
+
+type InputFormData = {
+  month: number;
+  year: number;
+  usageKwh: number;
+  costIdr: number;
 };
+
+const MONTHS = [
+  { value: 1, label: "Januari" },
+  { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mei" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "Agustus" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Desember" },
+];
 
 export default function InputDataPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState(emptyForm);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const update = (key: keyof typeof formData, value: string) =>
-    setFormData((prev) => ({ ...prev, [key]: value }));
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-based
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<InputFormData>({
+    resolver: zodResolver(inputSchema),
+    defaultValues: {
+      month: currentMonth === 1 ? 12 : currentMonth - 1, // default to last month
+      year: currentMonth === 1 ? currentYear - 1 : currentYear,
+    },
+  });
 
-    if (!formData.namaUsaha.trim() || !formData.jenisUsaha || !formData.lokasiUsaha.trim()) {
-      toast("Mohon lengkapi nama usaha, jenis usaha, dan lokasi usaha.", "error");
-      return;
-    }
-
-    if (Number(formData.tagihanBulanLalu) <= 0 || Number(formData.rataRataTagihan) <= 0) {
-      toast("Tagihan listrik harus lebih dari Rp0.", "error");
-      return;
-    }
-
+  const onSubmit = async (data: InputFormData) => {
     setLoading(true);
+    setSuccess(false);
+    setErrorMsg("");
 
-    setTimeout(() => {
-      localStorage.setItem("wattwise-input-data", JSON.stringify(formData));
+    try {
+      const res = await createElectricityEntry(data);
+      if (res.success) {
+        setSuccess(true);
+        reset({
+          month: currentMonth,
+          year: currentYear,
+        });
+        toast("Data listrik berhasil disimpan. Analisis baru telah dibuat.");
+      } else {
+        setErrorMsg(res.error || "Gagal menyimpan data listrik.");
+        toast(res.error || "Gagal menyimpan data listrik.", "error");
+      }
+    } catch (e: any) {
+      setErrorMsg("Terjadi kesalahan koneksi.");
+      toast("Terjadi kesalahan koneksi.", "error");
+    } finally {
       setLoading(false);
-      setSuccess(true);
-      toast("Data berhasil disimpan. WattWise AI siap membuat analisis penggunaan listrik usaha Anda.");
-    }, 700);
+    }
   };
 
   return (
     <div className="max-w-3xl">
       <PageHeader
         title="Input Data Listrik Usaha"
-        subtitle="Isi data sederhana di bawah ini. WattWise AI akan memakai data ini untuk membuat analisis, prediksi tagihan, dan saran hemat."
+        subtitle="Masukkan data pemakaian listrik bulanan Anda. WattWise AI akan menganalisis tren, mendeteksi anomali, dan menyusun rekomendasi penghematan khusus."
       />
 
       {success && (
-        <div className="mb-6 rounded-2xl border border-green-100 bg-brand-greenSoft p-5 text-brand-greenDark shadow-card">
-          <h2 className="font-bold">Data Berhasil Disimpan</h2>
-          <p className="mt-1 text-sm leading-relaxed">
-            Data berhasil disimpan. WattWise AI siap membuat analisis penggunaan listrik usaha Anda.
-          </p>
+        <div className="mb-6 rounded-2xl border border-green-100 bg-brand-greenSoft p-5 text-brand-greenDark shadow-card flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-brand-green mt-0.5 flex-shrink-0" />
+          <div>
+            <h2 className="font-bold">Data Berhasil Disimpan</h2>
+            <p className="mt-1 text-sm leading-relaxed">
+              Data listrik berhasil disimpan ke database. WattWise AI telah menghasilkan prediksi tagihan, deteksi anomali, dan rekomendasi efisiensi terbaru untuk usaha Anda. Silakan cek halaman Dashboard atau Rekomendasi.
+            </p>
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="card space-y-7">
+      {errorMsg && (
+        <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-5 text-red-700 shadow-card flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <h2 className="font-bold">Gagal Menyimpan Data</h2>
+            <p className="mt-1 text-sm leading-relaxed">{errorMsg}</p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="card space-y-7">
         <section>
-          <h2 className="font-bold text-brand-ink">Profil Usaha</h2>
-          <p className="mt-1 text-xs text-slate-500">Informasi dasar tempat usaha Anda.</p>
+          <h2 className="font-bold text-brand-ink">Periode Laporan</h2>
+          <p className="mt-1 text-xs text-slate-500">Tentukan bulan dan tahun pemakaian listrik yang ingin dicatat.</p>
 
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="label">Nama Usaha *</label>
-              <input
-                className="input"
-                value={formData.namaUsaha}
-                onChange={(e) => update("namaUsaha", e.target.value)}
-                placeholder="Contoh: Laundry Berkah"
-              />
-            </div>
-
-            <div>
-              <label className="label">Jenis Usaha *</label>
-              <select
-                className="select"
-                value={formData.jenisUsaha}
-                onChange={(e) => update("jenisUsaha", e.target.value)}
-              >
-                {jenisUsahaOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+              <label className="label">Bulan Pemakaian *</label>
+              <select {...register("month", { valueAsNumber: true })} className="select">
+                {MONTHS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
                   </option>
                 ))}
               </select>
+              {errors.month && <p className="text-red-500 text-xs mt-1">{errors.month.message}</p>}
             </div>
 
             <div>
-              <label className="label">Lokasi Usaha *</label>
+              <label className="label">Tahun Pemakaian *</label>
               <input
+                type="number"
+                {...register("year", { valueAsNumber: true })}
                 className="input"
-                value={formData.lokasiUsaha}
-                onChange={(e) => update("lokasiUsaha", e.target.value)}
-                placeholder="Contoh: Purwokerto"
+                placeholder={`Contoh: ${currentYear}`}
               />
-              <p className="helper">Cukup tulis kota/kecamatan jika tidak ingin menulis alamat lengkap.</p>
-            </div>
-
-            <div>
-              <label className="label">Daya listrik jika diketahui</label>
-              <input
-                className="input"
-                value={formData.dayaListrik}
-                onChange={(e) => update("dayaListrik", e.target.value)}
-                placeholder="Contoh: 2.200 VA"
-              />
-              <p className="helper">Bisa dilihat di meteran, struk PLN, atau PLN Mobile.</p>
+              {errors.year && <p className="text-red-500 text-xs mt-1">{errors.year.message}</p>}
             </div>
           </div>
         </section>
 
         <section className="border-t border-slate-100 pt-6">
-          <h2 className="font-bold text-brand-ink">Data Tagihan</h2>
-          <p className="mt-1 text-xs text-slate-500">Masukkan angka tanpa titik. Contoh: 1250000.</p>
+          <h2 className="font-bold text-brand-ink">Rincian Penggunaan & Biaya</h2>
+          <p className="mt-1 text-xs text-slate-500">Gunakan angka tanpa pemisah ribuan. Contoh: 1250000.</p>
 
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="label">Rata-rata tagihan listrik per bulan *</label>
+              <label className="label">Total Penggunaan Listrik (kWh) *</label>
               <input
                 type="number"
-                min="0"
+                step="any"
+                {...register("usageKwh", { valueAsNumber: true })}
                 className="input"
-                value={formData.rataRataTagihan}
-                onChange={(e) => update("rataRataTagihan", e.target.value)}
-                placeholder="Contoh: 1180000"
-              />
-              <p className="helper">Perkiraan biaya listrik normal setiap bulan.</p>
-            </div>
-
-            <div>
-              <label className="label">Tagihan bulan lalu *</label>
-              <input
-                type="number"
-                min="0"
-                className="input"
-                value={formData.tagihanBulanLalu}
-                onChange={(e) => update("tagihanBulanLalu", e.target.value)}
-                placeholder="Contoh: 1250000"
-              />
-              <p className="helper">Nominal total tagihan atau token listrik satu bulan.</p>
-            </div>
-
-            <div>
-              <label className="label">Pemakaian kWh bulan lalu</label>
-              <input
-                type="number"
-                min="0"
-                className="input"
-                value={formData.pemakaianKwh}
-                onChange={(e) => update("pemakaianKwh", e.target.value)}
                 placeholder="Contoh: 868"
               />
-              <p className="helper">Opsional, tetapi membantu prediksi lebih akurat.</p>
+              <p className="helper">Bisa dilihat di kWh meter atau riwayat token/tagihan PLN.</p>
+              {errors.usageKwh && <p className="text-red-500 text-xs mt-1">{errors.usageKwh.message}</p>}
             </div>
 
             <div>
-              <label className="label">Jam operasional usaha</label>
+              <label className="label">Total Tagihan / Biaya Token (Rupiah) *</label>
               <input
+                type="number"
+                {...register("costIdr", { valueAsNumber: true })}
                 className="input"
-                value={formData.jamOperasional}
-                onChange={(e) => update("jamOperasional", e.target.value)}
-                placeholder="Contoh: 08.00 - 21.00"
+                placeholder="Contoh: 1250000"
               />
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-slate-100 pt-6">
-          <h2 className="font-bold text-brand-ink">Peralatan Listrik</h2>
-          <p className="mt-1 text-xs text-slate-500">Sebutkan alat yang paling sering menyala atau dayanya besar.</p>
-
-          <div className="mt-4 space-y-5">
-            <div>
-              <label className="label">Peralatan listrik utama</label>
-              <textarea
-                rows={3}
-                className="input resize-none py-3"
-                value={formData.peralatanListrik}
-                onChange={(e) => update("peralatanListrik", e.target.value)}
-                placeholder="Contoh: Mesin cuci 2 unit, pengering, setrika, freezer, pompa air"
-              />
-            </div>
-
-            <div>
-              <label className="label">Catatan tambahan</label>
-              <textarea
-                rows={2}
-                className="input resize-none py-3"
-                value={formData.catatan}
-                onChange={(e) => update("catatan", e.target.value)}
-                placeholder="Contoh: Ada penambahan alat baru minggu lalu"
-              />
+              <p className="helper">Nominal pembayaran bersih untuk tagihan atau pembelian token.</p>
+              {errors.costIdr && <p className="text-red-500 text-xs mt-1">{errors.costIdr.message}</p>}
             </div>
           </div>
         </section>
@@ -212,26 +183,28 @@ export default function InputDataPage() {
             type="button"
             className="btn-outline"
             onClick={() => {
-              setFormData({
-                namaUsaha: "",
-                jenisUsaha: "Laundry",
-                lokasiUsaha: "",
-                dayaListrik: "",
-                rataRataTagihan: "",
-                tagihanBulanLalu: "",
-                pemakaianKwh: "",
-                jamOperasional: "",
-                peralatanListrik: "",
-                catatan: "",
+              reset({
+                month: currentMonth,
+                year: currentYear,
               });
               setSuccess(false);
+              setErrorMsg("");
             }}
           >
-            Kosongkan
+            Kosongkan Form
           </button>
-          <button type="submit" disabled={loading} className="btn-primary">
-            <Save className="h-4 w-4" />
-            {loading ? "Menyimpan dan Menganalisis..." : "Simpan dan Analisis"}
+          <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Menganalisis...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Simpan & Analisis Listrik
+              </>
+            )}
           </button>
         </div>
       </form>
