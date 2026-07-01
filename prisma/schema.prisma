@@ -55,9 +55,12 @@ model Business {
   name               String
   type               BusinessType
   address            String?
+  powerVA            Int?
+  operatingHours     String?
   userId             String
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   electricityEntries ElectricityEntry[]
+  dailyUsages        DailyUsage[]
   appliances         Appliance[]
   analysisResults    AnalysisResult[]
   anomalies          Anomaly[]
@@ -68,6 +71,21 @@ model Business {
 
   @@index([userId])
   @@index([type])
+}
+
+model DailyUsage {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  date       DateTime
+  usageKwh   Float
+  costIdr    Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, date])
+  @@index([businessId])
+  @@index([date])
 }
 
 model ElectricityEntry {
