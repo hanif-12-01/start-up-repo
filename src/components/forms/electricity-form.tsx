@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Save } from "lucide-react";
-import { PageHeader } from "@/components/ui/common";
-import { useToast } from "@/components/ui/toast";
+import { submitElectricityDataAction } from "@/actions/electricity";
 import { jenisUsahaOptions } from "@/lib/mock-data";
+import { useToast } from "@/components/ui/toast";
 
 const emptyForm = {
   namaUsaha: "Laundry Berkah",
@@ -19,7 +19,7 @@ const emptyForm = {
   catatan: "",
 };
 
-export default function InputDataPage() {
+export function ElectricityForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -28,7 +28,7 @@ export default function InputDataPage() {
   const update = (key: keyof typeof formData, value: string) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.namaUsaha.trim() || !formData.jenisUsaha || !formData.lokasiUsaha.trim()) {
@@ -42,22 +42,21 @@ export default function InputDataPage() {
     }
 
     setLoading(true);
+    const result = await submitElectricityDataAction(formData);
+    setLoading(false);
 
-    setTimeout(() => {
-      localStorage.setItem("wattwise-input-data", JSON.stringify(formData));
-      setLoading(false);
-      setSuccess(true);
-      toast("Data berhasil disimpan. WattWise AI siap membuat analisis penggunaan listrik usaha Anda.");
-    }, 700);
+    if (!result.ok) {
+      toast(result.error, "error");
+      return;
+    }
+
+    localStorage.setItem("wattwise-input-data", JSON.stringify(formData));
+    setSuccess(true);
+    toast("Data berhasil disimpan. WattWise AI siap membuat analisis penggunaan listrik usaha Anda.");
   };
 
   return (
-    <div className="max-w-3xl">
-      <PageHeader
-        title="Input Data Listrik Usaha"
-        subtitle="Isi data sederhana di bawah ini. WattWise AI akan memakai data ini untuk membuat analisis, prediksi tagihan, dan saran hemat."
-      />
-
+    <>
       {success && (
         <div className="mb-6 rounded-2xl border border-green-100 bg-brand-greenSoft p-5 text-brand-greenDark shadow-card">
           <h2 className="font-bold">Data Berhasil Disimpan</h2>
@@ -235,6 +234,6 @@ export default function InputDataPage() {
           </button>
         </div>
       </form>
-    </div>
+    </>
   );
 }
