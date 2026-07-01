@@ -1,0 +1,174 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum BusinessType {
+  LAUNDRY
+  FNB
+  RETAIL
+  MANUFACTURE
+  COLD_STORAGE
+  OTHER
+}
+
+enum UsageStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RecommendationDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  SENT
+  ARCHIVED
+}
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  name       String?
+  businesses Business[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Business {
+  id                 String             @id @default(uuid())
+  name               String
+  type               BusinessType
+  address            String?
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  electricityEntries ElectricityEntry[]
+  appliances         Appliance[]
+  analysisResults    AnalysisResult[]
+  anomalies          Anomaly[]
+  recommendations    Recommendation[]
+  monthlyReports     MonthlyReport[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+model ElectricityEntry {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month      Int
+  year       Int
+  usageKwh   Float
+  costIdr    Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, year, month])
+  @@index([businessId])
+  @@index([year, month])
+}
+
+model Appliance {
+  id              String      @id @default(uuid())
+  name            String
+  powerWatt       Float
+  quantity        Int         @default(1)
+  dailyUsageHours Float
+  usageStatus     UsageStatus @default(ACTIVE)
+  businessId      String
+  business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([usageStatus])
+}
+
+model AnalysisResult {
+  id              String   @id @default(uuid())
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month           Int
+  year            Int
+  totalUsageKwh   Float
+  totalCostIdr    Float
+  avgDailyKwh     Float?
+  carbonKg        Float?
+  efficiencyScore Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([businessId, year, month])
+  @@index([businessId])
+  @@index([year, month])
+}
+
+model Anomaly {
+  id          String    @id @default(uuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month       Int
+  year        Int
+  description String
+  severity    RiskLevel
+  usageKwh    Float?
+  expectedKwh Float?
+  isResolved  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([businessId])
+  @@index([severity])
+  @@index([isResolved])
+}
+
+model Recommendation {
+  id                  String                   @id @default(uuid())
+  businessId          String
+  business            Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title               String
+  description         String
+  estimatedSavingsIdr Float?
+  difficulty          RecommendationDifficulty
+  isImplemented       Boolean                  @default(false)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@index([businessId])
+  @@index([difficulty])
+}
+
+model MonthlyReport {
+  id         String       @id @default(uuid())
+  businessId String
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month      Int
+  year       Int
+  status     ReportStatus @default(DRAFT)
+  summary    String?
+  pdfUrl     String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([businessId, year, month])
+  @@index([businessId])
+  @@index([status])
+}
