@@ -53,7 +53,17 @@ export async function createElectricityEntry(input: ElectricityInput) {
       },
     });
 
-    // Generate mock analysis result
+    // Import and execute the rule-based analysis engine
+    const { runElectricityAnalysis } = await import("@/lib/analysis");
+    const analysis = await runElectricityAnalysis(
+      business.id,
+      input.month,
+      input.year,
+      input.usageKwh,
+      input.costIdr
+    );
+
+    // Save/update analysis result with the rule engine output
     await db.analysisResult.upsert({
       where: {
         businessId_year_month: {
@@ -65,9 +75,9 @@ export async function createElectricityEntry(input: ElectricityInput) {
       update: {
         totalUsageKwh: input.usageKwh,
         totalCostIdr: input.costIdr,
-        avgDailyKwh: input.usageKwh / 30,
-        carbonKg: input.usageKwh * 0.85, // roughly 0.85 kg CO2 per kWh
-        efficiencyScore: Math.floor(Math.random() * 40) + 50, // 50-90 score
+        avgDailyKwh: analysis.avgDailyKwh,
+        carbonKg: analysis.carbonKg,
+        efficiencyScore: analysis.efficiencyScore,
       },
       create: {
         businessId: business.id,
@@ -75,38 +85,9 @@ export async function createElectricityEntry(input: ElectricityInput) {
         year: input.year,
         totalUsageKwh: input.usageKwh,
         totalCostIdr: input.costIdr,
-        avgDailyKwh: input.usageKwh / 30,
-        carbonKg: input.usageKwh * 0.85,
-        efficiencyScore: Math.floor(Math.random() * 40) + 50,
-      },
-    });
-
-    // If usage is abnormally high (e.g. > 1000 kWh), trigger an anomaly
-    if (input.usageKwh > 1000) {
-      await db.anomaly.create({
-        data: {
-          businessId: business.id,
-          month: input.month,
-          year: input.year,
-          description: `Konsumsi listrik melebihi batas wajar bulanan (${input.usageKwh.toFixed(1)} kWh). Terdeteksi lonjakan pemakaian pada jam operasional.`,
-          severity: RiskLevel.HIGH,
-          usageKwh: input.usageKwh,
-          expectedKwh: 800,
-          isResolved: false,
-        },
-      });
-    }
-
-    // Generate savings recommendations
-    const savings = Math.round(input.costIdr * 0.15); // mock 15% savings
-    await db.recommendation.create({
-      data: {
-        businessId: business.id,
-        title: "Optimalkan Penggunaan Penyejuk Ruangan (AC) / Kulkas",
-        description: "Gunakan timer otomatis untuk mematikan AC 30 menit sebelum jam tutup dan pastikan suhu AC diatur pada 24-25°C untuk efisiensi kompresor optimal.",
-        estimatedSavingsIdr: savings,
-        difficulty: RecommendationDifficulty.EASY,
-        isImplemented: false,
+        avgDailyKwh: analysis.avgDailyKwh,
+        carbonKg: analysis.carbonKg,
+        efficiencyScore: analysis.efficiencyScore,
       },
     });
 
