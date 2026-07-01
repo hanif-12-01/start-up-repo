@@ -3,12 +3,14 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   AlertTriangle,
   CreditCard,
   FileText,
   LayoutDashboard,
   Lightbulb,
+  LogOut,
   Menu,
   PlusCircle,
   TrendingUp,
@@ -32,6 +34,7 @@ const menuItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
 
   const Nav = ({ mobile = false }: { mobile?: boolean }) => (
     <nav className="flex-1 space-y-1">
@@ -58,17 +61,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </nav>
   );
 
-  const ProfileCard = () => (
-    <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-      <div className="grid h-9 w-9 place-items-center rounded-full bg-brand-greenSoft text-sm font-bold text-brand-greenDark">
-        LB
+  const ProfileCard = () => {
+    const name = session?.user?.name || "Pengguna";
+    const initials = name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-greenSoft text-sm font-bold text-brand-greenDark">
+            {initials}
+          </div>
+          <div className="overflow-hidden">
+            <p className="truncate text-xs font-bold text-brand-ink">{name}</p>
+            <p className="truncate text-[10px] text-slate-400">{session?.user?.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-all"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          Keluar (Logout)
+        </button>
       </div>
-      <div className="overflow-hidden">
-        <p className="truncate text-xs font-bold">Laundry Berkah</p>
-        <p className="truncate text-[10px] text-slate-400">Purwokerto</p>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-brand-ink">

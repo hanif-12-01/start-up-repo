@@ -1,4 +1,5 @@
 import { PrismaClient, BusinessType, UsageStatus, RiskLevel, RecommendationDifficulty, ReportStatus } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -14,11 +15,14 @@ async function main() {
   await prisma.business.deleteMany();
   await prisma.user.deleteMany();
 
-  // Demo user
+  const hashedPassword = await bcrypt.hash('password123', 10);
+
+  // Demo user (login: owner@wattwise.id / password123)
   const user = await prisma.user.create({
     data: {
       email: 'owner@wattwise.id',
       name: 'Budi Santoso',
+      password: hashedPassword,
     },
   });
 
