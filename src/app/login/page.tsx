@@ -35,7 +35,14 @@ function LoginForm() {
       });
 
       if (res?.error) {
-        setError("Email atau password salah. Silakan periksa kembali.");
+        // NextAuth surfaces the thrown Error message in res.error for
+        // CredentialsProvider. Detect the rate-limit marker to give a
+        // clearer message; fall back to generic invalid credentials.
+        if (res.error.toLowerCase().includes("terlalu banyak percobaan")) {
+          setError("Terlalu banyak percobaan gagal. Coba lagi beberapa menit.");
+        } else {
+          setError("Email atau password salah. Silakan periksa kembali.");
+        }
       } else {
         router.refresh();
         router.push(callbackUrl);

@@ -3,7 +3,34 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { safeError } from "./safe-log";
-import { checkRateLimit, recordAuthAttempt } from "./rate-limit";
+import { checkRateLimit, recordAuthAttempt, RATE_LIMIT_ERROR } from "./rate-limit";
+
+/**
+ * Extract client IP from NextAuth `req` in a robust way.
+ * Supports both Headers instances and plain header objects.
+ */
+function extractIp(req: any): string {
+  const headers = req?.headers;
+  if (!headers) return "unknown";
+
+  const get = (name: string): string | undefined => {
+    if (typeof headers.get === "function") {
+      return headers.get(name) ?? undefined;
+    }
+    const lower = name.toLowerCase();
+    // Header objects may be case-sensitive; try both
+    return (headers[name] ?? headers[lower]) as string | undefined;
+  };
+
+  const xff = get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const xreal = get("x-real-ip");
+  if (xreal) return xreal.trim();
+  return "unknown";
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,12 +46,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         const identifier = credentials.email.toLowerCase();
-        const ip = (req?.headers?.["x-forwarded-for"] as string)?.split(",")[0]?.trim() || "unknown";
+        const ip = extractIp(req);
 
         // Rate limit check
         const allowed = await checkRateLimit(identifier, ip, "login");
         if (!allowed) {
-          throw new Error("Terlalu banyak percobaan gagal. Coba lagi beberapa menit.");
+          throw new Error(RATE_LIMIT_ERROR);
         }
 
         const user = await db.user.findUnique({
