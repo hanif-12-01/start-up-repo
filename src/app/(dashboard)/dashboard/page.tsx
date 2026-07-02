@@ -59,7 +59,11 @@ export default async function DashboardPage() {
   const latest = entries[entries.length - 1];
   const prev = entries.length > 1 ? entries[entries.length - 2] : null;
   const analysis = business.analysisResults[0];
-  const hasAnomaly = business.anomalies.length > 0;
+  const hasElectricityData = entries.length > 0;
+  const isFirstMonthOnly = entries.length === 1;
+  const hasTrendComparison = entries.length > 1;
+  
+  const hasAnomaly = hasElectricityData && business.anomalies.length > 0;
   const anomalyDesc = hasAnomaly ? business.anomalies[0].description : null;
 
   // Stat cards
@@ -83,9 +87,14 @@ export default async function DashboardPage() {
     ? parseFloat((((kwhBulanIni - prev.usageKwh) / prev.usageKwh) * 100).toFixed(1))
     : 0;
 
-  let statusPemakaian: "Aman" | "Perlu Perhatian" | "Boros" = "Aman";
-  if (energyScore < 60) statusPemakaian = "Boros";
-  else if (energyScore < 80) statusPemakaian = "Perlu Perhatian";
+  let statusPemakaian: "Aman" | "Perlu Perhatian" | "Boros" | "Belum Ada Data" = "Aman";
+  if (!hasElectricityData) {
+    statusPemakaian = "Belum Ada Data";
+  } else if (energyScore < 60) {
+    statusPemakaian = "Boros";
+  } else if (energyScore < 80) {
+    statusPemakaian = "Perlu Perhatian";
+  }
 
   const ringkasan = {
     tagihanBulanLalu,
@@ -98,6 +107,9 @@ export default async function DashboardPage() {
     hasAnomaly,
     anomalyDesc,
     businessName: business.name,
+    hasElectricityData,
+    isFirstMonthOnly,
+    hasTrendComparison,
   };
 
   // Monthly bill chart

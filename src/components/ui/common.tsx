@@ -60,6 +60,7 @@ export function StatusBadge({ status }: { status: string }) {
     Boros: "bg-red-50 text-red-600",
     Tinggi: "bg-red-50 text-red-600",
     Lanjutan: "bg-red-50 text-red-600",
+    "Belum Ada Data": "bg-slate-100 text-slate-600",
   };
   return <span className={cn("badge", map[status] ?? "bg-slate-100 text-slate-600")}>{status}</span>;
 }

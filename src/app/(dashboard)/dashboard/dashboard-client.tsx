@@ -36,11 +36,14 @@ interface DashboardClientProps {
     kwhBulanIni: number;
     potensiHemat: number;
     energyScore: number;
-    statusPemakaian: "Aman" | "Perlu Perhatian" | "Boros";
+    statusPemakaian: "Aman" | "Perlu Perhatian" | "Boros" | "Belum Ada Data";
     kenaikanVsMingguLalu: number;
     hasAnomaly: boolean;
     anomalyDesc: string | null;
     businessName: string;
+    hasElectricityData: boolean;
+    isFirstMonthOnly: boolean;
+    hasTrendComparison: boolean;
   };
   tagihanBulanan: {
     bulan: string;
@@ -76,15 +79,67 @@ export default function DashboardClient({
 
   useEffect(() => setMounted(true), []);
 
+  const contributionLabel = ringkasan.hasElectricityData
+    ? "Kontribusi terhadap pemakaian bulanan"
+    : "Kontribusi terhadap estimasi total peralatan";
+
   return (
     <div>
       <PageHeader
         title="Dashboard Pemantauan Listrik"
-        subtitle={`Ringkasan pemakaian listrik ${ringkasan.businessName}. Data diperbarui secara real-time dari database.`}
+        subtitle={`Ringkasan pemakaian listrik ${ringkasan.businessName}. Ringkasan berdasarkan data input manual yang tersimpan di database.`}
       />
 
+      {/* Info banner for no electricity data */}
+      {!ringkasan.hasElectricityData && (
+        <div className="mb-6 rounded-2xl border border-blue-100 bg-brand-blueSoft p-4 shadow-card">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-blue shadow-card">
+              <Info className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-slate-800">Mulai Analisis Listrik Anda</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Masukkan data listrik bulanan pertama untuk mulai melihat analisis pemakaian.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/input"
+              className="inline-flex items-center gap-1 text-sm font-bold text-brand-blue hover:underline"
+            >
+              Input Data
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Info banner for first month only */}
+      {ringkasan.hasElectricityData && ringkasan.isFirstMonthOnly && (
+        <div className="mb-6 rounded-2xl border border-blue-100 bg-brand-blueSoft p-4 shadow-card">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-blue shadow-card">
+              <Info className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-slate-800">Data Pertama Tersimpan</h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Data bulan pertama tersimpan. Tambahkan data bulan berikutnya agar tren pemakaian bisa dianalisis.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/input"
+              className="inline-flex items-center gap-1 text-sm font-bold text-brand-blue hover:underline"
+            >
+              Input Data
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Warning Anomaly banner */}
-      {ringkasan.hasAnomaly && (
+      {ringkasan.hasElectricityData && ringkasan.hasAnomaly && (
         <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 shadow-card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-red-700 shadow-card">
@@ -107,8 +162,8 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* Fallback if no anomaly but general check needed */}
-      {!ringkasan.hasAnomaly && ringkasan.statusPemakaian !== "Aman" && (
+      {/* Fallback if no anomaly but general check needed (only show warning if enough data is available to compare) */}
+      {ringkasan.hasElectricityData && ringkasan.hasTrendComparison && !ringkasan.hasAnomaly && ringkasan.statusPemakaian !== "Aman" && ringkasan.statusPemakaian !== "Belum Ada Data" && (
         <div className="mb-6 rounded-2xl border border-yellow-100 bg-brand-yellowSoft p-4 shadow-card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-yellow-700 shadow-card">
@@ -134,14 +189,14 @@ export default function DashboardClient({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Estimasi Tagihan Bulan Ini"
-          value={formatRupiah(ringkasan.prediksiBulanIni)}
-          helper={`Bulan lalu ${formatRupiah(ringkasan.tagihanBulanLalu)}`}
+          value={ringkasan.hasElectricityData ? formatRupiah(ringkasan.prediksiBulanIni) : "-"}
+          helper={ringkasan.hasElectricityData ? `Bulan lalu ${formatRupiah(ringkasan.tagihanBulanLalu)}` : "Masukkan data bulanan pertama"}
           tone="blue"
           icon={<TrendingUp className="h-5 w-5" />}
         />
         <StatCard
           label="Pemakaian kWh Bulan Ini"
-          value={formatKwh(ringkasan.kwhBulanIni)}
+          value={ringkasan.hasElectricityData ? formatKwh(ringkasan.kwhBulanIni) : "-"}
           helper="Total pemakaian dari input data"
           tone="yellow"
           icon={<Zap className="h-5 w-5" />}
@@ -155,16 +210,32 @@ export default function DashboardClient({
         />
         <StatCard
           label="Energy Score"
-          value={`${ringkasan.energyScore}/100`}
+          value={ringkasan.hasElectricityData ? `${ringkasan.energyScore}/100` : "-"}
           helper="Semakin tinggi semakin efisien"
           tone="slate"
           icon={<Award className="h-5 w-5" />}
         />
         <StatCard
           label="Status Pemakaian"
-          value={ringkasan.statusPemakaian === "Aman" ? "Efisien" : ringkasan.statusPemakaian === "Boros" ? "Boros" : "Perlu Perhatian"}
+          value={
+            ringkasan.statusPemakaian === "Belum Ada Data"
+              ? "Belum Ada Data"
+              : ringkasan.statusPemakaian === "Aman"
+              ? "Efisien"
+              : ringkasan.statusPemakaian === "Boros"
+              ? "Boros"
+              : "Perlu Perhatian"
+          }
           helper="Status efisiensi pemakaian"
-          tone={ringkasan.statusPemakaian === "Boros" ? "red" : ringkasan.statusPemakaian === "Perlu Perhatian" ? "yellow" : "green"}
+          tone={
+            ringkasan.statusPemakaian === "Belum Ada Data"
+              ? "slate"
+              : ringkasan.statusPemakaian === "Boros"
+              ? "red"
+              : ringkasan.statusPemakaian === "Perlu Perhatian"
+              ? "yellow"
+              : "green"
+          }
           icon={<AlertTriangle className="h-5 w-5" />}
           sub={
             <div className="mt-2">
@@ -268,7 +339,9 @@ export default function DashboardClient({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-bold text-slate-800">{item.name}</h3>
-                        <p className="mt-1 text-xs text-slate-500">{formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% kontribusi</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% {contributionLabel.toLowerCase()}
+                        </p>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass(item.status)}`}>{item.status}</span>
                     </div>
@@ -310,8 +383,8 @@ export default function DashboardClient({
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-xs">
-                Belum ada data pemakaian harian.
+              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-xs px-4 text-center">
+                Belum ada data pemakaian harian. Masukkan data atau gunakan data bulanan untuk melihat ringkasan.
               </div>
             )}
           </section>
