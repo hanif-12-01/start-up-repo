@@ -23,26 +23,35 @@ export function StatCard({
   badge?: string;
 }) {
   const tones = {
-    green: "bg-brand-greenSoft text-brand-greenDark",
-    blue: "bg-brand-blueSoft text-brand-blue",
-    yellow: "bg-brand-yellowSoft text-yellow-700",
-    slate: "bg-slate-100 text-slate-600",
-    red: "bg-red-50 text-red-600",
+    green: "bg-emerald-50 text-emerald-600",
+    blue: "bg-blue-50 text-blue-600",
+    yellow: "bg-amber-50 text-amber-600",
+    slate: "bg-slate-50 text-slate-600",
+    red: "bg-rose-50 text-rose-600",
   };
+
+  const cardBorders = {
+    green: "border-t-4 border-t-emerald-500/80 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.03),transparent_40%)]",
+    blue: "border-t-4 border-t-blue-500/80 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.03),transparent_40%)]",
+    yellow: "border-t-4 border-t-amber-500/80 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.03),transparent_40%)]",
+    slate: "border-t-4 border-t-slate-400/80 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.03),transparent_40%)]",
+    red: "border-t-4 border-t-rose-500/80 bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.03),transparent_40%)]",
+  };
+
   return (
-    <div className="card flex flex-col gap-3">
+    <div className={cn("card card-hover flex flex-col gap-3 relative overflow-hidden", cardBorders[tone])}>
       <div className="flex items-start justify-between">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
+        <span className="text-[13px] font-semibold text-slate-400 tracking-wide uppercase">{label}</span>
         {icon && (
-          <span className={cn("grid h-9 w-9 place-items-center rounded-xl", tones[tone])}>{icon}</span>
+          <span className={cn("grid h-9 w-9 place-items-center rounded-xl transition-all duration-300 hover:scale-105", tones[tone])}>{icon}</span>
         )}
       </div>
-      <div>
-        <p className="text-2xl font-bold text-brand-ink md:text-[1.75rem]">{value}</p>
-        {badge && <StatusBadge status={badge} />}
+      <div className="my-1">
+        <p className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-[1.85rem] leading-none">{value}</p>
+        {badge && <div className="mt-2"><StatusBadge status={badge} /></div>}
         {sub}
       </div>
-      {helper && <p className="text-xs leading-relaxed text-slate-400">{helper}</p>}
+      {helper && <p className="text-[11px] leading-relaxed text-slate-400 font-medium mt-auto border-t border-slate-100/50 pt-2">{helper}</p>}
     </div>
   );
 }
@@ -50,27 +59,27 @@ export function StatCard({
 /* ---------- StatusBadge ---------- */
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    Normal: "bg-brand-greenSoft text-brand-greenDark",
-    Aman: "bg-brand-greenSoft text-brand-greenDark",
-    Rendah: "bg-brand-greenSoft text-brand-greenDark",
-    Mudah: "bg-brand-greenSoft text-brand-greenDark",
-    "Perlu Dicek": "bg-brand-yellowSoft text-yellow-700",
-    "Perlu Perhatian": "bg-brand-yellowSoft text-yellow-700",
-    Sedang: "bg-brand-yellowSoft text-yellow-700",
-    Boros: "bg-red-50 text-red-600",
-    Tinggi: "bg-red-50 text-red-600",
-    Lanjutan: "bg-red-50 text-red-600",
-    "Belum Ada Data": "bg-slate-100 text-slate-600",
+    Normal: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+    Aman: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+    Rendah: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+    Mudah: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+    "Perlu Dicek": "bg-amber-50 text-amber-700 border-amber-200/50",
+    "Perlu Perhatian": "bg-amber-50 text-amber-700 border-amber-200/50",
+    Sedang: "bg-amber-50 text-amber-700 border-amber-200/50",
+    Boros: "bg-rose-50 text-rose-700 border-rose-200/50",
+    Tinggi: "bg-rose-50 text-rose-700 border-rose-200/50",
+    Lanjutan: "bg-rose-50 text-rose-700 border-rose-200/50",
+    "Belum Ada Data": "bg-slate-50 text-slate-500 border-slate-200/60",
   };
-  return <span className={cn("badge", map[status] ?? "bg-slate-100 text-slate-600")}>{status}</span>;
+  return <span className={cn("badge", map[status] ?? "bg-slate-50 text-slate-500 border-slate-200/60")}>{status}</span>;
 }
 
 /* ---------- PageHeader ---------- */
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">{title}</h1>
-      {subtitle && <p className="mt-1 max-w-2xl text-sm text-slate-500">{subtitle}</p>}
+    <div className="mb-8 border-b border-slate-200/40 pb-5">
+      <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-3xl leading-tight">{title}</h1>
+      {subtitle && <p className="mt-1.5 max-w-3xl text-sm text-slate-400 font-medium leading-relaxed">{subtitle}</p>}
     </div>
   );
 }
@@ -90,16 +99,16 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-[90] grid place-items-center bg-black/40 p-4 animate-[fadeIn_.15s_ease]"
+      className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/40 p-4 backdrop-blur-sm animate-[fadeIn_.15s_ease]"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-soft"
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-start justify-between">
-          <h3 className="text-lg font-semibold text-brand-ink">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Tutup">
+        <div className="mb-4 flex items-start justify-between">
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition" aria-label="Tutup">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -108,4 +117,4 @@ export function Modal({
       <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}`}</style>
     </div>
   );
-}
+}

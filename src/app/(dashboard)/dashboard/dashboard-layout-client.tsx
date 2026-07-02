@@ -65,10 +65,10 @@ export default function DashboardLayoutClient({
             href={item.href}
             onClick={() => mobile && setMobileOpen(false)}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all",
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 border",
               active
-                ? "bg-brand-greenSoft text-brand-greenDark"
-                : "text-slate-600 hover:bg-slate-50 hover:text-brand-ink"
+                ? "bg-emerald-50/80 border-emerald-100/70 text-emerald-700 shadow-sm"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent"
             )}
           >
             <Icon className="h-5 w-5 shrink-0" />
@@ -90,18 +90,18 @@ export default function DashboardLayoutClient({
 
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-greenSoft text-sm font-bold text-brand-greenDark">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700 shadow-sm">
             {initials}
           </div>
           <div className="overflow-hidden">
-            <p className="truncate text-xs font-bold text-brand-ink">{name}</p>
-            <p className="truncate text-[10px] text-slate-400">{session?.user?.email}</p>
+            <p className="truncate text-xs font-bold text-slate-800 leading-tight">{name}</p>
+            <p className="truncate text-[10px] text-slate-400 font-medium mt-0.5">{session?.user?.email}</p>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-all"
+          className="flex w-full items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all duration-200 border border-transparent hover:border-rose-100/50"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Keluar (Logout)
@@ -111,13 +111,13 @@ export default function DashboardLayoutClient({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-brand-ink">
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+    <div className="min-h-screen bg-slate-50/60 text-brand-ink">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 py-3 md:hidden">
         <Link href="/" className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand-green text-white">
-            <Zap className="h-5 w-5 fill-current" />
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand-green text-white shadow-soft">
+            <Zap className="h-4 w-4 fill-current" />
           </div>
-          <span className="text-sm font-bold">
+          <span className="text-sm font-extrabold tracking-tight">
             WattWise <span className="text-brand-green">AI</span>
           </span>
         </Link>
@@ -141,10 +141,10 @@ export default function DashboardLayoutClient({
             <Zap className="h-5 w-5 fill-current" />
           </div>
           <div>
-            <span className="text-base font-bold">
+            <span className="text-base font-extrabold tracking-tight">
               WattWise <span className="text-brand-green">AI</span>
             </span>
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
               Listrik Cerdas UMKM
             </p>
           </div>
@@ -164,7 +164,7 @@ export default function DashboardLayoutClient({
       {mobileOpen && (
         <>
           <button
-            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs md:hidden"
             onClick={() => setMobileOpen(false)}
             aria-label="Tutup menu"
           />
@@ -177,9 +177,9 @@ export default function DashboardLayoutClient({
         </>
       )}
 
-      <main className="p-4 pb-10 sm:p-6 md:pl-[17.5rem] md:pt-6">
+      <main className="p-4 pb-12 sm:p-6 md:pl-[17.5rem] md:pt-8">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
   );
-}
+}

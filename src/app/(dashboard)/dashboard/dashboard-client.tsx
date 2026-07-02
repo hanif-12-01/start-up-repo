@@ -92,97 +92,97 @@ export default function DashboardClient({
 
       {/* Info banner for no electricity data */}
       {!ringkasan.hasElectricityData && (
-        <div className="mb-6 rounded-2xl border border-blue-100 bg-brand-blueSoft p-4 shadow-card">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-blue shadow-card">
+        <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm backdrop-blur-xs flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-blue-100 text-blue-600 shadow-sm">
               <Info className="h-5 w-5" />
             </div>
-            <div className="flex-1">
+            <div>
               <h2 className="text-sm font-bold text-slate-800">Mulai Analisis Listrik Anda</h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
                 Masukkan data listrik bulanan pertama untuk mulai melihat analisis pemakaian.
               </p>
             </div>
-            <Link
-              href="/dashboard/input"
-              className="inline-flex items-center gap-1 text-sm font-bold text-brand-blue hover:underline"
-            >
-              Input Data
-              <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
+          <Link
+            href="/dashboard/input"
+            className="btn-primary py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Input Data Pertama
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 
       {/* Info banner for first month only */}
       {ringkasan.hasElectricityData && ringkasan.isFirstMonthOnly && (
-        <div className="mb-6 rounded-2xl border border-blue-100 bg-brand-blueSoft p-4 shadow-card">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand-blue shadow-card">
+        <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm backdrop-blur-xs flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-blue-100 text-blue-600 shadow-sm">
               <Info className="h-5 w-5" />
             </div>
-            <div className="flex-1">
+            <div>
               <h2 className="text-sm font-bold text-slate-800">Data Pertama Tersimpan</h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
                 Data bulan pertama tersimpan. Tambahkan data bulan berikutnya agar tren pemakaian bisa dianalisis.
               </p>
             </div>
-            <Link
-              href="/dashboard/input"
-              className="inline-flex items-center gap-1 text-sm font-bold text-brand-blue hover:underline"
-            >
-              Input Data
-              <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
+          <Link
+            href="/dashboard/input"
+            className="btn-primary py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Input Data Baru
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 
       {/* Warning Anomaly banner */}
       {ringkasan.hasElectricityData && ringkasan.hasAnomaly && (
-        <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 shadow-card">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-red-700 shadow-card">
+        <div className="mb-6 rounded-2xl border border-rose-100 bg-rose-50/60 p-5 shadow-sm backdrop-blur-xs flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-rose-100 text-rose-600 shadow-sm animate-pulse-soft">
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-sm font-bold text-red-950">Pemakaian Tidak Normal Terdeteksi</h2>
-              <p className="mt-1 text-sm leading-relaxed text-red-900">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Pemakaian Tidak Normal Terdeteksi</h2>
+              <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
                 {ringkasan.anomalyDesc || "Terdeteksi adanya lonjakan atau ketidakwajaran pemakaian listrik."}
               </p>
             </div>
-            <Link
-              href="/dashboard/anomali"
-              className="inline-flex items-center gap-1 text-sm font-bold text-red-950 hover:underline"
-            >
-              Lihat detail
-              <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
+          <Link
+            href="/dashboard/anomali"
+            className="btn bg-rose-600 text-white hover:bg-rose-700 py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Lihat Detail Anomali
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 
       {/* Fallback if no anomaly but general check needed (only show warning if enough data is available to compare) */}
       {ringkasan.hasElectricityData && ringkasan.hasTrendComparison && !ringkasan.hasAnomaly && ringkasan.statusPemakaian !== "Aman" && ringkasan.statusPemakaian !== "Belum Ada Data" && (
-        <div className="mb-6 rounded-2xl border border-yellow-100 bg-brand-yellowSoft p-4 shadow-card">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-yellow-700 shadow-card">
+        <div className="mb-6 rounded-2xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm backdrop-blur-xs flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-amber-100 text-amber-600 shadow-sm">
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-sm font-bold text-yellow-900">Pemakaian Perlu Perhatian</h2>
-              <p className="mt-1 text-sm leading-relaxed text-yellow-800">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Pemakaian Perlu Perhatian</h2>
+              <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
                 Peringatan: Pemakaian listrik Anda bulan ini cenderung naik dibandingkan bulan lalu. Silakan cek peralatan Anda.
               </p>
             </div>
-            <Link
-              href="/dashboard/anomali"
-              className="inline-flex items-center gap-1 text-sm font-bold text-yellow-900 hover:underline"
-            >
-              Lihat detail
-              <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
+          <Link
+            href="/dashboard/anomali"
+            className="btn bg-amber-600 text-white hover:bg-amber-700 py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Lihat Analisis Tren
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 
@@ -249,36 +249,38 @@ export default function DashboardClient({
         <div className="mt-6 grid gap-6 lg:grid-cols-12">
           {/* Monthly usage history */}
           <section className="card lg:col-span-8">
-            <div className="mb-5">
-              <h2 className="font-bold">Tagihan Listrik Bulanan</h2>
-              <p className="mt-1 text-xs text-slate-500">Batang kuning adalah data bulan berjalan (prediksi berjalan).</p>
+            <div className="mb-6 flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">Tagihan Listrik Bulanan</h2>
+                <p className="mt-0.5 text-xs text-slate-400 font-medium">Batang kuning adalah data bulan berjalan (prediksi berjalan).</p>
+              </div>
             </div>
             {tagihanBulanan.length > 0 ? (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={tagihanBulanan} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
-                    <XAxis dataKey="bulan" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <XAxis dataKey="bulan" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 10, fill: "#94a3b8", fontWeight: 600 }}
                       tickFormatter={(v: number) => `Rp${(v / 1_000_000).toFixed(1)}jt`}
                     />
                     <Tooltip
-                      cursor={{ fill: "#f8fafc" }}
+                      cursor={{ fill: "rgba(241, 245, 249, 0.4)" }}
                       formatter={(value: number) => [formatRupiah(value), "Tagihan"]}
-                      contentStyle={{ borderRadius: 14, border: "1px solid #e2e8f0", boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)" }}
+                      contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)" }}
                     />
-                    <Bar dataKey="tagihan" radius={[8, 8, 0, 0]} maxBarSize={46}>
+                    <Bar dataKey="tagihan" radius={[6, 6, 0, 0]} maxBarSize={40}>
                       {tagihanBulanan.map((entry) => (
-                        <Cell key={entry.bulan} fill={entry.prediksi ? "#eab308" : "#2563eb"} />
+                        <Cell key={entry.bulan} fill={entry.prediksi ? "#f59e0b" : "#3b82f6"} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-xs">
+              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 text-slate-400 text-xs font-semibold">
                 Belum ada data bulanan. Masukkan data di menu Input Data.
               </div>
             )}
@@ -286,16 +288,18 @@ export default function DashboardClient({
 
           {/* Appliance breakdown */}
           <section className="card lg:col-span-4">
-            <div className="mb-5">
-              <h2 className="font-bold">Estimasi Pemakaian per Alat</h2>
-              <p className="mt-1 text-xs text-slate-500">Perkiraan pembagian kWh berdasarkan daya alat utama.</p>
+            <div className="mb-6 flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">Estimasi Pemakaian per Alat</h2>
+                <p className="mt-0.5 text-xs text-slate-400 font-medium">Perkiraan pembagian kWh berdasarkan daya alat utama.</p>
+              </div>
             </div>
             {pemakaianPeralatan.length > 0 ? (
               <>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={pemakaianPeralatan} dataKey="kwh" innerRadius={52} outerRadius={78} paddingAngle={3}>
+                      <Pie data={pemakaianPeralatan} dataKey="kwh" innerRadius={55} outerRadius={78} paddingAngle={4}>
                         {pemakaianPeralatan.map((entry) => (
                           <Cell key={entry.nama} fill={entry.warna} />
                         ))}
@@ -304,20 +308,20 @@ export default function DashboardClient({
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1">
+                <div className="mt-3 space-y-2.5 max-h-40 overflow-y-auto pr-1">
                   {pemakaianPeralatan.map((item) => (
                     <div key={item.nama} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex items-center gap-2 font-semibold text-slate-600 truncate">
+                      <span className="flex items-center gap-2 font-bold text-slate-600 truncate">
                         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.warna }} />
                         <span className="truncate">{item.nama}</span>
                       </span>
-                      <span className="text-slate-500 shrink-0">{formatKwh(item.kwh)}</span>
+                      <span className="text-slate-400 font-bold shrink-0">{formatKwh(item.kwh)}</span>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <div className="h-52 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-xs">
+              <div className="h-52 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 text-slate-400 text-xs font-semibold">
                 Belum ada data peralatan. Lengkapi profil usaha Anda.
               </div>
             )}
@@ -325,34 +329,40 @@ export default function DashboardClient({
 
           {/* Appliance efficiency classifier */}
           <section className="card lg:col-span-12">
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3">
               <div>
-                <h2 className="font-bold">Top 3 Peralatan Perlu Perhatian</h2>
-                <p className="mt-1 text-xs text-slate-500">Klasifikasi efisiensi berdasarkan estimasi kWh, kontribusi, jam pakai, dan riwayat tagihan.</p>
+                <h2 className="text-sm font-bold text-slate-800">Top 3 Peralatan Perlu Perhatian</h2>
+                <p className="mt-0.5 text-xs text-slate-400 font-medium">Klasifikasi efisiensi berdasarkan estimasi kWh, kontribusi, jam pakai, dan riwayat tagihan.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500">Estimasi, bukan nilai resmi PLN</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500 border border-slate-200/50">Estimasi, bukan nilai resmi PLN</span>
             </div>
             {topPerluPerhatian.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
                 {topPerluPerhatian.map((item) => (
-                  <div key={item.applianceId} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">{item.name}</h3>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% {contributionLabel.toLowerCase()}
-                        </p>
+                  <div key={item.applianceId} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 hover:bg-slate-50 hover:shadow-sm transition-all duration-300 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-800">{item.name}</h3>
+                          <p className="mt-0.5 text-[11px] text-slate-400 font-semibold leading-relaxed">
+                            {formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% {contributionLabel.toLowerCase()}
+                          </p>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${statusClass(item.status)}`}>{item.status}</span>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass(item.status)}`}>{item.status}</span>
+                      <div className="mt-4 space-y-2 border-t border-slate-200/40 pt-3">
+                        <p className="text-xs leading-relaxed text-slate-600"><strong className="text-slate-800">Analisis:</strong> {item.reason}</p>
+                        <p className="text-xs leading-relaxed text-slate-600"><strong className="text-emerald-700">Saran:</strong> {item.practicalAdvice}</p>
+                      </div>
                     </div>
-                    <p className="mt-3 text-xs leading-relaxed text-slate-600">{item.reason}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">Saran: {item.practicalAdvice}</p>
-                    <p className="mt-3 text-[11px] font-semibold text-slate-500">Estimasi biaya: {formatRupiah(item.estimatedMonthlyCost)}/bulan</p>
+                    <div className="mt-4 pt-3 border-t border-slate-200/40 text-xs font-bold text-slate-700 bg-slate-100/50 rounded-lg p-2.5 text-center">
+                      Estimasi: <span className="text-emerald-600">{formatRupiah(item.estimatedMonthlyCost)}/bln</span>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-sm text-slate-500 font-semibold text-center">
                 Belum ada peralatan yang perlu perhatian khusus. Klasifikasi ini estimasi WattWise AI, bukan nilai resmi PLN.
               </div>
             )}
@@ -360,30 +370,32 @@ export default function DashboardClient({
 
           {/* Daily usage line chart */}
           <section className="card lg:col-span-12">
-            <div className="mb-5">
-              <h2 className="font-bold">Pemakaian Listrik Harian Bulan Ini (kWh)</h2>
-              <p className="mt-1 text-xs text-slate-500">Garis biru menunjukkan pemakaian normal acuan efisiensi.</p>
+            <div className="mb-6 flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">Pemakaian Listrik Harian Bulan Ini (kWh)</h2>
+                <p className="mt-0.5 text-xs text-slate-400 font-medium">Garis biru putus-putus menunjukkan pemakaian normal acuan efisiensi.</p>
+              </div>
             </div>
             {pemakaianHarian.length > 0 ? (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={pemakaianHarian} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
-                    <XAxis dataKey="hari" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#64748b" }} />
+                    <XAxis dataKey="hari" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
                     <Tooltip
                       formatter={(value: number, name: string) => [
                         formatKwh(value),
                         name === "kwh" ? "Pemakaian aktual" : "Acuan normal",
                       ]}
-                      contentStyle={{ borderRadius: 14, border: "1px solid #e2e8f0", boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)" }}
+                      contentStyle={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)" }}
                     />
-                    <Line type="monotone" dataKey="normal" stroke="#2563eb" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                    <Line type="monotone" dataKey="kwh" stroke="#16a34a" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                    <Line type="monotone" dataKey="normal" stroke="#3b82f6" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+                    <Line type="monotone" dataKey="kwh" stroke="#10b981" strokeWidth={3.5} dot={{ r: 4, strokeWidth: 2, fill: "#fff" }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-xs px-4 text-center">
+              <div className="h-72 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 text-slate-400 text-xs font-semibold px-4 text-center">
                 Belum ada data pemakaian harian. Masukkan data atau gunakan data bulanan untuk melihat ringkasan.
               </div>
             )}
@@ -391,23 +403,24 @@ export default function DashboardClient({
         </div>
       )}
 
-      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
+      {/* Modern Gradient CTA section */}
+      <div className="mt-6 flex flex-col gap-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 p-6 shadow-md shadow-emerald-900/10 sm:flex-row sm:items-center sm:justify-between text-white border-0">
         <div>
-          <h2 className="font-bold">Ingin mengurangi biaya listrik bulan ini?</h2>
-          <p className="mt-1 text-sm text-slate-500">Lihat saran hemat yang dibuat khusus berdasarkan jenis usaha Anda.</p>
+          <h2 className="font-extrabold text-base tracking-wide text-white">Ingin mengurangi biaya listrik bulan ini?</h2>
+          <p className="mt-1 text-xs text-emerald-100 font-medium">Lihat saran hemat yang dibuat khusus berdasarkan jenis usaha Anda.</p>
         </div>
-        <Link href="/dashboard/rekomendasi" className="btn-primary shrink-0">
+        <Link href="/dashboard/rekomendasi" className="btn bg-white text-emerald-700 hover:bg-emerald-50 hover:scale-[1.02] shadow-sm py-2 px-5 text-xs font-bold shrink-0 self-start sm:self-auto border-0">
           Lihat Rekomendasi
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
       {/* Disclaimers */}
-      <div className="mt-6 flex gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+      <div className="mt-8 flex gap-3.5 rounded-2xl border border-slate-200/50 bg-slate-100/40 p-5 shadow-xs">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-        <div className="text-[11px] leading-relaxed text-slate-500">
-          <p className="font-bold text-slate-600">Pernyataan Penting (Disclaimer):</p>
-          <ul className="list-disc pl-4 mt-1 space-y-1">
+        <div className="text-[11px] leading-relaxed text-slate-400 font-semibold">
+          <p className="text-slate-500 font-bold">Pernyataan Penting (Disclaimer):</p>
+          <ul className="list-disc pl-4 mt-1.5 space-y-1">
             <li>Estimasi tagihan dan analisis pemakaian listrik adalah proyeksi sistem WattWise AI.</li>
             <li>Hasil ini bukan merupakan lembar tagihan resmi PLN. Tagihan resmi diterbitkan oleh PLN di akhir periode.</li>
             <li>Layanan WattWise AI MVP 1 belum terhubung ke sistem pembacaan meteran otomatis (AMI) atau penagihan resmi PLN.</li>
@@ -427,9 +440,9 @@ const statusRank: Record<ApplianceEfficiencyStatus, number> = {
 };
 
 function statusClass(status: ApplianceEfficiencyStatus): string {
-  if (status === "Sangat Boros") return "bg-red-100 text-red-700";
-  if (status === "Boros") return "bg-orange-100 text-orange-700";
-  if (status === "Perlu Dicek") return "bg-yellow-100 text-yellow-700";
-  if (status === "Efisien") return "bg-green-100 text-green-700";
-  return "bg-blue-100 text-blue-700";
+  if (status === "Sangat Boros") return "bg-rose-50 border-rose-200 text-rose-700";
+  if (status === "Boros") return "bg-orange-50 border-orange-200 text-orange-700";
+  if (status === "Perlu Dicek") return "bg-amber-50 border-amber-200 text-amber-700";
+  if (status === "Efisien") return "bg-emerald-50 border-emerald-200 text-emerald-700";
+  return "bg-blue-50 border-blue-200 text-blue-700";
 }
