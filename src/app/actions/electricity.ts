@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { RiskLevel, RecommendationDifficulty } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { getActiveBusinessId } from "@/services/business";
+import { buildElectricityDataQualityWarnings } from "@/services/electricity-data-quality";
 import { safeError } from "@/lib/safe-log";
 
 export interface ElectricityInput {
@@ -13,9 +14,15 @@ export interface ElectricityInput {
   year: number;
   usageKwh: number;
   costIdr: number;
+  confirmWarnings?: boolean;
 }
 
-export async function createElectricityEntry(input: ElectricityInput) {
+type ElectricityActionResult =
+  | { success: true; entryId: string }
+  | { success: false; error: string; requiresConfirmation?: false }
+  | { success: false; error: string; requiresConfirmation: true; warnings: string[] };
+
+export async function createElectricityEntry(input: ElectricityInput): Promise<ElectricityActionResult> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -37,8 +44,24 @@ export async function createElectricityEntry(input: ElectricityInput) {
       return { success: false, error: "Data usaha tidak ditemukan. Selesaikan profil usaha terlebih dahulu." };
     }
 
-    // Upsert electricity entry (update if year-month exists, create otherwise)
-    const entry = await db.electricityEntry.upsert({
+    const maxYear = new Date().getFullYear() + 1;
+    if (!Number.isInteger(input.month) || input.month < 1 || input.month > 12) {
+      return { success: false, error: "Bulan pemakaian tidak valid." };
+    }
+
+    if (!Number.isInteger(input.year) || input.year < 2020 || input.year > maxYear) {
+      return { success: false, error: "Tahun pemakaian tidak valid." };
+    }
+
+    if (!Number.isFinite(input.usageKwh) || input.usageKwh <= 0) {
+      return { success: false, error: "Pemakaian kWh harus lebih dari 0." };
+    }
+
+    if (!Number.isFinite(input.costIdr) || input.costIdr <= 0) {
+      return { success: false, error: "Biaya listrik harus lebih dari Rp0." };
+    }
+
+    const duplicate = await db.electricityEntry.findUnique({
       where: {
         businessId_year_month: {
           businessId: business.id,
@@ -46,11 +69,34 @@ export async function createElectricityEntry(input: ElectricityInput) {
           month: input.month,
         },
       },
-      update: {
-        usageKwh: input.usageKwh,
-        costIdr: input.costIdr,
-      },
-      create: {
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      return {
+        success: false,
+        error: "Data listrik untuk bulan dan tahun ini sudah ada. Pilih periode lain atau hapus data lama terlebih dahulu.",
+      };
+    }
+
+    const previousEntries = await db.electricityEntry.findMany({
+      where: { businessId: business.id },
+      orderBy: [{ year: "asc" }, { month: "asc" }],
+      select: { month: true, year: true, usageKwh: true, costIdr: true },
+    });
+    const warnings = buildElectricityDataQualityWarnings(input, previousEntries);
+
+    if (warnings.length > 0 && input.confirmWarnings !== true) {
+      return {
+        success: false,
+        error: "Data terlihat tidak biasa. Periksa peringatan sebelum menyimpan.",
+        requiresConfirmation: true,
+        warnings,
+      };
+    }
+
+    const entry = await db.electricityEntry.create({
+      data: {
         businessId: business.id,
         month: input.month,
         year: input.year,
@@ -104,6 +150,14 @@ export async function createElectricityEntry(input: ElectricityInput) {
     return { success: true, entryId: entry.id };
   } catch (error: any) {
     safeError("electricityEntry", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        success: false,
+        error: "Data listrik untuk bulan dan tahun ini sudah ada. Pilih periode lain atau hapus data lama terlebih dahulu.",
+      };
+    }
+
     return { success: false, error: error.message || "Gagal menyimpan data listrik." };
   }
 }

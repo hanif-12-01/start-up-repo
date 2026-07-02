@@ -14,8 +14,8 @@ const inputSchema = z.object({
     .number()
     .min(2020, "Tahun minimal 2020")
     .max(new Date().getFullYear() + 1, "Tahun tidak valid"),
-  usageKwh: z.number().min(1, "Jumlah pemakaian kWh minimal 1 kWh"),
-  costIdr: z.number().min(1000, "Nominal tagihan minimal Rp 1.000"),
+  usageKwh: z.number().positive("Jumlah pemakaian kWh harus lebih dari 0"),
+  costIdr: z.number().min(1, "Nominal tagihan harus lebih dari Rp0"),
 });
 
 type InputFormData = {
@@ -45,6 +45,8 @@ export function ElectricityForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [pendingData, setPendingData] = useState<InputFormData | null>(null);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -62,21 +64,35 @@ export function ElectricityForm() {
     },
   });
 
-  const onSubmit = async (data: InputFormData) => {
+  const saveData = async (data: InputFormData, confirmWarnings = false) => {
     setLoading(true);
     setSuccess(false);
     setErrorMsg("");
 
+    if (!confirmWarnings) {
+      setWarnings([]);
+      setPendingData(null);
+    }
+
     try {
-      const res = await createElectricityEntry(data);
+      const res = await createElectricityEntry({ ...data, confirmWarnings });
 
       if (res.success) {
         setSuccess(true);
+        setWarnings([]);
+        setPendingData(null);
         reset({
           month: currentMonth,
           year: currentYear,
         });
         toast("Data listrik berhasil disimpan. Analisis baru telah dibuat.");
+        return;
+      }
+
+      if (res.requiresConfirmation) {
+        setWarnings(res.warnings);
+        setPendingData(data);
+        toast("Ada peringatan kualitas data. Periksa sebelum menyimpan.", "info");
         return;
       }
 
@@ -88,6 +104,13 @@ export function ElectricityForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const onSubmit = (data: InputFormData) => saveData(data);
+
+  const clearWarnings = () => {
+    setWarnings([]);
+    setPendingData(null);
   };
 
   return (
@@ -117,7 +140,45 @@ export function ElectricityForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="card space-y-7">
+      {warnings.length > 0 && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-card">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <h2 className="font-bold">Periksa Kembali Data</h2>
+            <p className="mt-1 text-sm leading-relaxed">
+              Data terlihat tidak biasa. Jika angka sudah benar, Anda tetap bisa
+              menyimpannya.
+            </p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-relaxed">
+              {warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                disabled={loading || !pendingData}
+                className="btn-primary flex items-center justify-center gap-2"
+                onClick={() => pendingData && saveData(pendingData, true)}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Tetap Simpan Data"
+                )}
+              </button>
+              <button type="button" className="btn-outline" onClick={clearWarnings}>
+                Ubah Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} onChange={clearWarnings} className="card space-y-7">
         <section>
           <h2 className="font-bold text-brand-ink">Periode Laporan</h2>
           <p className="mt-1 text-xs text-slate-500">
@@ -211,6 +272,7 @@ export function ElectricityForm() {
               });
               setSuccess(false);
               setErrorMsg("");
+              clearWarnings();
             }}
           >
             Kosongkan Form
