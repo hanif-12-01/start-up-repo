@@ -89,7 +89,7 @@ export default function HargaClient({
       </div>
 
       {/* Grid of plan cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = plan.code === currentPlanCode;
           const isPopular = plan.code === "PRO_UMKM";
@@ -99,9 +99,10 @@ export default function HargaClient({
             <div
               key={plan.id}
               className={cn(
-                "card relative flex flex-col justify-between transition-all duration-300 hover:shadow-md border",
-                isPopular ? "border-emerald-500 ring-2 ring-emerald-500/10 scale-105 md:scale-100 lg:scale-105" : "border-slate-200/80",
-                isCurrent && "bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.02),transparent_50%)]"
+                "card relative flex flex-col justify-between transition-all duration-300 hover:shadow-md border p-6",
+                isPopular ? "border-emerald-500 ring-2 ring-emerald-500/10 lg:scale-105" : "border-slate-200/80",
+                isCurrent && "bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.02),transparent_50%)]",
+                isPopular && "shadow-sm"
               )}
             >
               {isPopular && (

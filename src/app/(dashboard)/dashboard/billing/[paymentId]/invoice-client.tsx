@@ -141,13 +141,13 @@ export default function InvoiceClient({
       </div>
 
       {/* Invoice Details Card */}
-      <div className="card border border-slate-200/80 p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+      <div className="card border border-slate-200/80 p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
           <div>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">No. Invoice</p>
             <p className="text-sm font-bold text-slate-800">{payment.invoiceNo}</p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Tanggal Dibuat</p>
             <p className="text-xs text-slate-600 font-medium">{formatDate(payment.createdAt)}</p>
           </div>
