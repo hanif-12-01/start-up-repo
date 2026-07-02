@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ToastProvider } from "@/components/ui/toast";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "WattWise AI — Listrik Lebih Cerdas, Biaya Lebih Terkendali",
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
