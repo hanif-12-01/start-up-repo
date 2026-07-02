@@ -16,9 +16,7 @@
 
 ## 💡 Apa itu WattWise AI?
 
-**WattWise AI** adalah platform asisten efisiensi dan pemantauan energi berbasis kecerdasan buatan (AI) yang dirancang untuk membantu sektor bisnis meminimalkan pengeluaran biaya listrik bulanan secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang mendeteksi penggunaan daya berlebih, memprediksi pengeluaran, dan memberikan rekomendasi aksi konkret.
-
----
+**WattWise AI** adalah platform asisten efisiensi dan pemantauan energi berbasis kecerdasan buatan (AI) yang dirancang untuk membantu sektor bisnis meminimalkan pengeluaran biaya listrik bulanan secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang menganalisis pola pemakaian dari data input manual, membantu memperkirakan tagihan, mendeteksi potensi anomali, dan memberikan rekomendasi aksi konkret.         
 
 ## 🎯 Target User: UMKM (Usaha Mikro, Kecil, dan Menengah)
 
