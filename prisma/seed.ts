@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clean database
+  await prisma.authAttempt.deleteMany();
   await prisma.monthlyReport.deleteMany();
   await prisma.recommendation.deleteMany();
   await prisma.anomaly.deleteMany();
@@ -13,7 +14,6 @@ async function main() {
   await prisma.dailyUsage.deleteMany();
   await prisma.electricityEntry.deleteMany();
   await prisma.business.deleteMany();
-  await prisma.authAttempt.deleteMany();
   await prisma.user.deleteMany();
 
   const hashedPassword = await bcrypt.hash('password123', 10);
