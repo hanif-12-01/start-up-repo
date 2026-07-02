@@ -140,44 +140,6 @@ export function ElectricityForm() {
         </div>
       )}
 
-      {warnings.length > 0 && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-card">
-          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
-          <div className="flex-1">
-            <h2 className="font-bold">Periksa Kembali Data</h2>
-            <p className="mt-1 text-sm leading-relaxed">
-              Data terlihat tidak biasa. Jika angka sudah benar, Anda tetap bisa
-              menyimpannya.
-            </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-relaxed">
-              {warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                disabled={loading || !pendingData}
-                className="btn-primary flex items-center justify-center gap-2"
-                onClick={() => pendingData && saveData(pendingData, true)}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  "Tetap Simpan Data"
-                )}
-              </button>
-              <button type="button" className="btn-outline" onClick={clearWarnings}>
-                Ubah Data
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit(onSubmit)} onChange={clearWarnings} className="card space-y-7">
         <section>
           <h2 className="font-bold text-brand-ink">Periode Laporan</h2>
@@ -260,6 +222,46 @@ export function ElectricityForm() {
             </div>
           </div>
         </section>
+
+        {warnings.length > 0 && (
+          <section className="border-t border-slate-100 pt-6">
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <h2 className="font-bold">Periksa Kembali Data</h2>
+                <p className="mt-1 text-sm leading-relaxed">
+                  Data terlihat tidak biasa. Jika angka sudah benar, Anda tetap bisa
+                  menyimpannya.
+                </p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-relaxed">
+                  {warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={loading || !pendingData}
+                    className="btn-primary flex items-center justify-center gap-2"
+                    onClick={() => pendingData && saveData(pendingData, true)}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      "Tetap Simpan Data"
+                    )}
+                  </button>
+                  <button type="button" className="btn-outline" onClick={clearWarnings}>
+                    Ubah Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
           <button
