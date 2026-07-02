@@ -1,0 +1,296 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import PDFDocument from "pdfkit";
+
+export const dynamic = "force-dynamic";
+
+const monthNames = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+const businessTypeLabels: Record<string, string> = {
+  LAUNDRY: "Laundry",
+  FNB: "F&B / Kuliner",
+  RETAIL: "Retail / Toko",
+  MANUFACTURE: "Manufaktur / Produksi",
+  COLD_STORAGE: "Cold Storage / Pendingin",
+  OTHER: "Usaha Lainnya",
+};
+
+const severityLabels: Record<string, string> = {
+  LOW: "Ringan",
+  MEDIUM: "Sedang",
+  HIGH: "Tinggi",
+};
+
+function fmtRp(v: number) {
+  return "Rp" + Math.round(v).toLocaleString("id-ID");
+}
+
+function fmtKwh(v: number) {
+  return v.toLocaleString("id-ID", { maximumFractionDigits: 0 }) + " kWh";
+}
+
+function getUsageLabel(score?: number | null) {
+  if (score == null) return "Belum Dinilai";
+  if (score < 60) return "Boros / Risiko Tinggi";
+  if (score < 80) return "Perlu Perhatian";
+  return "Efisien";
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const business = await db.business.findFirst({
+      where: { userId: (session.user as any).id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        electricityEntries: {
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          take: 2,
+        },
+        analysisResults: {
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          take: 1,
+        },
+        anomalies: {
+          orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
+        },
+        recommendations: {
+          where: { isImplemented: false },
+          orderBy: [{ estimatedSavingsIdr: "desc" }, { createdAt: "desc" }],
+          take: 3,
+        },
+        monthlyReports: {
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          take: 1,
+        },
+      },
+    });
+
+    if (!business) {
+      return NextResponse.json({ error: "Profil usaha belum lengkap" }, { status: 404 });
+    }
+
+    const latestEntry = business.electricityEntries[0];
+    const previousEntry = business.electricityEntries[1];
+    const latestAnalysis = business.analysisResults[0];
+
+    if (!latestEntry || !latestAnalysis) {
+      return NextResponse.json({ error: "Data laporan belum cukup" }, { status: 404 });
+    }
+
+    const period = `${monthNames[latestEntry.month - 1]} ${latestEntry.year}`;
+    const currentAnomalies = business.anomalies.filter(
+      (a) => a.month === latestEntry.month && a.year === latestEntry.year
+    );
+    const monthlySavings = business.recommendations.reduce(
+      (sum, r) => sum + (r.estimatedSavingsIdr ?? 0), 0
+    );
+    const yearlySavings = monthlySavings * 12;
+    const usageLabel = getUsageLabel(latestAnalysis.efficiencyScore);
+    const predictedBill =
+      previousEntry && previousEntry.usageKwh > 0
+        ? Math.round(
+            latestEntry.costIdr *
+              (1 + Math.max(-0.2, Math.min(0.2, (latestEntry.usageKwh - previousEntry.usageKwh) / previousEntry.usageKwh)))
+          )
+        : Math.round(latestEntry.costIdr * 1.02);
+
+    // --- Build PDF ---
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    const chunks: Uint8Array[] = [];
+
+    doc.on("data", (chunk: Uint8Array) => chunks.push(chunk));
+
+    const pdfReady = new Promise<Uint8Array>((resolve, reject) => {
+      doc.on("end", () => {
+        const buf = Buffer.concat(chunks);
+        resolve(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength));
+      });
+      doc.on("error", reject);
+    });
+
+    const PAGE_W = doc.page.width;
+    const M = 50; // margin
+    const CW = PAGE_W - M * 2; // content width
+    const GREEN = "#16a34a";
+    const DARK = "#1e293b";
+    const GRAY = "#64748b";
+
+    // ── Header band ──
+    doc.rect(0, 0, PAGE_W, 110).fill(GREEN);
+    doc.fontSize(10).fillColor("#ffffff").font("Helvetica-Bold")
+      .text("WATTWISE AI", M, 30, { width: CW });
+    doc.fontSize(18).text("Laporan Energi Bulanan", M, 48, { width: CW });
+    doc.fontSize(10).font("Helvetica").fillColor("rgba(255,255,255,0.8)")
+      .text("Listrik Cerdas untuk UMKM", M, 72, { width: CW });
+    doc.fontSize(11).font("Helvetica-Bold").fillColor("#ffffff")
+      .text(`Periode: ${period}`, M, 88, { width: CW, align: "right" });
+
+    doc.fillColor(DARK);
+    let y = 130;
+
+    // ── Helper fns ──
+    function sectionTitle(title: string) {
+      y += 8;
+      doc.moveTo(M, y).lineTo(M + CW, y).strokeColor("#e2e8f0").lineWidth(0.5).stroke();
+      y += 12;
+      doc.fontSize(9).font("Helvetica-Bold").fillColor(GREEN).text(title.toUpperCase(), M, y, { width: CW });
+      y += 18;
+    }
+
+    function labelValue(label: string, value: string, indent = 0) {
+      doc.fontSize(9.5).font("Helvetica").fillColor(GRAY).text(label, M + indent, y, { continued: true });
+      doc.font("Helvetica-Bold").fillColor(DARK).text("  " + value);
+      y += 16;
+    }
+
+    function checkPageBreak(needed: number) {
+      if (y + needed > doc.page.height - 60) {
+        doc.addPage();
+        y = 50;
+      }
+    }
+
+    // ── Profil Usaha ──
+    sectionTitle("Profil Usaha");
+    labelValue("Nama Usaha:", business.name);
+    labelValue("Jenis Usaha:", businessTypeLabels[business.type] ?? business.type);
+    labelValue("Lokasi:", business.address ?? "-");
+    labelValue("Daya Terpasang:", business.powerVA ? `${business.powerVA} VA` : "-");
+    labelValue("Jam Operasional:", business.operatingHours ?? "-");
+
+    // ── Ringkasan Listrik ──
+    checkPageBreak(120);
+    sectionTitle("Ringkasan Listrik Bulanan");
+
+    const summaryItems = [
+      ["Total kWh", fmtKwh(latestEntry.usageKwh)],
+      ["Estimasi Tagihan", fmtRp(latestEntry.costIdr)],
+      ["Prediksi Tagihan", fmtRp(predictedBill)],
+      ["Status Pemakaian", usageLabel + (latestAnalysis.efficiencyScore != null ? ` (Skor ${Math.round(latestAnalysis.efficiencyScore)}/100)` : "")],
+    ];
+
+    const colW = CW / 2;
+    for (let i = 0; i < summaryItems.length; i += 2) {
+      const row = summaryItems.slice(i, i + 2);
+      row.forEach((item, j) => {
+        const x = M + j * colW;
+        doc.roundedRect(x, y, colW - 8, 44, 4).fillAndStroke("#f8fafc", "#e2e8f0");
+        doc.fontSize(8).font("Helvetica").fillColor(GRAY).text(item[0], x + 10, y + 8);
+        doc.fontSize(12).font("Helvetica-Bold").fillColor(DARK).text(item[1], x + 10, y + 23);
+      });
+      y += 52;
+    }
+
+    // ── Anomali ──
+    checkPageBreak(80);
+    sectionTitle("Deteksi Anomali");
+    if (currentAnomalies.length === 0) {
+      doc.fontSize(9.5).font("Helvetica").fillColor("#15803d")
+        .text("✓ Tidak ada anomali aktif pada periode ini. Pemakaian listrik terpantau stabil.", M, y, { width: CW });
+      y += 20;
+    } else {
+      for (const a of currentAnomalies) {
+        checkPageBreak(50);
+        const sevColor = a.severity === "HIGH" ? "#dc2626" : a.severity === "MEDIUM" ? "#ca8a04" : GRAY;
+        doc.fontSize(8).font("Helvetica-Bold").fillColor(sevColor)
+          .text(`RISIKO ${severityLabels[a.severity]}`, M, y, { width: CW });
+        y += 13;
+        doc.fontSize(9.5).font("Helvetica").fillColor(DARK)
+          .text(a.description, M + 8, y, { width: CW - 8 });
+        y += doc.heightOfString(a.description, { width: CW - 8 }) + 4;
+        if (a.usageKwh && a.expectedKwh) {
+          doc.fontSize(8).fillColor(GRAY)
+            .text(`Tercatat ${fmtKwh(a.usageKwh)}, acuan normal ${fmtKwh(a.expectedKwh)}.`, M + 8, y, { width: CW - 8 });
+          y += 14;
+        }
+        y += 6;
+      }
+    }
+
+    // ── Rekomendasi ──
+    checkPageBreak(100);
+    sectionTitle("Tiga Rekomendasi Hemat Teratas");
+    if (business.recommendations.length === 0) {
+      doc.fontSize(9.5).font("Helvetica").fillColor(GRAY)
+        .text("Belum ada rekomendasi aktif atau semua rekomendasi sudah diterapkan.", M, y, { width: CW });
+      y += 20;
+    } else {
+      business.recommendations.forEach((r, i) => {
+        checkPageBreak(60);
+        doc.fontSize(10).font("Helvetica-Bold").fillColor(DARK)
+          .text(`${i + 1}. ${r.title}`, M, y, { width: CW });
+        y += 15;
+        doc.fontSize(9).font("Helvetica").fillColor(GRAY)
+          .text(r.description, M + 12, y, { width: CW - 12 });
+        y += doc.heightOfString(r.description, { width: CW - 12 }) + 4;
+        doc.fontSize(8.5).font("Helvetica-Bold").fillColor(GREEN)
+          .text(`Potensi hemat: ${r.estimatedSavingsIdr ? fmtRp(r.estimatedSavingsIdr) : "bervariasi"}/bulan`, M + 12, y);
+        y += 18;
+      });
+    }
+
+    // ── Estimasi Hemat ──
+    checkPageBreak(70);
+    sectionTitle("Estimasi Penghematan");
+    const savingsData = [
+      ["Estimasi Hemat Bulanan", fmtRp(monthlySavings)],
+      ["Estimasi Hemat Tahunan", fmtRp(yearlySavings)],
+    ];
+    savingsData.forEach((item, j) => {
+      const x = M + j * colW;
+      doc.roundedRect(x, y, colW - 8, 44, 4).fillAndStroke("#f0fdf4", "#bbf7d0");
+      doc.fontSize(8).font("Helvetica").fillColor(GREEN).text(item[0], x + 10, y + 8);
+      doc.fontSize(13).font("Helvetica-Bold").fillColor("#15803d").text(item[1], x + 10, y + 23);
+    });
+    y += 56;
+
+    // ── Disclaimer ──
+    checkPageBreak(60);
+    doc.moveTo(M, y).lineTo(M + CW, y).strokeColor("#e2e8f0").lineWidth(0.5).stroke();
+    y += 12;
+    doc.fontSize(7.5).font("Helvetica").fillColor(GRAY)
+      .text(
+        "Disclaimer: Laporan ini adalah estimasi berdasarkan data yang dimasukkan pengguna dan analisis WattWise AI. " +
+        "Laporan ini bukan tagihan resmi PLN. Tagihan aktual dapat berbeda tergantung tarif PLN, pajak, biaya administrasi, " +
+        "biaya lain, dan pemakaian listrik nyata di lapangan.",
+        M, y, { width: CW, lineGap: 2 }
+      );
+    y += 40;
+
+    // Footer
+    doc.fontSize(7).font("Helvetica").fillColor("#94a3b8")
+      .text(
+        `Digenarasi oleh WattWise AI — ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
+        M, doc.page.height - 40, { width: CW, align: "center" }
+      );
+
+    doc.end();
+
+    const pdfBuffer = await pdfReady;
+
+    return new NextResponse(pdfBuffer as any, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Laporan-WattWise-${period.replace(/\s/g, "-")}.pdf"`,
+        "Content-Length": String(pdfBuffer.length),
+      },
+    });
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    return NextResponse.json(
+      { error: "Gagal membuat PDF" },
+      { status: 500 }
+    );
+  }
+}
