@@ -152,8 +152,8 @@ export default function OnboardingPage() {
     try {
       const res = await createOnboardingBusiness(data);
       if (res.success) {
-        await updateSession();
-        router.push("/dashboard");
+        await updateSession({ hasBusiness: true });
+        router.replace("/dashboard");
         router.refresh();
       } else {
         setErrorMsg(res.error || "Gagal membuat profil usaha.");

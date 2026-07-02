@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BusinessType, UsageStatus } from "@prisma/client";
-import { getActiveBusinessId, setActiveBusiness } from "@/services/business";
+import { getActiveBusinessId, setActiveBusiness as setActiveBusinessCookie } from "@/services/business";
 
 export interface OnboardingInput {
   name: string;
@@ -49,9 +49,12 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
       },
     });
 
+    // Set as active business immediately so dashboard has scope on first load.
+    await setActiveBusinessCookie(session.user.id, business.id);
+
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
-    
+
     return { success: true, businessId: business.id };
   } catch (error: any) {
     console.error("Onboarding Error:", error);
@@ -187,7 +190,7 @@ export async function switchActiveBusinessAction(businessId: string) {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
     }
 
-    await setActiveBusiness(session.user.id, businessId);
+    await setActiveBusinessCookie(session.user.id, businessId);
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/input");

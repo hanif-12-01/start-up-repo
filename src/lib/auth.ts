@@ -41,8 +41,14 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.hasBusiness = (user as any).hasBusiness;
       }
-      if (trigger === "update" && session?.hasBusiness !== undefined) {
-        token.hasBusiness = session.hasBusiness;
+      if (trigger === "update") {
+        if (session?.hasBusiness !== undefined) {
+          token.hasBusiness = session.hasBusiness;
+        } else if (token.id) {
+          // Fallback: recompute from DB if client did not pass value.
+          const count = await db.business.count({ where: { userId: token.id as string } });
+          token.hasBusiness = count > 0;
+        }
       }
       return token;
     },
