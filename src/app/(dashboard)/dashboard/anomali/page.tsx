@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import AnomaliClient from "./anomali-client";
+import { getActiveBusinessId } from "@/services/business";
 
 export default async function AnomaliPage() {
   const session = await getServerSession(authOptions);
@@ -11,9 +12,13 @@ export default async function AnomaliPage() {
     redirect("/login");
   }
 
+  const activeBusinessId = await getActiveBusinessId(session.user.id);
+  if (!activeBusinessId) {
+    redirect("/onboarding");
+  }
+
   const business = await db.business.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
+    where: { id: activeBusinessId, userId: session.user.id },
     include: {
       anomalies: {
         orderBy: [

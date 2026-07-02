@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { RiskLevel, RecommendationDifficulty } from "@prisma/client";
+import { getActiveBusinessId } from "@/services/business";
 
 export interface ElectricityInput {
   month: number;
@@ -21,10 +22,14 @@ export async function createElectricityEntry(input: ElectricityInput) {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
     }
 
+    const activeBusinessId = await getActiveBusinessId(session.user.id);
+    if (!activeBusinessId) {
+      return { success: false, error: "Sesi usaha tidak valid. Silakan pilih usaha Anda." };
+    }
+
     // Get active business
     const business = await db.business.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
+      where: { id: activeBusinessId, userId: session.user.id },
     });
 
     if (!business) {

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
 import { LaporanPdfButton } from "./laporan-pdf-button";
+import { getActiveBusinessId } from "@/services/business";
 
 export const dynamic = "force-dynamic";
 
@@ -82,9 +83,13 @@ export default async function LaporanPage() {
     redirect("/login");
   }
 
+  const activeBusinessId = await getActiveBusinessId(session.user.id);
+  if (!activeBusinessId) {
+    redirect("/onboarding");
+  }
+
   const business = await db.business.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
+    where: { id: activeBusinessId, userId: session.user.id },
     include: {
       electricityEntries: {
         orderBy: [{ year: "desc" }, { month: "desc" }],

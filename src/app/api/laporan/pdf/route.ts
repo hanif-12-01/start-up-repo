@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import PDFDocument from "pdfkit";
+import { getActiveBusinessId } from "@/services/business";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const activeBusinessId = await getActiveBusinessId(session.user.id);
+    if (!activeBusinessId) {
+      return NextResponse.json({ error: "Profil usaha belum lengkap" }, { status: 404 });
+    }
+
     const business = await db.business.findFirst({
-      where: { userId: (session.user as any).id },
-      orderBy: { createdAt: "desc" },
+      where: { id: activeBusinessId, userId: session.user.id },
       include: {
         electricityEntries: {
           orderBy: [{ year: "desc" }, { month: "desc" }],

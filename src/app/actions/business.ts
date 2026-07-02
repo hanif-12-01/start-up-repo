@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BusinessType, UsageStatus } from "@prisma/client";
+import { getActiveBusinessId, setActiveBusiness } from "@/services/business";
 
 export interface OnboardingInput {
   name: string;
@@ -65,9 +66,13 @@ export async function getBusinessProfile() {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
     }
 
+    const activeId = await getActiveBusinessId(session.user.id);
+    if (!activeId) {
+      return { success: false, error: "Profil usaha tidak ditemukan." };
+    }
+
     const business = await db.business.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
+      where: { id: activeId, userId: session.user.id },
       include: {
         appliances: {
           orderBy: { powerWatt: "desc" },
@@ -100,9 +105,13 @@ export async function updateBusinessProfile(input: {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
     }
 
+    const activeId = await getActiveBusinessId(session.user.id);
+    if (!activeId) {
+      return { success: false, error: "Usaha tidak ditemukan." };
+    }
+
     const business = await db.business.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
+      where: { id: activeId, userId: session.user.id },
       include: {
         appliances: true,
       },
@@ -168,5 +177,29 @@ export async function updateBusinessProfile(input: {
   } catch (error: any) {
     console.error("Update Business Profile Error:", error);
     return { success: false, error: error.message || "Gagal memperbarui data usaha." };
+  }
+}
+
+export async function switchActiveBusinessAction(businessId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    await setActiveBusiness(session.user.id, businessId);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/input");
+    revalidatePath("/dashboard/prediksi");
+    revalidatePath("/dashboard/anomali");
+    revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/laporan");
+    revalidatePath("/dashboard/profil");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Switch Business Error:", error);
+    return { success: false, error: error.message || "Gagal mengganti usaha." };
   }
 }
