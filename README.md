@@ -12,75 +12,85 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-v4-green?style=for-the-badge)](https://next-auth.js.org/)
 
-WattWise AI adalah platform Minimum Viable Product (MVP) Fullstack yang dirancang khusus untuk membantu pemilik Usaha Mikro, Kecil, dan Menengah (UMKM) di Indonesia memantau pemakaian listrik, mendeteksi anomali penggunaan secara real-time, mendapatkan rekomendasi efisiensi tertarget, serta mengunduh laporan bulanan formal dalam format PDF.
+---
+
+## 💡 Apa itu WattWise AI?
+
+**WattWise AI** adalah platform asisten efisiensi dan pemantauan energi berbasis kecerdasan buatan (AI) yang dirancang untuk membantu sektor bisnis meminimalkan pengeluaran biaya listrik bulanan secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang mendeteksi penggunaan daya berlebih, memprediksi pengeluaran, dan memberikan rekomendasi aksi konkret.
 
 ---
 
-## 🚀 Fitur Utama (MVP 2)
+## 🎯 Target User: UMKM (Usaha Mikro, Kecil, dan Menengah)
 
-### 1. Autentikasi & Onboarding UMKM
-*   **Secure Authentication:** Sistem login dan register berbasis NextAuth.js v4 Credentials Provider dengan enkripsi sandi menggunakan `bcryptjs`.
-*   **Multi-step Onboarding:** Form pendaftaran profil usaha pertama kali secara mulus (Nama Usaha, Jenis Usaha, Daya Listrik, Jam Operasional, dan Daftar Peralatan Elektronik).
-
-### 2. Multi-Business Switcher (Fitur Baru)
-*   **Peralihan Usaha Instan:** Menu dropdown di bagian header/sidebar untuk berpindah di antara berbagai profil usaha yang dimiliki pengguna (contoh: *Laundry Berkah* dan *Frozen Jaya Purwokerto*).
-*   **Server-Side Cookie State:** Pilihan usaha disimpan secara aman menggunakan server-side cookie (`wattwise_active_business_id`) dengan validasi kepemilikan ketat.
-*   **Data Isolation:** Seluruh dashboard, grafik, prediksi, anomali, rekomendasi, dan riwayat input disaring otomatis berdasarkan usaha yang sedang aktif.
-
-### 3. Dashboard Pemantauan & Input Data Manual
-*   **Visualisasi Tren:** Grafik interaktif pemakaian listrik (kWh) dan biaya (Rupiah) bulan-ke-bulan menggunakan Recharts.
-*   **Input Data Mandiri:** Input bulanan kWh dan tagihan riil dengan validasi data menggunakan React Hook Form + Zod.
-
-### 4. Engine Analisis Energi Pintar
-*   **Deteksi Anomali Dinamis:** Menganalisis lonjakan pemakaian listrik yang tidak biasa berdasarkan riwayat pemakaian dan kategori usaha.
-*   **Prediksi Tagihan Bulanan:** Menghitung perkiraan tagihan bulan berjalan dan memberikan estimasi sisa hari pemakaian.
-*   **Rekomendasi Efisiensi:** Rekomendasi hemat energi berdasarkan daya terpasang (VA) dan jenis operasional usaha.
-
-### 5. Laporan Bulanan & Unduh PDF
-*   **Dokumen Profesional:** Preview laporan bulanan lengkap dengan ringkasan konsumsi energi, status efisiensi, deteksi masalah, dan daftar saran perbaikan.
-*   **Unduhan PDF Dinamis:** Ekspor laporan formal dengan Kop Surat WattWise AI menggunakan *PDFKit* langsung dari Server Action API.
+WattWise AI secara khusus menargetkan pemilik **UMKM di Indonesia** (seperti usaha laundry, kuliner/F&B, minimarket/ritel, industri rumahan, dan cold storage) yang memiliki keterbatasan sumber daya untuk melakukan audit energi profesional namun menghadapi beban biaya operasional listrik yang tinggi dan fluktuatif.
 
 ---
 
-## 🛠️ Arsitektur & Tech Stack
+## ⚡ Fitur Utama
 
-Sistem dibangun menggunakan arsitektur modern Next.js Fullstack:
-*   **Framework:** Next.js 14 (App Router)
-*   **Bahasa:** TypeScript
-*   **Desain Antarmuka:** Tailwind CSS & Lucide Icons
-*   **Basis Data:** PostgreSQL (dihosting di Supabase)
-*   **ORM / Database Access Layer:** Prisma Client
-*   **Manajemen Sesi:** NextAuth.js v4 (JWT session strategy)
-*   **Validasi Formulir:** React Hook Form & Zod
-*   **Ekspor Dokumen:** PDFKit (Server-Side rendering)
+### 🛠️ Fitur MVP 1 (Core Foundations)
+*   **Autentikasi Pengguna & Registrasi:** Sistem pendaftaran dan masuk akun yang aman bagi pelaku usaha.
+*   **Onboarding Profil Usaha:** Pengisian informasi awal profil usaha, daya listrik terpasang (VA), jam operasional, serta inventarisasi peralatan elektronik pertama kali.
+*   **Dashboard Pemantauan Konsumsi:** Grafik tren konsumsi kWh bulanan dan biaya riil dalam Rupiah.
+*   **Input Data Listrik Manual:** Pencatatan mandiri bulanan untuk angka pemakaian kWh meteran dan total tagihan listrik.
+*   **Prediksi Tagihan Bulanan:** Estimasi kasar tagihan listrik berjalan dan sisa hari sebelum jatuh tempo.
+*   **Deteksi Anomali Pemakaian:** Notifikasi otomatis jika terjadi lonjakan pemakaian energi yang tidak wajar.
+*   **Rekomendasi Hemat Energi:** Rekomendasi taktis untuk mengurangi konsumsi listrik disesuaikan dengan jenis alat elektronik.
+*   **Laporan Ringkasan Bulanan:** Preview laporan penggunaan bulanan terintegrasi.
+*   **Ekspor Dokumen PDF:** Cetak ringkasan laporan bulanan dalam berkas PDF formal secara instan.
+
+### 🚀 Fitur MVP 2 (Multi-Business & Switcher)
+*   **Multi-Business Switcher:** Kemampuan mengelola lebih dari satu profil usaha dalam satu akun pengguna tunggal (contoh: berpindah dari mengelola *Laundry Berkah* ke *Frozen Jaya Purwokerto* secara langsung).
+*   **Server-Side Cookie State Isolation:** Menggunakan cookie server (`wattwise_active_business_id`) untuk mengunci sesi usaha aktif secara aman.
+*   **Data Scoping:** Seluruh alur input data, visualisasi grafik, anomali, kalkulasi rekomendasi, hingga laporan PDF otomatis terisolasi secara dinamis hanya untuk usaha aktif terpilih.
+*   **Database Profile Syncing:** Profil usaha onboard baru langsung tersinkronisasi otomatis dengan session state.
 
 ---
 
-## ⚙️ Skema Basis Data (Prisma Schema)
+## 🛠️ Tech Stack Terbaru
 
-Struktur relasi data dirancang tangguh dan efisien:
+*   **Framework Utama:** Next.js 14.2.5 (App Router)
+*   **Bahasa Pemrograman:** TypeScript 5.5
+*   **Desain UI / Styling:** Tailwind CSS 3.4 & Lucide Icons
+*   **ORM / Database Access Layer:** Prisma Client v5.22.0
+*   **Basis Data:** PostgreSQL (dihosting di Supabase Cloud)
+*   **Autentikasi & Sesi:** NextAuth.js v4 (Credentials Provider dengan enkripsi sandi `bcryptjs`)
+*   **Validasi Data:** React Hook Form & Zod 4.x
+*   **Penyusunan Berkas Dokumen:** PDFKit (Server-Side rendering)
 
-```mermaid
-erDiagram
-    User ||--o{ Business : owns
-    Business ||--o{ ElectricityEntry : tracks
-    Business ||--o{ DailyUsage : logs
-    Business ||--o{ Appliance : contains
-    Business ||--o{ AnalysisResult : analyzes
-    Business ||--o{ Anomaly : detects
-    Business ||--o{ Recommendation : suggests
-    Business ||--o{ MonthlyReport : compiles
+---
+
+## 📐 Arsitektur Sistem
+
+WattWise AI dibangun dengan pola aliran data terisolasi dan aman dari client ke cloud database:
+
+```
+[ Browser / Client UI ] 
+         │
+         ▼ (Next.js Server Actions / API Routes)
+[ Server Service Layer / NextAuth Session & Cookie Validation ]
+         │
+         ▼ (Prisma Client ORM)
+[ Supabase PostgreSQL Cloud Database ]
 ```
 
-*   **User:** Menyimpan kredensial email dan nama pengguna.
-*   **Business:** Menyimpan data UMKM (tipe daya VA, jenis usaha, jam kerja, dan relasi ke data pendukung).
-*   **Appliance:** Daftar peralatan listrik untuk estimasi kontribusi kWh (mesin cuci, freezer, lampu, dll.).
-*   **ElectricityEntry:** Riwayat data listrik bulanan masukan pengguna.
-*   **AnalysisResult & Anomaly:** Hasil kalkulasi performa energi dan peringatan lonjakan tidak wajar.
+1.  **Next.js (App Router):** Sebagai entry-point UI, menangani routing halaman statis dan dinamis.
+2.  **Server Actions & API Routes:** Layer backend aman yang memproses form input, melakukan perhitungan estimasi, dan menangani session cookies.
+3.  **Prisma Client:** Layer ORM terintegrasi dengan konfigurasi `DATABASE_URL` (transaction pooling) dan `DIRECT_URL` (direct connections).
+4.  **Supabase PostgreSQL:** Basis data relasional cloud tempat seluruh skema data disimpan dengan aman.
 
 ---
 
-## 📥 Panduan Instalasi Lokal
+## 🔑 Demo Account (Seed Data)
+
+Untuk mempermudah ujicoba platform, gunakan kredensial demo berikut yang terhubung ke data contoh multi-usaha (*Laundry Berkah* & *Frozen Jaya Purwokerto*):
+
+*   **Email:** `owner@wattwise.id`
+*   **Password:** `password123`
+
+---
+
+## 📥 Panduan Setup Lokal
 
 ### Prerequisites
 *   Node.js v18 atau v20
@@ -100,50 +110,51 @@ erDiagram
     ```
 
 3.  **Konfigurasi Environment Variables:**
-    Salin berkas `.env.example` menjadi `.env` dan lengkapi nilainya:
+    Salin berkas `.env.example` menjadi `.env`:
     ```bash
     cp .env.example .env
     ```
-    Isi berkas `.env`:
-    ```env
-    # Supabase Connection Strings
-    DATABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
-    DIRECT_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
-
-    # NextAuth Settings
-    NEXTAUTH_URL="http://localhost:3000"
-    NEXTAUTH_SECRET="buat-kunci-rahasia-jwt-acak-disini"
-    ```
 
 4.  **Inisialisasi Database:**
-    Lakukan migrasi skema dan jalankan seeding data demo bawaan:
+    Jalankan migrasi skema database dan masukkan data demo awal (seeding):
     ```bash
     npx prisma migrate dev
     npx prisma db seed
     ```
 
-5.  **Jalankan Server Development:**
+5.  **Jalankan Aplikasi:**
     ```bash
     npm run dev
     ```
-    Buka `http://localhost:3000` pada peramban Anda.
+    Buka `http://localhost:3000` di peramban Anda.
 
 ---
 
-## ☁️ Panduan Deploy ke Vercel
+## ⚙️ Environment Variables (`.env`)
 
-Sistem WattWise AI dikonfigurasi agar siap dideploy ke **Vercel** dengan konfigurasi zero-setup:
+Konfigurasi berikut wajib diatur di file `.env` lokal maupun panel environment hosting (seperti Vercel):
 
-1.  **Daftarkan Proyek Baru di Vercel:** Hubungkan akun GitHub dan pilih repositori ini.
-2.  **Tambahkan Environment Variables:** Masukkan nilai `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_SECRET`, dan `NEXTAUTH_URL` di pengaturan Vercel.
-3.  **Post-Install Hook:** Proyek ini menyertakan script `"postinstall": "prisma generate"` di `package.json`, sehingga Vercel akan otomatis menyusun Prisma Client sebelum proses build dijalankan.
-4.  **Selesai:** Vercel akan memproses build (`npm run build`) dan menghasilkan tautan live demo secara otomatis.
+```env
+# Supabase PostgreSQL — Prisma Connection Strings
+# Port 6543 (Transaction Pooler) untuk runtime query (wajib menambahkan parameter pgbouncer=true)
+DATABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Port 5432 (Session Pooler) untuk proses migrasi database (directUrl)
+DIRECT_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres"
+
+# NextAuth Settings
+NEXTAUTH_URL="http://localhost:3000"
+# Dapat dibuat via command: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+NEXTAUTH_SECRET="buat-kunci-rahasia-jwt-acak-disini"
+```
 
 ---
 
-## ⚠️ Disclaimer Resmi
+## ⚠️ Disclaimer Hubungan Resmi
 
-> **Catatan Penting:** Seluruh estimasi tagihan bulanan, prediksi penghematan biaya, dan deteksi anomali di dalam aplikasi ini bersifat **estimasi simulasi** dan **bukan merupakan tagihan resmi dari PT PLN (Persero)**. Aplikasi ini tidak berafiliasi secara resmi dengan PT PLN (Persero).
+> **Pernyataan Penyangkalan (Disclaimer):**  
+> *   Seluruh data konsumsi energi, nilai estimasi tagihan listrik bulanan, kalkulasi emisi karbon, prediksi tingkat kehematan, dan peringatan anomali di dalam aplikasi WattWise AI bersifat **simulasi estimasi belaka** dan **bukan merupakan tagihan/laporan resmi dari PT PLN (Persero)**.
+> *   Aplikasi ini **TIDAK terhubung secara resmi** dengan sistem IoT, Smart Metering, maupun infrastruktur Advanced Metering Infrastructure (AMI) milik PT PLN (Persero). Segala keputusan bisnis yang diambil atas hasil analisis data platform ini sepenuhnya menjadi tanggung jawab pengguna.
 
 ---
 *Dibuat oleh Tim Pengembang WattWise AI.*
