@@ -5,6 +5,9 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clean database
+  await prisma.subscription.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.plan.deleteMany();
   await prisma.authAttempt.deleteMany();
   await prisma.monthlyReport.deleteMany();
   await prisma.recommendation.deleteMany();
@@ -15,6 +18,40 @@ async function main() {
   await prisma.electricityEntry.deleteMany();
   await prisma.business.deleteMany();
   await prisma.user.deleteMany();
+
+  // Create default Plans
+  const freePlan = await prisma.plan.create({
+    data: {
+      code: 'FREE',
+      name: 'Gratis',
+      description: 'Paket dasar untuk UMKM pemula',
+      priceIdr: 0,
+      billingCycle: 'monthly',
+      features: ['1 usaha', 'dashboard dasar', 'input data listrik manual', 'rekomendasi dasar'],
+    },
+  });
+
+  const proPlan = await prisma.plan.create({
+    data: {
+      code: 'PRO_UMKM',
+      name: 'Pro UMKM',
+      description: 'Fitur lengkap untuk optimasi energi optimal',
+      priceIdr: 150000,
+      billingCycle: 'monthly',
+      features: ['multi-usaha', 'prediksi tagihan', 'appliance efficiency classifier', 'rekomendasi hemat lanjutan', 'laporan PDF'],
+    },
+  });
+
+  const businessPlan = await prisma.plan.create({
+    data: {
+      code: 'BUSINESS',
+      name: 'Business',
+      description: 'Solusi terlengkap skala cabang & prioritas support',
+      priceIdr: 450000,
+      billingCycle: 'monthly',
+      features: ['multi-cabang', 'export CSV', 'laporan bulanan', 'prioritas support', 'fitur pilot lanjutan'],
+    },
+  });
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -321,7 +358,18 @@ async function main() {
     },
   });
 
-  console.log('Seed completed: Laundry Berkah + Frozen Jaya Purwokerto (MSME Demo Ready)');
+  // Default Subscription for Budi Santoso
+  await prisma.subscription.create({
+    data: {
+      userId: user.id,
+      planId: freePlan.id,
+      status: 'ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    },
+  });
+
+  console.log('Seed completed: Laundry Berkah + Frozen Jaya Purwokerto + Plans (MSME Demo Ready)');
 }
 
 main()

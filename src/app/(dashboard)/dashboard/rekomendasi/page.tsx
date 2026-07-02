@@ -7,6 +7,8 @@ import { RekomendasiClient, type RecommendationCardData } from "./rekomendasi-cl
 import { getActiveBusinessId } from "@/services/business";
 import { classifyApplianceEfficiency } from "@/services/appliance-efficiency";
 import { buildRecommendationReasoning, SAVINGS_DISCLAIMER } from "@/services/recommendation-reasoning";
+import { getUserPlan } from "@/services/subscription";
+import { FeatureGate } from "@/components/feature-gate";
 
 function getPriority(
   estimatedSavingIdr: number | null,
@@ -41,6 +43,25 @@ export default async function RekomendasiPage() {
   const activeBusinessId = await getActiveBusinessId(session.user.id);
   if (!activeBusinessId) {
     redirect("/onboarding");
+  }
+
+  // Feature gate check
+  const { plan } = await getUserPlan(session.user.id);
+  const planCode = plan?.code || "FREE";
+  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
+    return (
+      <div>
+        <PageHeader
+          title="Rekomendasi Hemat Listrik"
+          subtitle="Saran praktis berbasis aturan untuk bisnis Anda."
+        />
+        <FeatureGate
+          featureName="Rekomendasi Hemat Listrik"
+          requiredTier="Pro UMKM"
+          description="Dapatkan rekomendasi hemat daya cerdas yang dipersonalisasi untuk peralatan usaha Anda, lengkap dengan proyeksi penghematan biaya dalam Rupiah."
+        />
+      </div>
+    );
   }
 
   const business = await db.business.findFirst({

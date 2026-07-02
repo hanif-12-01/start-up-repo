@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import AnomaliClient from "./anomali-client";
 import { getActiveBusinessId } from "@/services/business";
+import { getUserPlan } from "@/services/subscription";
+import { FeatureGate } from "@/components/feature-gate";
 
 export default async function AnomaliPage() {
   const session = await getServerSession(authOptions);
@@ -15,6 +17,19 @@ export default async function AnomaliPage() {
   const activeBusinessId = await getActiveBusinessId(session.user.id);
   if (!activeBusinessId) {
     redirect("/onboarding");
+  }
+
+  // Feature gate check
+  const { plan } = await getUserPlan(session.user.id);
+  const planCode = plan?.code || "FREE";
+  if (planCode !== "BUSINESS") {
+    return (
+      <FeatureGate
+        featureName="Deteksi Anomali Daya & Multi-Cabang"
+        requiredTier="Business"
+        description="Pantau konsumsi daya peralatan secara real-time dan deteksi kebocoran daya atau anomali operasional di berbagai cabang usaha Anda secara otomatis."
+      />
+    );
   }
 
   const business = await db.business.findFirst({

@@ -28,7 +28,7 @@ const menuItems = [
   { label: "Deteksi Anomali", href: "/dashboard/anomali", icon: AlertTriangle },
   { label: "Rekomendasi Hemat", href: "/dashboard/rekomendasi", icon: Lightbulb },
   { label: "Laporan", href: "/dashboard/laporan", icon: FileText },
-  { label: "Harga Paket", href: "/dashboard/harga", icon: CreditCard },
+  { label: "Harga Paket", href: "/dashboard/harga-paket", icon: CreditCard },
   { label: "Profil Usaha", href: "/dashboard/profil", icon: User },
 ];
 

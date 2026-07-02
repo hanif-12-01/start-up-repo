@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import PrediksiClient from "./prediksi-client";
 import { getActiveBusinessId } from "@/services/business";
+import { getUserPlan } from "@/services/subscription";
+import { FeatureGate } from "@/components/feature-gate";
 
 export default async function PrediksiPage() {
   const session = await getServerSession(authOptions);
@@ -15,6 +17,19 @@ export default async function PrediksiPage() {
   const activeBusinessId = await getActiveBusinessId(session.user.id);
   if (!activeBusinessId) {
     redirect("/onboarding");
+  }
+
+  // Feature gate check
+  const { plan } = await getUserPlan(session.user.id);
+  const planCode = plan?.code || "FREE";
+  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
+    return (
+      <FeatureGate
+        featureName="Prediksi Pintar Energi"
+        requiredTier="Pro UMKM"
+        description="Analisis pola pemakaian listrik masa lalu dan dapatkan prediksi tagihan serta estimasi kenaikan penggunaan di masa depan secara otomatis dengan AI."
+      />
+    );
   }
 
   const business = await db.business.findFirst({
