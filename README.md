@@ -5,6 +5,7 @@
 
 ---
 
+[![Deployment Status](https://img.shields.io/badge/Vercel-Deployed-brightgreen?style=for-the-badge&logo=vercel)](https://start-up-repo-m131.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
@@ -17,6 +18,8 @@
 ## 💡 Apa itu WattWise AI?
 
 **WattWise AI** adalah platform asisten efisiensi dan pemantauan energi berbasis kecerdasan buatan (AI) yang dirancang untuk membantu sektor bisnis meminimalkan pengeluaran biaya listrik bulanan secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang menganalisis pola pemakaian dari data input manual, membantu memperkirakan tagihan, mendeteksi potensi anomali, dan memberikan rekomendasi aksi konkret.         
+
+🌐 **Tautan Live Demo Vercel:** [https://start-up-repo-m131.vercel.app](https://start-up-repo-m131.vercel.app)
 
 ## 🎯 Target User: UMKM (Usaha Mikro, Kecil, dan Menengah)
 
