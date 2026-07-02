@@ -7,15 +7,23 @@ import { useToast } from "@/components/ui/toast";
 import { formatRupiah } from "@/lib/utils";
 
 type Difficulty = "EASY" | "MEDIUM" | "HARD";
+type Priority = "Tinggi" | "Sedang" | "Rendah";
 
 export type RecommendationCardData = {
   id: string;
   title: string;
   description: string;
-  estimatedSavingsIdr: number | null;
+  estimatedSavingIdr: number | null;
+  estimatedSavingKwh: number | null;
   difficulty: Difficulty;
   isImplemented: boolean;
-  priority: "TINGGI" | "SEDANG" | "RENDAH";
+  priority: Priority;
+  triggerApplianceName?: string;
+  reason: string;
+  impact: Priority;
+  practicalSteps: string[];
+  disclaimer: string;
+  source?: "database" | "generated";
 };
 
 const difficultyLabel: Record<Difficulty, string> = {
@@ -31,9 +39,9 @@ const difficultyClass: Record<Difficulty, string> = {
 };
 
 const priorityClass: Record<RecommendationCardData["priority"], string> = {
-  TINGGI: "bg-red-50 text-red-700",
-  SEDANG: "bg-orange-50 text-orange-700",
-  RENDAH: "bg-slate-100 text-slate-600",
+  Tinggi: "bg-red-50 text-red-700",
+  Sedang: "bg-orange-50 text-orange-700",
+  Rendah: "bg-slate-100 text-slate-600",
 };
 
 function RecommendationCard({
@@ -61,41 +69,75 @@ function RecommendationCard({
                   Diterapkan
                 </span>
               )}
+              {rec.source === "generated" && (
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                  Rule Peralatan
+                </span>
+              )}
             </div>
 
             <p className="mt-1 text-sm leading-relaxed text-slate-500">{rec.description}</p>
 
+            {rec.triggerApplianceName && (
+              <p className="mt-2 text-xs font-semibold text-brand-blue">Dipicu: {rec.triggerApplianceName}</p>
+            )}
+
+            <p className="mt-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+              <strong>Alasan:</strong> {rec.reason}
+            </p>
+
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="badge bg-green-50 text-green-700">
-                Hemat {rec.estimatedSavingsIdr ? formatRupiah(rec.estimatedSavingsIdr) : "bervariasi"}/bulan
+                Hemat {rec.estimatedSavingIdr ? formatRupiah(rec.estimatedSavingIdr) : "bervariasi"}/bulan
               </span>
+              {rec.estimatedSavingKwh !== null && (
+                <span className="badge bg-blue-50 text-blue-700">
+                  ±{rec.estimatedSavingKwh.toLocaleString("id-ID")} kWh/bulan
+                </span>
+              )}
               <span className={`badge ${difficultyClass[rec.difficulty]}`}>
                 Tingkat: {difficultyLabel[rec.difficulty]}
               </span>
-              <span className={`badge ${priorityClass[rec.priority]}`}>Prioritas {rec.priority.toLowerCase()}</span>
+              <span className={`badge ${priorityClass[rec.priority]}`}>Prioritas {rec.priority}</span>
+              <span className={`badge ${priorityClass[rec.impact]}`}>Dampak {rec.impact}</span>
             </div>
+
+            {rec.practicalSteps.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-bold text-brand-ink">Langkah praktis:</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-relaxed text-slate-600">
+                  {rec.practicalSteps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{rec.disclaimer}</p>
           </div>
         </div>
 
-        <button
-          className={rec.isImplemented ? "btn-outline shrink-0 border-orange-200 text-orange-600" : "btn-primary shrink-0"}
-          disabled={pending}
-          onClick={() => startTransition(() => void onToggle(rec.id))}
-        >
-          {pending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : rec.isImplemented ? (
-            <>
-              <AlertTriangle className="h-4 w-4" />
-              Batalkan
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              Terapkan
-            </>
-          )}
-        </button>
+        {rec.source !== "generated" && (
+          <button
+            className={rec.isImplemented ? "btn-outline shrink-0 border-orange-200 text-orange-600" : "btn-primary shrink-0"}
+            disabled={pending}
+            onClick={() => startTransition(() => void onToggle(rec.id))}
+          >
+            {pending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : rec.isImplemented ? (
+              <>
+                <AlertTriangle className="h-4 w-4" />
+                Batalkan
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Terapkan
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -119,9 +161,12 @@ export function RekomendasiClient({
 
   const estimasiHematBulan = Math.max(0, (tagihan * targetPersen) / 100);
   const estimasiHematTahun = estimasiHematBulan * 12;
-  const diterapkan = recs.filter((r) => r.isImplemented).length;
+  const trackableCount = recs.filter((r) => r.source !== "generated").length;
+  const diterapkan = recs.filter((r) => r.source !== "generated" && r.isImplemented).length;
 
   async function handleToggle(id: string) {
+    if (recs.find((item) => item.id === id)?.source === "generated") return;
+
     const res = await toggleRecommendationAction(id);
 
     if (!res.success) {
@@ -144,9 +189,13 @@ export function RekomendasiClient({
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-bold">Saran Hemat Khusus {businessName}</h2>
-            <p className="text-sm text-slate-500">Disusun dari hasil analisis listrik terakhir.</p>
+            <p className="text-sm text-slate-500">Disusun dari hasil analisis listrik terakhir dan klasifikasi peralatan.</p>
           </div>
-          {recs.length > 0 && <span className="text-sm text-slate-500">{diterapkan}/{recs.length} diterapkan</span>}
+          {recs.length > 0 && (
+            <span className="text-sm text-slate-500">
+              {trackableCount > 0 ? `${diterapkan}/${trackableCount} diterapkan` : `${recs.length} rekomendasi`}
+            </span>
+          )}
         </div>
 
         {recs.length === 0 ? (
