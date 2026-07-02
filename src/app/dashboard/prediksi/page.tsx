@@ -1,173 +1,130 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
+import PrediksiClient from "./prediksi-client";
 
-import { useEffect, useState } from "react";
-import {
-  AlertCircle,
-  AlertTriangle,
-  ArrowUpRight,
-  DollarSign,
-  HelpCircle,
-  Info,
-  TrendingDown,
-} from "lucide-react";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { PageHeader, StatCard, StatusBadge } from "@/components/ui/common";
-import { prediksi, proyeksiBulanIni } from "@/lib/mock-data";
-import { formatKwh, formatRupiah } from "@/lib/utils";
+export default async function PrediksiPage() {
+  const session = await getServerSession(authOptions);
 
-export default function PrediksiPage() {
-  const [mounted, setMounted] = useState(false);
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
 
-  useEffect(() => setMounted(true), []);
+  const business = await db.business.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      electricityEntries: {
+        orderBy: [
+          { year: "desc" },
+          { month: "desc" }
+        ],
+        take: 2,
+      },
+      analysisResults: {
+        orderBy: [
+          { year: "desc" },
+          { month: "desc" }
+        ],
+        take: 1,
+      },
+      dailyUsages: {
+        orderBy: { date: "asc" },
+        take: 30,
+      },
+    },
+  });
+
+  if (!business) {
+    redirect("/onboarding");
+  }
+
+  const latestEntry = business.electricityEntries[0];
+  const prevEntry = business.electricityEntries[1];
+  const latestAnalysis = business.analysisResults[0];
+
+  const tagihanBulanLalu = latestEntry ? latestEntry.costIdr : 0;
+  
+  let trend = 1.02;
+  if (latestEntry && prevEntry && prevEntry.usageKwh > 0) {
+    const pctChange = (latestEntry.usageKwh - prevEntry.usageKwh) / prevEntry.usageKwh;
+    trend = 1 + Math.max(-0.2, Math.min(0.2, pctChange));
+  }
+
+  const prediksiKwh = latestEntry ? latestEntry.usageKwh * trend : 0;
+  const avgTariff = latestEntry && latestEntry.usageKwh > 0 ? latestEntry.costIdr / latestEntry.usageKwh : 1450;
+  const prediksiTagihan = latestEntry ? Math.round(prediksiKwh * avgTariff) : 0;
+
+  const kenaikanPersen = latestEntry && prevEntry && prevEntry.usageKwh > 0
+    ? parseFloat((((latestEntry.usageKwh - prevEntry.usageKwh) / prevEntry.usageKwh) * 100).toFixed(1))
+    : parseFloat(((trend - 1) * 100).toFixed(1));
+
+  let risikoLevel = "Rendah";
+  if (latestAnalysis?.efficiencyScore !== undefined && latestAnalysis?.efficiencyScore !== null) {
+    const score = latestAnalysis.efficiencyScore;
+    if (score < 60) {
+      risikoLevel = "Tinggi";
+    } else if (score < 80) {
+      risikoLevel = "Sedang";
+    }
+  }
+
+  let alasanUtama = "Belum ada data pemakaian yang cukup untuk menganalisis penyebab utama.";
+  if (latestEntry) {
+    if (risikoLevel === "Tinggi") {
+      alasanUtama = "Terdeteksi lonjakan pemakaian pada jam operasional puncak. Periksa peralatan berdaya tinggi yang berjalan melebihi waktu normal.";
+    } else if (risikoLevel === "Sedang") {
+      alasanUtama = "Konsumsi listrik relatif stabil namun terdeteksi beberapa kebocoran standby power pada malam hari.";
+    } else {
+      alasanUtama = "Penggunaan listrik sangat efisien dan terkontrol dengan baik sesuai kapasitas peralatan terdaftar.";
+    }
+  }
+
+  const penjelasan = "Prediksi ini dibuat berdasarkan pola tagihan sebelumnya, jam operasional, dan kapasitas daya VA terpasang. Hasilnya adalah estimasi/proyeksi kas dan bukan tagihan resmi PLN.";
+
+  const prediksiData = {
+    prediksiTagihan,
+    tagihanBulanLalu,
+    kenaikanPersen,
+    risikoLevel,
+    alasanUtama,
+    penjelasan,
+  };
+
+  const proyeksiBulanIni = business.dailyUsages.map((d) => {
+    const dateObj = new Date(d.date);
+    const dayString = dateObj.getDate().toString();
+    
+    return {
+      hari: dayString,
+      aktual: d.usageKwh as number | null,
+      proyeksi: null as number | null,
+    };
+  });
+
+  if (proyeksiBulanIni.length > 0) {
+    const lastDayVal = proyeksiBulanIni[proyeksiBulanIni.length - 1].aktual || 0;
+    const lastDayNum = parseInt(proyeksiBulanIni[proyeksiBulanIni.length - 1].hari);
+    
+    proyeksiBulanIni[proyeksiBulanIni.length - 1].proyeksi = lastDayVal;
+
+    for (let i = 1; i <= 4; i++) {
+      const nextDay = lastDayNum + i * 3;
+      if (nextDay <= 30) {
+        proyeksiBulanIni.push({
+          hari: nextDay.toString(),
+          aktual: null,
+          proyeksi: parseFloat((lastDayVal * (1 + (i * 0.02) * (trend - 1))).toFixed(2)),
+        });
+      }
+    }
+  }
 
   return (
-    <div>
-      <PageHeader
-        title="Prediksi Tagihan Listrik"
-        subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Prediksi Tagihan Bulan Ini"
-          value={formatRupiah(prediksi.prediksiTagihan)}
-          helper="Estimasi biaya hingga akhir bulan"
-          tone="blue"
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Tagihan Bulan Lalu"
-          value={formatRupiah(prediksi.tagihanBulanLalu)}
-          helper="Untuk perbandingan"
-          tone="slate"
-          icon={<TrendingDown className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Perbandingan Bulan Lalu"
-          value={`+${prediksi.kenaikanPersen}%`}
-          helper="Kenaikan estimasi bulan ini"
-          tone="red"
-          icon={<ArrowUpRight className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Tingkat Risiko"
-          value={prediksi.risikoLevel}
-          helper="Risiko pemborosan listrik"
-          tone="yellow"
-          icon={<AlertTriangle className="h-5 w-5" />}
-          badge={prediksi.risikoLevel}
-        />
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-12">
-        <section className="card flex flex-col justify-between lg:col-span-4">
-          <div>
-            <h2 className="flex items-center gap-2 font-bold">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              Penyebab Utama Kenaikan
-            </h2>
-            <p className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium leading-relaxed text-slate-600">
-              “{prediksi.alasanUtama}”
-            </p>
-            <div className="mt-4">
-              <StatusBadge status={prediksi.risikoLevel} />
-            </div>
-          </div>
-
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
-              <Info className="h-4 w-4" />
-              Penjelasan Sederhana
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-500">{prediksi.penjelasan}</p>
-          </div>
-        </section>
-
-        <section className="card lg:col-span-8">
-          <div className="mb-5">
-            <h2 className="font-bold">Proyeksi Pemakaian Listrik</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Garis hijau adalah pemakaian aktual. Garis kuning putus-putus adalah prediksi hingga akhir bulan.
-            </p>
-          </div>
-
-          {mounted && (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={proyeksiBulanIni} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="hari"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#64748b" }}
-                    tickFormatter={(v: string) => `Tgl ${v}`}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "#64748b" }}
-                    tickFormatter={(v: number) => `${v} kWh`}
-                  />
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      formatKwh(value),
-                      name === "aktual" ? "Pemakaian Aktual" : "Prediksi",
-                    ]}
-                    contentStyle={{
-                      borderRadius: 14,
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
-                    }}
-                  />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                  <Line
-                    name="Aktual"
-                    type="monotone"
-                    dataKey="aktual"
-                    stroke="#16a34a"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                    connectNulls
-                  />
-                  <Line
-                    name="Prediksi"
-                    type="monotone"
-                    dataKey="proyeksi"
-                    stroke="#eab308"
-                    strokeWidth={3}
-                    strokeDasharray="5 5"
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="mt-6 flex items-start gap-3 rounded-2xl border border-green-100 bg-brand-greenSoft p-5">
-        <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-brand-greenDark" />
-        <div>
-          <h4 className="text-sm font-bold text-brand-greenDark">Saran Singkat WattWise AI</h4>
-          <p className="mt-1 text-xs leading-relaxed text-green-800">
-            Anda dapat menurunkan proyeksi biaya ini sekitar <strong>10-15%</strong> jika membagi
-            waktu penggunaan alat berdaya besar di luar jam operasional sore.
-          </p>
-        </div>
-      </div>
-    </div>
+    <PrediksiClient
+      prediksi={prediksiData}
+      proyeksiBulanIni={proyeksiBulanIni}
+    />
   );
 }
