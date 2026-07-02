@@ -89,7 +89,7 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          <Link href="/dashboard" className="btn-primary px-4 py-2 shadow-soft">
+          <Link href="/login?callbackUrl=/dashboard" className="btn-primary px-4 py-2 shadow-soft">
             Coba Demo
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -115,7 +115,7 @@ export default function LandingPage() {
                 dan dapatkan saran hemat yang mudah dilakukan oleh pemilik UMKM.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
-                <Link href="/dashboard" className="btn-primary px-6 py-3 text-base shadow-soft">
+                <Link href="/login?callbackUrl=/dashboard" className="btn-primary px-6 py-3 text-base shadow-soft">
                   Coba Demo Dashboard
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -338,7 +338,7 @@ export default function LandingPage() {
                 Coba demo interaktif WattWise AI dan lihat bagaimana UMKM bisa mengendalikan biaya listrik.
               </p>
               <div className="mt-8">
-                <Link href="/dashboard" className="btn bg-white px-8 py-3 text-base font-bold text-brand-green hover:bg-brand-greenSoft">
+                <Link href="/login?callbackUrl=/dashboard" className="btn bg-white px-8 py-3 text-base font-bold text-brand-green hover:bg-brand-greenSoft">
                   Mulai Pantau Listrik Usaha Anda
                   <ArrowRight className="h-5 w-5" />
                 </Link>

@@ -189,6 +189,16 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
           </p>
         </div>
       </div>
+
+      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+        <div>
+          <h4 className="text-sm font-bold text-slate-700">Disclaimer / Penafian Penting</h4>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            Prediksi tagihan dan proyeksi ini dibuat untuk tujuan estimasi perencanaan dan didasarkan pada data input pengguna. Hasil ini <strong>bukan merupakan tagihan resmi PLN</strong>. Layanan WattWise AI tidak berafiliasi atau terhubung secara resmi dengan PT PLN (Persero).
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

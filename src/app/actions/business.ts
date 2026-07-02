@@ -57,3 +57,116 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
     return { success: false, error: error.message || "Gagal menyimpan data usaha." };
   }
 }
+
+export async function getBusinessProfile() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const business = await db.business.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        appliances: {
+          orderBy: { powerWatt: "desc" },
+        },
+      },
+    });
+
+    if (!business) {
+      return { success: false, error: "Profil usaha tidak ditemukan." };
+    }
+
+    return { success: true, business: JSON.parse(JSON.stringify(business)) };
+  } catch (error: any) {
+    console.error("Get Business Profile Error:", error);
+    return { success: false, error: error.message || "Gagal mengambil data usaha." };
+  }
+}
+
+export async function updateBusinessProfile(input: {
+  name: string;
+  type: BusinessType;
+  address: string;
+  powerVA: number;
+  operatingHours: string;
+  peralatanListrik: string;
+}) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const business = await db.business.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        appliances: true,
+      },
+    });
+
+    if (!business) {
+      return { success: false, error: "Usaha tidak ditemukan." };
+    }
+
+    const newApplianceNames = input.peralatanListrik
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    const existingAppliances = business.appliances;
+
+    const toDelete = existingAppliances.filter(
+      (app) => !newApplianceNames.some((n) => n.toLowerCase() === app.name.toLowerCase())
+    );
+
+    const toCreateNames = newApplianceNames.filter(
+      (name) => !existingAppliances.some((app) => app.name.toLowerCase() === name.toLowerCase())
+    );
+
+    await db.$transaction(async (tx) => {
+      await tx.business.update({
+        where: { id: business.id },
+        data: {
+          name: input.name,
+          type: input.type,
+          address: input.address,
+          powerVA: input.powerVA,
+          operatingHours: input.operatingHours,
+        },
+      });
+
+      if (toDelete.length > 0) {
+        await tx.appliance.deleteMany({
+          where: {
+            id: { in: toDelete.map((app) => app.id) },
+          },
+        });
+      }
+
+      for (const name of toCreateNames) {
+        await tx.appliance.create({
+          data: {
+            name,
+            powerWatt: 150,
+            quantity: 1,
+            dailyUsageHours: 6,
+            businessId: business.id,
+            usageStatus: UsageStatus.ACTIVE,
+          },
+        });
+      }
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/profil");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update Business Profile Error:", error);
+    return { success: false, error: error.message || "Gagal memperbarui data usaha." };
+  }
+}

@@ -39,7 +39,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const Nav = ({ mobile = false }: { mobile?: boolean }) => (
     <nav className="flex-1 space-y-1">
       {menuItems.map((item) => {
-        const active = pathname === item.href;
+        const active = item.href === "/dashboard"
+          ? pathname === "/dashboard"
+          : pathname.startsWith(item.href);
         const Icon = item.icon;
         return (
           <Link
