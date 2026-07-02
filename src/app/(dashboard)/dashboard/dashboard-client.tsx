@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
+import type { ApplianceEfficiencyResult, ApplianceEfficiencyStatus } from "@/services/appliance-efficiency";
 
 interface DashboardClientProps {
   ringkasan: {
@@ -57,6 +58,7 @@ interface DashboardClientProps {
     kwh: number;
     warna: string;
   }[];
+  efisiensiPeralatan: ApplianceEfficiencyResult[];
 }
 
 export default function DashboardClient({
@@ -64,8 +66,13 @@ export default function DashboardClient({
   tagihanBulanan,
   pemakaianHarian,
   pemakaianPeralatan,
+  efisiensiPeralatan,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
+  const topPerluPerhatian = [...efisiensiPeralatan]
+    .filter((item) => item.status !== "Efisien" && item.status !== "Normal")
+    .sort((a, b) => statusRank[b.status] - statusRank[a.status] || b.contributionPercent - a.contributionPercent)
+    .slice(0, 3);
 
   useEffect(() => setMounted(true), []);
 
@@ -245,6 +252,39 @@ export default function DashboardClient({
             )}
           </section>
 
+          {/* Appliance efficiency classifier */}
+          <section className="card lg:col-span-12">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="font-bold">Top 3 Peralatan Perlu Perhatian</h2>
+                <p className="mt-1 text-xs text-slate-500">Klasifikasi efisiensi berdasarkan estimasi kWh, kontribusi, jam pakai, dan riwayat tagihan.</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500">Estimasi, bukan nilai resmi PLN</span>
+            </div>
+            {topPerluPerhatian.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                {topPerluPerhatian.map((item) => (
+                  <div key={item.applianceId} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">{item.name}</h3>
+                        <p className="mt-1 text-xs text-slate-500">{formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% kontribusi</p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass(item.status)}`}>{item.status}</span>
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-slate-600">{item.reason}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">Saran: {item.practicalAdvice}</p>
+                    <p className="mt-3 text-[11px] font-semibold text-slate-500">Estimasi biaya: {formatRupiah(item.estimatedMonthlyCost)}/bulan</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                Belum ada peralatan yang perlu perhatian khusus. Klasifikasi ini estimasi WattWise AI, bukan nilai resmi PLN.
+              </div>
+            )}
+          </section>
+
           {/* Daily usage line chart */}
           <section className="card lg:col-span-12">
             <div className="mb-5">
@@ -303,4 +343,20 @@ export default function DashboardClient({
       </div>
     </div>
   );
+}
+
+const statusRank: Record<ApplianceEfficiencyStatus, number> = {
+  Efisien: 0,
+  Normal: 1,
+  "Perlu Dicek": 2,
+  Boros: 3,
+  "Sangat Boros": 4,
+};
+
+function statusClass(status: ApplianceEfficiencyStatus): string {
+  if (status === "Sangat Boros") return "bg-red-100 text-red-700";
+  if (status === "Boros") return "bg-orange-100 text-orange-700";
+  if (status === "Perlu Dicek") return "bg-yellow-100 text-yellow-700";
+  if (status === "Efisien") return "bg-green-100 text-green-700";
+  return "bg-blue-100 text-blue-700";
 }

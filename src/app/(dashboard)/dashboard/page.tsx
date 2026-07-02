@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
 import { getActiveBusinessId } from "@/services/business";
+import { classifyApplianceEfficiency } from "@/services/appliance-efficiency";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +130,13 @@ export default async function DashboardPage() {
       warna: COLORS[i % COLORS.length],
     };
   });
+  const efisiensiPeralatan = classifyApplianceEfficiency({
+    businessType: business.type,
+    appliances: business.appliances,
+    electricityEntries: entries,
+    currentMonth: latest?.month,
+    currentYear: latest?.year,
+  });
 
   return (
     <DashboardClient
@@ -136,6 +144,7 @@ export default async function DashboardPage() {
       tagihanBulanan={tagihanBulanan}
       pemakaianHarian={pemakaianHarian}
       pemakaianPeralatan={pemakaianPeralatan}
+      efisiensiPeralatan={efisiensiPeralatan}
     />
   );
 }
