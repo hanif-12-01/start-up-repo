@@ -1,90 +1,151 @@
-import { AlertTriangle, Clock, DollarSign, Info, Search } from "lucide-react";
-import { PageHeader, StatusBadge } from "@/components/ui/common";
-import { anomaliCards, tabelAnomali } from "@/lib/mock-data";
-import { formatKwh } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
+import AnomaliClient from "./anomali-client";
 
-export default function AnomaliPage() {
+export default async function AnomaliPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const business = await db.business.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      anomalies: {
+        orderBy: [
+          { year: "desc" },
+          { month: "desc" },
+          { createdAt: "desc" }
+        ],
+      },
+      analysisResults: {
+        orderBy: [
+          { year: "desc" },
+          { month: "desc" }
+        ],
+        take: 1,
+      },
+    },
+  });
+
+  if (!business) {
+    redirect("/onboarding");
+  }
+
+  const latestAnalysis = business.analysisResults[0];
+  const activeMonth = latestAnalysis?.month ?? 5;
+  const activeYear = latestAnalysis?.year ?? 2026;
+
+  const currentMonthAnomalies = business.anomalies.filter(
+    (a) => a.month === activeMonth && a.year === activeYear
+  );
+
+  const highSeverityAnomalies = currentMonthAnomalies.filter(
+    (a) => a.severity === "HIGH" && !a.isResolved
+  );
+
+  let judulLonjakan = "Pemakaian Normal";
+  let waktu = "Tidak terdeteksi";
+  let kemungkinanPenyebab = "Belum terdeteksi adanya peralatan listrik bermasalah.";
+  let dampakEstimasi = "Tagihan listrik berjalan sesuai estimasi normal.";
+
+  if (highSeverityAnomalies.length > 0) {
+    judulLonjakan = "Lonjakan Pemakaian Kritis";
+    waktu = "Jam Operasional Utama";
+    kemungkinanPenyebab = highSeverityAnomalies[0].description;
+    
+    let totalImpact = 0;
+    highSeverityAnomalies.forEach((a) => {
+      if (a.usageKwh && a.expectedKwh && a.usageKwh > a.expectedKwh) {
+        totalImpact += (a.usageKwh - a.expectedKwh) * 1450;
+      }
+    });
+
+    dampakEstimasi = totalImpact > 0
+      ? `Tambahan biaya sekitar Rp${Math.round(totalImpact).toLocaleString("id-ID")} bulan ini`
+      : "Terdeteksi pemborosan energi signifikan.";
+  } else if (currentMonthAnomalies.length > 0) {
+    judulLonjakan = "Perlu Perhatian";
+    waktu = "Variatif";
+    
+    const unresolved = currentMonthAnomalies.filter((a) => !a.isResolved);
+    if (unresolved.length > 0) {
+      kemungkinanPenyebab = unresolved[0].description;
+    } else {
+      kemungkinanPenyebab = "Beberapa anomali ringan terdeteksi namun telah ditangani.";
+    }
+
+    let totalImpact = 0;
+    unresolved.forEach((a) => {
+      if (a.usageKwh && a.expectedKwh && a.usageKwh > a.expectedKwh) {
+        totalImpact += (a.usageKwh - a.expectedKwh) * 1450;
+      }
+    });
+
+    dampakEstimasi = totalImpact > 0
+      ? `Tambahan biaya sekitar Rp${Math.round(totalImpact).toLocaleString("id-ID")} bulan ini`
+      : "Potensi peningkatan biaya listrik.";
+  }
+
+  const mappedAnomalies = business.anomalies.map((a) => {
+    let status: "Normal" | "Perlu Dicek" | "Boros" = "Normal";
+    if (a.severity === "HIGH") {
+      status = "Boros";
+    } else if (a.severity === "MEDIUM") {
+      status = "Perlu Dicek";
+    }
+
+    const normalVal = a.expectedKwh ?? 30;
+    const terdeteksiVal = a.usageKwh ?? 30;
+    const costImpact = Math.max(0, Math.round((terdeteksiVal - normalVal) * 1450));
+
+    const monthNames = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", 
+      "Jul", "Agt", "Sep", "Okt", "Nov", "Des"
+    ];
+    const dateLabel = `${monthNames[a.month - 1] || "Bulan"} ${a.year}`;
+
+    let saran = "Lakukan pemantauan berkala pada peralatan listrik Anda.";
+    const descLower = a.description.toLowerCase();
+    if (descLower.includes("boiler") || descLower.includes("setrika")) {
+      saran = "Servis elemen pemanas boiler setrika atau atur jadwal penggunaan agar tidak berbarengan.";
+    } else if (descLower.includes("pompa")) {
+      saran = "Periksa instalasi pipa untuk mendeteksi kebocoran air, pasang otomatis tandon air.";
+    } else if (descLower.includes("kondensor") || descLower.includes("ac")) {
+      saran = "Lakukan cuci AC / pembersihan kondensor outdoor secara berkala, ganti filter kotor.";
+    } else if (descLower.includes("gasket") || descLower.includes("segel")) {
+      saran = "Segera ganti karet pintu (gasket) freezer yang bocor agar udara dingin tidak keluar.";
+    } else if (descLower.includes("standby") || descLower.includes("malam")) {
+      saran = "Matikan total (cabut saklar) peralatan yang tidak terpakai saat toko tutup.";
+    }
+
+    return {
+      id: a.id,
+      tanggal: dateLabel,
+      normal: normalVal,
+      terdeteksi: terdeteksiVal,
+      status,
+      penyebab: a.description,
+      costImpact,
+      saran,
+    };
+  });
+
+  const summaryData = {
+    judulLonjakan,
+    waktu,
+    kemungkinanPenyebab,
+    dampakEstimasi,
+  };
+
   return (
-    <div>
-      <PageHeader
-        title="Deteksi Pemakaian Tidak Normal"
-        subtitle="WattWise AI mendeteksi lonjakan pemakaian listrik yang tidak biasa. Segera periksa untuk mencegah tagihan membengkak."
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card border-t-4 border-t-red-500 bg-red-50/50">
-          <div className="mb-3 flex items-center gap-2 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            <h3 className="text-sm font-bold">Lonjakan Pemakaian Terdeteksi</h3>
-          </div>
-          <p className="font-semibold text-red-900">{anomaliCards.judulLonjakan}</p>
-        </div>
-
-        <div className="card">
-          <div className="mb-3 flex items-center gap-2 text-slate-500">
-            <Clock className="h-5 w-5 text-brand-blue" />
-            <h3 className="text-sm font-bold">Waktu Kemungkinan Terjadi</h3>
-          </div>
-          <p className="font-semibold">{anomaliCards.waktu}</p>
-        </div>
-
-        <div className="card">
-          <div className="mb-3 flex items-center gap-2 text-slate-500">
-            <Search className="h-5 w-5 text-brand-yellow" />
-            <h3 className="text-sm font-bold">Kemungkinan Penyebab</h3>
-          </div>
-          <p className="text-sm font-medium leading-relaxed">{anomaliCards.kemungkinanPenyebab}</p>
-        </div>
-
-        <div className="card">
-          <div className="mb-3 flex items-center gap-2 text-slate-500">
-            <DollarSign className="h-5 w-5 text-brand-green" />
-            <h3 className="text-sm font-bold">Dampak Estimasi</h3>
-          </div>
-          <p className="text-sm font-medium leading-relaxed">{anomaliCards.dampakEstimasi}</p>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-bold">Riwayat Deteksi Bulan Ini</h2>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Info className="h-4 w-4" />
-            Berdasarkan perbandingan kWh harian
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="whitespace-nowrap px-6 py-4 font-bold">Tanggal</th>
-                  <th className="whitespace-nowrap px-6 py-4 font-bold">Pemakaian Normal</th>
-                  <th className="whitespace-nowrap px-6 py-4 font-bold">Pemakaian Terdeteksi</th>
-                  <th className="whitespace-nowrap px-6 py-4 font-bold">Status</th>
-                  <th className="min-w-[250px] px-6 py-4 font-bold">Saran</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {tabelAnomali.map((row) => (
-                  <tr key={row.tanggal} className="transition hover:bg-slate-50/50">
-                    <td className="whitespace-nowrap px-6 py-4 font-medium">{row.tanggal}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-slate-500">{formatKwh(row.normal)}</td>
-                    <td className="whitespace-nowrap px-6 py-4 font-semibold text-brand-ink">
-                      {formatKwh(row.terdeteksi)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-6 py-4 text-xs leading-relaxed text-slate-600">{row.saran}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AnomaliClient
+      summary={summaryData}
+      anomalies={mappedAnomalies}
+    />
   );
 }
