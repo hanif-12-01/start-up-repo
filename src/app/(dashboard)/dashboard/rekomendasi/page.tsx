@@ -145,6 +145,10 @@ export default async function RekomendasiPage() {
         businessName={business.name}
         latestBill={latestBill}
         potentialSavingsIdr={potentialSavingsIdr}
+        businessType={business.type}
+        appliances={business.appliances}
+        latestEntryCost={latestEntry?.costIdr || null}
+        latestEntryKwh={latestEntry?.usageKwh || null}
       />
     </div>
   );
