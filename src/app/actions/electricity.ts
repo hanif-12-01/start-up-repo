@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { RiskLevel, RecommendationDifficulty } from "@prisma/client";
 import { getActiveBusinessId } from "@/services/business";
+import { safeError } from "@/lib/safe-log";
 
 export interface ElectricityInput {
   month: number;
@@ -102,7 +103,7 @@ export async function createElectricityEntry(input: ElectricityInput) {
 
     return { success: true, entryId: entry.id };
   } catch (error: any) {
-    console.error("Electricity Entry Error:", error);
+    safeError("electricityEntry", error);
     return { success: false, error: error.message || "Gagal menyimpan data listrik." };
   }
 }

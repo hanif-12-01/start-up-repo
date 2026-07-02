@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
+import { safeError } from "./safe-log";
+import { checkRateLimit, recordAuthAttempt } from "./rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,20 +13,37 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email dan password wajib diisi");
         }
 
+        const identifier = credentials.email.toLowerCase();
+        const ip = (req?.headers?.["x-forwarded-for"] as string)?.split(",")[0]?.trim() || "unknown";
+
+        // Rate limit check
+        const allowed = await checkRateLimit(identifier, ip, "login");
+        if (!allowed) {
+          throw new Error("Terlalu banyak percobaan gagal. Coba lagi beberapa menit.");
+        }
+
         const user = await db.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email: identifier },
           include: { businesses: { select: { id: true, name: true } } },
         });
 
-        if (!user) throw new Error("Email atau password salah");
+        if (!user) {
+          await recordAuthAttempt(identifier, ip, "login", false);
+          throw new Error("Email atau password salah");
+        }
 
         const valid = await bcrypt.compare(credentials.password, user.password);
-        if (!valid) throw new Error("Email atau password salah");
+        if (!valid) {
+          await recordAuthAttempt(identifier, ip, "login", false);
+          throw new Error("Email atau password salah");
+        }
+
+        await recordAuthAttempt(identifier, ip, "login", true);
 
         return {
           id: user.id,
@@ -65,5 +84,12 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET || "wattwise-dev-secret-key",
+  secret: (() => {
+    const s = process.env.NEXTAUTH_SECRET;
+    if (s) return s;
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("[auth] NEXTAUTH_SECRET is required in production");
+    }
+    return "wattwise-dev-secret-key"; // ponytail: dev-only fallback
+  })(),
 };

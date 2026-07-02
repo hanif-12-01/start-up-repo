@@ -176,6 +176,18 @@ model Recommendation {
   @@index([difficulty])
 }
 
+model AuthAttempt {
+  id         String   @id @default(uuid())
+  identifier String
+  ipAddress  String
+  action     String
+  success    Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, action, success, createdAt])
+  @@index([createdAt])
+}
+
 model MonthlyReport {
   id         String       @id @default(uuid())
   businessId String

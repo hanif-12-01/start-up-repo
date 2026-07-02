@@ -2,6 +2,8 @@
 
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/safe-log";
+import { checkRateLimit, recordAuthAttempt } from "@/lib/rate-limit";
 
 export async function registerUser(formData: FormData) {
   const name = formData.get("name") as string;
@@ -16,9 +18,17 @@ export async function registerUser(formData: FormData) {
     return { error: "Password minimal harus 6 karakter" };
   }
 
+  const identifier = email.toLowerCase();
+
   try {
+    // Rate limit register attempts
+    const allowed = await checkRateLimit(identifier, "server-action", "register");
+    if (!allowed) {
+      return { error: "Terlalu banyak percobaan gagal. Coba lagi beberapa menit." };
+    }
+
     const existingUser = await db.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: identifier },
     });
 
     if (existingUser) {
@@ -30,14 +40,15 @@ export async function registerUser(formData: FormData) {
     await db.user.create({
       data: {
         name,
-        email: email.toLowerCase(),
+        email: identifier,
         password: hashedPassword,
       },
     });
 
+    await recordAuthAttempt(identifier, "server-action", "register", true);
     return { success: true };
   } catch (error) {
-    console.error("Register error:", error);
+    safeError("register", error);
     return { error: "Terjadi kesalahan server. Coba lagi nanti." };
   }
 }

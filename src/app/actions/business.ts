@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BusinessType, UsageStatus } from "@prisma/client";
 import { getActiveBusinessId, setActiveBusiness as setActiveBusinessCookie } from "@/services/business";
+import { safeError } from "@/lib/safe-log";
 
 export interface OnboardingInput {
   name: string;
@@ -57,7 +58,7 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
 
     return { success: true, businessId: business.id };
   } catch (error: any) {
-    console.error("Onboarding Error:", error);
+    safeError("onboarding", error);
     return { success: false, error: error.message || "Gagal menyimpan data usaha." };
   }
 }
@@ -89,7 +90,7 @@ export async function getBusinessProfile() {
 
     return { success: true, business: JSON.parse(JSON.stringify(business)) };
   } catch (error: any) {
-    console.error("Get Business Profile Error:", error);
+    safeError("getBusinessProfile", error);
     return { success: false, error: error.message || "Gagal mengambil data usaha." };
   }
 }
@@ -178,7 +179,7 @@ export async function updateBusinessProfile(input: {
 
     return { success: true };
   } catch (error: any) {
-    console.error("Update Business Profile Error:", error);
+    safeError("updateBusinessProfile", error);
     return { success: false, error: error.message || "Gagal memperbarui data usaha." };
   }
 }
@@ -202,7 +203,7 @@ export async function switchActiveBusinessAction(businessId: string) {
 
     return { success: true };
   } catch (error: any) {
-    console.error("Switch Business Error:", error);
+    safeError("switchBusiness", error);
     return { success: false, error: error.message || "Gagal mengganti usaha." };
   }
 }

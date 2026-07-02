@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import PDFDocument from "pdfkit";
 import { getActiveBusinessId } from "@/services/business";
+import { safeError } from "@/lib/safe-log";
 
 export const dynamic = "force-dynamic";
 
@@ -292,7 +293,7 @@ export async function GET() {
       },
     });
   } catch (err) {
-    console.error("PDF generation error:", err);
+    safeError("pdfGeneration", err);
     return NextResponse.json(
       { error: "Gagal membuat PDF" },
       { status: 500 }
