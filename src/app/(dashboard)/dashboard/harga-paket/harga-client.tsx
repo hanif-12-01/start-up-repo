@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ChevronRight, AlertCircle, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronRight, AlertCircle, Sparkles, Lock, FileText, Activity, Layers, PhoneCall } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { checkoutPlanAction } from "@/actions/billing";
 import { cn } from "@/lib/utils";
@@ -183,6 +183,189 @@ export default function HargaClient({
             Pembayaran untuk Pro UMKM dan Business disimulasikan menggunakan Virtual Account. Setelah checkout, Anda akan dialihkan ke halaman detail invoice di mana Anda dapat memicu simulasi bayar sukses untuk mencoba fitur-fitur berbayar secara langsung.
           </p>
         </div>
+      </div>
+
+      {/* Feature Unlock Preview Section */}
+      <div className="border-t border-slate-200/60 pt-10 space-y-6">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-emerald-500" /> Fitur yang Terbuka di Paket Ini
+        </h2>
+        
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+          {/* FREE Features */}
+          <div className={cn(
+            "rounded-xl border p-5 space-y-4 transition-all bg-white",
+            currentPlanCode === "FREE" ? "border-emerald-500 ring-2 ring-emerald-500/10 shadow-xs" : "border-slate-100 opacity-75"
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Gratis (FREE)</span>
+              {currentPlanCode === "FREE" && (
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">Aktif</span>
+              )}
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-600">
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Dashboard dasar
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Input data listrik manual
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Rekomendasi dasar
+              </li>
+            </ul>
+          </div>
+
+          {/* PRO_UMKM Features */}
+          <div className={cn(
+            "rounded-xl border p-5 space-y-4 transition-all bg-white",
+            currentPlanCode === "PRO_UMKM" ? "border-emerald-500 ring-2 ring-emerald-500/10 shadow-xs" : "border-slate-100 opacity-75"
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Pro UMKM (Premium)</span>
+              {currentPlanCode === "PRO_UMKM" && (
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">Aktif</span>
+              )}
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-600">
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Appliance efficiency classifier
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Prediksi tagihan lanjutan
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Deteksi anomali &amp; hemat
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Laporan PDF bulanan
+              </li>
+            </ul>
+          </div>
+
+          {/* BUSINESS Features */}
+          <div className={cn(
+            "rounded-xl border p-5 space-y-4 transition-all bg-white",
+            currentPlanCode === "BUSINESS" ? "border-emerald-500 ring-2 ring-emerald-500/10 shadow-xs" : "border-slate-100 opacity-75"
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Business</span>
+              {currentPlanCode === "BUSINESS" && (
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">Aktif</span>
+              )}
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-600">
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Multi-cabang lanjutan
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Ringkasan performa antar usaha
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Laporan bulanan manajemen
+              </li>
+              <li className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Prioritas support 24/7
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Dashboard State Simulation Section */}
+      <div className="border-t border-slate-200/60 pt-10 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">Simulasi Tampilan Setelah Upgrade</h2>
+            <p className="text-xs text-slate-500 mt-1">Pratinjau fitur premium berdasarkan status paket aktif Anda saat ini.</p>
+          </div>
+          <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-600 uppercase tracking-wide self-start sm:self-auto">
+            Mode Demo
+          </span>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Card 1: Analisis Peralatan Lanjutan */}
+          {renderSimCard(
+            "Analisis Peralatan Lanjutan",
+            "Mendeteksi dan mengklasifikasikan efisiensi pemakaian alat listrik elektronik Anda.",
+            <Activity className="h-5 w-5" />,
+            currentPlanCode !== "FREE"
+          )}
+
+          {/* Card 2: Laporan PDF */}
+          {renderSimCard(
+            "Laporan PDF Bulanan",
+            "Unduh ringkasan performa dan rekomendasi hemat listrik resmi dalam format PDF.",
+            <FileText className="h-5 w-5" />,
+            currentPlanCode !== "FREE"
+          )}
+
+          {/* Card 3: Simulasi Penghematan */}
+          {renderSimCard(
+            "Simulasi Penghematan",
+            "Gunakan kalkulator simulasi hemat energi untuk skenario peralatan baru.",
+            <Sparkles className="h-5 w-5" />,
+            currentPlanCode !== "FREE"
+          )}
+
+          {/* Card 4: Ringkasan Multi-Cabang */}
+          {renderSimCard(
+            "Ringkasan Multi-Cabang",
+            "Konsolidasikan data listrik dari berbagai lokasi usaha Anda secara realtime.",
+            <Layers className="h-5 w-5" />,
+            currentPlanCode === "BUSINESS"
+          )}
+
+          {/* Card 5: Laporan Manajemen */}
+          {renderSimCard(
+            "Laporan Manajemen Eksekutif",
+            "Mendapatkan business insights dan rekomendasi cost reduction untuk operasional skala besar.",
+            <FileText className="h-5 w-5" />,
+            currentPlanCode === "BUSINESS"
+          )}
+
+          {/* Card 6: Prioritas Support */}
+          {renderSimCard(
+            "Prioritas Support 24/7",
+            "Jalur bantuan khusus dari tim ahli WattWise AI untuk kelancaran integrasi sistem.",
+            <PhoneCall className="h-5 w-5" />,
+            currentPlanCode === "BUSINESS"
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper to render preview cards
+function renderSimCard(title: string, desc: string, icon: React.ReactNode, isUnlocked: boolean) {
+  return (
+    <div className={cn(
+      "rounded-xl border p-4.5 flex gap-3.5 transition-all bg-white relative overflow-hidden",
+      isUnlocked 
+        ? "border-slate-200/80 shadow-xs text-slate-800" 
+        : "border-slate-100 bg-slate-50/50 text-slate-400 select-none"
+    )}>
+      <div className={cn(
+        "rounded-lg p-2.5 shrink-0 h-10 w-10 flex items-center justify-center",
+        isUnlocked ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-300"
+      )}>
+        {icon}
+      </div>
+      <div className="space-y-1 pr-6">
+        <h4 className={cn("text-xs font-bold", isUnlocked ? "text-slate-800" : "text-slate-500")}>
+          {title}
+        </h4>
+        <p className="text-[11px] leading-relaxed text-slate-400">{desc}</p>
+      </div>
+
+      <div className="absolute top-3 right-3">
+        {isUnlocked ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        ) : (
+          <Lock className="h-4 w-4 text-slate-300" />
+        )}
       </div>
     </div>
   );
