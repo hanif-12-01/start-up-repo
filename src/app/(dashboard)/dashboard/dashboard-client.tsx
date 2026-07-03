@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,6 +12,7 @@ import {
   TrendingUp,
   Zap,
   Info,
+  Loader2,
 } from "lucide-react";
 import {
   Bar,
@@ -25,9 +27,20 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PageHeader, StatCard, StatusBadge } from "@/components/ui/common";
+import { StatCard, StatusBadge } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
-import type { ApplianceEfficiencyResult, ApplianceEfficiencyStatus } from "@/services/appliance-efficiency";
+import { generateAnalysisAction } from "@/app/actions/electricity";
+import { useToast } from "@/components/ui/toast";
+
+type AttentionStatus = "Efisien" | "Normal" | "Perlu Dicek" | "Boros" | "Sangat Boros";
+type AttentionItem = {
+  id: string;
+  name: string;
+  status: AttentionStatus;
+  reason: string;
+  practicalAdvice: string;
+  estimatedMonthlySavingIdr: number | null;
+};
 
 interface DashboardClientProps {
   ringkasan: {
@@ -61,7 +74,7 @@ interface DashboardClientProps {
     kwh: number;
     warna: string;
   }[];
-  efisiensiPeralatan: ApplianceEfficiencyResult[];
+  efisiensiPeralatan: AttentionItem[];
 }
 
 export default function DashboardClient({
@@ -72,12 +85,33 @@ export default function DashboardClient({
   efisiensiPeralatan,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const topPerluPerhatian = [...efisiensiPeralatan]
     .filter((item) => item.status !== "Efisien" && item.status !== "Normal")
-    .sort((a, b) => statusRank[b.status] - statusRank[a.status] || b.contributionPercent - a.contributionPercent)
+    .sort((a, b) => statusRank[b.status] - statusRank[a.status])
     .slice(0, 3);
 
   useEffect(() => setMounted(true), []);
+
+  const handleGenerateAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const res = await generateAnalysisAction();
+      if (res.success) {
+        toast("Analisis listrik berhasil diperbarui!", "success");
+        router.refresh();
+      } else {
+        toast(res.error || "Gagal memperbarui analisis.", "error");
+      }
+    } catch (err: any) {
+      toast("Terjadi kesalahan sistem saat menjalankan analisis.", "error");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const contributionLabel = ringkasan.hasElectricityData
     ? "Kontribusi terhadap pemakaian bulanan"
@@ -85,10 +119,34 @@ export default function DashboardClient({
 
   return (
     <div>
-      <PageHeader
-        title="Dashboard Pemantauan Listrik"
-        subtitle={`Ringkasan pemakaian listrik ${ringkasan.businessName}. Ringkasan berdasarkan data input manual yang tersimpan di database.`}
-      />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200/40 pb-5 mb-8">
+        <div className="flex-1">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-3xl leading-tight font-display">
+            Dashboard Pemantauan Listrik
+          </h1>
+          <p className="mt-1.5 max-w-3xl text-sm text-slate-400 font-medium leading-relaxed">
+            Ringkasan pemakaian listrik {ringkasan.businessName}. Ringkasan berdasarkan data input manual yang tersimpan di database.
+          </p>
+        </div>
+        <button
+          onClick={handleGenerateAnalysis}
+          disabled={isAnalyzing || !ringkasan.hasElectricityData}
+          className="btn-primary self-start md:self-auto flex items-center gap-2 shadow-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+        >
+          {isAnalyzing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Menganalisis...
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4" />
+              Jalankan Analisis
+            </>
+          )}
+        </button>
+      </div>
+
 
       {/* Info banner for no electricity data */}
       {!ringkasan.hasElectricityData && (
@@ -327,26 +385,24 @@ export default function DashboardClient({
             )}
           </section>
 
-          {/* Appliance efficiency classifier */}
+          {/* Saved recommendations */}
           <section className="card lg:col-span-12">
             <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3">
               <div>
-                <h2 className="text-sm font-bold text-slate-800">Top 3 Peralatan Perlu Perhatian</h2>
-                <p className="mt-0.5 text-xs text-slate-400 font-medium">Klasifikasi efisiensi berdasarkan estimasi kWh, kontribusi, jam pakai, dan riwayat tagihan.</p>
+                <h2 className="text-sm font-bold text-slate-800">Top 3 Rekomendasi Perlu Perhatian</h2>
+                <p className="mt-0.5 text-xs text-slate-400 font-medium">Diambil dari hasil analisis tersimpan, bukan dihitung ulang saat dashboard dibuka.</p>
               </div>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500 border border-slate-200/50">Estimasi, bukan nilai resmi PLN</span>
             </div>
             {topPerluPerhatian.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-3">
                 {topPerluPerhatian.map((item) => (
-                  <div key={item.applianceId} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 hover:bg-slate-50 hover:shadow-sm transition-all duration-300 flex flex-col justify-between">
+                  <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 hover:bg-slate-50 hover:shadow-sm transition-all duration-300 flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-extrabold text-slate-800">{item.name}</h3>
-                          <p className="mt-0.5 text-[11px] text-slate-400 font-semibold leading-relaxed">
-                            {formatKwh(item.monthlyKwh)} · {item.contributionPercent.toFixed(1)}% {contributionLabel.toLowerCase()}
-                          </p>
+                          <p className="mt-0.5 text-[11px] text-slate-400 font-semibold leading-relaxed">{contributionLabel}</p>
                         </div>
                         <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${statusClass(item.status)}`}>{item.status}</span>
                       </div>
@@ -356,7 +412,7 @@ export default function DashboardClient({
                       </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-200/40 text-xs font-bold text-slate-700 bg-slate-100/50 rounded-lg p-2.5 text-center">
-                      Estimasi: <span className="text-emerald-600">{formatRupiah(item.estimatedMonthlyCost)}/bln</span>
+                      Potensi hemat: <span className="text-emerald-600">{item.estimatedMonthlySavingIdr ? formatRupiah(item.estimatedMonthlySavingIdr) : "bervariasi"}/bln</span>
                     </div>
                   </div>
                 ))}
@@ -431,7 +487,7 @@ export default function DashboardClient({
   );
 }
 
-const statusRank: Record<ApplianceEfficiencyStatus, number> = {
+const statusRank: Record<AttentionStatus, number> = {
   Efisien: 0,
   Normal: 1,
   "Perlu Dicek": 2,
@@ -439,7 +495,7 @@ const statusRank: Record<ApplianceEfficiencyStatus, number> = {
   "Sangat Boros": 4,
 };
 
-function statusClass(status: ApplianceEfficiencyStatus): string {
+function statusClass(status: AttentionStatus): string {
   if (status === "Sangat Boros") return "bg-rose-50 border-rose-200 text-rose-700";
   if (status === "Boros") return "bg-orange-50 border-orange-200 text-orange-700";
   if (status === "Perlu Dicek") return "bg-amber-50 border-amber-200 text-amber-700";

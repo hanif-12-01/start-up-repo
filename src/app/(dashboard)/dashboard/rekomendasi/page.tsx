@@ -1,14 +1,13 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/common";
 import { RekomendasiClient, type RecommendationCardData } from "./rekomendasi-client";
-import { getActiveBusinessId } from "@/services/business";
-import { classifyApplianceEfficiency } from "@/services/appliance-efficiency";
-import { buildRecommendationReasoning, SAVINGS_DISCLAIMER } from "@/services/recommendation-reasoning";
+import { getRekomendasiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
+
+const SAVINGS_DISCLAIMER = "Estimasi penghematan bersifat indikatif dan dapat berbeda dari tagihan PLN aktual.";
 
 function getPriority(
   estimatedSavingIdr: number | null,
@@ -40,11 +39,6 @@ export default async function RekomendasiPage() {
     redirect("/login");
   }
 
-  const activeBusinessId = await getActiveBusinessId(session.user.id);
-  if (!activeBusinessId) {
-    redirect("/onboarding");
-  }
-
   // Feature gate check
   const { plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
@@ -64,25 +58,7 @@ export default async function RekomendasiPage() {
     );
   }
 
-  const business = await db.business.findFirst({
-    where: { id: activeBusinessId, userId: session.user.id },
-    include: {
-      recommendations: {
-        orderBy: [
-          { isImplemented: "asc" },
-          { estimatedSavingsIdr: "desc" },
-          { createdAt: "desc" },
-        ],
-      },
-      appliances: {
-        where: { usageStatus: "ACTIVE" },
-      },
-      electricityEntries: {
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 4,
-      },
-    },
-  });
+  const business = await getRekomendasiDataForBusiness(session.user.id);
 
   if (!business) {
     redirect("/onboarding");
@@ -90,24 +66,6 @@ export default async function RekomendasiPage() {
 
   const latestEntry = business.electricityEntries[0];
   const tariff = latestEntry?.usageKwh && latestEntry.costIdr ? latestEntry.costIdr / latestEntry.usageKwh : 1450;
-  const applianceEfficiency = classifyApplianceEfficiency({
-    businessType: business.type,
-    appliances: business.appliances,
-    electricityEntries: business.electricityEntries,
-    currentMonth: latestEntry?.month,
-    currentYear: latestEntry?.year,
-  });
-
-  // ponytail: generated recs are UI-only; persist them when users need per-appliance tracking.
-  const generatedRecommendations: RecommendationCardData[] = buildRecommendationReasoning({
-    businessType: business.type,
-    appliances: applianceEfficiency,
-  }).map((rec) => ({
-    ...rec,
-    description: `Rekomendasi berbasis klasifikasi peralatan untuk ${rec.triggerApplianceName ?? "alat terkait"}.`,
-    isImplemented: false,
-    source: "generated",
-  }));
 
   const savedRecommendations: RecommendationCardData[] = business.recommendations.map((rec) => {
     const estimatedSavingKwh = rec.estimatedSavingsIdr ? round1(rec.estimatedSavingsIdr / tariff) : null;
@@ -128,7 +86,7 @@ export default async function RekomendasiPage() {
     };
   });
 
-  const recommendations: RecommendationCardData[] = [...generatedRecommendations, ...savedRecommendations];
+  const recommendations: RecommendationCardData[] = savedRecommendations;
 
   const latestBill = latestEntry?.costIdr ?? 0;
   const potentialSavingsIdr = recommendations.reduce((sum, rec) => sum + (rec.estimatedSavingIdr ?? 0), 0);
@@ -137,7 +95,7 @@ export default async function RekomendasiPage() {
     <div>
       <PageHeader
         title="Rekomendasi Hemat Listrik"
-        subtitle={`Saran praktis berbasis aturan untuk ${business.name}. Rekomendasi dibuat dari analisis listrik terakhir, klasifikasi peralatan, dan jenis usaha.`}
+        subtitle={`Saran praktis berbasis hasil analisis listrik terakhir untuk ${business.name}.`}
       />
 
       <RekomendasiClient

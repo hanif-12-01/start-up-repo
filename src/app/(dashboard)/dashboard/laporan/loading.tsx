@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/common";
 
 export default function LaporanLoading() {
@@ -8,9 +7,18 @@ export default function LaporanLoading() {
         title="Laporan Bulanan Listrik"
         subtitle="Memuat pratinjau laporan berbasis data usaha dan pemakaian listrik terbaru..."
       />
-      <div className="card flex min-h-[400px] flex-col items-center justify-center text-center">
-        <Loader2 className="h-9 w-9 animate-spin text-brand-green" />
-        <p className="mt-4 text-sm font-semibold text-slate-500">Mempersiapkan laporan...</p>
+      <div className="card animate-pulse space-y-6">
+        <div className="h-8 w-56 rounded-xl bg-slate-200" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-28 rounded-2xl bg-slate-100" />
+          <div className="h-28 rounded-2xl bg-slate-100" />
+        </div>
+        <div className="h-40 rounded-2xl bg-slate-100" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="h-24 rounded-2xl bg-slate-100" />
+          <div className="h-24 rounded-2xl bg-slate-100" />
+          <div className="h-24 rounded-2xl bg-slate-100" />
+        </div>
       </div>
     </div>
   );

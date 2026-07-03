@@ -1,10 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
-import { getActiveBusinessId } from "@/services/business";
-import { classifyApplianceEfficiency } from "@/services/appliance-efficiency";
+import { getDashboardDataForBusiness } from "@/services/business";
 
 export const dynamic = "force-dynamic";
 
@@ -15,47 +13,14 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const activeBusinessId = await getActiveBusinessId(session.user.id);
-  if (!activeBusinessId) {
-    redirect("/onboarding");
-  }
-
-  const business = await db.business.findFirst({
-    where: { id: activeBusinessId, userId: session.user.id },
-    include: {
-      electricityEntries: {
-        orderBy: [{ year: "asc" }, { month: "asc" }],
-        take: 6,
-      },
-      dailyUsages: {
-        orderBy: { date: "asc" },
-        take: 14,
-      },
-      appliances: {
-        where: { usageStatus: "ACTIVE" },
-        orderBy: { powerWatt: "desc" },
-      },
-      analysisResults: {
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 1,
-      },
-      anomalies: {
-        where: { isResolved: false },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-      recommendations: {
-        where: { isImplemented: false },
-        orderBy: { estimatedSavingsIdr: "desc" },
-      },
-    },
-  });
+  const business = await getDashboardDataForBusiness(session.user.id);
 
   if (!business) {
     redirect("/onboarding");
   }
 
-  const entries = business.electricityEntries;
+
+  const entries = [...business.electricityEntries].reverse();
   const latest = entries[entries.length - 1];
   const prev = entries.length > 1 ? entries[entries.length - 2] : null;
   const analysis = business.analysisResults[0];
@@ -142,13 +107,14 @@ export default async function DashboardPage() {
       warna: COLORS[i % COLORS.length],
     };
   });
-  const efisiensiPeralatan = classifyApplianceEfficiency({
-    businessType: business.type,
-    appliances: business.appliances,
-    electricityEntries: entries,
-    currentMonth: latest?.month,
-    currentYear: latest?.year,
-  });
+  const efisiensiPeralatan = business.recommendations.slice(0, 3).map((rec) => ({
+    id: rec.id,
+    name: rec.title,
+    status: "Perlu Dicek" as const,
+    reason: "Rekomendasi tersimpan dari analisis listrik terakhir.",
+    practicalAdvice: rec.description,
+    estimatedMonthlySavingIdr: rec.estimatedSavingsIdr,
+  }));
 
   return (
     <DashboardClient

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { 
   AlertTriangle, 
   Calculator, 
@@ -205,14 +205,14 @@ export function RekomendasiClient({
   }
 
   // Generate the explainable savings plan
-  const plan = generateSavingsPlan({
+  const plan = useMemo(() => generateSavingsPlan({
     businessType,
     appliances,
     currentMonthlyBill: tagihan,
     targetPercent: targetPersen,
     latestEntryCost,
     latestEntryKwh,
-  });
+  }), [appliances, businessType, latestEntryCost, latestEntryKwh, tagihan, targetPersen]);
 
   return (
     <div className="space-y-6">

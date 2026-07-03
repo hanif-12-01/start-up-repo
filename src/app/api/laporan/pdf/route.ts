@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import PDFDocument from "pdfkit";
 import { getActiveBusinessId } from "@/services/business";
 import { safeError } from "@/lib/safe-log";
 
@@ -111,6 +110,7 @@ export async function GET() {
         : Math.round(latestEntry.costIdr * 1.02);
 
     // --- Build PDF ---
+    const { default: PDFDocument } = await import("pdfkit");
     const doc = new PDFDocument({ size: "A4", margin: 50 });
     const chunks: Uint8Array[] = [];
 

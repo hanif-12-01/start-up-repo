@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { cache } from "react";
 
 export interface PlanFeature {
   key: string;
@@ -6,7 +7,7 @@ export interface PlanFeature {
 }
 
 // Helper to get user's active plan/subscription
-export async function getUserPlan(userId: string) {
+export const getUserPlan = cache(async (userId: string) => {
   // Find active subscription
   let subscription = await db.subscription.findFirst({
     where: {
@@ -45,7 +46,8 @@ export async function getUserPlan(userId: string) {
     subscription,
     plan: subscription?.plan || null,
   };
-}
+});
+
 
 // Check if user has access to a specific feature key or plan limit
 export async function hasFeature(userId: string, featureKey: string): Promise<boolean> {

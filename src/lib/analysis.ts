@@ -145,10 +145,10 @@ export async function runElectricityAnalysis(
     }
   }
 
-  // Insert detected anomalies
-  for (const anomaly of anomalies) {
-    await db.anomaly.create({
-      data: {
+  // Insert detected anomalies (batch to avoid N+1)
+  if (anomalies.length > 0) {
+    await db.anomaly.createMany({
+      data: anomalies.map((anomaly) => ({
         businessId,
         month,
         year,
@@ -156,7 +156,7 @@ export async function runElectricityAnalysis(
         severity: anomaly.severity,
         usageKwh: anomaly.usageKwh,
         expectedKwh: anomaly.expectedKwh,
-      },
+      })),
     });
   }
 
@@ -307,19 +307,46 @@ export async function runElectricityAnalysis(
 
   const recList = businessTypeRecs[business.type] || businessTypeRecs[BusinessType.OTHER];
 
-  for (const rec of recList) {
-    const estSaving = Math.round(potentialSavingsIdr * rec.pct);
-    await db.recommendation.create({
-      data: {
+  // Insert recommendations (batch to avoid N+1)
+  if (recList.length > 0) {
+    await db.recommendation.createMany({
+      data: recList.map((rec) => ({
         businessId,
         title: rec.title,
         description: rec.description,
-        estimatedSavingsIdr: estSaving,
+        estimatedSavingsIdr: Math.round(potentialSavingsIdr * rec.pct),
         difficulty: rec.difficulty,
         isImplemented: false,
-      },
+      })),
     });
   }
+
+  await db.analysisResult.upsert({
+    where: {
+      businessId_year_month: {
+        businessId,
+        year,
+        month,
+      },
+    },
+    update: {
+      totalUsageKwh: actualUsageKwh,
+      totalCostIdr: actualCostIdr,
+      avgDailyKwh,
+      carbonKg,
+      efficiencyScore,
+    },
+    create: {
+      businessId,
+      month,
+      year,
+      totalUsageKwh: actualUsageKwh,
+      totalCostIdr: actualCostIdr,
+      avgDailyKwh,
+      carbonKg,
+      efficiencyScore,
+    },
+  });
 
   // 8. Generate Monthly Report Summary
   const monthNames = [

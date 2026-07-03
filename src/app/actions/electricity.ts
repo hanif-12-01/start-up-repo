@@ -107,7 +107,7 @@ export async function createElectricityEntry(input: ElectricityInput): Promise<E
 
     // Import and execute the rule-based analysis engine
     const { runElectricityAnalysis } = await import("@/lib/analysis");
-    const analysis = await runElectricityAnalysis(
+    await runElectricityAnalysis(
       business.id,
       input.month,
       input.year,
@@ -115,37 +115,12 @@ export async function createElectricityEntry(input: ElectricityInput): Promise<E
       input.costIdr
     );
 
-    // Save/update analysis result with the rule engine output
-    await db.analysisResult.upsert({
-      where: {
-        businessId_year_month: {
-          businessId: business.id,
-          year: input.year,
-          month: input.month,
-        },
-      },
-      update: {
-        totalUsageKwh: input.usageKwh,
-        totalCostIdr: input.costIdr,
-        avgDailyKwh: analysis.avgDailyKwh,
-        carbonKg: analysis.carbonKg,
-        efficiencyScore: analysis.efficiencyScore,
-      },
-      create: {
-        businessId: business.id,
-        month: input.month,
-        year: input.year,
-        totalUsageKwh: input.usageKwh,
-        totalCostIdr: input.costIdr,
-        avgDailyKwh: analysis.avgDailyKwh,
-        carbonKg: analysis.carbonKg,
-        efficiencyScore: analysis.efficiencyScore,
-      },
-    });
-
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/input");
     revalidatePath("/dashboard/laporan");
+    revalidatePath("/dashboard/anomali");
+    revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/prediksi");
 
     return { success: true, entryId: entry.id };
   } catch (error: any) {
@@ -159,5 +134,60 @@ export async function createElectricityEntry(input: ElectricityInput): Promise<E
     }
 
     return { success: false, error: error.message || "Gagal menyimpan data listrik." };
+  }
+}
+
+/**
+ * Server action to explicitly regenerate the electricity analysis on-demand
+ * for the active business's latest entry.
+ */
+export async function generateAnalysisAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const activeBusinessId = await getActiveBusinessId(session.user.id);
+    if (!activeBusinessId) {
+      return { success: false, error: "Sesi usaha tidak valid. Silakan pilih usaha Anda." };
+    }
+
+    // Find the latest electricity entry for this business
+    const latestEntry = await db.electricityEntry.findFirst({
+      where: { businessId: activeBusinessId },
+      orderBy: [
+        { year: "desc" },
+        { month: "desc" }
+      ]
+    });
+
+    if (!latestEntry) {
+      return { success: false, error: "Belum ada data listrik untuk dianalisis. Silakan masukkan data listrik terlebih dahulu." };
+    }
+
+    // Import and execute the rule-based analysis engine
+    // (engine saves AnalysisResult, Anomaly, Recommendation, MonthlyReport to DB)
+    const { runElectricityAnalysis } = await import("@/lib/analysis");
+    await runElectricityAnalysis(
+      activeBusinessId,
+      latestEntry.month,
+      latestEntry.year,
+      latestEntry.usageKwh,
+      latestEntry.costIdr
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/input");
+    revalidatePath("/dashboard/laporan");
+    revalidatePath("/dashboard/anomali");
+    revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/prediksi");
+
+    return { success: true };
+  } catch (error: any) {
+    safeError("generateAnalysisAction", error);
+    return { success: false, error: error.message || "Gagal memperbarui analisis." };
   }
 }

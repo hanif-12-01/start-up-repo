@@ -1,9 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import PrediksiClient from "./prediksi-client";
-import { getActiveBusinessId } from "@/services/business";
+import { getPrediksiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
 
@@ -12,11 +11,6 @@ export default async function PrediksiPage() {
 
   if (!session?.user?.id) {
     redirect("/login");
-  }
-
-  const activeBusinessId = await getActiveBusinessId(session.user.id);
-  if (!activeBusinessId) {
-    redirect("/onboarding");
   }
 
   // Feature gate check
@@ -32,29 +26,7 @@ export default async function PrediksiPage() {
     );
   }
 
-  const business = await db.business.findFirst({
-    where: { id: activeBusinessId, userId: session.user.id },
-    include: {
-      electricityEntries: {
-        orderBy: [
-          { year: "desc" },
-          { month: "desc" }
-        ],
-        take: 2,
-      },
-      analysisResults: {
-        orderBy: [
-          { year: "desc" },
-          { month: "desc" }
-        ],
-        take: 1,
-      },
-      dailyUsages: {
-        orderBy: { date: "asc" },
-        take: 30,
-      },
-    },
-  });
+  const business = await getPrediksiDataForBusiness(session.user.id);
 
   if (!business) {
     redirect("/onboarding");

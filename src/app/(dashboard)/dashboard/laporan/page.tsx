@@ -3,11 +3,10 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { AlertCircle, CheckCircle2, FileText, Info, PlusCircle, UserCheck, Zap } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
 import { LaporanPdfButton } from "./laporan-pdf-button";
-import { getActiveBusinessId } from "@/services/business";
+import { getLaporanDataForBusiness } from "@/services/business";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +29,7 @@ const businessTypeLabels: Record<string, string> = {
   LAUNDRY: "Laundry",
   FNB: "F&B / Kuliner",
   RETAIL: "Retail / Toko",
-  MANUFACTURE: "Manufaktur / Produksi",
+  MANUFACTURE: "Manufaktur / Prosedur",
   COLD_STORAGE: "Cold Storage / Pendingin",
   OTHER: "Usaha Lainnya",
 };
@@ -63,7 +62,7 @@ function EmptyState({
 }) {
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Laporan Bulanan Listrik" subtitle="Pratinjau laporan berbasis data usaha dan pemakaian listrik terbaru." />
+      <PageHeader title="Laporan Bulanan Listrik" subtitle="Pratinjau Laporan berbasis data usaha dan pemakaian listrik terbaru." />
       <div className="card flex flex-col items-center gap-4 py-14 text-center">
         <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-greenSoft text-brand-green">{icon}</div>
         <h2 className="text-lg font-bold text-brand-ink">{title}</h2>
@@ -83,36 +82,7 @@ export default async function LaporanPage() {
     redirect("/login");
   }
 
-  const activeBusinessId = await getActiveBusinessId(session.user.id);
-  if (!activeBusinessId) {
-    redirect("/onboarding");
-  }
-
-  const business = await db.business.findFirst({
-    where: { id: activeBusinessId, userId: session.user.id },
-    include: {
-      electricityEntries: {
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 2,
-      },
-      analysisResults: {
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 1,
-      },
-      anomalies: {
-        orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
-      },
-      recommendations: {
-        where: { isImplemented: false },
-        orderBy: [{ estimatedSavingsIdr: "desc" }, { createdAt: "desc" }],
-        take: 3,
-      },
-      monthlyReports: {
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 1,
-      },
-    },
-  });
+  const business = await getLaporanDataForBusiness(session.user.id);
 
   if (!business) {
     return (
