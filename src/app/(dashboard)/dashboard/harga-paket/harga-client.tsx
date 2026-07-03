@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, AlertCircle, Sparkles, Lock, FileText, Activity, Layers, PhoneCall } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { checkoutPlanAction } from "@/actions/billing";
+import { changeSubscriptionPlanAction } from "@/actions/billing";
 import { cn } from "@/lib/utils";
 
 interface Plan {
@@ -40,23 +40,19 @@ export default function HargaClient({
 
   const handleSelectPlan = async (code: string) => {
     if (code === currentPlanCode) {
-      toast("Anda sudah berlangganan paket ini.", "info");
-      return;
-    }
-
-    if (code === "FREE") {
-      toast("Untuk kembali ke paket Gratis, harap hubungi Customer Support kami.", "info");
+      toast("Anda sudah menggunakan paket ini.", "info");
       return;
     }
 
     setLoadingCode(code);
     try {
-      const res = await checkoutPlanAction(code);
+      const res = await changeSubscriptionPlanAction(code);
       if (res.ok) {
-        toast("Checkout berhasil! Silakan selesaikan pembayaran Anda.", "success");
-        router.push(`/dashboard/billing/${res.paymentId}`);
+        const planName = code === "FREE" ? "Gratis" : code === "PRO_UMKM" ? "Pro UMKM" : "Business";
+        toast(`Berhasil beralih ke paket ${planName}!`, "success");
+        router.refresh();
       } else {
-        toast(res.error || "Gagal melakukan checkout.", "error");
+        toast(res.error || "Gagal mengubah paket.", "error");
       }
     } catch (e: any) {
       toast("Terjadi kesalahan koneksi.", "error");
@@ -394,7 +390,7 @@ export default function HargaClient({
                   ) : isCurrent ? (
                     "Paket Aktif Anda"
                   ) : isFree ? (
-                    "Hubungi Support"
+                    "Kembali ke Paket Gratis"
                   ) : (
                     `Langganan ${plan.name}`
                   )}

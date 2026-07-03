@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bell, Edit3, HelpCircle, MapPin, Save, Store, User, Zap, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Bell, Edit3, HelpCircle, MapPin, Save, Store, User, Zap, Loader2, Briefcase, Plus, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/common";
 import { useToast } from "@/components/ui/toast";
-import { updateBusinessProfile } from "@/app/actions/business";
+import { updateBusinessProfile, switchActiveBusinessAction } from "@/app/actions/business";
 import { BusinessType } from "@prisma/client";
 
 const BUSINESS_TYPES = [
@@ -15,6 +17,15 @@ const BUSINESS_TYPES = [
   { value: BusinessType.COLD_STORAGE, label: "Cold Storage / Pembekuan" },
   { value: BusinessType.OTHER, label: "Usaha Lainnya" },
 ];
+
+interface BusinessItem {
+  id: string;
+  name: string;
+  type: BusinessType;
+  address: string | null;
+  powerVA: number | null;
+  operatingHours: string | null;
+}
 
 interface ProfilClientProps {
   initialBusiness: {
@@ -32,13 +43,30 @@ interface ProfilClientProps {
       dailyUsageHours: number;
     }[];
   };
+  allBusinesses?: BusinessItem[];
 }
 
-export default function ProfilClient({ initialBusiness }: ProfilClientProps) {
+export default function ProfilClient({ initialBusiness, allBusinesses = [] }: ProfilClientProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [business, setBusiness] = useState(initialBusiness);
+
+  const handleSwitchActive = async (businessId: string) => {
+    if (businessId === business.id) return;
+    try {
+      const res = await switchActiveBusinessAction(businessId);
+      if (res.success) {
+        toast("Berhasil mengganti usaha aktif!");
+        router.refresh();
+      } else {
+        toast(res.error || "Gagal mengganti usaha.", "error");
+      }
+    } catch (err) {
+      toast("Terjadi kesalahan koneksi.", "error");
+    }
+  };
   
   const [formData, setFormData] = useState({
     name: business.name,
@@ -300,6 +328,71 @@ export default function ProfilClient({ initialBusiness }: ProfilClientProps) {
             </div>
           )}
         </section>
+
+        <section className="card space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-base font-bold text-brand-ink flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-brand-green" />
+                Kelola Semua Usaha Anda
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Berikut adalah daftar semua usaha Anda. Klik &quot;Jadikan Usaha Aktif&quot; untuk mengganti ruang lingkup dashboard.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/tambah-usaha"
+              className="btn btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Usaha
+            </Link>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {allBusinesses.map((b) => {
+              const isActive = b.id === business.id;
+              return (
+                <div
+                  key={b.id}
+                  className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between gap-4 ${
+                    isActive
+                      ? "border-emerald-500 bg-emerald-50/10 shadow-sm"
+                      : "border-slate-100 bg-white hover:border-slate-200"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-bold text-slate-800 truncate">{b.name}</h3>
+                      {isActive && (
+                        <span className="badge bg-emerald-100 border-emerald-200 text-emerald-800 text-[10px] font-bold py-0.5 px-2.5 flex items-center gap-1 shrink-0">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs space-y-1 text-slate-500">
+                      <p>Jenis: <strong className="text-slate-700">{getBusinessLabel(b.type)}</strong></p>
+                      <p>Daya: <strong className="text-slate-700">{b.powerVA ? `${b.powerVA} VA` : "-"}</strong></p>
+                      <p>Alamat: <strong className="text-slate-700 truncate block">{b.address || "-"}</strong></p>
+                    </div>
+                  </div>
+
+                  {!isActive && (
+                    <button
+                      onClick={() => handleSwitchActive(b.id)}
+                      className="btn btn-outline py-1.5 text-[11px] font-bold w-full text-center"
+                    >
+                      Jadikan Usaha Aktif
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+
 
         <section className="card">
           <h2 className="flex items-center gap-2 font-bold">

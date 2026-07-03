@@ -9,6 +9,7 @@ async function main() {
   await prisma.payment.deleteMany();
   await prisma.plan.deleteMany();
   await prisma.authAttempt.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.monthlyReport.deleteMany();
   await prisma.recommendation.deleteMany();
   await prisma.anomaly.deleteMany();
@@ -362,7 +363,7 @@ async function main() {
   await prisma.subscription.create({
     data: {
       userId: user.id,
-      planId: freePlan.id,
+      planId: businessPlan.id,
       status: 'ACTIVE',
       startsAt: new Date(),
       endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days

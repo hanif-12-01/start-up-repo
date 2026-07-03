@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { switchActiveBusinessAction } from "@/app/actions/business";
-import { Briefcase, ChevronDown, Loader2 } from "lucide-react";
+import { Briefcase, ChevronDown, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Business {
@@ -73,6 +74,7 @@ export function BusinessSwitcher({ businesses, activeBusinessId }: BusinessSwitc
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate-400 transition-transform", isOpen && "rotate-180")} />
       </button>
 
+
       {errorMsg && (
         <p className="mt-1 text-[10px] text-red-500 font-medium">{errorMsg}</p>
       )}
@@ -100,6 +102,16 @@ export function BusinessSwitcher({ businesses, activeBusinessId }: BusinessSwitc
                 </button>
               </li>
             ))}
+            <li className="border-t border-slate-100 mt-1 pt-1">
+              <Link
+                href="/dashboard/tambah-usaha"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-all"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span>Tambah Usaha Baru</span>
+              </Link>
+            </li>
           </ul>
         </>
       )}

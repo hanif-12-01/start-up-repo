@@ -5,6 +5,7 @@ import { getUserPlan } from "@/services/subscription";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/common";
 import { CreditCard, Calendar, CheckCircle2, Clock, AlertTriangle, ArrowRight } from "lucide-react";
+import { cancelSubscriptionAction } from "@/actions/billing";
 
 export const metadata = {
   title: "Billing & Langganan - WattWise AI",
@@ -46,12 +47,27 @@ export default async function BillingDashboardPage() {
           title="Billing & Langganan"
           subtitle="Pantau status paket aktif, kelola detail tagihan, dan lihat riwayat pembayaran."
         />
-        <Link
-          href="/dashboard/harga-paket"
-          className="btn btn-primary text-xs self-start sm:self-auto flex items-center gap-1.5"
-        >
-          Upgrade / Ubah Paket <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {plan && plan.code !== "FREE" && (
+            <form action={async () => {
+              "use server";
+              await cancelSubscriptionAction();
+            }}>
+              <button
+                type="submit"
+                className="btn btn-outline text-rose-600 border-rose-200 hover:bg-rose-50 text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+              >
+                Batalkan Paket
+              </button>
+            </form>
+          )}
+          <Link
+            href="/dashboard/harga-paket"
+            className="btn btn-primary text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+          >
+            Upgrade / Ubah Paket <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Subscription Card */}

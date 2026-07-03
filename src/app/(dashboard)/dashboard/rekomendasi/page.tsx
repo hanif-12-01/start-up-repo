@@ -68,7 +68,7 @@ export default async function RekomendasiPage() {
   const tariff = latestEntry?.usageKwh && latestEntry.costIdr ? latestEntry.costIdr / latestEntry.usageKwh : 1450;
 
   const savedRecommendations: RecommendationCardData[] = business.recommendations.map((rec) => {
-    const estimatedSavingKwh = rec.estimatedSavingsIdr ? round1(rec.estimatedSavingsIdr / tariff) : null;
+    const estimatedSavingKwh = rec.estimatedSavingsKwh ?? (rec.estimatedSavingsIdr ? round1(rec.estimatedSavingsIdr / tariff) : null);
     return {
       id: rec.id,
       title: rec.title,
@@ -78,11 +78,12 @@ export default async function RekomendasiPage() {
       difficulty: rec.difficulty,
       isImplemented: rec.isImplemented,
       priority: getPriority(rec.estimatedSavingsIdr, rec.difficulty),
-      reason: `Rekomendasi ini muncul dari analisis listrik terakhir untuk jenis usaha ${business.type}.`,
+      reason: rec.reason ?? 'Rekomendasi ini muncul dari analisis listrik terakhir.',
       impact: getImpact(estimatedSavingKwh),
-      practicalSteps: [rec.description],
-      disclaimer: SAVINGS_DISCLAIMER,
-      source: "database",
+      practicalSteps: rec.practicalSteps.length > 0 ? rec.practicalSteps : [rec.description],
+      disclaimer: rec.disclaimer ?? SAVINGS_DISCLAIMER,
+      triggerApplianceName: rec.triggerApplianceName ?? undefined,
+      source: 'database',
     };
   });
 

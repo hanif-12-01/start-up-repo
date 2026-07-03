@@ -63,6 +63,43 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
   }
 }
 
+export async function createBusinessAction(input: {
+  name: string;
+  type: BusinessType;
+  address: string;
+  powerVA: number;
+  operatingHours: string;
+}) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const business = await db.business.create({
+      data: {
+        name: input.name,
+        type: input.type,
+        address: input.address,
+        powerVA: input.powerVA,
+        operatingHours: input.operatingHours,
+        userId: session.user.id,
+      },
+    });
+
+    await setActiveBusinessCookie(session.user.id, business.id);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/profil");
+
+    return { success: true, businessId: business.id };
+  } catch (error: any) {
+    safeError("createBusinessAction", error);
+    return { success: false, error: error.message || "Gagal menambahkan usaha baru." };
+  }
+}
+
 export async function getBusinessProfile() {
   try {
     const session = await getServerSession(authOptions);
@@ -198,6 +235,9 @@ export async function switchActiveBusinessAction(businessId: string) {
     revalidatePath("/dashboard/prediksi");
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/peralatan");
+    revalidatePath("/dashboard/simulasi");
+    revalidatePath("/dashboard/notifikasi");
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/profil");
 

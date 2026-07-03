@@ -4,14 +4,19 @@ import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
-export function LaporanPdfButton() {
+export function LaporanPdfButton({ month, year }: { month?: number; year?: number }) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   async function handleDownload() {
     setLoading(true);
     try {
-      const res = await fetch("/api/laporan/pdf");
+      const urlParams = new URLSearchParams();
+      if (month) urlParams.append("month", String(month));
+      if (year) urlParams.append("year", String(year));
+      const queryString = urlParams.toString();
+      const endpoint = queryString ? `/api/laporan/pdf?${queryString}` : "/api/laporan/pdf";
+      const res = await fetch(endpoint);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Gagal mengunduh laporan PDF");

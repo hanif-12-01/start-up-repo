@@ -48,6 +48,7 @@ model User {
   name       String?
   password   String
   businesses Business[]
+  notifications Notification[]
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
@@ -68,6 +69,7 @@ model Business {
   anomalies          Anomaly[]
   recommendations    Recommendation[]
   monthlyReports     MonthlyReport[]
+  notifications      Notification[]
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -133,6 +135,20 @@ model AnalysisResult {
   avgDailyKwh     Float?
   carbonKg        Float?
   efficiencyScore Float?
+  previousMonthUsageKwh Float?
+  previousMonthCostIdr Float?
+  previousMonthKwhChangePct Float?
+  previousMonthCostChangePct Float?
+  threeMonthAverageKwh Float?
+  threeMonthAverageCostIdr Float?
+  threeMonthKwhChangePct Float?
+  threeMonthCostChangePct Float?
+  applianceEstimateKwh Float?
+  applianceGapPct Float?
+  usageStatusLabel String?
+  insights        String[] @default([])
+  estimatedSavingsIdr Float?
+  disclaimer      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -167,13 +183,22 @@ model Recommendation {
   title               String
   description         String
   estimatedSavingsIdr Float?
+  estimatedSavingsKwh Float?
   difficulty          RecommendationDifficulty
+  priority            String?
+  impact              String?
+  reason              String?
+  practicalSteps      String[]                 @default([])
+  disclaimer          String?
+  source              String?
+  triggerApplianceName String?
   isImplemented       Boolean                  @default(false)
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
   @@index([businessId])
   @@index([difficulty])
+  @@index([source])
 }
 
 model AuthAttempt {
@@ -196,6 +221,10 @@ model MonthlyReport {
   year       Int
   status     ReportStatus @default(DRAFT)
   summary    String?
+  totalKwh   Float?
+  totalCostIdr Float?
+  energyScore Float?
+  disclaimer String?
   pdfUrl     String?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
@@ -258,4 +287,22 @@ model Payment {
   @@index([userId])
   @@index([businessId])
   @@index([status])
+}
+
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title      String
+  message    String
+  type       String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@index([businessId])
+  @@index([type])
 }

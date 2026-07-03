@@ -120,6 +120,8 @@ export async function createElectricityEntry(input: ElectricityInput): Promise<E
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/notifikasi");
+    revalidatePath("/dashboard/simulasi");
     revalidatePath("/dashboard/prediksi");
 
     return { success: true, entryId: entry.id };
@@ -183,6 +185,8 @@ export async function generateAnalysisAction(): Promise<{ success: boolean; erro
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
+    revalidatePath("/dashboard/notifikasi");
+    revalidatePath("/dashboard/simulasi");
     revalidatePath("/dashboard/prediksi");
 
     return { success: true };

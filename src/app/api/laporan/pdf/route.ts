@@ -42,7 +42,7 @@ function getUsageLabel(score?: number | null) {
   return "Efisien";
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -54,14 +54,52 @@ export async function GET() {
       return NextResponse.json({ error: "Profil usaha belum lengkap" }, { status: 404 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const monthParam = searchParams.get("month");
+    const yearParam = searchParams.get("year");
+    const month = monthParam ? parseInt(monthParam, 10) : undefined;
+    const year = yearParam ? parseInt(yearParam, 10) : undefined;
+
+    const entryWhere = month && year ? { month, year } : {};
+
+    // Get specific entries or default latest
+    const allEntries = await db.electricityEntry.findMany({
+      where: { businessId: activeBusinessId, ...entryWhere },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+    });
+
+    const latestEntry = allEntries[0];
+    let entryFilter: any = {};
+
+    if (month && year && latestEntry) {
+      const prevEntry = await db.electricityEntry.findFirst({
+        where: {
+          businessId: activeBusinessId,
+          OR: [
+            { year: { lt: year } },
+            { year: year, month: { lt: month } }
+          ]
+        },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+      });
+      const entryIds = [latestEntry.id];
+      if (prevEntry) entryIds.push(prevEntry.id);
+      entryFilter = { id: { in: entryIds } };
+    } else {
+      entryFilter = {};
+    }
+
+    const analysisWhere = month && year ? { month, year } : {};
+
     const business = await db.business.findFirst({
       where: { id: activeBusinessId, userId: session.user.id },
       include: {
         electricityEntries: {
+          where: entryFilter,
           orderBy: [{ year: "desc" }, { month: "desc" }],
-          take: 2,
         },
         analysisResults: {
+          where: analysisWhere,
           orderBy: [{ year: "desc" }, { month: "desc" }],
           take: 1,
         },
@@ -74,6 +112,7 @@ export async function GET() {
           take: 3,
         },
         monthlyReports: {
+          where: analysisWhere,
           orderBy: [{ year: "desc" }, { month: "desc" }],
           take: 1,
         },
@@ -84,17 +123,17 @@ export async function GET() {
       return NextResponse.json({ error: "Profil usaha belum lengkap" }, { status: 404 });
     }
 
-    const latestEntry = business.electricityEntries[0];
+    const latestEntryData = business.electricityEntries[0];
     const previousEntry = business.electricityEntries[1];
     const latestAnalysis = business.analysisResults[0];
 
-    if (!latestEntry || !latestAnalysis) {
+    if (!latestEntryData || !latestAnalysis) {
       return NextResponse.json({ error: "Data laporan belum cukup" }, { status: 404 });
     }
 
-    const period = `${monthNames[latestEntry.month - 1]} ${latestEntry.year}`;
+    const period = `${monthNames[latestEntryData.month - 1]} ${latestEntryData.year}`;
     const currentAnomalies = business.anomalies.filter(
-      (a) => a.month === latestEntry.month && a.year === latestEntry.year
+      (a) => a.month === latestEntryData.month && a.year === latestEntryData.year
     );
     const monthlySavings = business.recommendations.reduce(
       (sum, r) => sum + (r.estimatedSavingsIdr ?? 0), 0
@@ -104,10 +143,10 @@ export async function GET() {
     const predictedBill =
       previousEntry && previousEntry.usageKwh > 0
         ? Math.round(
-            latestEntry.costIdr *
-              (1 + Math.max(-0.2, Math.min(0.2, (latestEntry.usageKwh - previousEntry.usageKwh) / previousEntry.usageKwh)))
+            latestEntryData.costIdr *
+              (1 + Math.max(-0.2, Math.min(0.2, (latestEntryData.usageKwh - previousEntry.usageKwh) / previousEntry.usageKwh)))
           )
-        : Math.round(latestEntry.costIdr * 1.02);
+        : Math.round(latestEntryData.costIdr * 1.02);
 
     // --- Build PDF ---
     const { default: PDFDocument } = await import("pdfkit");
@@ -179,8 +218,8 @@ export async function GET() {
     sectionTitle("Ringkasan Listrik Bulanan");
 
     const summaryItems = [
-      ["Total kWh", fmtKwh(latestEntry.usageKwh)],
-      ["Estimasi Tagihan", fmtRp(latestEntry.costIdr)],
+      ["Total kWh", fmtKwh(latestEntryData.usageKwh)],
+      ["Estimasi Tagihan", fmtRp(latestEntryData.costIdr)],
       ["Prediksi Tagihan", fmtRp(predictedBill)],
       ["Status Pemakaian", usageLabel + (latestAnalysis.efficiencyScore != null ? ` (Skor ${Math.round(latestAnalysis.efficiencyScore)}/100)` : "")],
     ];

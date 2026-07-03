@@ -190,7 +190,7 @@ export const getRekomendasiDataForBusiness = cache(async (userId: string) => {
           { estimatedSavingsIdr: "desc" },
           { createdAt: "desc" },
         ],
-        select: { id: true, title: true, description: true, estimatedSavingsIdr: true, difficulty: true, isImplemented: true },
+        select: { id: true, title: true, description: true, estimatedSavingsIdr: true, estimatedSavingsKwh: true, difficulty: true, priority: true, impact: true, reason: true, practicalSteps: true, disclaimer: true, triggerApplianceName: true, isImplemented: true },
       },
       appliances: {
         where: { usageStatus: "ACTIVE" },
@@ -205,9 +205,91 @@ export const getRekomendasiDataForBusiness = cache(async (userId: string) => {
   });
 });
 
-export const getLaporanDataForBusiness = cache(async (userId: string) => {
+export const getPeralatanDataForBusiness = cache(async (userId: string) => {
   const activeBusinessId = await getActiveBusinessId(userId);
   if (!activeBusinessId) return null;
+
+  return db.business.findFirst({
+    where: { id: activeBusinessId, userId },
+    select: {
+      id: true,
+      name: true,
+      appliances: {
+        orderBy: [{ usageStatus: "asc" }, { powerWatt: "desc" }],
+        select: { id: true, name: true, powerWatt: true, quantity: true, dailyUsageHours: true, usageStatus: true },
+      },
+      electricityEntries: {
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        take: 1,
+        select: { usageKwh: true, costIdr: true, month: true, year: true },
+      },
+    },
+  });
+});
+
+export const getSimulasiDataForBusiness = cache(async (userId: string) => {
+  const activeBusinessId = await getActiveBusinessId(userId);
+  if (!activeBusinessId) return null;
+
+  return db.business.findFirst({
+    where: { id: activeBusinessId, userId },
+    select: {
+      name: true,
+      type: true,
+      appliances: {
+        where: { usageStatus: "ACTIVE" },
+        orderBy: { powerWatt: "desc" },
+        select: { id: true, name: true, powerWatt: true, quantity: true, dailyUsageHours: true },
+      },
+      electricityEntries: {
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        take: 1,
+        select: { usageKwh: true, costIdr: true, month: true, year: true },
+      },
+    },
+  });
+});
+
+export const getLaporanDataForBusiness = cache(async (userId: string, month?: number, year?: number) => {
+  const activeBusinessId = await getActiveBusinessId(userId);
+  if (!activeBusinessId) return null;
+
+  // If specific month/year is requested, fetch that electricity entry. Otherwise fetch latest and previous.
+  const entryWhere = month && year ? { month, year } : {};
+
+  // For specific month/year, we fetch that one and the one prior to it.
+  // First, find the entries ordered to get correct latest & previous.
+  const allEntries = await db.electricityEntry.findMany({
+    where: { businessId: activeBusinessId, ...entryWhere },
+    orderBy: [{ year: "desc" }, { month: "desc" }],
+  });
+
+  const latestEntry = allEntries[0];
+  let entriesToTake = 2;
+  let entryFilter: any = {};
+
+  if (month && year && latestEntry) {
+    // We want the selected entry and the one immediately before it chronologically in the entire DB.
+    const prevEntry = await db.electricityEntry.findFirst({
+      where: {
+        businessId: activeBusinessId,
+        OR: [
+          { year: { lt: year } },
+          { year: year, month: { lt: month } }
+        ]
+      },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+    });
+    const entryIds = [latestEntry.id];
+    if (prevEntry) entryIds.push(prevEntry.id);
+    entryFilter = { id: { in: entryIds } };
+  } else {
+    // Default: take latest 2
+    entryFilter = {};
+  }
+
+  // Same logic for analysisResults, anomalies, monthlyReports
+  const analysisWhere = month && year ? { month, year } : {};
 
   return db.business.findFirst({
     where: { id: activeBusinessId, userId },
@@ -218,11 +300,12 @@ export const getLaporanDataForBusiness = cache(async (userId: string) => {
       powerVA: true,
       operatingHours: true,
       electricityEntries: {
+        where: entryFilter,
         orderBy: [{ year: "desc" }, { month: "desc" }],
-        take: 2,
         select: { month: true, year: true, usageKwh: true, costIdr: true },
       },
       analysisResults: {
+        where: analysisWhere,
         orderBy: [{ year: "desc" }, { month: "desc" }],
         take: 1,
         select: { efficiencyScore: true },
@@ -239,6 +322,7 @@ export const getLaporanDataForBusiness = cache(async (userId: string) => {
         select: { id: true, title: true, description: true, estimatedSavingsIdr: true },
       },
       monthlyReports: {
+        where: analysisWhere,
         orderBy: [{ year: "desc" }, { month: "desc" }],
         take: 1,
         select: { createdAt: true, summary: true },
@@ -246,6 +330,28 @@ export const getLaporanDataForBusiness = cache(async (userId: string) => {
     },
   });
 });
+
+export const getMonthlyReportsForBusiness = cache(async (userId: string) => {
+  const activeBusinessId = await getActiveBusinessId(userId);
+  if (!activeBusinessId) return [];
+
+  return db.monthlyReport.findMany({
+    where: { businessId: activeBusinessId },
+    orderBy: [{ year: "desc" }, { month: "desc" }],
+    select: {
+      id: true,
+      month: true,
+      year: true,
+      status: true,
+      summary: true,
+      totalKwh: true,
+      totalCostIdr: true,
+      energyScore: true,
+      createdAt: true,
+    },
+  });
+});
+
 
 
 

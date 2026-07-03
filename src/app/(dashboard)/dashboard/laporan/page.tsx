@@ -6,7 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
 import { LaporanPdfButton } from "./laporan-pdf-button";
-import { getLaporanDataForBusiness } from "@/services/business";
+import { CsvExportButton } from "@/components/csv-export-button";
+import { getLaporanDataForBusiness, getMonthlyReportsForBusiness } from "@/services/business";
 
 export const dynamic = "force-dynamic";
 
@@ -75,14 +76,19 @@ function EmptyState({
   );
 }
 
-export default async function LaporanPage() {
+export default async function LaporanPage({ searchParams }: { searchParams?: { month?: string; year?: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  const business = await getLaporanDataForBusiness(session.user.id);
+  const monthParam = searchParams?.month ? Number(searchParams.month) : undefined;
+  const yearParam = searchParams?.year ? Number(searchParams.year) : undefined;
+  const selectedMonth = monthParam && monthParam >= 1 && monthParam <= 12 ? monthParam : undefined;
+  const selectedYear = yearParam && yearParam >= 2020 ? yearParam : undefined;
+
+  const business = await getLaporanDataForBusiness(session.user.id, selectedMonth, selectedYear);
 
   if (!business) {
     return (
@@ -124,6 +130,12 @@ export default async function LaporanPage() {
   const generatedAt =
     business.monthlyReports[0]?.createdAt.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) ??
     new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const allReportHistory = await getMonthlyReportsForBusiness(session.user.id);
+  const reportHistory = allReportHistory.filter((report) => {
+    const monthMatches = selectedMonth ? report.month === selectedMonth : true;
+    const yearMatches = selectedYear ? report.year === selectedYear : true;
+    return monthMatches && yearMatches;
+  });
 
   return (
     <div className="max-w-5xl">
@@ -138,8 +150,52 @@ export default async function LaporanPage() {
           <h2 className="text-lg font-bold text-brand-ink">Laporan Periode {period}</h2>
           <p className="text-xs text-slate-500">Dibuat otomatis pada {generatedAt}</p>
         </div>
-        <LaporanPdfButton />
+        <div className="flex flex-wrap gap-2">
+          <LaporanPdfButton month={latestEntry.month} year={latestEntry.year} />
+          <CsvExportButton type="electricity" label="Ekspor Riwayat CSV" />
+        </div>
       </div>
+
+      <section className='card space-y-5'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+          <div>
+            <h2 className='text-lg font-bold text-brand-ink'>Riwayat Laporan</h2>
+            <p className='text-sm text-slate-500'>Filter dan unduh ulang laporan bulanan untuk usaha aktif.</p>
+          </div>
+          <form method='GET' className='flex flex-wrap gap-2'>
+            <select name='month' defaultValue={selectedMonth ?? ''} className='select w-36'>
+              <option value=''>Semua Bulan</option>
+              {monthNames.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+            </select>
+            <input name='year' defaultValue={selectedYear ?? ''} className='input w-28' placeholder='Tahun' />
+            <button className='btn-outline' type='submit'>Filter</button>
+          </form>
+        </div>
+
+        {reportHistory.length === 0 ? (
+          <div className='rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500'>Belum ada laporan tersimpan.</div>
+        ) : (
+          <div className='overflow-x-auto'>
+            <table className='min-w-full divide-y divide-slate-100 text-sm'>
+              <thead className='bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-400'>
+                <tr><th className='px-4 py-3'>Periode</th><th className='px-4 py-3'>Status</th><th className='px-4 py-3'>kWh</th><th className='px-4 py-3'>Biaya</th><th className='px-4 py-3'>Skor</th><th className='px-4 py-3 text-right'>Aksi</th></tr>
+              </thead>
+              <tbody className='divide-y divide-slate-100'>
+                {reportHistory.map((report) => (
+                  <tr key={report.id} className='hover:bg-slate-50/60'>
+                    <td className='px-4 py-3 font-semibold text-brand-ink'>{monthNames[report.month - 1]} {report.year}</td>
+                    <td className='px-4 py-3 text-slate-600'>{report.status}</td>
+                    <td className='px-4 py-3 text-slate-600'>{report.totalKwh != null ? formatKwh(report.totalKwh) : '-'}</td>
+                    <td className='px-4 py-3 text-slate-600'>{report.totalCostIdr != null ? formatRupiah(report.totalCostIdr) : '-'}</td>
+                    <td className='px-4 py-3 text-slate-600'>{report.energyScore != null ? Math.round(report.energyScore) + '/100' : '-'}</td>
+                    <td className='px-4 py-3'><div className='flex justify-end'><span className="text-slate-400 text-xs">Tersedia di atas</span></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="card overflow-hidden !p-0">
         <div className="bg-gradient-to-r from-brand-green to-brand-blue p-8 text-white md:p-10">

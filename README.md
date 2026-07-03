@@ -13,6 +13,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-v4-green?style=for-the-badge)](https://next-auth.js.org/)
 
+
 ---
 
 ## 💡 Apa itu WattWise AI?
@@ -45,6 +46,14 @@ WattWise AI secara khusus menargetkan pemilik **UMKM di Indonesia** (seperti usa
 *   **Server-Side Cookie State Isolation:** Menggunakan cookie server (`wattwise_active_business_id`) untuk mengunci sesi usaha aktif secara aman.
 *   **Data Scoping:** Seluruh alur input data, visualisasi grafik, anomali, kalkulasi rekomendasi, hingga laporan PDF otomatis terisolasi secara dinamis hanya untuk usaha aktif terpilih.
 *   **Database Profile Syncing:** Profil usaha onboard baru langsung tersinkronisasi otomatis dengan session state.
+
+### Fitur MVP 2 Tambahan (Performance-Safe Demo)
+*   **Analysis Engine V2:** Analisis rule-based deterministik yang membandingkan bulan berjalan, bulan sebelumnya, rata-rata 3 bulan, biaya vs kWh, dan estimasi peralatan. Hasil disimpan ke database agar dashboard tidak menghitung ulang saat dibuka.
+*   **Rekomendasi Berbasis Peralatan:** Rekomendasi dipersonalisasi dari jenis usaha aktif, peralatan terdaftar, input listrik terakhir, hasil analisis, dan anomali tersimpan.
+*   **Scenario Simulator:** Halaman simulasi untuk skenario pengurangan jam pakai, penggantian alat hemat daya, target hemat, dan perawatan freezer/AC tanpa mengubah data listrik asli.
+*   **Report History:** Riwayat laporan bulanan per usaha aktif dengan filter bulan/tahun dan unduh PDF hanya saat tombol download diklik.
+*   **Notification Center:** Notifikasi in-app untuk lonjakan pemakaian, prediksi tagihan naik, rekomendasi baru, dan laporan siap. Tidak ada integrasi email, WhatsApp, atau push eksternal.
+*   **CSV Export:** Ekspor riwayat listrik, rekomendasi, dan ringkasan laporan dalam format CSV yang selalu dibatasi pada usaha aktif.
 
 ---
 
