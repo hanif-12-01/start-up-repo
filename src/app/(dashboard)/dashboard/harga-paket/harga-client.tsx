@@ -67,26 +67,257 @@ export default function HargaClient({
 
   return (
     <div className="space-y-12">
-      {/* Current Plan Indicator Banner */}
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-emerald-500 p-2 text-white">
-            <Sparkles className="h-5 w-5" />
+      {/* Current Plan Indicator / Info Panel */}
+      {currentPlanCode === "FREE" && (
+        <div className="card border-emerald-500/20 bg-emerald-50/10 p-6 md:p-8 space-y-6 shadow-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-100/50 pb-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-brand-green p-3 text-white shadow-lg shadow-brand-green/20">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-bold text-brand-green uppercase tracking-wider">Status Paket Saat Ini</p>
+                  <span className="badge bg-emerald-100 border-emerald-200 text-emerald-800 text-[10px] font-bold py-0.5 px-2.5 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    Aktif
+                  </span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-800">Gratis</h2>
+                <p className="text-sm text-slate-500">
+                  Paket ini cocok untuk mencoba fitur-fitur dasar WattWise AI dan simulasi sistem kami.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-start md:items-end justify-center">
+              <span className="text-xs text-slate-400 font-semibold uppercase">Biaya Langganan</span>
+              <span className="text-3xl font-extrabold text-slate-800">Rp0<span className="text-sm font-semibold text-slate-400">/bulan</span></span>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Paket Aktif Anda</p>
-            <p className="text-base font-bold text-slate-800">
-              {plans.find((p) => p.code === currentPlanCode)?.name || currentPlanCode}
-            </p>
+
+          <div className="grid gap-8 grid-cols-1 lg:grid-cols-2 pt-2">
+            {/* Left Column: Available Features */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-green"></span> Fitur yang Tersedia (Gratis)
+              </h3>
+              <ul className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1">
+                {[
+                  "1 usaha",
+                  "dashboard dasar",
+                  "input data listrik manual",
+                  "rekomendasi dasar",
+                  "estimasi pemakaian dasar"
+                ].map((fitur, index) => (
+                  <li key={index} className="flex items-start gap-2.5 text-xs text-slate-600 font-medium">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
+                    <span>{fitur}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Right Column: Locked Premium Features (Soft Lock Cards) */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-slate-300"></span> Fitur Premium Terkunci
+              </h3>
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                {[
+                  "Appliance Efficiency Classifier lanjutan",
+                  "Prediksi tagihan lanjutan",
+                  "Deteksi anomali",
+                  "Simulasi penghematan",
+                  "Laporan PDF",
+                  "Multi-cabang lanjutan"
+                ].map((fitur, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-slate-400 select-none transition-all duration-200 hover:bg-slate-50"
+                  >
+                    <span className="text-[11px] font-semibold leading-tight text-slate-500 pr-2">{fitur}</span>
+                    <Lock className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Upgrade CTAs & Simulation Note */}
+          <div className="border-t border-emerald-100/50 pt-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-start gap-3 bg-amber-50/60 border border-amber-100 rounded-xl p-4 max-w-xl">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-amber-800">Simulasi Tagihan & Pembayaran</p>
+                <p className="text-[11px] leading-relaxed text-amber-700">
+                  Ini adalah halaman simulasi paket. Tidak ada pembayaran riil atau transaksi uang sungguhan yang diproses. Anda bebas mencoba alur upgrade paket secara gratis untuk melihat fitur premium aktif.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
+              <button
+                onClick={() => handleSelectPlan("PRO_UMKM")}
+                disabled={loadingCode !== null}
+                className="btn btn-primary text-xs font-bold py-3 px-6 shadow-md shadow-brand-green/20"
+              >
+                {loadingCode === "PRO_UMKM" ? (
+                  <span className="inline-block animate-pulse">Memproses...</span>
+                ) : (
+                  "Upgrade ke Pro UMKM"
+                )}
+              </button>
+              <button
+                onClick={() => handleSelectPlan("BUSINESS")}
+                disabled={loadingCode !== null}
+                className="btn btn-secondary text-xs font-bold py-3 px-6"
+              >
+                {loadingCode === "BUSINESS" ? (
+                  <span className="inline-block animate-pulse">Memproses...</span>
+                ) : (
+                  "Upgrade ke Business"
+                )}
+              </button>
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => router.push("/dashboard/billing")}
-          className="btn btn-outline text-xs self-start sm:self-auto py-1.5 px-3 bg-white"
-        >
-          Lihat Riwayat Tagihan <ChevronRight className="ml-1 h-3 w-3" />
-        </button>
-      </div>
+      )}
+
+      {currentPlanCode === "PRO_UMKM" && (
+        <div className="card border-emerald-500/20 bg-emerald-50/10 p-6 md:p-8 space-y-6 shadow-soft">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-100/50 pb-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-brand-green p-3 text-white shadow-lg shadow-brand-green/20">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-bold text-brand-green uppercase tracking-wider">Status Paket Saat Ini</p>
+                  <span className="badge bg-emerald-100 border-emerald-200 text-emerald-800 text-[10px] font-bold py-0.5 px-2.5 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    Aktif
+                  </span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-800">Pro UMKM</h2>
+                <p className="text-sm font-semibold text-brand-green">
+                  Pembayaran demo berhasil. Paket Pro UMKM Anda sekarang aktif.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-start md:items-end justify-center">
+              <span className="text-xs text-slate-400 font-semibold uppercase">Biaya Langganan</span>
+              <span className="text-3xl font-extrabold text-slate-800">Rp150.000<span className="text-sm font-semibold text-slate-400">/bulan</span></span>
+            </div>
+          </div>
+
+          <div className="grid gap-8 grid-cols-1 lg:grid-cols-2 pt-2">
+            {/* Left Column: Available Features */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-brand-green"></span> Fitur Aktif (Pro UMKM)
+              </h3>
+              <ul className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                {[
+                  "semua fitur Gratis",
+                  "multi-usaha sederhana",
+                  "appliance efficiency classifier",
+                  "prediksi tagihan lanjutan",
+                  "deteksi anomali",
+                  "rekomendasi hemat berbasis peralatan",
+                  "simulasi penghematan",
+                  "laporan PDF",
+                  "export CSV"
+                ].map((fitur, index) => (
+                  <li key={index} className="flex items-start gap-2.5 text-xs text-slate-600 font-medium">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
+                    <span>{fitur}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Right Column: Locked Business Features */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-slate-300"></span> Fitur Premium Terkunci (Butuh Business)
+              </h3>
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                {[
+                  "multi-cabang lanjutan",
+                  "ringkasan performa antar usaha",
+                  "laporan manajemen",
+                  "prioritas support"
+                ].map((fitur, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-slate-400 select-none transition-all duration-200 hover:bg-slate-50"
+                  >
+                    <span className="text-[11px] font-semibold leading-tight text-slate-500 pr-2">{fitur}</span>
+                    <Lock className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Upgrade CTAs & Simulation Note */}
+          <div className="border-t border-emerald-100/50 pt-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-start gap-3 bg-amber-50/60 border border-amber-100 rounded-xl p-4 max-w-xl">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-amber-800">Simulasi Tagihan & Pembayaran</p>
+                <p className="text-[11px] leading-relaxed text-amber-700">
+                  Ini adalah simulasi paket. Pembayaran dilakukan secara virtual untuk mencoba aktivasi fitur premium secara instan.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
+              <button
+                onClick={() => handleSelectPlan("BUSINESS")}
+                disabled={loadingCode !== null}
+                className="btn btn-primary text-xs font-bold py-3 px-6 shadow-md shadow-brand-green/20"
+              >
+                {loadingCode === "BUSINESS" ? (
+                  <span className="inline-block animate-pulse">Memproses...</span>
+                ) : (
+                  "Upgrade ke Business"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentPlanCode !== "FREE" && currentPlanCode !== "PRO_UMKM" && (
+        /* Regular Banner for other paid plans (e.g. Business) */
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-brand-green p-2 text-white">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Paket Aktif Anda</p>
+              <div className="flex items-center gap-2">
+                <p className="text-base font-bold text-slate-800">
+                  {plans.find((p) => p.code === currentPlanCode)?.name || currentPlanCode}
+                </p>
+                <span className="badge bg-emerald-100 border-emerald-200 text-emerald-800 text-[10px] font-bold py-0.5 px-2">
+                  Aktif
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push("/dashboard/billing")}
+            className="btn btn-outline text-xs self-start sm:self-auto py-1.5 px-3 bg-white"
+          >
+            Lihat Riwayat Tagihan <ChevronRight className="ml-1 h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {/* Grid of plan cards */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
