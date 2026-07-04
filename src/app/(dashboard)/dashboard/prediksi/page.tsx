@@ -68,6 +68,7 @@ export default async function PrediksiPage() {
     latestMonth: latestEntry ? latestEntry.month : undefined,
     latestYear: latestEntry ? latestEntry.year : undefined,
     prediksiTagihan: prediction ? prediction.predictedCostIdr : 0,
+    predictedUsageKwh: prediction ? prediction.predictedUsageKwh : 0,
     tagihanBulanLalu,
     kenaikanPersen: prediction ? prediction.trendPercent : 0,
     risikoLevel,

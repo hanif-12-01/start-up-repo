@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Info,
   TrendingDown,
+  Zap,
 } from "lucide-react";
 import {
   CartesianGrid,
@@ -30,6 +31,7 @@ interface PrediksiClientProps {
     latestMonth?: number;
     latestYear?: number;
     prediksiTagihan: number;
+    predictedUsageKwh: number;
     tagihanBulanLalu: number;
     kenaikanPersen: number;
     risikoLevel: string;
@@ -48,6 +50,26 @@ interface PrediksiClientProps {
 }
 
 export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiClientProps) {
+  const formatMethod = (m?: string) => {
+    if (m === "LSTM_PROTOTYPE") return "LSTM Prototype";
+    if (m === "RULE_BASED") return "Rule-Based Fallback";
+    if (m === "HYBRID_FALLBACK") return "Fallback Otomatis";
+    if (m === "RIDGE_UMKM_V1") return "Ridge Legacy";
+    return m || "-";
+  };
+
+  const getModelInfo = (m?: string) => {
+    if (m === "LSTM_PROTOTYPE") {
+      return "Model menggunakan 6 bulan histori pemakaian listrik untuk memprediksi pemakaian bulan berikutnya.";
+    }
+    if (m === "RULE_BASED") {
+      return "Prediksi menggunakan pendekatan rule-based karena data historis belum cukup untuk LSTM.";
+    }
+    if (m === "HYBRID_FALLBACK") {
+      return "Sistem mencoba LSTM, tetapi menggunakan fallback karena data atau output model tidak memenuhi batas keamanan.";
+    }
+    return null;
+  };
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +105,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
     return (
       <div>
         <PageHeader
-          title="Prediksi Tagihan Listrik"
+          title="Prediksi Pemakaian & Estimasi Tagihan Listrik"
           subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
         />
         
@@ -119,7 +141,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
         <div className="flex-1">
           <PageHeader
-            title="Prediksi Tagihan Listrik"
+            title="Prediksi Pemakaian & Estimasi Tagihan Listrik"
             subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
           />
         </div>
@@ -134,9 +156,16 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
-          label="Prediksi Tagihan Bulan Ini"
+          label="Prediksi Pemakaian Listrik"
+          value={formatKwh(prediksi.predictedUsageKwh)}
+          helper="Proyeksi pemakaian kWh bulan depan"
+          tone="blue"
+          icon={<Zap className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Estimasi Tagihan Listrik"
           value={formatRupiah(prediksi.prediksiTagihan)}
           helper="Estimasi biaya hingga akhir bulan"
           tone="blue"
@@ -190,8 +219,13 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
             {prediksi.modelVersion && (
               <div className="mt-4 rounded-lg bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1">
                 <div><span className="font-semibold text-slate-600">Model Version:</span> {prediksi.modelVersion}</div>
-                <div><span className="font-semibold text-slate-600">Metode Prediksi:</span> {prediksi.method}</div>
-                <div><span className="font-semibold text-slate-600">Kepercayaan (Confidence):</span> {prediksi.confidenceLevel} ({prediksi.confidenceReason})</div>
+                <div><span className="font-semibold text-slate-600">Metode Prediksi:</span> {formatMethod(prediksi.method)}</div>
+                <div><span className="font-semibold text-slate-600">Kepercayaan (Confidence):</span> {prediksi.confidenceLevel === "HIGH" ? "Tinggi" : prediksi.confidenceLevel === "MEDIUM" ? "Sedang" : "Rendah"} ({prediksi.confidenceReason})</div>
+                {getModelInfo(prediksi.method) && (
+                  <div className="mt-2 pt-2 border-t border-slate-200 text-slate-600 font-medium">
+                    {getModelInfo(prediksi.method)}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -283,7 +317,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
         <div>
           <h4 className="text-sm font-bold text-slate-700">Disclaimer / Penafian Penting</h4>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Prediksi tagihan dan proyeksi ini dibuat untuk tujuan estimasi perencanaan dan didasarkan pada data input pengguna. Hasil ini <strong>bukan merupakan tagihan resmi PLN</strong>. Layanan WattWise AI tidak berafiliasi atau terhubung secara resmi dengan PT PLN (Persero).
+            Estimasi tagihan listrik dan proyeksi ini dibuat untuk tujuan estimasi perencanaan dan didasarkan pada data input pengguna. Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN. Layanan WattWise AI tidak berafiliasi atau terhubung secara resmi dengan PT PLN (Persero).
           </p>
         </div>
       </div>
