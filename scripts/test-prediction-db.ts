@@ -1,3 +1,16 @@
+// Stub `server-only` before imports.
+{
+  const resolved = require.resolve("server-only");
+  require.cache[resolved] = {
+    id: resolved,
+    filename: resolved,
+    loaded: true,
+    exports: {},
+    children: [],
+    paths: [],
+  } as unknown as NodeJS.Module;
+}
+
 import { db } from "../src/lib/db";
 import { generatePrediction } from "../src/services/prediction";
 
