@@ -42,36 +42,88 @@ enum ReportStatus {
   ARCHIVED
 }
 
+enum MembershipRole {
+  BUSINESS_OWNER
+  BUSINESS_STAFF
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  REVOKED
+}
+
+enum CashflowDirection {
+  IN
+  OUT
+}
+
+enum CashflowType {
+  SALES
+  SERVICE_INCOME
+  OTHER_INCOME
+  ELECTRICITY_BILL
+  RAW_MATERIAL
+  SALARY
+  RENT
+  WATER
+  INTERNET
+  MAINTENANCE
+  TRANSPORT
+  OTHER_EXPENSE
+}
+
+enum CashflowSource {
+  MANUAL
+  AUTO_ELECTRICITY
+  AUTO_PREDICTION
+  IMPORT
+}
+
+enum CashflowStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id         String     @id @default(uuid())
-  email      String     @unique
-  name       String?
-  password   String
-  businesses Business[]
-  notifications Notification[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id                String               @id @default(uuid())
+  email             String               @unique
+  name              String?
+  password          String
+  businesses        Business[]
+  notifications     Notification[]
+  memberships       BusinessMembership[] @relation("MembershipUser")
+  createdCashflows  Cashflow[]           @relation("CashflowCreatedBy")
+  approvedCashflows Cashflow[]           @relation("CashflowApprovedBy")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 }
 
 model Business {
-  id                 String             @id @default(uuid())
+  id                 String               @id @default(uuid())
   name               String
   type               BusinessType
   address            String?
   powerVA            Int?
   operatingHours     String?
   userId             String
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   electricityEntries ElectricityEntry[]
   dailyUsages        DailyUsage[]
   appliances         Appliance[]
   analysisResults    AnalysisResult[]
+  predictionResults  PredictionResult[]
   anomalies          Anomaly[]
   recommendations    Recommendation[]
   monthlyReports     MonthlyReport[]
   notifications      Notification[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  memberships        BusinessMembership[] @relation("MembershipBusiness")
+  cashflows          Cashflow[]           @relation("CashflowBusiness")
+  cashFlowEntries    CashFlowEntry[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
   @@index([userId])
   @@index([type])
@@ -93,15 +145,16 @@ model DailyUsage {
 }
 
 model ElectricityEntry {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   month      Int
   year       Int
   usageKwh   Float
   costIdr    Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  cashflow   Cashflow? @relation("CashflowFromElectricity")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([businessId, year, month])
   @@index([businessId])
@@ -125,36 +178,67 @@ model Appliance {
 }
 
 model AnalysisResult {
-  id              String   @id @default(uuid())
-  businessId      String
-  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  month           Int
-  year            Int
-  totalUsageKwh   Float
-  totalCostIdr    Float
-  avgDailyKwh     Float?
-  carbonKg        Float?
-  efficiencyScore Float?
-  previousMonthUsageKwh Float?
-  previousMonthCostIdr Float?
-  previousMonthKwhChangePct Float?
+  id                         String   @id @default(uuid())
+  businessId                 String
+  business                   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month                      Int
+  year                       Int
+  totalUsageKwh              Float
+  totalCostIdr               Float
+  avgDailyKwh                Float?
+  carbonKg                   Float?
+  efficiencyScore            Float?
+  previousMonthUsageKwh      Float?
+  previousMonthCostIdr       Float?
+  previousMonthKwhChangePct  Float?
   previousMonthCostChangePct Float?
-  threeMonthAverageKwh Float?
-  threeMonthAverageCostIdr Float?
-  threeMonthKwhChangePct Float?
-  threeMonthCostChangePct Float?
-  applianceEstimateKwh Float?
-  applianceGapPct Float?
-  usageStatusLabel String?
-  insights        String[] @default([])
-  estimatedSavingsIdr Float?
-  disclaimer      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  threeMonthAverageKwh       Float?
+  threeMonthAverageCostIdr   Float?
+  threeMonthKwhChangePct     Float?
+  threeMonthCostChangePct    Float?
+  applianceEstimateKwh       Float?
+  applianceGapPct            Float?
+  usageStatusLabel           String?
+  insights                   String[] @default([])
+  estimatedSavingsIdr        Float?
+  disclaimer                 String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   @@unique([businessId, year, month])
   @@index([businessId])
   @@index([year, month])
+}
+
+model PredictionResult {
+  id                String @id @default(cuid())
+  businessId        String
+  month             Int
+  year              Int
+  predictedForMonth Int
+  predictedForYear  Int
+
+  predictedUsageKwh Float
+  predictedCostIdr  Float
+
+  trendDirection   String
+  trendPercent     Float
+  confidenceLevel  String
+  confidenceReason String
+
+  method       String
+  explanation  String
+  disclaimer   String
+  modelVersion String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  cashflows Cashflow[] @relation("CashflowFromPrediction")
+
+  @@index([businessId])
+  @@index([predictedForMonth, predictedForYear])
 }
 
 model Anomaly {
@@ -177,24 +261,24 @@ model Anomaly {
 }
 
 model Recommendation {
-  id                  String                   @id @default(uuid())
-  businessId          String
-  business            Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  title               String
-  description         String
-  estimatedSavingsIdr Float?
-  estimatedSavingsKwh Float?
-  difficulty          RecommendationDifficulty
-  priority            String?
-  impact              String?
-  reason              String?
-  practicalSteps      String[]                 @default([])
-  disclaimer          String?
-  source              String?
+  id                   String                   @id @default(uuid())
+  businessId           String
+  business             Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title                String
+  description          String
+  estimatedSavingsIdr  Float?
+  estimatedSavingsKwh  Float?
+  difficulty           RecommendationDifficulty
+  priority             String?
+  impact               String?
+  reason               String?
+  practicalSteps       String[]                 @default([])
+  disclaimer           String?
+  source               String?
   triggerApplianceName String?
-  isImplemented       Boolean                  @default(false)
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  isImplemented        Boolean                  @default(false)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@index([businessId])
   @@index([difficulty])
@@ -214,20 +298,20 @@ model AuthAttempt {
 }
 
 model MonthlyReport {
-  id         String       @id @default(uuid())
-  businessId String
-  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  month      Int
-  year       Int
-  status     ReportStatus @default(DRAFT)
-  summary    String?
-  totalKwh   Float?
+  id           String       @id @default(uuid())
+  businessId   String
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month        Int
+  year         Int
+  status       ReportStatus @default(DRAFT)
+  summary      String?
+  totalKwh     Float?
   totalCostIdr Float?
-  energyScore Float?
-  disclaimer String?
-  pdfUrl     String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  energyScore  Float?
+  disclaimer   String?
+  pdfUrl       String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@unique([businessId, year, month])
   @@index([businessId])
@@ -235,18 +319,18 @@ model MonthlyReport {
 }
 
 model Plan {
-  id           String         @id @default(uuid())
-  code         String         @unique
-  name         String
-  description  String?
-  priceIdr     Int
-  billingCycle String
-  features     String[]
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  code          String         @unique
+  name          String
+  description   String?
+  priceIdr      Int
+  billingCycle  String
+  features      String[]
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
-  payments     Payment[]
+  payments      Payment[]
 }
 
 model Subscription {
@@ -289,20 +373,101 @@ model Payment {
   @@index([status])
 }
 
-
 model Notification {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessId String?
   business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   title      String
   message    String
   type       String
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   @@index([userId, isRead, createdAt])
   @@index([businessId])
   @@index([type])
+}
+
+model BusinessMembership {
+  id         String           @id @default(uuid())
+  userId     String
+  businessId String
+  role       MembershipRole
+  status     MembershipStatus @default(ACTIVE)
+  invitedBy  String?
+
+  user     User     @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, businessId])
+  @@index([businessId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Cashflow {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation("CashflowBusiness", fields: [businessId], references: [id], onDelete: Cascade)
+
+  direction   CashflowDirection
+  type        CashflowType
+  amountIdr   BigInt
+  occurredAt  DateTime
+  month       Int
+  year        Int
+  description String?
+  referenceNo String?
+
+  source CashflowSource @default(MANUAL)
+  status CashflowStatus @default(APPROVED)
+
+  createdById     String
+  createdBy       User      @relation("CashflowCreatedBy", fields: [createdById], references: [id])
+  approvedById    String?
+  approvedBy      User?     @relation("CashflowApprovedBy", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  sourceElectricityEntryId String?           @unique
+  sourceElectricityEntry   ElectricityEntry? @relation("CashflowFromElectricity", fields: [sourceElectricityEntryId], references: [id], onDelete: SetNull)
+  sourcePredictionResultId String?
+  sourcePredictionResult   PredictionResult? @relation("CashflowFromPrediction", fields: [sourcePredictionResultId], references: [id], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([businessId, occurredAt])
+  @@index([businessId, month, year])
+  @@index([businessId, status])
+  @@index([createdById])
+  @@index([direction])
+  @@index([type])
+  @@index([source])
+  @@index([deletedAt])
+}
+
+model CashFlowEntry {
+  id                      String   @id @default(uuid())
+  businessId              String
+  month                   Int
+  year                    Int
+  revenueIdr              Float
+  grossProfitIdr          Float?
+  marginPercent           Float?
+  otherOperationalCostIdr Float?
+  notes                   String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, year, month])
+  @@index([businessId])
 }

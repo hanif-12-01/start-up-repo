@@ -7,7 +7,20 @@ import { PageHeader } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
 import { LaporanPdfButton } from "./laporan-pdf-button";
 import { CsvExportButton } from "@/components/csv-export-button";
-import { getLaporanDataForBusiness, getMonthlyReportsForBusiness } from "@/services/business";
+import {
+  getLaporanDataForBusiness,
+  getMonthlyReportsForBusiness,
+  getActiveBusinessId,
+} from "@/services/business";
+import { getCashFlowEntryForPeriod } from "@/services/cash-flow";
+import {
+  calculateBillAfterSavings,
+  calculateElectricityRevenueRatio,
+  calculatePotentialRemainingRevenueAfterSavings,
+  calculateRemainingRevenueAfterElectricity,
+  classifyElectricityRevenueRatio,
+  type CashFlowBusinessType,
+} from "@/lib/cash-flow";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +143,43 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
   const generatedAt =
     business.monthlyReports[0]?.createdAt.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) ??
     new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  // Cash flow analytics untuk periode yang sama dengan latestEntry — defensif
+  // terhadap CashFlowEntry belum di-migrate (fallback ke null / "belum ada data").
+  const activeBusinessId = await getActiveBusinessId(session.user.id);
+  let cashFlowRevenue: number | null = null;
+  if (activeBusinessId) {
+    try {
+      const cf = await getCashFlowEntryForPeriod(
+        activeBusinessId,
+        latestEntry.month,
+        latestEntry.year,
+      );
+      cashFlowRevenue = cf?.revenueIdr ?? null;
+    } catch {
+      cashFlowRevenue = null;
+    }
+  }
+  const cfBusinessType = business.type as CashFlowBusinessType;
+  const cfRatioPercent =
+    cashFlowRevenue !== null
+      ? calculateElectricityRevenueRatio(cashFlowRevenue, latestEntry.costIdr)
+      : null;
+  const cfRatioStatus = classifyElectricityRevenueRatio(cfRatioPercent, cfBusinessType);
+  const cfRemainingIdr =
+    cashFlowRevenue !== null
+      ? calculateRemainingRevenueAfterElectricity(cashFlowRevenue, latestEntry.costIdr)
+      : null;
+  const cfBillAfterSavings = calculateBillAfterSavings(latestEntry.costIdr, monthlySavings);
+  const cfPotentialRemainingIdr =
+    cashFlowRevenue !== null
+      ? calculatePotentialRemainingRevenueAfterSavings(
+          cashFlowRevenue,
+          latestEntry.costIdr,
+          monthlySavings,
+        )
+      : null;
+
   const allReportHistory = await getMonthlyReportsForBusiness(session.user.id);
   const reportHistory = allReportHistory.filter((report) => {
     const monthMatches = selectedMonth ? report.month === selectedMonth : true;
@@ -344,6 +394,95 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
                 <p className="mt-2 text-2xl font-extrabold text-brand-greenDark">{formatRupiah(yearlySavings)}</p>
               </div>
             </div>
+          </section>
+
+          <section className="border-t border-slate-100 pt-7">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Analitik Pendapatan & Listrik
+            </h3>
+            {cashFlowRevenue === null ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                Belum ada data pendapatan untuk periode ini. Isi pendapatan bulanan di menu dashboard agar rasio biaya listrik terhadap pendapatan dapat dihitung.
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <p className="text-xs font-semibold text-slate-500">Pendapatan Bulan Ini</p>
+                    <p className="mt-2 text-xl font-extrabold text-brand-ink">
+                      {formatRupiah(cashFlowRevenue)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <p className="text-xs font-semibold text-slate-500">Tagihan Listrik</p>
+                    <p className="mt-2 text-xl font-extrabold text-brand-ink">
+                      {formatRupiah(latestEntry.costIdr)}
+                    </p>
+                  </div>
+                  <div
+                    className={`rounded-2xl border p-5 ${
+                      cfRatioStatus.severity === 1
+                        ? "border-green-100 bg-green-50 text-green-800"
+                        : cfRatioStatus.severity === 2
+                          ? "border-yellow-100 bg-brand-yellowSoft text-yellow-900"
+                          : cfRatioStatus.severity >= 3
+                            ? "border-red-100 bg-red-50 text-red-800"
+                            : "border-slate-200 bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold">Rasio Listrik terhadap Pendapatan</p>
+                    <p className="mt-2 text-xl font-extrabold">
+                      {cfRatioPercent !== null ? `${cfRatioPercent.toFixed(1)}%` : "-"}
+                    </p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wider">
+                      {cfRatioStatus.label}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <p className="text-xs font-semibold text-slate-500">Sisa Pendapatan Setelah Listrik</p>
+                    <p
+                      className={`mt-2 text-xl font-extrabold ${
+                        cfRemainingIdr !== null && cfRemainingIdr < 0
+                          ? "text-red-700"
+                          : "text-brand-ink"
+                      }`}
+                    >
+                      {cfRemainingIdr !== null ? formatRupiah(cfRemainingIdr) : "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-green-100 bg-green-50 p-5">
+                    <p className="text-xs font-semibold text-green-700">Potensi Hemat Bulanan</p>
+                    <p className="mt-2 text-xl font-extrabold text-green-700">
+                      {formatRupiah(monthlySavings)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-green-800/80">
+                      Estimasi tagihan setelah hemat: {formatRupiah(cfBillAfterSavings)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-brand-green/20 bg-brand-greenSoft p-5">
+                    <p className="text-xs font-semibold text-brand-greenDark">
+                      Potensi Sisa Pendapatan Setelah Hemat
+                    </p>
+                    <p className="mt-2 text-xl font-extrabold text-brand-greenDark">
+                      {cfPotentialRemainingIdr !== null
+                        ? formatRupiah(cfPotentialRemainingIdr)
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="space-y-1 text-[11px] leading-relaxed text-slate-600">
+                    <p>
+                      Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.
+                    </p>
+                    <p>
+                      Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </section>
 
           <footer className="flex gap-3 border-t border-slate-100 pt-7 text-[11px] leading-relaxed text-slate-500">

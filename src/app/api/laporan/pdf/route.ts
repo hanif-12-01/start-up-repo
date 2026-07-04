@@ -3,6 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveBusinessId } from "@/services/business";
+import { getCashFlowEntryForPeriod } from "@/services/cash-flow";
+import {
+  calculateBillAfterSavings,
+  calculateElectricityRevenueRatio,
+  calculatePotentialRemainingRevenueAfterSavings,
+  calculateRemainingRevenueAfterElectricity,
+  classifyElectricityRevenueRatio,
+  type CashFlowBusinessType,
+} from "@/lib/cash-flow";
 import { safeError } from "@/lib/safe-log";
 
 export const dynamic = "force-dynamic";
@@ -147,6 +156,43 @@ export async function GET(req: Request) {
               (1 + Math.max(-0.2, Math.min(0.2, (latestEntryData.usageKwh - previousEntry.usageKwh) / previousEntry.usageKwh)))
           )
         : Math.round(latestEntryData.costIdr * 1.02);
+
+    // ── Cash flow analytics untuk periode yang sama ──
+    // Defensif: kalau tabel CashFlowEntry belum di-migrate, treat as null.
+    let cashFlowRevenue: number | null = null;
+    try {
+      const cf = await getCashFlowEntryForPeriod(
+        activeBusinessId,
+        latestEntryData.month,
+        latestEntryData.year,
+      );
+      cashFlowRevenue = cf?.revenueIdr ?? null;
+    } catch (e) {
+      safeError("pdf.cashFlowLookup", e);
+    }
+
+    const businessTypeForRatio = business.type as CashFlowBusinessType;
+    const ratioPercent =
+      cashFlowRevenue !== null
+        ? calculateElectricityRevenueRatio(cashFlowRevenue, latestEntryData.costIdr)
+        : null;
+    const ratioStatus = classifyElectricityRevenueRatio(ratioPercent, businessTypeForRatio);
+    const remainingRevenueIdr =
+      cashFlowRevenue !== null
+        ? calculateRemainingRevenueAfterElectricity(cashFlowRevenue, latestEntryData.costIdr)
+        : null;
+    const estimatedBillAfterSavings = calculateBillAfterSavings(
+      latestEntryData.costIdr,
+      monthlySavings,
+    );
+    const potentialRemainingRevenueIdr =
+      cashFlowRevenue !== null
+        ? calculatePotentialRemainingRevenueAfterSavings(
+            cashFlowRevenue,
+            latestEntryData.costIdr,
+            monthlySavings,
+          )
+        : null;
 
     // --- Build PDF ---
     const { default: PDFDocument } = await import("pdfkit");
@@ -298,6 +344,57 @@ export async function GET(req: Request) {
       doc.fontSize(13).font("Helvetica-Bold").fillColor("#15803d").text(item[1], x + 10, y + 23);
     });
     y += 56;
+
+    // ── Analitik Pendapatan & Listrik ──
+    checkPageBreak(160);
+    sectionTitle("Analitik Pendapatan & Listrik");
+    if (cashFlowRevenue === null) {
+      doc
+        .fontSize(9.5).font("Helvetica").fillColor(GRAY)
+        .text(
+          "Belum ada data pendapatan untuk periode ini. Isi pendapatan bulanan di menu dashboard agar rasio biaya listrik terhadap pendapatan dapat dihitung.",
+          M, y, { width: CW, lineGap: 2 },
+        );
+      y += doc.heightOfString(
+        "Belum ada data pendapatan untuk periode ini. Isi pendapatan bulanan di menu dashboard agar rasio biaya listrik terhadap pendapatan dapat dihitung.",
+        { width: CW, lineGap: 2 },
+      ) + 6;
+    } else {
+      labelValue("Pendapatan Bulan Ini:", fmtRp(cashFlowRevenue));
+      labelValue("Tagihan Listrik:", fmtRp(latestEntryData.costIdr));
+      labelValue(
+        "Rasio Listrik terhadap Pendapatan:",
+        `${ratioPercent!.toFixed(1)}% (${ratioStatus.label})`,
+      );
+      labelValue(
+        "Sisa Pendapatan Setelah Listrik:",
+        remainingRevenueIdr !== null ? fmtRp(remainingRevenueIdr) : "-",
+      );
+      labelValue("Potensi Hemat Bulanan:", fmtRp(monthlySavings));
+      labelValue(
+        "Estimasi Tagihan Setelah Hemat:",
+        fmtRp(estimatedBillAfterSavings),
+      );
+      labelValue(
+        "Potensi Sisa Pendapatan Setelah Hemat:",
+        potentialRemainingRevenueIdr !== null
+          ? fmtRp(potentialRemainingRevenueIdr)
+          : "-",
+      );
+    }
+
+    // Disclaimer analitik pendapatan (wajib dua baris ini per spesifikasi produk)
+    checkPageBreak(70);
+    y += 4;
+    doc.fontSize(8).font("Helvetica-Oblique").fillColor(GRAY);
+    const cfDisc1 =
+      "Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.";
+    doc.text(cfDisc1, M, y, { width: CW, lineGap: 2 });
+    y += doc.heightOfString(cfDisc1, { width: CW, lineGap: 2 }) + 4;
+    const cfDisc2 =
+      "Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.";
+    doc.text(cfDisc2, M, y, { width: CW, lineGap: 2 });
+    y += doc.heightOfString(cfDisc2, { width: CW, lineGap: 2 }) + 6;
 
     // ── Disclaimer ──
     checkPageBreak(60);

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   AlertTriangle,
+  BadgeDollarSign,
   Bell,
   CreditCard,
   FileText,
@@ -18,6 +19,7 @@ import {
   Store,
   TrendingUp,
   User,
+  Wallet,
   X,
   Zap,
 } from "lucide-react";
@@ -28,11 +30,12 @@ const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Tambah Usaha Baru", href: "/dashboard/tambah-usaha", icon: Store },
   { label: "Input Data", href: "/dashboard/input", icon: PlusCircle },
+  { label: "Pendapatan & Listrik", href: "/dashboard/pendapatan", icon: BadgeDollarSign },
+  { label: "Cashflow", href: "/dashboard/cashflow", icon: Wallet },
   { label: "Prediksi Tagihan", href: "/dashboard/prediksi", icon: TrendingUp },
   { label: "Deteksi Anomali", href: "/dashboard/anomali", icon: AlertTriangle },
   { label: "Peralatan", href: "/dashboard/peralatan", icon: Zap },
   { label: "Rekomendasi Hemat", href: "/dashboard/rekomendasi", icon: Lightbulb },
-  { label: "Simulasi Hemat", href: "/dashboard/simulasi", icon: SlidersHorizontal },
   { label: "Laporan", href: "/dashboard/laporan", icon: FileText },
   { label: "Notifikasi", href: "/dashboard/notifikasi", icon: Bell },
   { label: "Harga Paket", href: "/dashboard/harga-paket", icon: CreditCard },

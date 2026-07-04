@@ -22,9 +22,31 @@ yarn-error.log*
 # env
 .env
 .env*.local
+.env.production
+.env.development
+.env.test
+
+# sensitive files & secrets
+*.pem
+*.key
+*.pfx
+*.cert
+service-account.json
+credentials.json
+.vscode/
+
+# no markdown files
+*.md
+**/*.md
 
 # vercel
 .vercel
+
+# ignore dataset files
+ML/RAW/
+ML/data/
+**/data/
+*.csv
 
 # typescript
 *.tsbuildinfo

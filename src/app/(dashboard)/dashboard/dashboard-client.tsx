@@ -7,12 +7,15 @@ import {
   AlertTriangle,
   ArrowRight,
   Award,
+  BadgeDollarSign,
   ChevronRight,
   DollarSign,
-  TrendingUp,
-  Zap,
   Info,
   Loader2,
+  PiggyBank,
+  Scale,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import {
   Bar,
@@ -28,7 +31,7 @@ import {
   YAxis,
 } from "recharts";
 import { StatCard, StatusBadge } from "@/components/ui/common";
-import { formatKwh, formatRupiah } from "@/lib/utils";
+import { cn, formatKwh, formatRupiah } from "@/lib/utils";
 import { generateAnalysisAction } from "@/app/actions/electricity";
 import { useToast } from "@/components/ui/toast";
 
@@ -75,6 +78,11 @@ interface DashboardClientProps {
     warna: string;
   }[];
   efisiensiPeralatan: AttentionItem[];
+  /**
+   * Data analitik cash flow dari Task 7. Sengaja di-terima di sini tapi
+   * belum dirender — UI dibangun di Task 8 supaya diff Task 7 tetap kecil.
+   */
+  cashFlowAnalytics?: import("@/lib/cash-flow").CashFlowAnalytics | null;
 }
 
 export default function DashboardClient({
@@ -83,11 +91,25 @@ export default function DashboardClient({
   pemakaianHarian,
   pemakaianPeralatan,
   efisiensiPeralatan,
+  cashFlowAnalytics = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Compact Rupiah formatter untuk axis chart supaya tidak overflow.
+  // Contoh: 15_000_000 → "Rp15jt", 2_500_000_000 → "Rp2,5M".
+  const fmtRpShort = (v: number): string => {
+    const abs = Math.abs(v);
+    if (abs >= 1_000_000_000)
+      return `Rp${(v / 1_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })}M`;
+    if (abs >= 1_000_000)
+      return `Rp${(v / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })}jt`;
+    if (abs >= 1_000)
+      return `Rp${Math.round(v / 1_000).toLocaleString("id-ID")}rb`;
+    return `Rp${Math.round(v).toLocaleString("id-ID")}`;
+  };
 
   const topPerluPerhatian = [...efisiensiPeralatan]
     .filter((item) => item.status !== "Efisien" && item.status !== "Normal")
@@ -302,6 +324,438 @@ export default function DashboardClient({
           }
         />
       </div>
+
+      {/* ─── Analitik Pendapatan & Listrik (Task 8) ─── */}
+      <section className="mt-8">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-extrabold text-slate-800">
+              Analitik Pendapatan & Listrik
+            </h2>
+            <p className="text-xs font-medium text-slate-500">
+              Dampak biaya listrik terhadap pendapatan usaha Anda.
+            </p>
+          </div>
+          {cashFlowAnalytics?.hasRevenueData && (
+            <Link
+              href="/dashboard/pendapatan"
+              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
+            >
+              Perbarui pendapatan
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
+
+        {!cashFlowAnalytics || !cashFlowAnalytics.hasRevenueData ? (
+          <div className="card flex flex-col items-center justify-center border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 p-10 text-center">
+            <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 shadow-sm">
+              <BadgeDollarSign className="h-7 w-7" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800">
+              Data pendapatan belum ada
+            </h3>
+            <p className="mt-2 max-w-md text-xs leading-relaxed text-slate-500">
+              Tambahkan pendapatan bulanan untuk melihat dampak biaya listrik
+              terhadap pendapatan.
+            </p>
+            <Link
+              href="/dashboard/pendapatan"
+              className="btn-primary mt-5 px-5 py-2.5 text-xs"
+            >
+              Input Pendapatan
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              <StatCard
+                label="Pendapatan Bulanan"
+                value={
+                  cashFlowAnalytics.revenueIdr !== null
+                    ? formatRupiah(cashFlowAnalytics.revenueIdr)
+                    : "-"
+                }
+                helper="Omzet bulan terakhir tersimpan"
+                tone="green"
+                icon={<BadgeDollarSign className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Estimasi Tagihan Listrik"
+                value={
+                  cashFlowAnalytics.electricityCostIdr !== null
+                    ? formatRupiah(cashFlowAnalytics.electricityCostIdr)
+                    : "-"
+                }
+                helper={
+                  cashFlowAnalytics.electricityCostLabel ??
+                  "Belum ada data listrik tersimpan"
+                }
+                tone="yellow"
+                icon={<Zap className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Rasio Listrik terhadap Pendapatan"
+                value={
+                  cashFlowAnalytics.ratioPercent === null
+                    ? "-"
+                    : `${cashFlowAnalytics.ratioPercent.toFixed(1)}%`
+                }
+                helper={cashFlowAnalytics.ratioStatus.description}
+                tone={
+                  cashFlowAnalytics.ratioStatus.severity === 1
+                    ? "green"
+                    : cashFlowAnalytics.ratioStatus.severity === 2
+                    ? "yellow"
+                    : cashFlowAnalytics.ratioStatus.severity >= 3
+                    ? "red"
+                    : "slate"
+                }
+                icon={<Scale className="h-5 w-5" />}
+                sub={
+                  <div className="mt-2">
+                    <span
+                      className={cn(
+                        "badge",
+                        cashFlowAnalytics.ratioStatus.severity === 1 &&
+                          "border-emerald-200/60 bg-emerald-50 text-emerald-700",
+                        cashFlowAnalytics.ratioStatus.severity === 2 &&
+                          "border-amber-200/60 bg-amber-50 text-amber-700",
+                        (cashFlowAnalytics.ratioStatus.severity === 3 ||
+                          cashFlowAnalytics.ratioStatus.severity === 4) &&
+                          "border-rose-200/60 bg-rose-50 text-rose-700",
+                        cashFlowAnalytics.ratioStatus.severity === 0 &&
+                          "border-slate-200/60 bg-slate-50 text-slate-500",
+                      )}
+                    >
+                      {cashFlowAnalytics.ratioStatus.label}
+                    </span>
+                  </div>
+                }
+              />
+              <StatCard
+                label="Sisa Pendapatan Setelah Listrik"
+                value={
+                  cashFlowAnalytics.remainingRevenueIdr !== null
+                    ? formatRupiah(cashFlowAnalytics.remainingRevenueIdr)
+                    : "-"
+                }
+                helper="Pendapatan − biaya listrik"
+                tone={
+                  cashFlowAnalytics.remainingRevenueIdr !== null &&
+                  cashFlowAnalytics.remainingRevenueIdr < 0
+                    ? "red"
+                    : "blue"
+                }
+                icon={<PiggyBank className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Potensi Sisa Pendapatan Setelah Hemat"
+                value={
+                  cashFlowAnalytics.potentialRemainingRevenueIdr !== null
+                    ? formatRupiah(cashFlowAnalytics.potentialRemainingRevenueIdr)
+                    : "-"
+                }
+                helper={
+                  cashFlowAnalytics.potentialRemainingRevenueIdr !== null
+                    ? `Hemat bulanan: ${formatRupiah(
+                        cashFlowAnalytics.potentialSavingsIdr,
+                      )}`
+                    : "Estimasi jika saran hemat dijalankan"
+                }
+                tone="green"
+                icon={<DollarSign className="h-5 w-5" />}
+              />
+            </div>
+
+            {cashFlowAnalytics.ratioPercent !== null && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-100 text-blue-700">
+                  <Info className="h-4 w-4" />
+                </div>
+                <p className="text-sm leading-relaxed text-blue-900">
+                  Biaya listrik memakan{" "}
+                  <strong>
+                    {cashFlowAnalytics.ratioPercent.toFixed(1)}%
+                  </strong>{" "}
+                  dari pendapatan.
+                </p>
+              </div>
+            )}
+
+            {/* Progress bar — insight utama karena revenue biasanya >> listrik */}
+            {cashFlowAnalytics.ratioPercent !== null && (
+              <div className="card mt-4">
+                <div className="mb-3 flex items-baseline justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      Rasio Listrik terhadap Pendapatan
+                    </p>
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums text-slate-800">
+                      {cashFlowAnalytics.ratioPercent.toFixed(1)}%
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "badge shrink-0",
+                      cashFlowAnalytics.ratioStatus.severity === 1 &&
+                        "border-emerald-200/60 bg-emerald-50 text-emerald-700",
+                      cashFlowAnalytics.ratioStatus.severity === 2 &&
+                        "border-amber-200/60 bg-amber-50 text-amber-700",
+                      (cashFlowAnalytics.ratioStatus.severity === 3 ||
+                        cashFlowAnalytics.ratioStatus.severity === 4) &&
+                        "border-rose-200/60 bg-rose-50 text-rose-700",
+                      cashFlowAnalytics.ratioStatus.severity === 0 &&
+                        "border-slate-200/60 bg-slate-50 text-slate-500",
+                    )}
+                  >
+                    {cashFlowAnalytics.ratioStatus.label}
+                  </span>
+                </div>
+                <div className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      cashFlowAnalytics.ratioStatus.severity === 1 &&
+                        "bg-emerald-500",
+                      cashFlowAnalytics.ratioStatus.severity === 2 &&
+                        "bg-amber-500",
+                      (cashFlowAnalytics.ratioStatus.severity === 3 ||
+                        cashFlowAnalytics.ratioStatus.severity === 4) &&
+                        "bg-rose-500",
+                      cashFlowAnalytics.ratioStatus.severity === 0 &&
+                        "bg-slate-300",
+                    )}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, cashFlowAnalytics.ratioPercent)).toFixed(1)}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                  {cashFlowAnalytics.ratioStatus.description}
+                </p>
+              </div>
+            )}
+
+            {/* Bar chart nominal + Line chart trend — dua kolom di layar besar */}
+            {mounted && (
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {cashFlowAnalytics.revenueIdr !== null &&
+                cashFlowAnalytics.electricityCostIdr !== null ? (
+                  <div className="card">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Perbandingan Nominal (Periode Terakhir)
+                      </h3>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Pendapatan vs tagihan listrik vs sisa pendapatan.
+                      </p>
+                    </div>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={[
+                            {
+                              label: "Pendapatan",
+                              nominal: cashFlowAnalytics.revenueIdr,
+                              fill: "#10b981",
+                            },
+                            {
+                              label: "Tagihan Listrik",
+                              nominal: cashFlowAnalytics.electricityCostIdr,
+                              fill: "#eab308",
+                            },
+                            {
+                              label: "Sisa Setelah Listrik",
+                              nominal:
+                                cashFlowAnalytics.remainingRevenueIdr ?? 0,
+                              fill: "#3b82f6",
+                            },
+                          ]}
+                          margin={{ top: 10, right: 10, left: -12, bottom: 0 }}
+                        >
+                          <XAxis
+                            dataKey="label"
+                            axisLine={false}
+                            tickLine={false}
+                            interval={0}
+                            tick={{ fontSize: 10, fill: "#64748b" }}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: "#94a3b8" }}
+                            tickFormatter={fmtRpShort}
+                          />
+                          <Tooltip
+                            formatter={(v: number) => [
+                              formatRupiah(v),
+                              "Nominal",
+                            ]}
+                            contentStyle={{
+                              borderRadius: 12,
+                              border: "1px solid #e2e8f0",
+                              boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
+                            }}
+                          />
+                          <Bar dataKey="nominal" radius={[8, 8, 0, 0]}>
+                            <Cell fill="#10b981" />
+                            <Cell fill="#eab308" />
+                            <Cell
+                              fill={
+                                (cashFlowAnalytics.remainingRevenueIdr ?? 0) < 0
+                                  ? "#ef4444"
+                                  : "#3b82f6"
+                              }
+                            />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="card flex h-64 items-center justify-center border-dashed border-slate-200 bg-slate-50/40 text-xs font-medium text-slate-500">
+                    Belum cukup data untuk grafik nominal.
+                  </div>
+                )}
+
+                {cashFlowAnalytics.trend.length >= 2 ? (
+                  <div className="card">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Tren Pendapatan vs Tagihan Listrik
+                      </h3>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Perbandingan kronologis per bulan.
+                      </p>
+                    </div>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={cashFlowAnalytics.trend}
+                          margin={{ top: 10, right: 10, left: -12, bottom: 0 }}
+                        >
+                          <XAxis
+                            dataKey="label"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: "#64748b" }}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: "#94a3b8" }}
+                            tickFormatter={fmtRpShort}
+                          />
+                          <Tooltip
+                            formatter={(v: number, name: string) => [
+                              formatRupiah(v),
+                              name,
+                            ]}
+                            contentStyle={{
+                              borderRadius: 12,
+                              border: "1px solid #e2e8f0",
+                              boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
+                            }}
+                          />
+                          <Line
+                            name="Pendapatan"
+                            type="monotone"
+                            dataKey="revenueIdr"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            dot={{ r: 3, strokeWidth: 2, fill: "#fff" }}
+                            activeDot={{ r: 5 }}
+                          />
+                          <Line
+                            name="Tagihan Listrik"
+                            type="monotone"
+                            dataKey="electricityCostIdr"
+                            stroke="#eab308"
+                            strokeWidth={3}
+                            dot={{ r: 3, strokeWidth: 2, fill: "#fff" }}
+                            activeDot={{ r: 5 }}
+                            connectNulls
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="card flex h-64 items-center justify-center border-dashed border-slate-200 bg-slate-50/40 text-xs font-medium text-slate-500">
+                    Butuh minimal 2 bulan data pendapatan untuk melihat tren.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Line chart histori pemakaian kWh — pakai data existing prop */}
+            {mounted && tagihanBulanan.length > 0 && (
+              <div className="card mt-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Histori Pemakaian kWh
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Tren energi bulanan dari data input Anda.
+                  </p>
+                </div>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={tagihanBulanan}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="bulan"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                      />
+                      <Tooltip
+                        formatter={(v: number) => [formatKwh(v), "Pemakaian"]}
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
+                        }}
+                      />
+                      <Line
+                        name="Pemakaian kWh"
+                        type="monotone"
+                        dataKey="kwh"
+                        stroke="#8b5cf6"
+                        strokeWidth={3}
+                        dot={{ r: 3, strokeWidth: 2, fill: "#fff" }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-3 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <div className="space-y-1.5 text-xs leading-relaxed text-slate-600">
+                <p>
+                  Sisa pendapatan setelah listrik belum memperhitungkan biaya
+                  operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.
+                </p>
+                <p>
+                  Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
 
       {mounted && (
         <div className="mt-6 grid gap-6 lg:grid-cols-12">

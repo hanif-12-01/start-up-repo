@@ -25,12 +25,20 @@ import { formatKwh, formatRupiah } from "@/lib/utils";
 
 interface PrediksiClientProps {
   prediksi: {
+    hasPrediction: boolean;
+    businessId: string;
+    latestMonth?: number;
+    latestYear?: number;
     prediksiTagihan: number;
     tagihanBulanLalu: number;
     kenaikanPersen: number;
     risikoLevel: string;
     alasanUtama: string;
     penjelasan: string;
+    modelVersion?: string;
+    method?: string;
+    confidenceLevel?: string;
+    confidenceReason?: string;
   };
   proyeksiBulanIni: {
     hari: string;
@@ -41,17 +49,90 @@ interface PrediksiClientProps {
 
 export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiClientProps) {
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  const handleGenerate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { getOrGeneratePredictionAction } = await import("@/app/actions/prediction");
+      const res = await getOrGeneratePredictionAction(
+        prediksi.businessId,
+        prediksi.latestMonth,
+        prediksi.latestYear
+      );
+      if (!res.success) {
+        setError(res.error || "Gagal membuat prediksi.");
+      }
+    } catch {
+      // Server action selalu return {success,error} tanpa throw. Jika tetap
+      // sampai ke catch (mis. dynamic import fail / RPC framework error),
+      // JANGAN tampilkan err.message mentah — bisa berupa teks internal Next.js.
+      setError("Terjadi kesalahan saat memproses prediksi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!prediksi.hasPrediction) {
+    return (
+      <div>
+        <PageHeader
+          title="Prediksi Tagihan Listrik"
+          subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
+        />
+        
+        <div className="card flex flex-col items-center justify-center p-12 text-center border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl">
+          <div className="h-16 w-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-all">
+            <DollarSign className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800">Dapatkan Prediksi WattWise AI</h2>
+          <p className="mt-2 text-sm text-slate-500 max-w-md leading-relaxed">
+            Gunakan model AI cerdas kami untuk memproyeksikan penggunaan dan biaya listrik Anda berdasarkan data historis usaha.
+          </p>
+          
+          {error && (
+            <p className="mt-4 text-xs font-semibold text-rose-500 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+              {error}
+            </p>
+          )}
+
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="mt-6 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold px-6 py-3 shadow-lg hover:shadow-blue-500/25 transition-all cursor-pointer"
+          >
+            {loading ? "Memproses Prediksi..." : "Generate Prediksi Sekarang"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader
-        title="Prediksi Tagihan Listrik"
-        subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-2">
+        <div className="flex-1">
+          <PageHeader
+            title="Prediksi Tagihan Listrik"
+            subtitle="Perkiraan biaya listrik bulan ini agar Anda bisa merencanakan kas usaha lebih baik."
+          />
+        </div>
+        <div className="sm:-mt-6 mb-6">
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 disabled:bg-blue-50 text-blue-700 font-semibold px-4 py-2 text-xs shadow-sm transition-all cursor-pointer"
+          >
+            {loading ? "Memproses..." : "Perbarui Prediksi"}
+          </button>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -106,6 +187,13 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
               Penjelasan Sederhana
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">{prediksi.penjelasan}</p>
+            {prediksi.modelVersion && (
+              <div className="mt-4 rounded-lg bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1">
+                <div><span className="font-semibold text-slate-600">Model Version:</span> {prediksi.modelVersion}</div>
+                <div><span className="font-semibold text-slate-600">Metode Prediksi:</span> {prediksi.method}</div>
+                <div><span className="font-semibold text-slate-600">Kepercayaan (Confidence):</span> {prediksi.confidenceLevel} ({prediksi.confidenceReason})</div>
+              </div>
+            )}
           </div>
         </section>
 

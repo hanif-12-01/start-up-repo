@@ -2,7 +2,25 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
-import { getDashboardDataForBusiness } from "@/services/business";
+import { db } from "@/lib/db";
+import {
+  getActiveBusinessId,
+  getDashboardDataForBusiness,
+} from "@/services/business";
+import {
+  getCashFlowTrendData,
+  getLatestCashFlowEntry,
+} from "@/services/cash-flow";
+import {
+  calculateBillAfterSavings,
+  calculateElectricityRevenueRatio,
+  calculatePotentialRemainingRevenueAfterSavings,
+  calculateRemainingRevenueAfterElectricity,
+  classifyElectricityRevenueRatio,
+  type CashFlowAnalytics,
+  type CashFlowAnalyticsTrendPoint,
+  type CashFlowBusinessType,
+} from "@/lib/cash-flow";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +134,112 @@ export default async function DashboardPage() {
     estimatedMonthlySavingIdr: rec.estimatedSavingsIdr,
   }));
 
+  // ─────────────────────────────────────────────────────────────
+  // Cash Flow Analytics (Task 7) — data-flow saja, UI belum dirender.
+  //
+  // Rule:
+  //  - Nol pipeline analisis berat; hanya read DB + fungsi murni dari lib.
+  //  - Defensif terhadap CashFlowEntry belum ter-migrate (P2021) — kalau
+  //    tabel belum ada, kita treat sebagai "belum ada data pendapatan"
+  //    supaya dashboard tetap render.
+  //  - Ownership sudah dijamin oleh `getDashboardDataForBusiness` di atas —
+  //    kita pakai ulang `activeBusinessId` (dedup via React.cache).
+  // ─────────────────────────────────────────────────────────────
+
+  const activeBusinessId = await getActiveBusinessId(session.user.id);
+  let cashFlowAnalytics: CashFlowAnalytics | null = null;
+
+  if (activeBusinessId) {
+    let latestRevenue: { revenueIdr: number; month: number; year: number } | null = null;
+    let trend: CashFlowAnalyticsTrendPoint[] = [];
+    try {
+      const [rev, trendData] = await Promise.all([
+        getLatestCashFlowEntry(activeBusinessId),
+        getCashFlowTrendData(activeBusinessId),
+      ]);
+      latestRevenue = rev
+        ? { revenueIdr: rev.revenueIdr, month: rev.month, year: rev.year }
+        : null;
+      trend = trendData;
+    } catch (error) {
+      // Tabel CashFlowEntry belum di-migrate (Prisma P2021). Log server-side
+      // saja; UI dashboard fallback ke state "belum ada data pendapatan".
+      console.warn(
+        "[dashboard] CashFlowEntry not available — running migrate would enable analytics:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
+    // Sumber biaya listrik: aktual dulu, fallback ke prediksi tersimpan.
+    let electricityCostIdr: number | null = null;
+    let electricityCostLabel: string | null = null;
+    if (latest) {
+      electricityCostIdr = latest.costIdr;
+      electricityCostLabel = "Tagihan listrik tercatat";
+    } else {
+      const latestPrediction = await db.predictionResult.findFirst({
+        where: { businessId: activeBusinessId },
+        orderBy: [
+          { predictedForYear: "desc" },
+          { predictedForMonth: "desc" },
+        ],
+        select: { predictedCostIdr: true },
+      });
+      if (latestPrediction) {
+        electricityCostIdr = latestPrediction.predictedCostIdr;
+        electricityCostLabel = "Estimasi tagihan listrik";
+      }
+    }
+
+    // Business type untuk klasifikasi rasio per sektor (mengambil hanya field
+    // `type` — read super ringan; ownership sudah dijamin di step atas).
+    const businessMeta = await db.business.findFirst({
+      where: { id: activeBusinessId, userId: session.user.id },
+      select: { type: true },
+    });
+    const businessType = (businessMeta?.type ?? "OTHER") as CashFlowBusinessType;
+
+    const revenueIdr = latestRevenue?.revenueIdr ?? null;
+    const potentialSavingsIdr = potensiHemat; // reuse hitungan existing
+
+    const ratioPercent =
+      revenueIdr !== null && electricityCostIdr !== null
+        ? calculateElectricityRevenueRatio(revenueIdr, electricityCostIdr)
+        : null;
+    const ratioStatus = classifyElectricityRevenueRatio(ratioPercent, businessType);
+
+    const remainingRevenueIdr =
+      revenueIdr !== null && electricityCostIdr !== null
+        ? calculateRemainingRevenueAfterElectricity(revenueIdr, electricityCostIdr)
+        : null;
+    const estimatedBillAfterSavingsIdr =
+      electricityCostIdr !== null
+        ? calculateBillAfterSavings(electricityCostIdr, potentialSavingsIdr)
+        : null;
+    const potentialRemainingRevenueIdr =
+      revenueIdr !== null && electricityCostIdr !== null
+        ? calculatePotentialRemainingRevenueAfterSavings(
+            revenueIdr,
+            electricityCostIdr,
+            potentialSavingsIdr,
+          )
+        : null;
+
+    cashFlowAnalytics = {
+      hasRevenueData: revenueIdr !== null,
+      revenueIdr,
+      electricityCostIdr,
+      electricityCostLabel,
+      ratioPercent,
+      ratioStatus,
+      remainingRevenueIdr,
+      potentialSavingsIdr,
+      estimatedBillAfterSavingsIdr,
+      potentialRemainingRevenueIdr,
+      trend,
+    };
+  }
+
   return (
     <DashboardClient
       ringkasan={ringkasan}
@@ -123,6 +247,7 @@ export default async function DashboardPage() {
       pemakaianHarian={pemakaianHarian}
       pemakaianPeralatan={pemakaianPeralatan}
       efisiensiPeralatan={efisiensiPeralatan}
+      cashFlowAnalytics={cashFlowAnalytics}
     />
   );
 }

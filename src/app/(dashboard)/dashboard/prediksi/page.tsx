@@ -5,6 +5,7 @@ import PrediksiClient from "./prediksi-client";
 import { getPrediksiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
+import { db } from "@/lib/db";
 
 export default async function PrediksiPage() {
   const session = await getServerSession(authOptions);
@@ -33,25 +34,22 @@ export default async function PrediksiPage() {
   }
 
   const latestEntry = business.electricityEntries[0];
-  const prevEntry = business.electricityEntries[1];
   const latestAnalysis = business.analysisResults[0];
+
+  let prediction = null;
+  if (latestEntry) {
+    // Ambil data prediksi langsung dari database (read-only)
+    prediction = await db.predictionResult.findFirst({
+      where: {
+        businessId: business.id,
+        month: latestEntry.month,
+        year: latestEntry.year,
+      },
+    });
+  }
 
   const tagihanBulanLalu = latestEntry ? latestEntry.costIdr : 0;
   
-  let trend = 1.02;
-  if (latestEntry && prevEntry && prevEntry.usageKwh > 0) {
-    const pctChange = (latestEntry.usageKwh - prevEntry.usageKwh) / prevEntry.usageKwh;
-    trend = 1 + Math.max(-0.2, Math.min(0.2, pctChange));
-  }
-
-  const prediksiKwh = latestEntry ? latestEntry.usageKwh * trend : 0;
-  const avgTariff = latestEntry && latestEntry.usageKwh > 0 ? latestEntry.costIdr / latestEntry.usageKwh : 1450;
-  const prediksiTagihan = latestEntry ? Math.round(prediksiKwh * avgTariff) : 0;
-
-  const kenaikanPersen = latestEntry && prevEntry && prevEntry.usageKwh > 0
-    ? parseFloat((((latestEntry.usageKwh - prevEntry.usageKwh) / prevEntry.usageKwh) * 100).toFixed(1))
-    : parseFloat(((trend - 1) * 100).toFixed(1));
-
   let risikoLevel = "Rendah";
   if (latestAnalysis?.efficiencyScore !== undefined && latestAnalysis?.efficiencyScore !== null) {
     const score = latestAnalysis.efficiencyScore;
@@ -62,26 +60,23 @@ export default async function PrediksiPage() {
     }
   }
 
-  let alasanUtama = "Belum ada data pemakaian yang cukup untuk menganalisis penyebab utama.";
-  if (latestEntry) {
-    if (risikoLevel === "Tinggi") {
-      alasanUtama = "Terdeteksi lonjakan pemakaian pada jam operasional puncak. Periksa peralatan berdaya tinggi yang berjalan melebihi waktu normal.";
-    } else if (risikoLevel === "Sedang") {
-      alasanUtama = "Konsumsi listrik relatif stabil namun terdeteksi beberapa kebocoran standby power pada malam hari.";
-    } else {
-      alasanUtama = "Penggunaan listrik sangat efisien dan terkontrol dengan baik sesuai kapasitas peralatan terdaftar.";
-    }
-  }
-
-  const penjelasan = "Prediksi ini dibuat berdasarkan pola tagihan sebelumnya, jam operasional, dan kapasitas daya VA terpasang. Hasilnya adalah estimasi/proyeksi kas dan bukan tagihan resmi PLN.";
-
+  let alasanUtama = prediction?.explanation || "Silakan lakukan generate prediksi untuk melihat analisis penyebab utama.";
+  
   const prediksiData = {
-    prediksiTagihan,
+    hasPrediction: !!prediction,
+    businessId: business.id,
+    latestMonth: latestEntry ? latestEntry.month : undefined,
+    latestYear: latestEntry ? latestEntry.year : undefined,
+    prediksiTagihan: prediction ? prediction.predictedCostIdr : 0,
     tagihanBulanLalu,
-    kenaikanPersen,
+    kenaikanPersen: prediction ? prediction.trendPercent : 0,
     risikoLevel,
     alasanUtama,
-    penjelasan,
+    penjelasan: prediction?.disclaimer || "Prediksi ini dibuat berdasarkan pola tagihan sebelumnya. Hasilnya adalah estimasi/proyeksi kas dan bukan tagihan resmi PLN.",
+    modelVersion: prediction?.modelVersion || undefined,
+    method: prediction?.method || undefined,
+    confidenceLevel: prediction?.confidenceLevel || undefined,
+    confidenceReason: prediction?.confidenceReason || undefined,
   };
 
   const proyeksiBulanIni = business.dailyUsages.map((d) => {
@@ -95,6 +90,8 @@ export default async function PrediksiPage() {
     };
   });
 
+  const trendVal = prediction ? (prediction.trendPercent / 100) : 0.02;
+
   if (proyeksiBulanIni.length > 0) {
     const lastDayVal = proyeksiBulanIni[proyeksiBulanIni.length - 1].aktual || 0;
     const lastDayNum = parseInt(proyeksiBulanIni[proyeksiBulanIni.length - 1].hari);
@@ -107,7 +104,7 @@ export default async function PrediksiPage() {
         proyeksiBulanIni.push({
           hari: nextDay.toString(),
           aktual: null,
-          proyeksi: parseFloat((lastDayVal * (1 + (i * 0.02) * (trend - 1))).toFixed(2)),
+          proyeksi: parseFloat((lastDayVal * (1 + (i * 0.02) * trendVal)).toFixed(2)),
         });
       }
     }

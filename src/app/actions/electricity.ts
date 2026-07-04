@@ -115,13 +115,14 @@ export async function createElectricityEntry(input: ElectricityInput): Promise<E
       input.costIdr
     );
 
+    // Prediction generation is no longer run automatically to ensure predictions are only generated on demand by the user.
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/input");
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
     revalidatePath("/dashboard/notifikasi");
-    revalidatePath("/dashboard/simulasi");
     revalidatePath("/dashboard/prediksi");
 
     return { success: true, entryId: entry.id };
@@ -180,13 +181,14 @@ export async function generateAnalysisAction(): Promise<{ success: boolean; erro
       latestEntry.costIdr
     );
 
+    // Prediction generation is no longer run automatically to ensure predictions are only generated on demand by the user.
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/input");
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
     revalidatePath("/dashboard/notifikasi");
-    revalidatePath("/dashboard/simulasi");
     revalidatePath("/dashboard/prediksi");
 
     return { success: true };

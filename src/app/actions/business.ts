@@ -236,7 +236,6 @@ export async function switchActiveBusinessAction(businessId: string) {
     revalidatePath("/dashboard/anomali");
     revalidatePath("/dashboard/rekomendasi");
     revalidatePath("/dashboard/peralatan");
-    revalidatePath("/dashboard/simulasi");
     revalidatePath("/dashboard/notifikasi");
     revalidatePath("/dashboard/laporan");
     revalidatePath("/dashboard/profil");
