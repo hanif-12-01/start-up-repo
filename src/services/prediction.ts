@@ -1,11 +1,12 @@
 import { db } from "@/lib/db";
 import { PredictionResult } from "@prisma/client";
 import {
-  predictRidgeUmkm,
-  MODEL_VERSION as RIDGE_UMKM_MODEL_VERSION,
-  DISCLAIMER as RIDGE_UMKM_DISCLAIMER,
-  type RidgeFeatureInput,
-} from "@/lib/prediction/ridge-umkm-model";
+  predictLstmUmkm,
+  MODEL_VERSION as LSTM_MODEL_VERSION,
+  DISCLAIMER as LSTM_DISCLAIMER,
+  SEQUENCE_LENGTH,
+  type LstmFeatureWindow,
+} from "@/lib/prediction/lstm-umkm-model";
 
 export interface PredictionInput {
   businessId: string;
@@ -94,10 +95,10 @@ export async function generatePrediction({
   let trendDirection: "NAIK" | "TURUN" | "STABIL" = "STABIL";
   let confidenceLevel: "HIGH" | "MEDIUM" | "LOW" = "LOW";
   let confidenceReason = "";
-  let method: "RIDGE_UMKM_V1" | "RULE_BASED" | "HYBRID_FALLBACK" = "RULE_BASED";
+  let method: "LSTM_PROTOTYPE" | "RULE_BASED" | "HYBRID_FALLBACK" = "RULE_BASED";
   let modelVersion = "";
   let explanation = "";
-  const disclaimer = RIDGE_UMKM_DISCLAIMER;
+  const disclaimer = LSTM_DISCLAIMER;
 
   // Ambang batas heuristik yang dipakai bersama
   const STABIL_THRESHOLD_PCT = 1.0; // |Δ| < 1% dianggap stabil
@@ -140,14 +141,14 @@ export async function generatePrediction({
     };
   };
 
-  // 4. Cek ketersediaan data untuk model Ridge ML
-  //    Model membutuhkan minimal 3 bulan data historis agar fitur rolling/tren valid.
-  if (entries.length >= 3) {
-    method = "RIDGE_UMKM_V1";
-    modelVersion = RIDGE_UMKM_MODEL_VERSION;
+  // 4. Cek ketersediaan data untuk model LSTM (butuh sequence penuh SEQUENCE_LENGTH bulan).
+  //    Kurang dari itu → langsung ke rule-based (jalur `else` di bawah).
+  if (entries.length >= SEQUENCE_LENGTH) {
+    method = "LSTM_PROTOTYPE";
+    modelVersion = LSTM_MODEL_VERSION;
 
-    // Encode business type — mapping ini harus SAMA persis dengan encoding
-    // yang dipakai saat training (lihat ML/outputs_umkm/model_metadata.json).
+    // Encode business type — mapping SAMA persis dengan training LSTM
+    // (lihat ML/outputs_lstm/lstm_model_export.json → business_type_encoding).
     const typeMapping: Record<string, number> = {
       LAUNDRY: 0,
       FNB: 1,
@@ -158,41 +159,63 @@ export async function generatePrediction({
     };
     const business_type_encoded = typeMapping[business.type] ?? 6;
 
-    const month_sin = Math.sin((2 * Math.PI * month) / 12);
-    const month_cos = Math.cos((2 * Math.PI * month) / 12);
+    // `entries` diorder DESC (terbaru dulu). LSTM butuh urutan kronologis
+    // ASC (lama → baru), jadi kita balik. Slice SEQUENCE_LENGTH terakhir supaya
+    // window persis 6 timestep.
+    const entriesAsc = [...entries].reverse().slice(-SEQUENCE_LENGTH);
 
-    // Susun input persis sesuai FEATURE_ORDER pada
-    // src/lib/prediction/ridge-umkm-model.ts (koefisien Ridge UMKM v1.1 hasil
-    // export dari ML/outputs_umkm/ridge_model.pkl).
-    const ridgeFeatures: RidgeFeatureInput = {
-      business_type_encoded,
-      month,
-      latest_usage_kwh,
-      previous_usage_kwh,
-      avg_3_month_usage_kwh,
-      avg_6_month_usage_kwh,
-      trend_1_month,
-      trend_3_month,
-      month_sin,
-      month_cos,
-      avg_tariff_idr_per_kwh: avgTariff,
-    };
-
-    // Jalankan model utama. Fungsi ini melempar bila ada fitur non-finite,
-    // yang kita tangani sebagai jalur HYBRID_FALLBACK di catch di bawah.
-    let rawPrediction: number = NaN;
+    // Bangun sequence 6 timestep. Fitur rolling (avg_3 / avg_6) memakai
+    // window "as-many-as-available" sesuai spesifikasi task.
+    let sequence: LstmFeatureWindow[] | null = null;
     try {
-      rawPrediction = predictRidgeUmkm(ridgeFeatures);
+      sequence = entriesAsc.map((entry, t): LstmFeatureWindow => {
+        const curr = entry.usageKwh;
+        const prev = t > 0 ? entriesAsc[t - 1].usageKwh : curr;
+        const win3 = entriesAsc.slice(Math.max(0, t - 2), t + 1);
+        const win6 = entriesAsc.slice(Math.max(0, t - 5), t + 1);
+        const avg3 = win3.reduce((s, e) => s + e.usageKwh, 0) / win3.length;
+        const avg6 = win6.reduce((s, e) => s + e.usageKwh, 0) / win6.length;
+        const trend1 = (curr - prev) / (prev + 1e-5);
+        const trend3 = (curr - avg3) / (avg3 + 1e-5);
+        const m = entry.month;
+        const tariff = entry.usageKwh > 0
+          ? entry.costIdr / entry.usageKwh
+          : 1444.70;
+        return {
+          latest_usage_kwh: curr,
+          previous_usage_kwh: prev,
+          avg_3_month_usage_kwh: avg3,
+          avg_6_month_usage_kwh: avg6,
+          trend_1_month: trend1,
+          trend_3_month: trend3,
+          month_sin: Math.sin((2 * Math.PI * m) / 12),
+          month_cos: Math.cos((2 * Math.PI * m) / 12),
+          business_type_encoded,
+          avg_tariff_idr_per_kwh: tariff,
+        };
+      });
     } catch {
-      rawPrediction = NaN;
+      sequence = null;
     }
 
-    // Sanity-check output model: NaN, terlalu ekstrem (>3x latest atau <1/3 latest),
-    // atau di bawah batas minimum → jatuh ke rule-based sebagai HYBRID_FALLBACK.
+    // Jalankan LSTM. Fungsi melempar bila ada fitur non-finite atau output ≤0,
+    // yang kita tangani sebagai HYBRID_FALLBACK di catch di bawah.
+    let rawPrediction: number = NaN;
+    if (sequence !== null) {
+      try {
+        rawPrediction = predictLstmUmkm(sequence);
+      } catch {
+        rawPrediction = NaN;
+      }
+    }
+
+    // Sanity-check output model — LSTM sudah guard ≤0 & non-finite, kita
+    // tambah guard "terlalu ekstrem" (>3× / <⅓ latest) untuk kasus edge.
     const upperBound = latest_usage_kwh * 3;
     const lowerBound = latest_usage_kwh / 3;
     const modelOutputInvalid =
       !Number.isFinite(rawPrediction) ||
+      rawPrediction <= 0 ||
       rawPrediction < MIN_KWH_PREDICTION ||
       rawPrediction > upperBound ||
       rawPrediction < lowerBound;
@@ -200,7 +223,7 @@ export async function generatePrediction({
     if (modelOutputInvalid) {
       const fb = runRuleBasedFallback();
       method = "HYBRID_FALLBACK";
-      modelVersion = `${RIDGE_UMKM_MODEL_VERSION} → Rule-Based v1.0`;
+      modelVersion = `${LSTM_MODEL_VERSION} → Rule-Based v1.0`;
       predictedUsageKwh = fb.predictedUsageKwh;
       trendPercent = fb.trendPercent;
       confidenceLevel = "LOW";
@@ -209,19 +232,17 @@ export async function generatePrediction({
       predictedUsageKwh = parseFloat(Math.max(MIN_KWH_PREDICTION, rawPrediction).toFixed(2));
       trendPercent = parseFloat((((predictedUsageKwh - latest_usage_kwh) / (latest_usage_kwh + 1e-5)) * 100).toFixed(1));
 
-      // Aturan confidence untuk jalur model utama
-      if (entries.length >= 6 && isKnownType && !isAnomalous) {
+      // Aturan confidence untuk jalur LSTM: sequence pasti 6 bulan penuh
+      // (dijamin oleh guard `entries.length >= SEQUENCE_LENGTH` di atas).
+      if (isKnownType && !isAnomalous) {
         confidenceLevel = "HIGH";
-        confidenceReason = "Data historis lengkap (≥6 bulan), jenis usaha dikenali, dan pola pemakaian stabil tanpa anomali.";
+        confidenceReason = "Model LSTM memakai 6 bulan pola pemakaian listrik yang lengkap; jenis usaha dikenali dan pola stabil tanpa anomali.";
       } else if (isAnomalous) {
         confidenceLevel = "LOW";
-        confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata 6 bulan) — prediksi mungkin kurang akurat.`;
-      } else if (!isKnownType) {
-        confidenceLevel = "LOW";
-        confidenceReason = "Jenis usaha 'Lainnya' belum dikenali penuh oleh model — hasil merupakan estimasi kasar.";
-      } else if (entries.length >= 3) {
+        confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata 6 bulan) — prediksi LSTM mungkin kurang akurat.`;
+      } else {
         confidenceLevel = "MEDIUM";
-        confidenceReason = "Data historis cukup (3–5 bulan) dan jenis usaha dikenali, namun belum optimal — sebaiknya lengkapi hingga 6 bulan.";
+        confidenceReason = "Model LSTM memakai 6 bulan pola pemakaian listrik, namun jenis usaha 'Lainnya' belum sepenuhnya dikenali oleh model.";
       }
     }
 
@@ -229,15 +250,15 @@ export async function generatePrediction({
     trendDirection = classifyTrend(trendPercent);
 
     const trendPhrase = trendDirection === "STABIL"
-      ? "pola pemakaian yang relatif stabil"
-      : `pola pemakaian yang cenderung ${trendLabelId(trendDirection)} ${Math.abs(trendPercent)}% dari bulan sebelumnya`;
+      ? "pola pemakaian listrik yang relatif stabil"
+      : `pola pemakaian listrik yang cenderung ${trendLabelId(trendDirection)} ${Math.abs(trendPercent)}% dari bulan sebelumnya`;
     const methodPhrase = method === "HYBRID_FALLBACK"
       ? "estimasi cadangan (rule-based) karena model utama tidak stabil untuk data usaha Anda"
-      : "model AI ringan yang menganalisis pola tagihan Anda";
-    explanation = `Perkiraan pemakaian bulan depan sekitar ${predictedUsageKwh.toFixed(1)} kWh dengan biaya ${formatRp(predictedCostIdr)}. Angka ini dihitung memakai ${methodPhrase}, berdasarkan ${trendPhrase}.`;
+      : "model AI LSTM yang menganalisis 6 bulan pola pemakaian listrik Anda";
+    explanation = `Prediksi pemakaian listrik bulan depan sekitar ${predictedUsageKwh.toFixed(1)} kWh dengan estimasi tagihan listrik ${formatRp(predictedCostIdr)}. Angka ini dihitung memakai ${methodPhrase}, berdasarkan ${trendPhrase}.`;
 
   } else {
-    // 5. Fallback jika data <3 bulan → langsung RULE_BASED
+    // 5. Fallback: data historis <SEQUENCE_LENGTH bulan → langsung RULE_BASED.
     method = "RULE_BASED";
     modelVersion = "Rule-Based v1.0";
 
@@ -249,13 +270,13 @@ export async function generatePrediction({
 
     confidenceLevel = "LOW";
     confidenceReason = entries.length < 2
-      ? "Baru tersedia 1 bulan data pemakaian — belum cukup untuk melihat pola. Silakan isi data bulan berikutnya untuk akurasi yang lebih baik."
-      : "Data historis kurang dari 3 bulan sehingga sistem memakai estimasi sederhana (rule-based). Akurasi masih terbatas.";
+      ? `Baru tersedia ${entries.length} bulan data pemakaian — model LSTM butuh ${SEQUENCE_LENGTH} bulan. Silakan lengkapi data bulan berikutnya untuk akurasi yang lebih baik.`
+      : `Data historis ${entries.length} bulan — model LSTM butuh minimal ${SEQUENCE_LENGTH} bulan. Sistem memakai estimasi sederhana (rule-based).`;
 
     const trendPhrase = trendDirection === "STABIL"
-      ? "pola pemakaian yang relatif stabil"
-      : `pola pemakaian yang cenderung ${trendLabelId(trendDirection)} ${Math.abs(trendPercent)}% dari bulan sebelumnya`;
-    explanation = `Perkiraan pemakaian bulan depan sekitar ${predictedUsageKwh.toFixed(1)} kWh dengan biaya ${formatRp(predictedCostIdr)}. Karena data pemakaian Anda belum lengkap, angka ini dihitung memakai estimasi sederhana berdasarkan ${trendPhrase}.`;
+      ? "pola pemakaian listrik yang relatif stabil"
+      : `pola pemakaian listrik yang cenderung ${trendLabelId(trendDirection)} ${Math.abs(trendPercent)}% dari bulan sebelumnya`;
+    explanation = `Prediksi pemakaian listrik bulan depan sekitar ${predictedUsageKwh.toFixed(1)} kWh dengan estimasi tagihan listrik ${formatRp(predictedCostIdr)}. Karena data pemakaian belum lengkap (${entries.length}/${SEQUENCE_LENGTH} bulan), angka ini dihitung memakai estimasi sederhana berdasarkan ${trendPhrase}.`;
   }
 
   // Safety-net akhir: pastikan tidak ada nilai negatif / NaN yang lolos.
