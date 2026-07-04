@@ -56,3 +56,6 @@ next-env.d.ts
 
 # test outputs
 test-outputs/
+
+# local test model folder
+Test model/
