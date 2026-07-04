@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/seed-demo-umkm-data.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
