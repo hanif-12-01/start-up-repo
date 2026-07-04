@@ -53,3 +53,6 @@ ML/data/
 next-env.d.ts
 # local tool state
 .claude/
+
+# test outputs
+test-outputs/
