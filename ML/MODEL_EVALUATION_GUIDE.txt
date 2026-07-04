@@ -1,0 +1,163 @@
+WattWise AI - Panduan Ujian Model Prediksi PLN/Tagihan Listrik
+===================================================================
+
+Tujuan
+------
+File ini menjelaskan cara menguji model prediksi WattWise AI secara lebih fair.
+
+Model produksi saat ini:
+- Ridge Regression UMKM v1.1 sebagai baseline ML utama.
+- Rule-based fallback jika data historis kurang dari 3 bulan atau output Ridge tidak masuk akal.
+- Target utama evaluasi: next_month_usage_kwh.
+- Biaya/tagihan dipakai sebagai turunan: predicted_cost_idr = predicted_usage_kwh * tarif rata-rata.
+
+Kenapa perlu benchmark?
+-----------------------
+Ridge Regression itu bagus sebagai baseline karena ringan, cepat, dan mudah diekspor ke TypeScript.
+Tetapi pola tagihan UMKM bisa non-linear, misalnya:
+- laundry mendadak naik karena boiler bocor,
+- cold storage naik karena gasket freezer rusak,
+- perubahan musiman,
+- jenis usaha berbeda punya skala konsumsi berbeda.
+
+Karena itu model perlu diuji melawan model pembanding:
+- Random Forest
+- Extra Trees
+- Gradient Boosting
+- HistGradientBoosting, opsional
+- XGBoost, opsional jika dependency tersedia
+
+Cara install dependency
+-----------------------
+Dari root repository:
+
+    python -m venv .venv-ml
+    source .venv-ml/bin/activate
+
+Windows PowerShell:
+
+    .venv-ml\Scripts\Activate.ps1
+
+Lalu install:
+
+    pip install -r ML/requirements-evaluation.txt
+
+Tes cepat dengan dataset sintetis
+---------------------------------
+Gunakan ini hanya untuk memastikan pipeline benchmark berjalan:
+
+    python ML/scripts/20_model_benchmark.py --demo
+
+Output default akan masuk ke:
+
+    ML/outputs_umkm/model_benchmark.csv
+    ML/outputs_umkm/test_predictions.csv
+    ML/outputs_umkm/stress_test_predictions.csv
+    ML/outputs_umkm/best_model_summary.json
+
+Status DEMO_ONLY berarti data masih sintetis, bukan hasil final.
+
+Benchmark dengan dataset real
+-----------------------------
+Letakkan dataset real di folder yang memang di-ignore Git, misalnya:
+
+    ML/data/umkm_monthly.csv
+
+Format raw minimal:
+
+    business_id,business_type,year,month,usage_kwh,cost_idr
+    laundry-01,LAUNDRY,2025,12,580.5,841725
+    laundry-01,LAUNDRY,2026,1,610.2,884790
+    laundry-01,LAUNDRY,2026,2,590.0,855500
+    ...
+
+Jalankan:
+
+    python ML/scripts/20_model_benchmark.py --data ML/data/umkm_monthly.csv
+
+Dengan XGBoost:
+
+    python ML/scripts/20_model_benchmark.py --data ML/data/umkm_monthly.csv --include-xgboost
+
+Dengan model tambahan yang lebih lambat:
+
+    python ML/scripts/20_model_benchmark.py --data ML/data/umkm_monthly.csv --include-slow-models
+
+Simpan model terbaik sebagai pickle:
+
+    python ML/scripts/20_model_benchmark.py --data ML/data/umkm_monthly.csv --include-xgboost --export-best-model
+
+Format dataset engineered
+-------------------------
+Kalau kamu sudah punya dataset hasil feature engineering, CSV harus punya semua kolom ini:
+
+    business_type_encoded
+    month
+    latest_usage_kwh
+    previous_usage_kwh
+    avg_3_month_usage_kwh
+    avg_6_month_usage_kwh
+    trend_1_month
+    trend_3_month
+    month_sin
+    month_cos
+    avg_tariff_idr_per_kwh
+    next_month_usage_kwh
+
+Aturan evaluasi yang dipakai
+----------------------------
+1. Split data secara kronologis, bukan random split.
+   Ini penting supaya model tidak melihat data masa depan.
+
+2. Metrik utama:
+   - WMAPE: metrik utama karena skala laundry dan cold storage bisa jauh berbeda.
+   - sMAPE: lebih stabil untuk nilai kecil.
+   - MAE/RMSE: melihat besar error absolut.
+   - R2: hanya pelengkap.
+
+3. Stress test:
+   - output harus finite,
+   - output tidak boleh negatif,
+   - output tidak boleh terlalu ekstrem, yaitu di luar rentang 1/3x sampai 3x latest_usage_kwh.
+
+Kriteria keputusan
+------------------
+Rekomendasi awal:
+
+1. Tetap pakai Ridge jika:
+   - model lain hanya menang tipis,
+   - inference lebih berat,
+   - hasil stress test model lain tidak stabil,
+   - atau data real masih sedikit.
+
+2. Pertimbangkan mengganti model produksi jika:
+   - WMAPE model baru turun minimal 5-10% dibanding Ridge,
+   - stress test lolos,
+   - inference masih masuk akal untuk deployment,
+   - dan performa konsisten saat diuji ulang.
+
+3. Target awal yang realistis:
+   - WMAPE <= 15%: cukup layak untuk MVP estimasi.
+   - WMAPE <= 10%: bagus untuk demo yang lebih kuat.
+   - WMAPE > 20%: perlu perbaikan dataset/fitur/model.
+
+Catatan penting
+---------------
+Dataset demo di prisma/seed.ts hanya berisi sedikit bulan per business, jadi belum cukup untuk evaluasi ML yang kuat.
+Untuk ujian final, kumpulkan lebih banyak data:
+- minimal 12 bulan per business,
+- lebih baik 24+ bulan,
+- banyak business per jenis UMKM,
+- simpan periode anomali agar model belajar pola lonjakan nyata.
+
+Kalau model terbaik bukan Ridge
+-------------------------------
+Jangan langsung mengganti runtime TypeScript.
+Langkah aman:
+
+1. Export model terbaik ke format portable.
+2. Pastikan urutan fitur sama.
+3. Buat adapter inferensi yang terpisah, misalnya:
+   src/lib/prediction/xgboost-umkm-model.ts
+4. Tambahkan fallback seperti yang sudah ada di src/services/prediction.ts.
+5. Jalankan benchmark ulang setelah integrasi.
