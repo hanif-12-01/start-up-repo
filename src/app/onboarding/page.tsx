@@ -180,10 +180,19 @@ export default function OnboardingPage() {
               <p className="text-xs text-slate-500">Langkah Awal Efisiensi Energi</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
               Langkah {step} dari 3
             </span>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-red-500 transition-all border border-slate-200 hover:border-red-100 bg-white hover:bg-red-50/50 py-1 px-2.5 rounded-lg shadow-sm"
+              title="Keluar dari Akun"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Keluar
+            </button>
           </div>
         </div>
 

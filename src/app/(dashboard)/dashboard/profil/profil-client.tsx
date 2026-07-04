@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, Edit3, HelpCircle, MapPin, Save, Store, User, Zap, Loader2, Briefcase, Plus, CheckCircle2 } from "lucide-react";
+import { Bell, Edit3, HelpCircle, MapPin, Save, Store, User, Zap, Loader2, Briefcase, Plus, CheckCircle2, LogOut } from "lucide-react";
 import { PageHeader } from "@/components/ui/common";
 import { useToast } from "@/components/ui/toast";
 import { updateBusinessProfile, switchActiveBusinessAction } from "@/app/actions/business";
 import { BusinessType } from "@prisma/client";
+import { signOut } from "next-auth/react";
 
 const BUSINESS_TYPES = [
   { value: BusinessType.LAUNDRY, label: "Jasa Laundry / Cuci Pakaian" },
@@ -436,6 +437,22 @@ export default function ProfilClient({ initialBusiness, allBusinesses = [] }: Pr
             className="btn-primary mt-5"
           >
             Simpan Pengaturan Notifikasi
+          </button>
+        </section>
+
+        <section className="card border border-rose-100 bg-rose-50/10">
+          <h2 className="flex items-center gap-2 font-bold text-rose-700">
+            <LogOut className="h-5 w-5" />
+            Keluar dari Akun
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Keluar dari sesi saat ini untuk berganti ke akun lain. Gunakan fitur ini jika kuota usaha di akun ini sudah penuh atau ingin mengganti login.
+          </p>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="btn bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl mt-4 transition-all duration-200"
+          >
+            Keluar (Logout)
           </button>
         </section>
 
