@@ -1,31 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, Lock } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { useRouter } from "next/navigation";
 
-export function LaporanPdfButton({
-  month,
-  year,
-  planCode,
-}: {
-  month?: number;
-  year?: number;
-  planCode?: string;
-}) {
+export function LaporanPdfButton({ month, year }: { month?: number; year?: number }) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
-  const isFree = planCode === "FREE";
 
   async function handleDownload() {
-    if (isFree) {
-      toast("Unduh laporan PDF terkunci. Silakan upgrade ke paket Pro.", "error");
-      router.push("/dashboard/harga-paket");
-      return;
-    }
-
     setLoading(true);
     try {
       const urlParams = new URLSearchParams();
@@ -58,19 +41,13 @@ export function LaporanPdfButton({
   }
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={loading}
-      className={isFree ? "btn btn-outline border-slate-200 text-slate-400 bg-slate-50 cursor-pointer" : "btn-primary"}
-    >
+    <button onClick={handleDownload} disabled={loading} className="btn-primary">
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
-      ) : isFree ? (
-        <Lock className="h-4 w-4 text-slate-400" />
       ) : (
         <Download className="h-4 w-4" />
       )}
-      {loading ? "Mengunduh..." : isFree ? "Unduh PDF (Premium)" : "Unduh Laporan PDF"}
+      {loading ? "Mengunduh..." : "Unduh Laporan PDF"}
     </button>
   );
 }

@@ -59,14 +59,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { plan } = await getUserPlan(session.user.id);
-    if (plan?.code === "FREE") {
-      return NextResponse.json(
-        { error: "Unduh laporan PDF tidak tersedia pada Paket Gratis. Silakan upgrade ke paket Pro." },
-        { status: 403 }
-      );
-    }
-
     const activeBusinessId = await getActiveBusinessId(session.user.id);
     if (!activeBusinessId) {
       return NextResponse.json({ error: "Profil usaha belum lengkap" }, { status: 404 });
@@ -203,9 +195,13 @@ export async function GET(req: Request) {
           )
         : null;
 
+    // Check plan gating
+    const { plan } = await getUserPlan(session.user.id);
+    const planCode = plan?.code || "FREE";
+
     // --- Build PDF ---
     const { default: PDFDocument } = await import("pdfkit");
-    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    const doc = new PDFDocument({ size: "A4", margin: 50, bufferPages: true });
     const chunks: Uint8Array[] = [];
 
     doc.on("data", (chunk: Uint8Array) => chunks.push(chunk));
@@ -424,6 +420,31 @@ export async function GET(req: Request) {
         `Digenarasi oleh WattWise AI — ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
         M, doc.page.height - 40, { width: CW, align: "center" }
       );
+
+    // Apply watermark on all pages if Gratis (FREE)
+    if (planCode === "FREE") {
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.save();
+        doc.opacity(0.08);
+        doc.fontSize(22);
+        doc.font("Helvetica-Bold");
+        doc.fillColor("#ef4444");
+        doc.translate(doc.page.width / 2, doc.page.height / 2);
+        doc.rotate(-30);
+        doc.text("PRATINJAU DOKUMEN WATTWISE AI", -250, -25, {
+          width: 500,
+          align: "center",
+        });
+        doc.fontSize(12);
+        doc.text("Upgrade ke Pro untuk Menghilangkan Watermark", -250, 5, {
+          width: 500,
+          align: "center",
+        });
+        doc.restore();
+      }
+    }
 
     doc.end();
 

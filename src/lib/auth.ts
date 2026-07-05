@@ -77,6 +77,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           hasBusiness: user.businesses.length > 0,
+          role: user.role,
         };
       },
     }),
@@ -86,6 +87,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.hasBusiness = (user as any).hasBusiness;
+        token.role = (user as any).role;
       }
       if (trigger === "update") {
         if (session?.hasBusiness !== undefined) {
@@ -102,6 +104,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).hasBusiness = token.hasBusiness;
+        (session.user as any).role = token.role;
       }
       return session;
     },

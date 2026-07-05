@@ -19,6 +19,8 @@ const businessSchema = z.object({
   address: z.string().min(5, "Alamat minimal 5 karakter"),
   powerVA: z.number().min(450, "Daya listrik minimal 450 VA"),
   operatingHours: z.string().min(2, "Jam operasional wajib diisi (misal: 08:00 - 20:00)"),
+  mode: z.string(),
+  revenueRange: z.string().optional(),
   appliances: z.array(
     z.object({
       name: z.string().min(2, "Nama alat minimal 2 karakter"),
@@ -29,19 +31,7 @@ const businessSchema = z.object({
   ).min(1, "Tambahkan minimal 1 peralatan elektronik utama"),
 });
 
-type BusinessFormData = {
-  name: string;
-  type: BusinessType;
-  address: string;
-  powerVA: number;
-  operatingHours: string;
-  appliances: {
-    name: string;
-    powerWatt: number;
-    quantity: number;
-    dailyUsageHours: number;
-  }[];
-};
+type BusinessFormData = z.infer<typeof businessSchema>;
 
 const BUSINESS_TYPES = [
   { value: BusinessType.LAUNDRY, label: "Jasa Laundry / Cuci Pakaian" },
@@ -50,6 +40,13 @@ const BUSINESS_TYPES = [
   { value: BusinessType.MANUFACTURE, label: "Manufaktur / Produksi Skala Kecil" },
   { value: BusinessType.COLD_STORAGE, label: "Cold Storage / Pembekuan" },
   { value: BusinessType.OTHER, label: "Usaha Lainnya" },
+];
+
+const REVENUE_RANGES = [
+  { value: "UNDER_10M", label: "Di bawah Rp 10 Juta" },
+  { value: "10M_50M", label: "Rp 10 Juta - Rp 50 Juta" },
+  { value: "50M_100M", label: "Rp 50 Juta - Rp 100 Juta" },
+  { value: "OVER_100M", label: "Di atas Rp 100 Juta" },
 ];
 
 const SUGGESTED_APPLIANCES: Record<BusinessType, { name: string; powerWatt: number; quantity: number; dailyUsageHours: number }[]> = {
@@ -104,6 +101,8 @@ export default function TambahUsahaPage() {
       address: "",
       powerVA: 1300,
       operatingHours: "08:00 - 20:00",
+      mode: "UMKM",
+      revenueRange: "UNDER_10M",
       appliances: [],
     },
   });
@@ -205,7 +204,7 @@ export default function TambahUsahaPage() {
               <div>
                 <h2 className="text-base font-bold text-brand-ink flex items-center gap-2">
                   <Store className="h-5 w-5 text-brand-blue" />
-                  Profil Cabang / Usaha Baru
+                  Profil Cabang & Listrik Usaha Baru
                 </h2>
                 <p className="text-xs text-slate-500">
                   Lengkapi data profil agar algoritma kami dapat menyesuaikan rekomendasi hemat listrik.
@@ -213,35 +212,99 @@ export default function TambahUsahaPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Mode Penggunaan
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${watch("mode") === "UMKM" ? "border-brand-green bg-emerald-50/20 text-brand-green font-semibold" : "border-slate-200 text-slate-600 bg-white"}`}>
+                      <input
+                        type="radio"
+                        value="UMKM"
+                        {...register("mode")}
+                        className="sr-only"
+                        onChange={() => {
+                          setValue("mode", "UMKM");
+                        }}
+                      />
+                      <span>Pemilik UMKM / Usaha</span>
+                    </label>
+                    <label className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${watch("mode") === "KOS_PROPERTY" ? "border-brand-green bg-emerald-50/20 text-brand-green font-semibold" : "border-slate-200 text-slate-600 bg-white"}`}>
+                      <input
+                        type="radio"
+                        value="KOS_PROPERTY"
+                        {...register("mode")}
+                        className="sr-only"
+                        onChange={() => {
+                          setValue("mode", "KOS_PROPERTY");
+                          setValue("type", BusinessType.OTHER);
+                        }}
+                      />
+                      <span>Pemilik Kos / Properti</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Nama Usaha / Toko
+                    Nama Usaha / Properti
                   </label>
                   <input
                     type="text"
                     {...register("name")}
-                    placeholder="Contoh: Laundry Berkah Cabang 2"
+                    placeholder={watch("mode") === "KOS_PROPERTY" ? "Contoh: Kos Cabang Baturaden" : "Contoh: Laundry Berkah Cabang 2"}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-brand-green transition-all"
                   />
                   {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
                 </div>
 
-                <div>
+                {watch("mode") === "UMKM" ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Jenis Usaha
+                    </label>
+                    <select
+                      {...register("type")}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-brand-green bg-white transition-all"
+                    >
+                      <option value="">Pilih Jenis Usaha...</option>
+                      {BUSINESS_TYPES.filter(t => t.value !== BusinessType.OTHER).map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                      <option value={BusinessType.OTHER}>Lainnya</option>
+                    </select>
+                    {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type.message}</p>}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Kategori Properti
+                    </label>
+                    <select
+                      {...register("type")}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-brand-green bg-white transition-all"
+                    >
+                      <option value={BusinessType.OTHER}>Kos-kosan / Rumah Kontrakan / Ruko</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Jenis Usaha
+                    Estimasi Omzet / Pendapatan Bulanan Cabang
                   </label>
                   <select
-                    {...register("type")}
+                    {...register("revenueRange")}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-brand-green bg-white transition-all"
                   >
-                    <option value="">Pilih Jenis Usaha...</option>
-                    {BUSINESS_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
+                    {REVENUE_RANGES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
                       </option>
                     ))}
                   </select>
-                  {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type.message}</p>}
                 </div>
 
                 <div className="md:col-span-2">
@@ -466,12 +529,22 @@ export default function TambahUsahaPage() {
 
               <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/50 space-y-3 text-sm">
                 <div className="grid grid-cols-3 gap-y-2.5 border-b border-slate-100 pb-3">
+                  <span className="text-slate-500 text-xs">Mode Usaha:</span>
+                  <span className="col-span-2 font-semibold text-brand-ink text-right">
+                    {watch("mode") === "KOS_PROPERTY" ? "Kos / Properti Sewa" : "UMKM / Usaha"}
+                  </span>
+
                   <span className="text-slate-500 text-xs">Nama Usaha:</span>
                   <span className="col-span-2 font-semibold text-brand-ink text-right">{watch("name")}</span>
 
                   <span className="text-slate-500 text-xs">Jenis Usaha:</span>
                   <span className="col-span-2 font-semibold text-brand-ink text-right">
                     {BUSINESS_TYPES.find((t) => t.value === selectedType)?.label || selectedType}
+                  </span>
+
+                  <span className="text-slate-500 text-xs">Estimasi Omzet:</span>
+                  <span className="col-span-2 font-semibold text-brand-ink text-right">
+                    {REVENUE_RANGES.find((r) => r.value === watch("revenueRange"))?.label || "Lewati"}
                   </span>
 
                   <span className="text-slate-500 text-xs">Alamat:</span>

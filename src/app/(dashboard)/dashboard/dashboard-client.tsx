@@ -135,9 +135,14 @@ interface DashboardClientProps {
   latestPrediction?: any | null;
   historyMonths?: number;
   aiFactors?: any;
-  plan?: any;
-  isTrial?: boolean;
-  trialDaysLeft?: number | null;
+  subscription?: {
+    status: string;
+    trialEndDate: string | null;
+    plan: {
+      code: string;
+      name: string;
+    };
+  } | null;
 }
 
 export default function DashboardClient({
@@ -150,9 +155,7 @@ export default function DashboardClient({
   latestPrediction = null,
   historyMonths = 0,
   aiFactors = null,
-  plan = null,
-  isTrial = false,
-  trialDaysLeft = null,
+  subscription = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -231,51 +234,86 @@ export default function DashboardClient({
       </div>
 
 
+      {/* ─── TRIAL/SUBSCRIPTION COUNTDOWN BANNER ─── */}
+      {subscription && (
+        <div className="mb-6">
+          {subscription.status === "TRIAL_ACTIVE" ? (
+            (() => {
+              const trialEndDate = subscription.trialEndDate ? new Date(subscription.trialEndDate) : null;
+              const today = new Date();
+              const diffTime = trialEndDate ? trialEndDate.getTime() - today.getTime() : 0;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      {/* ─── Trial & Plan Banner ─────────────────────────────── */}
-      {isTrial && trialDaysLeft !== null && (
-        <div className="mb-6 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-4 items-center">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-green text-white shadow-lg shadow-brand-green/20">
-              <Sparkles className="h-5 w-5 animate-pulse" />
+              return (
+                <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-sky-50 to-indigo-50 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex gap-3.5 items-center">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-200/30">
+                      <Sparkles className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                        Masa Pro Trial Aktif — Sisa {diffDays > 0 ? `${diffDays} Hari` : "Hari Ini Terakhir"}
+                        <span className="badge bg-indigo-100 border-indigo-200 text-indigo-700 text-[9px] py-0.5 px-2">PRO ACCESS</span>
+                      </h2>
+                      <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                        Anda sedang mencoba seluruh fitur premium paket Pro secara gratis. Upgrade sekarang untuk mengunci paket Anda!
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/harga-paket"
+                    className="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+                  >
+                    Upgrade Paket <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              );
+            })()
+          ) : subscription.plan.code === "FREE" ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex gap-3.5 items-center">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-emerald-100 text-emerald-600 shadow-sm">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800">
+                    Anda Menggunakan Paket Gratis (FREE)
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                    Maksimal 1 usaha/bisnis aktif. Buka analisis anomali mendalam, rekomendasi detail, dan laporan PDF bulanan dengan Pro!
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/harga-paket"
+                className="btn-primary py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+              >
+                Upgrade ke Pro <Sparkles className="h-3.5 w-3.5 ml-1 inline" />
+              </Link>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-800">Masa Pro Trial 30 Hari Aktif</h2>
-              <p className="mt-0.5 text-xs text-brand-muted leading-relaxed">
-                Anda sedang mencoba seluruh fitur premium paket **Pro**. Sisa masa aktif trial Anda: <strong className="text-brand-green">{trialDaysLeft} hari lagi</strong>.
-              </p>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex gap-3.5 items-center">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm">
+                  <BadgeDollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800">
+                    Paket Aktif: {subscription.plan.name}
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                    Terima kasih telah berlangganan paket {subscription.plan.name}. Akses fitur Anda aktif sepenuhnya.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/harga-paket"
+                className="btn btn-outline py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto bg-white"
+              >
+                Kelola Langganan
+              </Link>
             </div>
-          </div>
-          <Link
-            href="/dashboard/harga-paket"
-            className="btn-primary py-2 px-4 shadow-md shadow-brand-green/10 text-xs font-bold shrink-0 self-start sm:self-auto"
-          >
-            Upgrade Sekarang
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      )}
-
-      {!isTrial && plan?.code === "FREE" && (
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-4 items-center">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200 text-slate-500 shadow-sm">
-              <Lock className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-800">Menggunakan Paket Gratis (FREE)</h2>
-              <p className="mt-0.5 text-xs text-brand-muted leading-relaxed">
-                Fitur analitik multivariat, rekomendasi mendalam, deteksi anomali komprehensif, dan ekspor laporan PDF saat ini terkunci.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/harga-paket"
-            className="btn btn-outline py-2 px-4 text-xs font-bold shrink-0 self-start sm:self-auto bg-white border-slate-300 text-slate-700"
-          >
-            Pilih Paket Pro
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          )}
         </div>
       )}
 
@@ -531,11 +569,26 @@ export default function DashboardClient({
               </div>
 
               {/* Faktor yang dibaca AI Mini Grid */}
-              <div className="card p-6 shadow-sm border border-slate-200/60">
+              <div className="card p-6 shadow-sm border border-slate-200/60 relative overflow-hidden">
+                {subscription?.plan?.code === "FREE" && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 flex flex-col items-center justify-center text-center p-4">
+                    <Lock className="h-5 w-5 text-slate-400 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">Analisis Fitur Cerdas Terkunci</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 max-w-[220px] leading-relaxed">
+                      Upgrade ke Pro untuk melihat seluruh variabel input yang dibaca AI.
+                    </p>
+                    <Link
+                      href="/dashboard/harga-paket"
+                      className="mt-3 text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                    >
+                      Buka Sekarang <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                )}
                 <h3 className="text-sm font-bold text-slate-800 mb-3.5">
                   Faktor yang dibaca AI (Feature Inputs)
                 </h3>
-                <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                <div className={cn("grid gap-4 grid-cols-2 sm:grid-cols-4", subscription?.plan?.code === "FREE" && "filter blur-xs select-none pointer-events-none")}>
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                     <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Bulan Terakhir</span>
                     <span className="text-sm font-extrabold text-slate-700 mt-1 block">
@@ -648,7 +701,22 @@ export default function DashboardClient({
 
             {/* Aktual vs Prediksi AI Chart (Berjalan full width/12 kolom) */}
             {mounted && tagihanBulanan.length > 0 && (
-              <div className="lg:col-span-12 card p-6 shadow-sm border border-slate-200/60">
+              <div className="lg:col-span-12 card p-6 shadow-sm border border-slate-200/60 relative overflow-hidden">
+                {subscription?.plan?.code === "FREE" && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-10 flex flex-col items-center justify-center text-center p-6">
+                    <Lock className="h-6 w-6 text-slate-400 mb-2" />
+                    <h3 className="text-sm font-bold text-slate-800">Visualisasi Prediksi AI Terkunci</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm leading-relaxed">
+                      Dapatkan visualisasi tren aktual vs prediksi AI interaktif dengan berlangganan paket Pro.
+                    </p>
+                    <Link
+                      href="/dashboard/harga-paket"
+                      className="mt-3.5 btn-primary py-2 px-5 text-xs font-bold"
+                    >
+                      Buka Fitur Pro
+                    </Link>
+                  </div>
+                )}
                 <div className="mb-4">
                   <h3 className="text-sm font-bold text-slate-800">
                     Visualisasi Aktual vs Prediksi AI
@@ -657,7 +725,7 @@ export default function DashboardClient({
                     Perbandingan runut waktu data aktual pemakaian listrik (kWh) dengan prediksi AI untuk bulan selanjutnya.
                   </p>
                 </div>
-                <div className="h-64">
+                <div className={cn("h-64", subscription?.plan?.code === "FREE" && "filter blur-xs select-none pointer-events-none")}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={[

@@ -18,7 +18,7 @@ export default async function PrediksiPage() {
   // Feature gate check
   const { plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode === "FREE") {
+  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
     return (
       <FeatureGate
         featureName="Prediksi Pintar Energi"

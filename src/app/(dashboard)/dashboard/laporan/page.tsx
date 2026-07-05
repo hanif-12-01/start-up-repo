@@ -22,8 +22,6 @@ import {
   type CashFlowBusinessType,
 } from "@/lib/cash-flow";
 
-import { getUserPlan } from "@/services/subscription";
-
 export const dynamic = "force-dynamic";
 
 const monthNames = [
@@ -97,9 +95,6 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
   if (!session?.user?.id) {
     redirect("/login");
   }
-
-  const { plan } = await getUserPlan(session.user.id);
-  const planCode = plan?.code || "FREE";
 
   const monthParam = searchParams?.month ? Number(searchParams.month) : undefined;
   const yearParam = searchParams?.year ? Number(searchParams.year) : undefined;
@@ -206,7 +201,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
           <p className="text-xs text-slate-500">Dibuat otomatis pada {generatedAt}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <LaporanPdfButton month={latestEntry.month} year={latestEntry.year} planCode={planCode} />
+          <LaporanPdfButton month={latestEntry.month} year={latestEntry.year} />
           <CsvExportButton type="electricity" label="Ekspor Riwayat CSV" />
         </div>
       </div>

@@ -16,7 +16,7 @@ export default async function AnomaliPage() {
   // Feature gate check
   const { plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode === "FREE") {
+  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
     return (
       <FeatureGate
         featureName="Deteksi Anomali Daya & Multi-Cabang"

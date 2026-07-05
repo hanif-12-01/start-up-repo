@@ -8,7 +8,7 @@ export interface PlanFeature {
 
 // Helper to get user's active plan/subscription
 export const getUserPlan = cache(async (userId: string) => {
-  // 1. Find active subscription
+  // Find active subscription
   let subscription = await db.subscription.findFirst({
     where: {
       userId,
@@ -19,49 +19,25 @@ export const getUserPlan = cache(async (userId: string) => {
     },
   });
 
-  const now = new Date();
-
-  // 2. Check if the active subscription has expired
-  if (subscription && subscription.endsAt && subscription.endsAt < now) {
-    // Graceful downgrade to FREE
-    const freePlan = await db.plan.findUnique({
-      where: { code: "FREE" },
+  // Check if active subscription has expired
+  if (subscription && subscription.endsAt && subscription.endsAt < new Date()) {
+    // Update subscription to EXPIRED
+    await db.subscription.update({
+      where: { id: subscription.id },
+      data: { status: "EXPIRED" },
     });
 
-    if (freePlan) {
-      await db.$transaction(async (tx) => {
-        // Mark old one as EXPIRED
-        await tx.subscription.update({
-          where: { id: subscription!.id },
-          data: { status: "EXPIRED" },
-        });
-
-        // Create new active FREE subscription
-        subscription = await tx.subscription.create({
-          data: {
-            userId,
-            planId: freePlan.id,
-            status: "ACTIVE",
-            startsAt: now,
-            endsAt: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000), // 1 year fallback
-          },
-          include: {
-            plan: true,
-          },
-        });
-      });
-    }
+    subscription = null;
   }
 
-  // 3. If no subscription exists at all for this user, auto-initialize with a 30-day Pro Trial
+  // If no active subscription, look for any subscription at all for this user
   if (!subscription) {
-    // Check if there is any subscription (active or expired)
     const anySub = await db.subscription.findFirst({
       where: { userId },
     });
 
     if (!anySub) {
-      // Truly a new user! Create a 30-day Pro Trial (using PRO_UMKM plan)
+      // First time user: Auto-create a 30-day PRO_UMKM Trial
       const proPlan = await db.plan.findUnique({
         where: { code: "PRO_UMKM" },
       });
@@ -72,8 +48,10 @@ export const getUserPlan = cache(async (userId: string) => {
             userId,
             planId: proPlan.id,
             status: "ACTIVE",
-            startsAt: now,
-            endsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // 30 days Pro Trial
+            startsAt: new Date(),
+            endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            trialStartDate: new Date(),
+            trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           },
           include: {
             plan: true,
@@ -82,7 +60,7 @@ export const getUserPlan = cache(async (userId: string) => {
       }
     }
 
-    // If still no subscription (e.g. they had an expired subscription but it was manually deleted/not captured above), fallback to FREE
+    // If still no subscription (e.g. not a new user, but previous paid/trial expired), auto-create FREE plan
     if (!subscription) {
       const freePlan = await db.plan.findUnique({
         where: { code: "FREE" },
@@ -94,8 +72,8 @@ export const getUserPlan = cache(async (userId: string) => {
             userId,
             planId: freePlan.id,
             status: "ACTIVE",
-            startsAt: now,
-            endsAt: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+            startsAt: new Date(),
+            endsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
           },
           include: {
             plan: true,

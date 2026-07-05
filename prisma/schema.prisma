@@ -91,7 +91,11 @@ model User {
   id                String               @id @default(uuid())
   email             String               @unique
   name              String?
+  phone             String?              // Nomor WhatsApp pengguna untuk notifikasi
+  role              String               @default("USER") // USER, ADMIN
   password          String
+  crmStage          String               @default("Contacted") // Contacted, Trial Started, Active Explorer, Interested to Pay, Upgraded, Churned
+  crmNotes          String?
   businesses        Business[]
   notifications     Notification[]
   memberships       BusinessMembership[] @relation("MembershipUser")
@@ -108,6 +112,11 @@ model Business {
   address            String?
   powerVA            Int?
   operatingHours     String?
+  mode               String               @default("UMKM") // UMKM, KOS_PROPERTY
+  revenueRange       String?              // Kategori pendapatan (misal: "< Rp5jt", "Rp5jt-15jt")
+  number_of_rooms    Int?
+  number_of_units    Int?
+  operatingDays      Int                  @default(30)
   userId             String
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   electricityEntries ElectricityEntry[]
@@ -122,6 +131,7 @@ model Business {
   memberships        BusinessMembership[] @relation("MembershipBusiness")
   cashflows          Cashflow[]           @relation("CashflowBusiness")
   cashFlowEntries    CashFlowEntry[]
+  devices            Device[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
@@ -163,10 +173,13 @@ model ElectricityEntry {
 
 model Appliance {
   id              String      @id @default(uuid())
+  applianceCode   String?
   name            String
+  category        String?
   powerWatt       Float
   quantity        Int         @default(1)
   dailyUsageHours Float
+  source          String      @default("MANUAL") // MANUAL, CATALOG, AIOT
   usageStatus     UsageStatus @default(ACTIVE)
   businessId      String
   business        Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -334,16 +347,18 @@ model Plan {
 }
 
 model Subscription {
-  id         String    @id @default(uuid())
-  userId     String
-  businessId String?
-  planId     String
-  status     String
-  startsAt   DateTime?
-  endsAt     DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  plan       Plan      @relation(fields: [planId], references: [id])
+  id             String    @id @default(uuid())
+  userId         String
+  businessId     String?
+  planId         String
+  status         String
+  startsAt       DateTime?
+  endsAt         DateTime?
+  trialStartDate DateTime? @default(now())
+  trialEndDate   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  plan           Plan      @relation(fields: [planId], references: [id])
 
   @@index([userId])
   @@index([businessId])
@@ -470,4 +485,42 @@ model CashFlowEntry {
 
   @@unique([businessId, year, month])
   @@index([businessId])
+}
+
+model AuditReport {
+  id            String   @id @default(uuid())
+  userId        String
+  businessName  String
+  businessType  String
+  powerCapacity Int
+  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  price         Int      @default(49000)
+  paymentStatus String   @default("UNPAID") // UNPAID, PAID
+  reportUrl     String?
+  createdAt     DateTime @default(now())
+}
+
+model Device {
+  id            String          @id @default(uuid())
+  businessId    String
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deviceName    String
+  deviceType    String          // SMART_PLUG, MAIN_SENSOR
+  sourceType    String          @default("SIMULATION") // SIMULATION, REAL_SENSOR
+  qrCode        String?         @unique
+  status        String          @default("ACTIVE") // ACTIVE, OFFLINE
+  readings      DeviceReading[]
+  createdAt     DateTime        @default(now())
+}
+
+model DeviceReading {
+  id             String   @id @default(uuid())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp      DateTime @default(now())
+  powerWatt      Float
+  kwhDelta       Float    // Pertambahan kWh sejak pembacaan terakhir
+  voltage        Float?
+  currentAmpere  Float?
+  status         String   @default("NORMAL")
 }

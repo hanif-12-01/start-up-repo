@@ -21,7 +21,6 @@ import {
   type CashFlowAnalyticsTrendPoint,
   type CashFlowBusinessType,
 } from "@/lib/cash-flow";
-
 import { getUserPlan } from "@/services/subscription";
 
 export const dynamic = "force-dynamic";
@@ -289,16 +288,8 @@ export default async function DashboardPage() {
     avgTariffIdr: latest && latest.usageKwh > 0 ? latest.costIdr / latest.usageKwh : 1444.70,
   };
 
+  // Get active subscription and plan for trial/pricing countdown and feature gating
   const { subscription, plan } = await getUserPlan(session.user.id);
-  const hasPaid = await db.payment.findFirst({
-    where: { userId: session.user.id, status: "SUCCESS" },
-  });
-  const isTrial = plan?.code === "PRO_UMKM" && !hasPaid;
-  let trialDaysLeft: number | null = null;
-  if (isTrial && subscription?.endsAt) {
-    const diffTime = subscription.endsAt.getTime() - new Date().getTime();
-    trialDaysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  }
 
   return (
     <DashboardClient
@@ -311,9 +302,14 @@ export default async function DashboardPage() {
       latestPrediction={latestPrediction}
       historyMonths={historyMonths}
       aiFactors={aiFactors}
-      plan={plan}
-      isTrial={isTrial}
-      trialDaysLeft={trialDaysLeft}
+      subscription={subscription ? {
+        status: subscription.status,
+        trialEndDate: subscription.trialEndDate?.toISOString() || null,
+        plan: {
+          code: plan?.code || "FREE",
+          name: plan?.name || "Gratis",
+        }
+      } : null}
     />
   );
 }

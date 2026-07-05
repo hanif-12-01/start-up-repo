@@ -15,6 +15,9 @@ export interface OnboardingInput {
   address: string;
   powerVA: number;
   operatingHours: string;
+  mode: string;
+  revenueRange?: string;
+  operatingDays?: number;
   appliances: {
     name: string;
     powerWatt: number;
@@ -51,6 +54,9 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
         address: input.address,
         powerVA: input.powerVA,
         operatingHours: input.operatingHours,
+        mode: input.mode,
+        revenueRange: input.revenueRange,
+        operatingDays: input.operatingDays ?? 30,
         userId: session.user.id,
         appliances: {
           create: input.appliances.map((app) => ({
