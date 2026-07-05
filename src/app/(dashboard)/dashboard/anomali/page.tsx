@@ -16,11 +16,11 @@ export default async function AnomaliPage() {
   // Feature gate check
   const { plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode !== "BUSINESS") {
+  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
     return (
       <FeatureGate
         featureName="Deteksi Anomali Daya & Multi-Cabang"
-        requiredTier="Business"
+        requiredTier="Pro UMKM"
         description="Pantau konsumsi daya peralatan secara real-time dan deteksi kebocoran daya atau anomali operasional di berbagai cabang usaha Anda secara otomatis."
       />
     );

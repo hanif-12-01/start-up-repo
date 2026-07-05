@@ -57,24 +57,24 @@ export async function hasFeature(userId: string, featureKey: string): Promise<bo
   // FREE plan features
   const freeFeatures = ["1-usaha", "dashboard-dasar", "input-manual", "rekomendasi-dasar"];
   
-  // PRO plan features
+  // PRO plan features (All features unlocked)
   const proFeatures = [
     ...freeFeatures,
     "multi-usaha",
     "prediksi-tagihan",
     "appliance-classifier",
     "rekomendasi-lanjutan",
-    "laporan-pdf"
-  ];
-
-  // BUSINESS plan features
-  const businessFeatures = [
-    ...proFeatures,
+    "laporan-pdf",
     "multi-cabang",
     "export-csv",
     "laporan-bulanan",
     "prioritas-support",
     "fitur-pilot"
+  ];
+  
+  // BUSINESS plan features (Inherits all features)
+  const businessFeatures = [
+    ...proFeatures
   ];
 
   let allowedFeatures: string[] = [];

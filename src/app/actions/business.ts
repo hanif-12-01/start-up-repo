@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { BusinessType, UsageStatus } from "@prisma/client";
 import { getActiveBusinessId, setActiveBusiness as setActiveBusinessCookie } from "@/services/business";
 import { safeError } from "@/lib/safe-log";
+import { getUserPlan } from "@/services/subscription";
 
 export interface OnboardingInput {
   name: string;
@@ -28,6 +29,19 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
 
     if (!session?.user?.id) {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const { plan } = await getUserPlan(session.user.id);
+    const planCode = plan?.code || "FREE";
+    const existingCount = await db.business.count({
+      where: { userId: session.user.id },
+    });
+
+    if (planCode === "FREE" && existingCount >= 1) {
+      return { success: false, error: "Paket Gratis hanya mendukung maksimal 1 usaha. Silakan upgrade ke paket premium." };
+    }
+    if (planCode === "PRO_UMKM" && existingCount >= 3) {
+      return { success: false, error: "Paket Pro UMKM hanya mendukung maksimal 3 usaha. Silakan upgrade ke paket Business." };
     }
 
     const business = await db.business.create({
@@ -75,6 +89,19 @@ export async function createBusinessAction(input: {
 
     if (!session?.user?.id) {
       return { success: false, error: "Sesi tidak valid. Silakan login kembali." };
+    }
+
+    const { plan } = await getUserPlan(session.user.id);
+    const planCode = plan?.code || "FREE";
+    const existingCount = await db.business.count({
+      where: { userId: session.user.id },
+    });
+
+    if (planCode === "FREE" && existingCount >= 1) {
+      return { success: false, error: "Paket Gratis hanya mendukung maksimal 1 usaha. Silakan upgrade ke paket premium untuk menambahkan usaha baru." };
+    }
+    if (planCode === "PRO_UMKM" && existingCount >= 3) {
+      return { success: false, error: "Paket Pro UMKM hanya mendukung maksimal 3 usaha. Silakan upgrade ke paket Business untuk menambahkan usaha baru." };
     }
 
     const business = await db.business.create({

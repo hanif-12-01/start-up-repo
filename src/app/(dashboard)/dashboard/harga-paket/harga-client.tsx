@@ -541,7 +541,7 @@ export default function HargaClient({
             "Ringkasan Multi-Cabang",
             "Konsolidasikan data listrik dari berbagai lokasi usaha Anda secara realtime.",
             <Layers className="h-5 w-5" />,
-            currentPlanCode === "BUSINESS"
+            currentPlanCode !== "FREE"
           )}
 
           {/* Card 5: Laporan Manajemen */}
@@ -549,7 +549,7 @@ export default function HargaClient({
             "Laporan Manajemen Eksekutif",
             "Mendapatkan business insights dan rekomendasi cost reduction untuk operasional skala besar.",
             <FileText className="h-5 w-5" />,
-            currentPlanCode === "BUSINESS"
+            currentPlanCode !== "FREE"
           )}
 
           {/* Card 6: Prioritas Support */}
@@ -557,7 +557,7 @@ export default function HargaClient({
             "Prioritas Support 24/7",
             "Jalur bantuan khusus dari tim ahli WattWise AI untuk kelancaran integrasi sistem.",
             <PhoneCall className="h-5 w-5" />,
-            currentPlanCode === "BUSINESS"
+            currentPlanCode !== "FREE"
           )}
         </div>
       </div>
