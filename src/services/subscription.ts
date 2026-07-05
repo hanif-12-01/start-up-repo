@@ -8,7 +8,7 @@ export interface PlanFeature {
 
 // Helper to get user's active plan/subscription
 export const getUserPlan = cache(async (userId: string) => {
-  // Find active subscription
+  // 1. Find active subscription
   let subscription = await db.subscription.findFirst({
     where: {
       userId,
@@ -19,26 +19,89 @@ export const getUserPlan = cache(async (userId: string) => {
     },
   });
 
-  // If no active subscription, look for any subscription, or default to FREE
-  if (!subscription) {
+  const now = new Date();
+
+  // 2. Check if the active subscription has expired
+  if (subscription && subscription.endsAt && subscription.endsAt < now) {
+    // Graceful downgrade to FREE
     const freePlan = await db.plan.findUnique({
       where: { code: "FREE" },
     });
 
     if (freePlan) {
-      // Auto-create FREE subscription for the user to keep database consistent
-      subscription = await db.subscription.create({
-        data: {
-          userId,
-          planId: freePlan.id,
-          status: "ACTIVE",
-          startsAt: new Date(),
-          endsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        },
-        include: {
-          plan: true,
-        },
+      await db.$transaction(async (tx) => {
+        // Mark old one as EXPIRED
+        await tx.subscription.update({
+          where: { id: subscription!.id },
+          data: { status: "EXPIRED" },
+        });
+
+        // Create new active FREE subscription
+        subscription = await tx.subscription.create({
+          data: {
+            userId,
+            planId: freePlan.id,
+            status: "ACTIVE",
+            startsAt: now,
+            endsAt: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000), // 1 year fallback
+          },
+          include: {
+            plan: true,
+          },
+        });
       });
+    }
+  }
+
+  // 3. If no subscription exists at all for this user, auto-initialize with a 30-day Pro Trial
+  if (!subscription) {
+    // Check if there is any subscription (active or expired)
+    const anySub = await db.subscription.findFirst({
+      where: { userId },
+    });
+
+    if (!anySub) {
+      // Truly a new user! Create a 30-day Pro Trial (using PRO_UMKM plan)
+      const proPlan = await db.plan.findUnique({
+        where: { code: "PRO_UMKM" },
+      });
+
+      if (proPlan) {
+        subscription = await db.subscription.create({
+          data: {
+            userId,
+            planId: proPlan.id,
+            status: "ACTIVE",
+            startsAt: now,
+            endsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // 30 days Pro Trial
+          },
+          include: {
+            plan: true,
+          },
+        });
+      }
+    }
+
+    // If still no subscription (e.g. they had an expired subscription but it was manually deleted/not captured above), fallback to FREE
+    if (!subscription) {
+      const freePlan = await db.plan.findUnique({
+        where: { code: "FREE" },
+      });
+
+      if (freePlan) {
+        subscription = await db.subscription.create({
+          data: {
+            userId,
+            planId: freePlan.id,
+            status: "ACTIVE",
+            startsAt: now,
+            endsAt: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+          },
+          include: {
+            plan: true,
+          },
+        });
+      }
     }
   }
 
@@ -55,26 +118,56 @@ export async function hasFeature(userId: string, featureKey: string): Promise<bo
   if (!plan) return false;
 
   // FREE plan features
-  const freeFeatures = ["1-usaha", "dashboard-dasar", "input-manual", "rekomendasi-dasar"];
+  const freeFeatures = [
+    "1-usaha",
+    "dashboard-dasar",
+    "input-manual",
+    "input-pendapatan",
+    "prediksi-kwh-dasar",
+    "estimasi-tagihan-dasar",
+    "rasio-listrik-pendapatan",
+    "rekomendasi-dasar",
+    "histori-3-bulan",
+  ];
   
-  // PRO plan features (All features unlocked)
+  // PRO plan features (includes all Free + advanced)
   const proFeatures = [
     ...freeFeatures,
     "multi-usaha",
-    "prediksi-tagihan",
-    "appliance-classifier",
+    "semua-analitik",
+    "anomaly-detection",
     "rekomendasi-lanjutan",
     "laporan-pdf",
-    "multi-cabang",
+    "histori-12-bulan",
+    "potensi-penghematan",
+    "reminder-input",
+    "simulasi-iot",
+    "prediksi-tagihan",
+    "appliance-classifier",
     "export-csv",
-    "laporan-bulanan",
-    "prioritas-support",
-    "fitur-pilot"
   ];
   
-  // BUSINESS plan features (Inherits all features)
+  // BUSINESS plan features (includes all Pro + multi-cabang)
   const businessFeatures = [
-    ...proFeatures
+    ...proFeatures,
+    "multi-cabang",
+    "dashboard-agregat",
+    "laporan-per-lokasi",
+    "multi-user-admin",
+    "export-massal",
+    "prioritas-support",
+    "komparasi-lokasi",
+    "laporan-bulanan",
+    "fitur-pilot",
+  ];
+
+  // ENTERPRISE plan features (includes all Business + custom)
+  const enterpriseFeatures = [
+    ...businessFeatures,
+    "onboarding-khusus",
+    "integrasi-iot-lanjutan",
+    "support-khusus",
+    "unlimited-bisnis",
   ];
 
   let allowedFeatures: string[] = [];
@@ -84,6 +177,8 @@ export async function hasFeature(userId: string, featureKey: string): Promise<bo
     allowedFeatures = proFeatures;
   } else if (plan.code === "BUSINESS") {
     allowedFeatures = businessFeatures;
+  } else if (plan.code === "ENTERPRISE") {
+    allowedFeatures = enterpriseFeatures;
   }
 
   return allowedFeatures.includes(featureKey);

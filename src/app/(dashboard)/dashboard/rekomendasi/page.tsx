@@ -42,7 +42,7 @@ export default async function RekomendasiPage() {
   // Feature gate check
   const { plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
+  if (planCode === "FREE") {
     return (
       <div>
         <PageHeader

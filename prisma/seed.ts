@@ -25,21 +25,40 @@ async function main() {
     data: {
       code: 'FREE',
       name: 'Gratis',
-      description: 'Paket dasar untuk UMKM pemula',
+      description: 'Untuk user baru dan edukasi pasar',
       priceIdr: 0,
       billingCycle: 'monthly',
-      features: ['1 usaha', 'dashboard dasar', 'input data listrik manual', 'rekomendasi dasar'],
+      features: [
+        '1 bisnis/properti',
+        'Input listrik manual',
+        'Input pendapatan bulanan',
+        'Prediksi kWh dasar',
+        'Estimasi tagihan dasar',
+        'Rasio listrik terhadap pendapatan',
+        'Rekomendasi AI terbatas',
+        'Histori 1–3 bulan',
+      ],
     },
   });
 
   const proPlan = await prisma.plan.create({
     data: {
       code: 'PRO_UMKM',
-      name: 'Pro UMKM',
-      description: 'Fitur lengkap untuk optimasi energi optimal',
-      priceIdr: 150000,
+      name: 'Pro',
+      description: 'Untuk UMKM/kos yang serius',
+      priceIdr: 149000,
       billingCycle: 'monthly',
-      features: ['multi-usaha', 'prediksi tagihan', 'appliance efficiency classifier', 'rekomendasi hemat lanjutan', 'laporan PDF'],
+      features: [
+        'Sampai 3 bisnis/properti',
+        'Semua fitur analitik',
+        'Anomaly detection',
+        'Rekomendasi detail',
+        'Laporan PDF',
+        'Histori 12 bulan',
+        'Potensi penghematan rupiah',
+        'Reminder input data',
+        'Simulasi IoT/demo',
+      ],
     },
   });
 
@@ -47,10 +66,36 @@ async function main() {
     data: {
       code: 'BUSINESS',
       name: 'Business',
-      description: 'Solusi terlengkap skala cabang & prioritas support',
-      priceIdr: 450000,
+      description: 'Untuk multi-properti/multi-cabang',
+      priceIdr: 449000,
       billingCycle: 'monthly',
-      features: ['multi-cabang', 'export CSV', 'laporan bulanan', 'prioritas support', 'fitur pilot lanjutan'],
+      features: [
+        'Sampai 50 bisnis/properti',
+        'Semua fitur Pro',
+        'Dashboard agregat',
+        'Laporan per lokasi',
+        'Multi-user/admin',
+        'Export massal',
+        'Prioritas support',
+        'Fitur komparasi antar lokasi',
+      ],
+    },
+  });
+
+  const enterprisePlan = await prisma.plan.create({
+    data: {
+      code: 'ENTERPRISE',
+      name: 'Enterprise',
+      description: 'Untuk lebih dari 50 bisnis/properti',
+      priceIdr: 0,
+      billingCycle: 'custom',
+      features: [
+        'Harga custom',
+        'Onboarding khusus',
+        'Kebutuhan integrasi/IoT lanjutan',
+        'Support khusus',
+        'Unlimited bisnis/properti',
+      ],
     },
   });
 

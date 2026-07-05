@@ -13,6 +13,7 @@ import {
   type CashFlowBusinessType,
 } from "@/lib/cash-flow";
 import { safeError } from "@/lib/safe-log";
+import { getUserPlan } from "@/services/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,14 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { plan } = await getUserPlan(session.user.id);
+    if (plan?.code === "FREE") {
+      return NextResponse.json(
+        { error: "Unduh laporan PDF tidak tersedia pada Paket Gratis. Silakan upgrade ke paket Pro." },
+        { status: 403 }
+      );
     }
 
     const activeBusinessId = await getActiveBusinessId(session.user.id);

@@ -12,8 +12,10 @@ import {
   DollarSign,
   Info,
   Loader2,
+  Lock,
   PiggyBank,
   Scale,
+  Sparkles,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -133,6 +135,9 @@ interface DashboardClientProps {
   latestPrediction?: any | null;
   historyMonths?: number;
   aiFactors?: any;
+  plan?: any;
+  isTrial?: boolean;
+  trialDaysLeft?: number | null;
 }
 
 export default function DashboardClient({
@@ -145,6 +150,9 @@ export default function DashboardClient({
   latestPrediction = null,
   historyMonths = 0,
   aiFactors = null,
+  plan = null,
+  isTrial = false,
+  trialDaysLeft = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -222,6 +230,54 @@ export default function DashboardClient({
         </button>
       </div>
 
+
+
+      {/* ─── Trial & Plan Banner ─────────────────────────────── */}
+      {isTrial && trialDaysLeft !== null && (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-green text-white shadow-lg shadow-brand-green/20">
+              <Sparkles className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Masa Pro Trial 30 Hari Aktif</h2>
+              <p className="mt-0.5 text-xs text-brand-muted leading-relaxed">
+                Anda sedang mencoba seluruh fitur premium paket **Pro**. Sisa masa aktif trial Anda: <strong className="text-brand-green">{trialDaysLeft} hari lagi</strong>.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/harga-paket"
+            className="btn-primary py-2 px-4 shadow-md shadow-brand-green/10 text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Upgrade Sekarang
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {!isTrial && plan?.code === "FREE" && (
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-4 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200 text-slate-500 shadow-sm">
+              <Lock className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Menggunakan Paket Gratis (FREE)</h2>
+              <p className="mt-0.5 text-xs text-brand-muted leading-relaxed">
+                Fitur analitik multivariat, rekomendasi mendalam, deteksi anomali komprehensif, dan ekspor laporan PDF saat ini terkunci.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/harga-paket"
+            className="btn btn-outline py-2 px-4 text-xs font-bold shrink-0 self-start sm:self-auto bg-white border-slate-300 text-slate-700"
+          >
+            Pilih Paket Pro
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
 
       {/* Info banner for no electricity data */}
       {!ringkasan.hasElectricityData && (

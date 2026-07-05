@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   BadgeDollarSign,
+  Beaker,
   Bell,
   Cpu,
   CreditCard,
@@ -60,6 +61,7 @@ const menuItems: MenuItem[] = [
       { label: "Prediksi & Estimasi", href: "/dashboard/prediksi", icon: TrendingUp },
       { label: "Deteksi Anomali", href: "/dashboard/anomali", icon: AlertTriangle },
       { label: "Rekomendasi Hemat", href: "/dashboard/rekomendasi", icon: Lightbulb },
+      { label: "AI Lab", href: "/dashboard/ai-lab", icon: Beaker },
     ],
   },
   {
