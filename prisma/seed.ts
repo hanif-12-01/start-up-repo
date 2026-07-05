@@ -74,6 +74,13 @@ async function main() {
       powerVA: 5500,
       operatingHours: '08:00 - 20:00 (12 Jam)',
       userId: user.id,
+      memberships: {
+        create: {
+          userId: user.id,
+          role: 'BUSINESS_OWNER',
+          status: 'ACTIVE',
+        }
+      }
     },
   });
 
@@ -86,6 +93,13 @@ async function main() {
       powerVA: 16500,
       operatingHours: '24 Jam Non-Stop',
       userId: user.id,
+      memberships: {
+        create: {
+          userId: user.id,
+          role: 'BUSINESS_OWNER',
+          status: 'ACTIVE',
+        }
+      }
     },
   });
 

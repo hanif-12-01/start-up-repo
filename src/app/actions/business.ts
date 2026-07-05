@@ -61,6 +61,13 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
             usageStatus: UsageStatus.ACTIVE,
           })),
         },
+        memberships: {
+          create: {
+            userId: session.user.id,
+            role: "BUSINESS_OWNER",
+            status: "ACTIVE",
+          }
+        }
       },
     });
 
@@ -112,6 +119,13 @@ export async function createBusinessAction(input: {
         powerVA: input.powerVA,
         operatingHours: input.operatingHours,
         userId: session.user.id,
+        memberships: {
+          create: {
+            userId: session.user.id,
+            role: "BUSINESS_OWNER",
+            status: "ACTIVE",
+          }
+        }
       },
     });
 

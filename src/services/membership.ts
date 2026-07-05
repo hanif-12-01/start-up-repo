@@ -29,13 +29,44 @@ export const getBusinessMembership = cache(
     businessId: string,
   ): Promise<BusinessMembership | null> => {
     if (!userId || !businessId) return null;
-    return db.businessMembership.findFirst({
+    let membership = await db.businessMembership.findFirst({
       where: {
         userId,
         businessId,
         status: "ACTIVE",
       },
     });
+
+    // Self-healing: if no membership exists but the user is the direct creator/owner of the business,
+    // auto-create an active owner membership to prevent lockouts.
+    if (!membership) {
+      const business = await db.business.findFirst({
+        where: { id: businessId, userId },
+      });
+      if (business) {
+        try {
+          membership = await db.businessMembership.create({
+            data: {
+              userId,
+              businessId,
+              role: "BUSINESS_OWNER",
+              status: "ACTIVE",
+            },
+          });
+        } catch (e) {
+          // Guard against race conditions where another request created it in parallel
+          membership = await db.businessMembership.findFirst({
+            where: {
+              userId,
+              businessId,
+              status: "ACTIVE",
+            },
+          });
+        }
+      }
+    }
+
+    return membership;
   },
 );
 
