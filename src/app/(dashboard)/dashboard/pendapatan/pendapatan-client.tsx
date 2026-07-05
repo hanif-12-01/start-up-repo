@@ -281,7 +281,7 @@ export default function PendapatanClient({
           <input
             id="pndp-revenue"
             type="number"
-            min={1}
+            min={1000}
             step={1000}
             inputMode="numeric"
             placeholder="mis. 15000000"
