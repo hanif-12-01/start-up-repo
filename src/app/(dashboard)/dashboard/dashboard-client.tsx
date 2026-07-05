@@ -45,6 +45,57 @@ type AttentionItem = {
   estimatedMonthlySavingIdr: number | null;
 };
 
+const getModelFriendlyLabel = (method: string) => {
+  switch (method) {
+    case "RULE_BASED":
+      return "Rule-Based Estimation";
+    case "TABULAR_UMKM_V1":
+      return "Gradient Boosting Tabular Model";
+    case "LSTM_PROTOTYPE":
+      return "LSTM Sequence Model";
+    case "HYBRID_FALLBACK":
+      return "Hybrid Safety Fallback";
+    case "RIDGE_UMKM_V1":
+      return "Ridge Legacy Model";
+    default:
+      return method;
+  }
+};
+
+const getModelSelectionText = (method: string) => {
+  switch (method) {
+    case "LSTM_PROTOTYPE":
+      return "AI memakai model LSTM karena tersedia minimal 6 bulan histori pemakaian. Model membaca pola berurutan dari bulan ke bulan untuk memprediksi pemakaian listrik berikutnya.";
+    case "TABULAR_UMKM_V1":
+      return "AI memakai model Gradient Boosting karena data historis sudah cukup untuk fitur tabular, tetapi belum cukup panjang untuk LSTM.";
+    case "RULE_BASED":
+      return "Sistem memakai estimasi rule-based karena data historis belum cukup untuk model AI penuh.";
+    case "HYBRID_FALLBACK":
+      return "Sistem mencoba model utama, tetapi memakai fallback karena output model tidak memenuhi batas keamanan.";
+    default:
+      return "Sistem memakai model estimasi terpilih sesuai karakteristik data historis.";
+  }
+};
+
+const getFriendlyBusinessType = (type?: string) => {
+  switch (type) {
+    case "LAUNDRY":
+      return "Laundry";
+    case "FNB":
+      return "Kuliner / F&B";
+    case "RETAIL":
+      return "Ritel / Minimarket";
+    case "MANUFACTURE":
+      return "Manufaktur / Industri";
+    case "COLD_STORAGE":
+      return "Cold Storage";
+    case "OTHER":
+      return "Lainnya";
+    default:
+      return type || "-";
+  }
+};
+
 interface DashboardClientProps {
   ringkasan: {
     tagihanBulanLalu: number;
@@ -80,6 +131,8 @@ interface DashboardClientProps {
   efisiensiPeralatan: AttentionItem[];
   cashFlowAnalytics?: import("@/lib/cash-flow").CashFlowAnalytics | null;
   latestPrediction?: any | null;
+  historyMonths?: number;
+  aiFactors?: any;
 }
 
 export default function DashboardClient({
@@ -90,6 +143,8 @@ export default function DashboardClient({
   efisiensiPeralatan,
   cashFlowAnalytics = null,
   latestPrediction = null,
+  historyMonths = 0,
+  aiFactors = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -323,139 +378,310 @@ export default function DashboardClient({
         />
       </div>
 
-      {/* WattWise Adaptive AI Insight Card */}
-      {latestPrediction && (
-        <div className="mt-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/50 p-6 shadow-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-            <Zap className="h-32 w-32 text-indigo-600" />
+      {/* WattWise AI Engine Section */}
+      <section className="mt-8">
+        <div className="mb-4">
+          <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-display flex items-center gap-2">
+            <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
+            WattWise AI Engine
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            Status sistem penentuan model, detail parameter input, visualisasi aktual vs prediksi, serta analisis dampak bisnis.
+          </p>
+        </div>
+
+        {!latestPrediction ? (
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 p-8 text-center shadow-sm">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 mb-3 border border-indigo-100">
+              <Zap className="h-6 w-6 animate-pulse" />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-2">
+              Analisis Prediksi AI Tidak Ditemukan
+            </p>
+            <p className="text-xs font-medium text-slate-500 mb-4 max-w-md mx-auto leading-relaxed">
+              Prediksi AI belum dibuat untuk data listrik terbaru. Jalankan Generate Prediksi untuk mengaktifkan WattWise AI Engine.
+            </p>
+            <Link
+              href="/dashboard/prediksi"
+              className="btn-primary py-2 px-5 text-xs font-bold inline-flex items-center gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Jalankan Generate Prediksi
+            </Link>
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-indigo-100/50 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
-                  <Zap className="h-5 w-5 animate-pulse" />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-12">
+            {/* Kiri: Info Model, Penjelasan Pemilihan, & Faktor Grid (8 kolom) */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Card Parameter AI & Model Info */}
+              <div className="card border border-indigo-100 bg-gradient-to-br from-indigo-50/20 via-white to-sky-50/10 p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Model AI Terpilih</span>
+                    <h3 className="text-lg font-bold text-slate-800 mt-0.5">
+                      {getModelFriendlyLabel(latestPrediction.method)}
+                    </h3>
+                    <p className="text-xs text-indigo-600 font-semibold mt-0.5">
+                      Versi: {latestPrediction.modelVersion || "-"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-xs border",
+                      latestPrediction.confidenceLevel === "HIGH" 
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                        : latestPrediction.confidenceLevel === "MEDIUM" 
+                        ? "bg-amber-50 text-amber-700 border-amber-200" 
+                        : "bg-rose-50 text-rose-700 border-rose-200"
+                    )}>
+                      Akurasi: {latestPrediction.confidenceLevel || "MEDIUM"}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-xs bg-slate-50 text-slate-700 border border-slate-200">
+                      Histori: {historyMonths} Bulan
+                    </span>
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-xs border",
+                      latestPrediction.method === "HYBRID_FALLBACK"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-slate-50 text-slate-700 border-slate-200"
+                    )}>
+                      Fallback: {latestPrediction.method === "HYBRID_FALLBACK" ? "Ya" : "Tidak"}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Explanation */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Penjelasan Hasil Prediksi</h4>
+                    <p className="text-sm font-medium text-slate-600 mt-1 leading-relaxed">
+                      {latestPrediction.explanation}
+                    </p>
+                    {latestPrediction.confidenceReason && (
+                      <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        Catatan Kepercayaan: {latestPrediction.confidenceReason}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Why this model explanation */}
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                    <h4 className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Mengapa AI memilih model ini?</h4>
+                    <p className="text-xs font-medium text-slate-600 mt-1.5 leading-relaxed">
+                      {getModelSelectionText(latestPrediction.method)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Faktor yang dibaca AI Mini Grid */}
+              <div className="card p-6 shadow-sm border border-slate-200/60">
+                <h3 className="text-sm font-bold text-slate-800 mb-3.5">
+                  Faktor yang dibaca AI (Feature Inputs)
+                </h3>
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Bulan Terakhir</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block">
+                      {formatKwh(aiFactors?.latestUsageKwh)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Bulan Sebelumnya</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block">
+                      {aiFactors?.previousUsageKwh > 0 ? formatKwh(aiFactors.previousUsageKwh) : "-"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Rata-rata 3 Bulan</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block">
+                      {aiFactors?.avg3UsageKwh > 0 ? formatKwh(aiFactors.avg3UsageKwh) : "-"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Rata-rata 6 Bulan</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block">
+                      {aiFactors?.avg6UsageKwh !== null && aiFactors?.avg6UsageKwh > 0 ? formatKwh(aiFactors.avg6UsageKwh) : "Belum tersedia"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Tren 1 Bulan</span>
+                    <span className={cn(
+                      "text-sm font-extrabold mt-1 block",
+                      (aiFactors?.trend1MonthPercent ?? 0) > 0 ? "text-rose-600" : (aiFactors?.trend1MonthPercent ?? 0) < 0 ? "text-emerald-600" : "text-slate-700"
+                    )}>
+                      {(aiFactors?.trend1MonthPercent ?? 0) > 0 ? "+" : ""}{(aiFactors?.trend1MonthPercent ?? 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Tren 3 Bulan</span>
+                    <span className={cn(
+                      "text-sm font-extrabold mt-1 block",
+                      (aiFactors?.trend3MonthPercent ?? 0) > 0 ? "text-rose-600" : (aiFactors?.trend3MonthPercent ?? 0) < 0 ? "text-emerald-600" : "text-slate-700"
+                    )}>
+                      {(aiFactors?.trend3MonthPercent ?? 0) > 0 ? "+" : ""}{(aiFactors?.trend3MonthPercent ?? 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Jenis Usaha</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block truncate">
+                      {getFriendlyBusinessType(aiFactors?.businessType)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Tarif per kWh</span>
+                    <span className="text-sm font-extrabold text-slate-700 mt-1 block">
+                      {formatRupiah(aiFactors?.avgTariffIdr)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dampak Bisnis Card */}
+            <div className="lg:col-span-4">
+              <div className="card border border-emerald-100 bg-gradient-to-br from-emerald-50/20 via-white to-teal-50/10 p-6 shadow-sm flex flex-col justify-between h-full">
                 <div>
-                  <h3 className="text-md font-extrabold text-slate-800">
-                    WattWise Adaptive AI Insight
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-600 text-white shadow-sm">
+                      <BadgeDollarSign className="h-4.5 w-4.5" />
+                    </div>
+                    <h3 className="text-sm font-extrabold text-slate-800">Dampak Bisnis AI</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Estimasi Tagihan Listrik</span>
+                      <p className="text-2xl font-black text-slate-800 mt-0.5">
+                        {formatRupiah(latestPrediction.predictedCostIdr)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Potensi Hemat Bulanan</span>
+                      <p className="text-lg font-extrabold text-emerald-600 mt-0.5">
+                        {formatRupiah(ringkasan.potensiHemat)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Potensi Hemat Tahunan</span>
+                      <p className="text-lg font-extrabold text-emerald-700 mt-0.5">
+                        {formatRupiah(ringkasan.potensiHemat * 12)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Potensi Sisa Pendapatan Setelah Hemat</span>
+                  <p className="text-xl font-black text-indigo-600 mt-0.5">
+                    {cashFlowAnalytics?.revenueIdr 
+                      ? formatRupiah(cashFlowAnalytics.revenueIdr - (latestPrediction.predictedCostIdr - ringkasan.potensiHemat))
+                      : "Input Pendapatan"
+                    }
+                  </p>
+                  {!cashFlowAnalytics?.revenueIdr && (
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                      Silakan masukkan data pendapatan bulanan untuk melihat sisa pendapatan ini.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Aktual vs Prediksi AI Chart (Berjalan full width/12 kolom) */}
+            {mounted && tagihanBulanan.length > 0 && (
+              <div className="lg:col-span-12 card p-6 shadow-sm border border-slate-200/60">
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Visualisasi Aktual vs Prediksi AI
                   </h3>
-                  <p className="text-xs font-semibold text-indigo-600">
-                    {latestPrediction.modelVersion || "Adaptive Model Routing v1.0"}
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Perbandingan runut waktu data aktual pemakaian listrik (kWh) dengan prediksi AI untuk bulan selanjutnya.
                   </p>
                 </div>
-              </div>
-              <div className="self-start sm:self-auto">
-                <span className={cn(
-                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-xs",
-                  latestPrediction.confidenceLevel === "HIGH" 
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
-                    : latestPrediction.confidenceLevel === "MEDIUM" 
-                    ? "bg-amber-50 text-amber-700 border border-amber-100" 
-                    : "bg-rose-50 text-rose-700 border border-rose-100"
-                )}>
-                  Akurasi: {latestPrediction.confidenceLevel || "MEDIUM"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-                  Estimasi Konsumsi Listrik
-                </span>
-                <p className="text-2xl font-black text-slate-800 mt-1">
-                  {formatKwh(latestPrediction.predictedUsageKwh)}
-                </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={cn(
-                    "text-xs font-bold inline-flex items-center gap-0.5",
-                    latestPrediction.trendDirection === "NAIK" 
-                      ? "text-rose-600" 
-                      : latestPrediction.trendDirection === "TURUN" 
-                      ? "text-emerald-600" 
-                      : "text-slate-600"
-                  )}>
-                    {latestPrediction.trendDirection === "NAIK" ? "▲" : latestPrediction.trendDirection === "TURUN" ? "▼" : "■"} {Math.abs(latestPrediction.trendPercent)}%
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">
-                    vs bulan terakhir
-                  </span>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={[
+                        ...tagihanBulanan.map((tb, idx) => ({
+                          bulan: tb.bulan,
+                          actual: tb.kwh,
+                          predicted: idx === tagihanBulanan.length - 1 ? tb.kwh : null,
+                        })),
+                        {
+                          bulan: (() => {
+                            const monthNamesList = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+                            return monthNamesList[latestPrediction.predictedForMonth - 1] || `Bln ${latestPrediction.predictedForMonth}`;
+                          })(),
+                          actual: null,
+                          predicted: latestPrediction.predictedUsageKwh,
+                        }
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="bulan"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#64748b" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: "#94a3b8" }}
+                      />
+                      <Tooltip
+                        formatter={(v: number, name: string) => [
+                          formatKwh(v),
+                          name === "actual" ? "Data aktual" : "Prediksi AI"
+                        ]}
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
+                        }}
+                      />
+                      <Line
+                        name="actual"
+                        type="monotone"
+                        dataKey="actual"
+                        stroke="#8b5cf6"
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
+                        activeDot={{ r: 6 }}
+                        connectNulls
+                      />
+                      <Line
+                        name="predicted"
+                        type="monotone"
+                        strokeDasharray="5 5"
+                        dataKey="predicted"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
+                        activeDot={{ r: 6 }}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center gap-4 justify-center mt-3 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-purple-500" />
+                    <span className="text-slate-600">Data aktual</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" style={{ border: '2px dashed #2563eb', background: 'transparent' }} />
+                    <span className="text-slate-600">Prediksi AI (Bulan Depan)</span>
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-                  Estimasi Biaya Listrik
-                </span>
-                <p className="text-2xl font-black text-indigo-600 mt-1">
-                  {formatRupiah(latestPrediction.predictedCostIdr)}
-                </p>
-                <span className="text-[10px] text-slate-400 font-semibold mt-1 block">
-                  Dihitung berdasarkan tarif rata-rata
-                </span>
-              </div>
-
-              <div className="sm:col-span-2 md:col-span-1">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-                  Status Perutean Model AI
-                </span>
-                <div className="mt-1.5">
-                  {latestPrediction.method === "RULE_BASED" && (
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-800">Mode: Rule-Based Estimation</p>
-                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
-                        Digunakan karena data historis masih terbatas.
-                      </p>
-                    </div>
-                  )}
-                  {(latestPrediction.method === "TABULAR_MODEL" || latestPrediction.method === "TABULAR_RIDGE" || latestPrediction.method === "TABULAR_UMKM_V1") && (
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-800">Mode: Tabular AI Model</p>
-                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
-                        Digunakan karena data cukup untuk analisis fitur, tetapi belum cukup untuk LSTM.
-                      </p>
-                    </div>
-                  )}
-                  {latestPrediction.method === "LSTM_PROTOTYPE" && (
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-800">Mode: LSTM Sequence Model</p>
-                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
-                        Digunakan karena tersedia minimal 6 bulan data historis.
-                      </p>
-                    </div>
-                  )}
-                  {latestPrediction.method === "HYBRID_FALLBACK" && (
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-800">Mode: Hybrid Fallback</p>
-                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
-                        Digunakan karena output model utama tidak stabil atau data mengandung anomali.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-2 bg-white/60 rounded-xl p-4 border border-indigo-100/30">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
-                Penjelasan Cerdas
-              </span>
-              <p className="text-xs font-medium text-slate-600 leading-relaxed">
-                {latestPrediction.explanation}
-              </p>
-              {latestPrediction.confidenceReason && (
-                <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed border-t border-slate-100 pt-2">
-                  Catatan AI: {latestPrediction.confidenceReason}
-                </p>
-              )}
-            </div>
-
-            <p className="text-[10px] font-semibold text-slate-400 mt-1 italic leading-relaxed">
-              *Disclaimer: {latestPrediction.disclaimer || "Hasil ini adalah estimasi, bukan tagihan resmi PLN."}
-            </p>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* ─── Analitik Pendapatan & Listrik (Task 8) ─── */}
       <section className="mt-8">

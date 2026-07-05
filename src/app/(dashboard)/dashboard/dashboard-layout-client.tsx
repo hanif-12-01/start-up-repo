@@ -4,32 +4,85 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import type { LucideIcon } from "lucide-react";
 import {
+  AlertTriangle,
+  BadgeDollarSign,
+  Bell,
   Cpu,
+  CreditCard,
   FileText,
   LayoutDashboard,
+  Lightbulb,
   LogOut,
   Menu,
   NotebookPen,
+  PlusCircle,
   Settings,
+  Sparkles,
   Store,
+  TrendingUp,
+  User,
+  Wallet,
   X,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BusinessSwitcher } from "@/components/business-switcher";
 
-// Menu utama disederhanakan menjadi 6 kelompok supaya tidak overwhelming untuk
-// pemilik UMKM. Halaman detail existing tetap ada dan tetap bisa diakses lewat
-// hub Catat Data / Usaha & Alat, deep-link dari widget dashboard, atau URL
-// langsung — tidak dihapus dari codebase.
-const menuItems = [
+// Menu hierarkis: parent + children terlihat sekaligus supaya user langsung
+// tahu di mana letak fitur seperti "Deteksi Anomali" tanpa harus klik hub dulu.
+// Parent-only (tanpa href) dirender sebagai section heading non-clickable
+// ("Analisis AI") — murni untuk pengelompokan visual.
+type MenuItem = {
+  label: string;
+  href?: string;
+  icon: LucideIcon;
+  children?: MenuItem[];
+};
+
+const menuItems: MenuItem[] = [
   { label: "Beranda", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Catat Data", href: "/dashboard/catat-data", icon: NotebookPen },
-  { label: "Usaha & Alat", href: "/dashboard/usaha-alat", icon: Store },
+  {
+    label: "Catat Data",
+    href: "/dashboard/catat-data",
+    icon: NotebookPen,
+    children: [
+      { label: "Input Data Listrik", href: "/dashboard/input", icon: PlusCircle },
+      { label: "Pendapatan & Listrik", href: "/dashboard/pendapatan", icon: BadgeDollarSign },
+      { label: "Cashflow", href: "/dashboard/cashflow", icon: Wallet },
+    ],
+  },
+  {
+    label: "Analisis AI",
+    icon: Sparkles,
+    children: [
+      { label: "Prediksi & Estimasi", href: "/dashboard/prediksi", icon: TrendingUp },
+      { label: "Deteksi Anomali", href: "/dashboard/anomali", icon: AlertTriangle },
+      { label: "Rekomendasi Hemat", href: "/dashboard/rekomendasi", icon: Lightbulb },
+    ],
+  },
+  {
+    label: "Usaha & Alat",
+    href: "/dashboard/usaha-alat",
+    icon: Store,
+    children: [
+      { label: "Profil Usaha", href: "/dashboard/profil", icon: User },
+      { label: "Peralatan", href: "/dashboard/peralatan", icon: Zap },
+      { label: "Tambah Usaha Baru", href: "/dashboard/tambah-usaha", icon: PlusCircle },
+    ],
+  },
   { label: "Laporan", href: "/dashboard/laporan", icon: FileText },
   { label: "AIoT", href: "/dashboard/aiot", icon: Cpu },
-  { label: "Pengaturan", href: "/dashboard/pengaturan", icon: Settings },
+  {
+    label: "Pengaturan",
+    href: "/dashboard/pengaturan",
+    icon: Settings,
+    children: [
+      { label: "Notifikasi", href: "/dashboard/notifikasi", icon: Bell },
+      { label: "Harga Paket", href: "/dashboard/harga-paket", icon: CreditCard },
+    ],
+  },
 ];
 
 interface Business {
@@ -52,32 +105,75 @@ export default function DashboardLayoutClient({
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
 
-  const Nav = ({ mobile = false }: { mobile?: boolean }) => (
-    <nav className="flex-1 space-y-1">
-      {menuItems.map((item) => {
-        const active = item.href === "/dashboard"
-          ? pathname === "/dashboard"
-          : pathname.startsWith(item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => mobile && setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 border",
-              active
-                ? "bg-emerald-50/80 border-emerald-100/70 text-emerald-700 shadow-sm"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            )}
-          >
-            <Icon className="h-5 w-5 shrink-0" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const isActive = (href: string): boolean =>
+    href === "/dashboard" ? pathname === "/dashboard" : pathname === href;
+
+  const Nav = ({ mobile = false }: { mobile?: boolean }) => {
+    const closeMobile = () => mobile && setMobileOpen(false);
+
+    const renderChild = (child: MenuItem) => {
+      if (!child.href) return null;
+      const ChildIcon = child.icon;
+      const active = isActive(child.href);
+      return (
+        <Link
+          key={child.href}
+          href={child.href}
+          onClick={closeMobile}
+          className={cn(
+            "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-[13px] font-medium transition-all",
+            active
+              ? "border-emerald-500 bg-emerald-50/70 font-semibold text-emerald-700"
+              : "border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800",
+          )}
+        >
+          <ChildIcon className="h-4 w-4 shrink-0" />
+          {child.label}
+        </Link>
+      );
+    };
+
+    return (
+      <nav className="space-y-3">
+        {menuItems.map((item, idx) => {
+          const Icon = item.icon;
+          const hasChildren = !!item.children?.length;
+          const parentActive = item.href ? isActive(item.href) : false;
+          return (
+            <div key={item.href ?? `heading-${idx}`}>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  onClick={closeMobile}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200",
+                    parentActive
+                      ? "border-emerald-100/70 bg-emerald-50/80 text-emerald-700 shadow-sm"
+                      : "border-transparent text-slate-700 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {item.label}
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2 px-4 pb-1 pt-2">
+                  <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {item.label}
+                  </span>
+                </div>
+              )}
+              {hasChildren && (
+                <div className="mt-1 space-y-1 pl-3">
+                  {item.children!.map(renderChild)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+    );
+  };
 
   const ProfileCard = () => {
     const name = session?.user?.name || "Pengguna";

@@ -86,6 +86,7 @@ export const getDashboardDataForBusiness = cache(async (userId: string) => {
     where: { id: activeBusinessId, userId },
     select: {
       name: true,
+      type: true,
       electricityEntries: {
         orderBy: [{ year: "desc" }, { month: "desc" }],
         take: 6,

@@ -250,6 +250,43 @@ export default async function DashboardPage() {
       })
     : null;
 
+  // Count history months
+  const historyMonths = activeBusinessId
+    ? await db.electricityEntry.count({
+        where: { businessId: activeBusinessId },
+      })
+    : 0;
+
+  // Calculate AI factors
+  const last3Entries = entries.slice(-3);
+  const avg3 = last3Entries.length > 0
+    ? last3Entries.reduce((sum, e) => sum + e.usageKwh, 0) / last3Entries.length
+    : 0;
+
+  const last6Entries = entries.slice(-6);
+  const avg6 = last6Entries.length > 0
+    ? last6Entries.reduce((sum, e) => sum + e.usageKwh, 0) / last6Entries.length
+    : 0;
+
+  const trend1 = latest && prev && prev.usageKwh > 0
+    ? ((latest.usageKwh - prev.usageKwh) / prev.usageKwh) * 100
+    : 0;
+
+  const trend3 = latest && avg3 > 0
+    ? ((latest.usageKwh - avg3) / avg3) * 100
+    : 0;
+
+  const aiFactors = {
+    latestUsageKwh: latest?.usageKwh ?? 0,
+    previousUsageKwh: prev?.usageKwh ?? 0,
+    avg3UsageKwh: avg3,
+    avg6UsageKwh: historyMonths >= 6 ? avg6 : null,
+    trend1MonthPercent: trend1,
+    trend3MonthPercent: trend3,
+    businessType: business.type,
+    avgTariffIdr: latest && latest.usageKwh > 0 ? latest.costIdr / latest.usageKwh : 1444.70,
+  };
+
   return (
     <DashboardClient
       ringkasan={ringkasan}
@@ -259,6 +296,8 @@ export default async function DashboardPage() {
       efisiensiPeralatan={efisiensiPeralatan}
       cashFlowAnalytics={cashFlowAnalytics}
       latestPrediction={latestPrediction}
+      historyMonths={historyMonths}
+      aiFactors={aiFactors}
     />
   );
 }
