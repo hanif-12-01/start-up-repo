@@ -48,6 +48,7 @@ WattWise AI secara khusus menargetkan pemilik **UMKM di Indonesia** (seperti usa
 *   **Database Profile Syncing:** Profil usaha onboard baru langsung tersinkronisasi otomatis dengan session state.
 
 ### Fitur MVP 2 Tambahan (Performance-Safe Demo)
+*   **Multi-Tier ML Routing & Inference Engine:** Penentuan model otomatis berdasarkan jumlah data historis (< 3 bulan menggunakan *Rule-Based v1.0*, 3-5 bulan menggunakan *Gradient Boosting v1.0*, dan >= 6 bulan menggunakan *LSTM v0.1*) dengan *Sanity Check Guardrail* (menghindari output ekstrim/minus/NaN) dan tingkat kepercayaan (*Confidence Level*).
 *   **Analysis Engine V2:** Analisis rule-based deterministik yang membandingkan bulan berjalan, bulan sebelumnya, rata-rata 3 bulan, biaya vs kWh, dan estimasi peralatan. Hasil disimpan ke database agar dashboard tidak menghitung ulang saat dibuka.
 *   **Rekomendasi Berbasis Peralatan:** Rekomendasi dipersonalisasi dari jenis usaha aktif, peralatan terdaftar, input listrik terakhir, hasil analisis, dan anomali tersimpan.
 *   **Scenario Simulator:** Halaman simulasi untuk skenario pengurangan jam pakai, penggantian alat hemat daya, target hemat, dan perawatan freezer/AC tanpa mengubah data listrik asli.
@@ -60,6 +61,7 @@ WattWise AI secara khusus menargetkan pemilik **UMKM di Indonesia** (seperti usa
 ## 🛠️ Tech Stack Terbaru
 
 *   **Framework Utama:** Next.js 14.2.5 (App Router)
+*   **Inference Engine AI:** TypeScript-Native Inference (LSTM v0.1, Gradient Boosting v1.0, & Ridge v1.1) tanpa server eksternal (< 1 ms runtime).
 *   **Bahasa Pemrograman:** TypeScript 5.5
 *   **Desain UI / Styling:** Tailwind CSS 3.4 & Lucide Icons
 *   **ORM / Database Access Layer:** Prisma Client v5.22.0
@@ -157,6 +159,12 @@ NEXTAUTH_URL="http://localhost:3000"
 # Dapat dibuat via command: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 NEXTAUTH_SECRET="buat-kunci-rahasia-jwt-acak-disini"
 ```
+
+---
+
+## 📄 Laporan Teknis Lengkap
+
+Untuk penjelasan mendalam mengenai arsitektur sistem, skema database, detail model kecerdasan buatan (LSTM, Gradient Boosting, Ridge Regression), alur data, diagram alur, dan rencana model bisnis startup, silakan merujuk ke berkas [Laporan_Aplikasi_WattWise_AI.md](file:///d:/LOMBA/Startup%20Proto/Laporan_Aplikasi_WattWise_AI.md).
 
 ---
 

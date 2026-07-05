@@ -6,6 +6,7 @@ import { getPrediksiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
 import { db } from "@/lib/db";
+import { calculateHistoryStats } from "@/lib/prediction";
 
 export default async function PrediksiPage() {
   const session = await getServerSession(authOptions);
@@ -60,6 +61,7 @@ export default async function PrediksiPage() {
     }
   }
 
+  const stats = calculateHistoryStats(business.electricityEntries);
   let alasanUtama = prediction?.explanation || "Silakan lakukan generate prediksi untuk melihat analisis penyebab utama.";
   
   const prediksiData = {
@@ -74,10 +76,22 @@ export default async function PrediksiPage() {
     risikoLevel,
     alasanUtama,
     penjelasan: prediction?.disclaimer || "Prediksi ini dibuat berdasarkan pola tagihan sebelumnya. Hasilnya adalah estimasi/proyeksi kas dan bukan tagihan resmi PLN.",
+    explanation: prediction?.explanation || "",
     modelVersion: prediction?.modelVersion || undefined,
     method: prediction?.method || undefined,
     confidenceLevel: prediction?.confidenceLevel || undefined,
     confidenceReason: prediction?.confidenceReason || undefined,
+    
+    // AI Factors
+    latestUsageKwh: stats.latestUsageKwh,
+    previousUsageKwh: stats.previousUsageKwh,
+    avg3: stats.avg3,
+    avg6: stats.historyMonths >= 6 ? stats.avg6 : null,
+    trend1: stats.trend1,
+    trend3: stats.trend3,
+    businessType: business.type,
+    avgTariff: stats.avgTariff,
+    historyMonths: stats.historyMonths,
   };
 
   const proyeksiBulanIni = business.dailyUsages.map((d) => {

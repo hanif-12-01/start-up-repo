@@ -312,7 +312,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
                 <p className="mt-2 text-xl font-extrabold text-brand-ink">{formatRupiah(latestEntry.costIdr)}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-5">
-                <p className="text-xs font-semibold text-slate-500">Prediksi Tagihan</p>
+                <p className="text-xs font-semibold text-slate-500">Estimasi Tagihan Listrik</p>
                 <p className="mt-2 text-xl font-extrabold text-brand-ink">{formatRupiah(predictedBill)}</p>
               </div>
               <div className={`rounded-2xl border p-5 ${usageStatus.className}`}>

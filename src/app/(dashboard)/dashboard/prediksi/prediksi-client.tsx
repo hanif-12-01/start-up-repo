@@ -22,7 +22,7 @@ import {
   YAxis,
 } from "recharts";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui/common";
-import { formatKwh, formatRupiah } from "@/lib/utils";
+import { cn, formatKwh, formatRupiah } from "@/lib/utils";
 
 interface PrediksiClientProps {
   prediksi: {
@@ -37,10 +37,22 @@ interface PrediksiClientProps {
     risikoLevel: string;
     alasanUtama: string;
     penjelasan: string;
+    explanation: string;
     modelVersion?: string;
     method?: string;
     confidenceLevel?: string;
     confidenceReason?: string;
+    
+    // AI Factors
+    latestUsageKwh: number;
+    previousUsageKwh: number;
+    avg3: number;
+    avg6: number | null;
+    trend1: number;
+    trend3: number;
+    businessType: string;
+    avgTariff: number;
+    historyMonths: number;
   };
   proyeksiBulanIni: {
     hari: string;
@@ -51,10 +63,10 @@ interface PrediksiClientProps {
 
 export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiClientProps) {
   const formatMethod = (m?: string) => {
-    if (m === "LSTM_PROTOTYPE") return "LSTM Prototype";
-    if (m === "RULE_BASED") return "Rule-Based Fallback";
-    if (m === "HYBRID_FALLBACK") return "Fallback Otomatis";
-    if (m === "RIDGE_UMKM_V1") return "Ridge Legacy";
+    if (m === "LSTM_PROTOTYPE") return "LSTM Sequence Model";
+    if (m === "RULE_BASED") return "Rule-Based Estimation";
+    if (m === "HYBRID_FALLBACK") return "Hybrid Fallback";
+    if (m === "TABULAR_MODEL" || m === "TABULAR_RIDGE" || m === "TABULAR_UMKM_V1") return "Tabular AI Model";
     return m || "-";
   };
 
@@ -298,6 +310,121 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
               <p className="text-slate-400 text-xs">Belum ada data pemakaian harian untuk proyeksi grafik.</p>
             </div>
           )}
+        </section>
+      </div>
+
+      {/* ─── Penjelasan & Faktor AI Section ─── */}
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <section className="card bg-linear-to-br from-indigo-50/50 via-white to-sky-50/30 border border-indigo-100 p-6 rounded-2xl shadow-xs">
+          <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
+            <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
+            Mengapa AI memilih model ini?
+          </h3>
+          <div className="space-y-4">
+            <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
+                Model Pilihan
+              </span>
+              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                {prediksi.modelVersion || "unknown"} ({formatMethod(prediksi.method)})
+              </p>
+              {getModelInfo(prediksi.method) && (
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed font-semibold">
+                  {getModelInfo(prediksi.method)}
+                </p>
+              )}
+            </div>
+            
+            <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
+                Alasan Routing & Analisis
+              </span>
+              <p className="text-xs font-semibold leading-relaxed text-slate-600">
+                {prediksi.explanation || prediksi.alasanUtama}
+              </p>
+              {prediksi.confidenceReason && (
+                <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed border-t border-slate-100 pt-2">
+                  Catatan Keandalan: {prediksi.confidenceReason}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="card bg-slate-50/50 border border-slate-200 p-6 rounded-2xl shadow-xs">
+          <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
+            <Info className="h-5 w-5 text-slate-500" />
+            Faktor yang dibaca AI
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Pemakaian Bulan Terakhir
+              </span>
+              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.latestUsageKwh)}</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Pemakaian Bulan Sebelumnya
+              </span>
+              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.previousUsageKwh)}</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Rata-rata 3 Bulan
+              </span>
+              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.avg3)}</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Rata-rata 6 Bulan
+              </span>
+              <p className="text-lg font-black text-slate-800">
+                {prediksi.avg6 !== null ? formatKwh(prediksi.avg6) : "Belum cukup data"}
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Tren 1 Bulan
+              </span>
+              <p className={cn(
+                "text-lg font-black",
+                prediksi.trend1 > 0 ? "text-rose-600" : prediksi.trend1 < 0 ? "text-emerald-600" : "text-slate-800"
+              )}>
+                {prediksi.trend1 >= 0 ? "+" : ""}{(prediksi.trend1 * 100).toFixed(1)}%
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Tren 3 Bulan
+              </span>
+              <p className={cn(
+                "text-lg font-black",
+                prediksi.trend3 > 0 ? "text-rose-600" : prediksi.trend3 < 0 ? "text-emerald-600" : "text-slate-800"
+              )}>
+                {prediksi.trend3 >= 0 ? "+" : ""}{(prediksi.trend3 * 100).toFixed(1)}%
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Jenis Usaha
+              </span>
+              <p className="text-sm font-black text-slate-800 mt-1">{prediksi.businessType}</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                Estimasi Tarif Listrik
+              </span>
+              <p className="text-sm font-black text-indigo-600 mt-1">{formatRupiah(prediksi.avgTariff)} / kWh</p>
+            </div>
+          </div>
         </section>
       </div>
 

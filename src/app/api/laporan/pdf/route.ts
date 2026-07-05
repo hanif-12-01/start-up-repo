@@ -266,7 +266,7 @@ export async function GET(req: Request) {
     const summaryItems = [
       ["Total kWh", fmtKwh(latestEntryData.usageKwh)],
       ["Estimasi Tagihan", fmtRp(latestEntryData.costIdr)],
-      ["Prediksi Tagihan", fmtRp(predictedBill)],
+      ["Estimasi Tagihan Listrik", fmtRp(predictedBill)],
       ["Status Pemakaian", usageLabel + (latestAnalysis.efficiencyScore != null ? ` (Skor ${Math.round(latestAnalysis.efficiencyScore)}/100)` : "")],
     ];
 

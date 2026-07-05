@@ -240,6 +240,16 @@ export default async function DashboardPage() {
     };
   }
 
+  const latestPrediction = activeBusinessId
+    ? await db.predictionResult.findFirst({
+        where: { businessId: activeBusinessId },
+        orderBy: [
+          { predictedForYear: "desc" },
+          { predictedForMonth: "desc" },
+        ],
+      })
+    : null;
+
   return (
     <DashboardClient
       ringkasan={ringkasan}
@@ -248,6 +258,7 @@ export default async function DashboardPage() {
       pemakaianPeralatan={pemakaianPeralatan}
       efisiensiPeralatan={efisiensiPeralatan}
       cashFlowAnalytics={cashFlowAnalytics}
+      latestPrediction={latestPrediction}
     />
   );
 }

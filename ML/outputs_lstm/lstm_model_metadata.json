@@ -23,7 +23,7 @@
         "optimizer": "adam"
     },
     "training_epochs_actual": 14,
-    "training_time_seconds": 27.62737774848938,
+    "training_time_seconds": 9.691118240356445,
     "metrics_test": {
         "mae_usage_kwh": 122.78941059959062,
         "rmse_usage_kwh": 324.92498796361014,

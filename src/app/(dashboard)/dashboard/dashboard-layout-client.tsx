@@ -5,41 +5,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
-  AlertTriangle,
-  BadgeDollarSign,
-  Bell,
-  CreditCard,
+  Cpu,
   FileText,
   LayoutDashboard,
-  Lightbulb,
   LogOut,
   Menu,
-  PlusCircle,
-  SlidersHorizontal,
+  NotebookPen,
+  Settings,
   Store,
-  TrendingUp,
-  User,
-  Wallet,
   X,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BusinessSwitcher } from "@/components/business-switcher";
 
+// Menu utama disederhanakan menjadi 6 kelompok supaya tidak overwhelming untuk
+// pemilik UMKM. Halaman detail existing tetap ada dan tetap bisa diakses lewat
+// hub Catat Data / Usaha & Alat, deep-link dari widget dashboard, atau URL
+// langsung — tidak dihapus dari codebase.
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Tambah Usaha Baru", href: "/dashboard/tambah-usaha", icon: Store },
-  { label: "Input Data", href: "/dashboard/input", icon: PlusCircle },
-  { label: "Pendapatan & Listrik", href: "/dashboard/pendapatan", icon: BadgeDollarSign },
-  { label: "Cashflow", href: "/dashboard/cashflow", icon: Wallet },
-  { label: "Prediksi Tagihan", href: "/dashboard/prediksi", icon: TrendingUp },
-  { label: "Deteksi Anomali", href: "/dashboard/anomali", icon: AlertTriangle },
-  { label: "Peralatan", href: "/dashboard/peralatan", icon: Zap },
-  { label: "Rekomendasi Hemat", href: "/dashboard/rekomendasi", icon: Lightbulb },
+  { label: "Beranda", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Catat Data", href: "/dashboard/catat-data", icon: NotebookPen },
+  { label: "Usaha & Alat", href: "/dashboard/usaha-alat", icon: Store },
   { label: "Laporan", href: "/dashboard/laporan", icon: FileText },
-  { label: "Notifikasi", href: "/dashboard/notifikasi", icon: Bell },
-  { label: "Harga Paket", href: "/dashboard/harga-paket", icon: CreditCard },
-  { label: "Profil Usaha", href: "/dashboard/profil", icon: User },
+  { label: "AIoT", href: "/dashboard/aiot", icon: Cpu },
+  { label: "Pengaturan", href: "/dashboard/pengaturan", icon: Settings },
 ];
 
 interface Business {
@@ -164,9 +154,14 @@ export default function DashboardLayoutClient({
           <BusinessSwitcher businesses={businesses} activeBusinessId={activeBusinessId} />
         </div>
 
-        <Nav />
-        
-        <div className="mt-auto border-t border-slate-100 pt-4">
+        {/* Menu scroll di tengah — logo & switcher (atas) + ProfileCard (bawah)
+            tetap terlihat walau menu overflow. `min-h-0` wajib supaya
+            overflow-y-auto benar-benar aktif di dalam parent flex. */}
+        <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
+          <Nav />
+        </div>
+
+        <div className="mt-4 border-t border-slate-100 pt-4">
           <ProfileCard />
         </div>
       </aside>
@@ -179,8 +174,10 @@ export default function DashboardLayoutClient({
             aria-label="Tutup menu"
           />
           <aside className="fixed bottom-0 left-0 top-[53px] z-50 flex w-72 flex-col bg-white p-5 shadow-2xl animate-[slideInLeft_.2s_ease] md:hidden animate-in fade-in slide-in-from-left-1 duration-150">
-            <Nav mobile />
-            <div className="border-t border-slate-100 pt-4">
+            <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
+              <Nav mobile />
+            </div>
+            <div className="mt-4 border-t border-slate-100 pt-4">
               <ProfileCard />
             </div>
           </aside>

@@ -78,11 +78,8 @@ interface DashboardClientProps {
     warna: string;
   }[];
   efisiensiPeralatan: AttentionItem[];
-  /**
-   * Data analitik cash flow dari Task 7. Sengaja di-terima di sini tapi
-   * belum dirender — UI dibangun di Task 8 supaya diff Task 7 tetap kecil.
-   */
   cashFlowAnalytics?: import("@/lib/cash-flow").CashFlowAnalytics | null;
+  latestPrediction?: any | null;
 }
 
 export default function DashboardClient({
@@ -92,6 +89,7 @@ export default function DashboardClient({
   pemakaianPeralatan,
   efisiensiPeralatan,
   cashFlowAnalytics = null,
+  latestPrediction = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -324,6 +322,140 @@ export default function DashboardClient({
           }
         />
       </div>
+
+      {/* WattWise Adaptive AI Insight Card */}
+      {latestPrediction && (
+        <div className="mt-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/50 p-6 shadow-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+            <Zap className="h-32 w-32 text-indigo-600" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-indigo-100/50 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
+                  <Zap className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-md font-extrabold text-slate-800">
+                    WattWise Adaptive AI Insight
+                  </h3>
+                  <p className="text-xs font-semibold text-indigo-600">
+                    {latestPrediction.modelVersion || "Adaptive Model Routing v1.0"}
+                  </p>
+                </div>
+              </div>
+              <div className="self-start sm:self-auto">
+                <span className={cn(
+                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-xs",
+                  latestPrediction.confidenceLevel === "HIGH" 
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
+                    : latestPrediction.confidenceLevel === "MEDIUM" 
+                    ? "bg-amber-50 text-amber-700 border border-amber-100" 
+                    : "bg-rose-50 text-rose-700 border border-rose-100"
+                )}>
+                  Akurasi: {latestPrediction.confidenceLevel || "MEDIUM"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+                  Estimasi Konsumsi Listrik
+                </span>
+                <p className="text-2xl font-black text-slate-800 mt-1">
+                  {formatKwh(latestPrediction.predictedUsageKwh)}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={cn(
+                    "text-xs font-bold inline-flex items-center gap-0.5",
+                    latestPrediction.trendDirection === "NAIK" 
+                      ? "text-rose-600" 
+                      : latestPrediction.trendDirection === "TURUN" 
+                      ? "text-emerald-600" 
+                      : "text-slate-600"
+                  )}>
+                    {latestPrediction.trendDirection === "NAIK" ? "▲" : latestPrediction.trendDirection === "TURUN" ? "▼" : "■"} {Math.abs(latestPrediction.trendPercent)}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    vs bulan terakhir
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+                  Estimasi Biaya Listrik
+                </span>
+                <p className="text-2xl font-black text-indigo-600 mt-1">
+                  {formatRupiah(latestPrediction.predictedCostIdr)}
+                </p>
+                <span className="text-[10px] text-slate-400 font-semibold mt-1 block">
+                  Dihitung berdasarkan tarif rata-rata
+                </span>
+              </div>
+
+              <div className="sm:col-span-2 md:col-span-1">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+                  Status Perutean Model AI
+                </span>
+                <div className="mt-1.5">
+                  {latestPrediction.method === "RULE_BASED" && (
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800">Mode: Rule-Based Estimation</p>
+                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
+                        Digunakan karena data historis masih terbatas.
+                      </p>
+                    </div>
+                  )}
+                  {(latestPrediction.method === "TABULAR_MODEL" || latestPrediction.method === "TABULAR_RIDGE" || latestPrediction.method === "TABULAR_UMKM_V1") && (
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800">Mode: Tabular AI Model</p>
+                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
+                        Digunakan karena data cukup untuk analisis fitur, tetapi belum cukup untuk LSTM.
+                      </p>
+                    </div>
+                  )}
+                  {latestPrediction.method === "LSTM_PROTOTYPE" && (
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800">Mode: LSTM Sequence Model</p>
+                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
+                        Digunakan karena tersedia minimal 6 bulan data historis.
+                      </p>
+                    </div>
+                  )}
+                  {latestPrediction.method === "HYBRID_FALLBACK" && (
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800">Mode: Hybrid Fallback</p>
+                      <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
+                        Digunakan karena output model utama tidak stabil atau data mengandung anomali.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 bg-white/60 rounded-xl p-4 border border-indigo-100/30">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
+                Penjelasan Cerdas
+              </span>
+              <p className="text-xs font-medium text-slate-600 leading-relaxed">
+                {latestPrediction.explanation}
+              </p>
+              {latestPrediction.confidenceReason && (
+                <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed border-t border-slate-100 pt-2">
+                  Catatan AI: {latestPrediction.confidenceReason}
+                </p>
+              )}
+            </div>
+
+            <p className="text-[10px] font-semibold text-slate-400 mt-1 italic leading-relaxed">
+              *Disclaimer: {latestPrediction.disclaimer || "Hasil ini adalah estimasi, bukan tagihan resmi PLN."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ─── Analitik Pendapatan & Listrik (Task 8) ─── */}
       <section className="mt-8">
