@@ -342,7 +342,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
 
       {/* ─── Penjelasan & Faktor AI Section ─── */}
       {prediksi.isFreePlan ? (
-        <div className="mt-6 p-8 rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/10 via-white to-sky-50/10 text-center relative overflow-hidden">
+        <div className="mt-6 p-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/10 via-white to-sky-50/10 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10">
             <UpgradeCta 
               title="Faktor Analisis AI Terkunci"
@@ -358,7 +358,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
         </div>
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <section className="card bg-linear-to-br from-indigo-50/50 via-white to-sky-50/30 border border-indigo-100 p-6 rounded-2xl shadow-xs">
+          <section className="card bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/30 border border-indigo-100 p-6 rounded-2xl shadow-xs">
             <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
               <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
               Mengapa AI memilih model ini?

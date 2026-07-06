@@ -63,12 +63,15 @@ export function StatusBadge({ status }: { status: string }) {
     Aman: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
     Rendah: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
     Mudah: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+    Aktif: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
     "Perlu Dicek": "bg-amber-50 text-amber-700 border-amber-200/50",
     "Perlu Perhatian": "bg-amber-50 text-amber-700 border-amber-200/50",
     Sedang: "bg-amber-50 text-amber-700 border-amber-200/50",
+    Perawatan: "bg-amber-50 text-amber-700 border-amber-200/50",
     Boros: "bg-rose-50 text-rose-700 border-rose-200/50",
     Tinggi: "bg-rose-50 text-rose-700 border-rose-200/50",
     Lanjutan: "bg-rose-50 text-rose-700 border-rose-200/50",
+    "Tidak Aktif": "bg-slate-50 text-slate-500 border-slate-200/60",
     "Belum Ada Data": "bg-slate-50 text-slate-500 border-slate-200/60",
   };
   return <span className={cn("badge", map[status] ?? "bg-slate-50 text-slate-500 border-slate-200/60")}>{status}</span>;

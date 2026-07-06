@@ -45,7 +45,7 @@ export default function PaketDemoClient({ currentPlanCode, trialActive }: PaketD
   return (
     <div className="space-y-8">
       {/* Current Active Plan Card */}
-      <div className="card p-6 bg-linear-to-r from-slate-900 to-slate-800 text-white rounded-3xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-0">
+      <div className="card p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-0">
         <div>
           <span className="text-[10px] tracking-wider uppercase font-bold text-slate-400">Status Akun Anda</span>
           <h3 className="text-xl font-extrabold flex items-center gap-2 mt-1 font-display">

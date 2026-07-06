@@ -19,7 +19,7 @@ export function UpgradeCta({
   buttonText = "Coba Pro Trial 30 Hari"
 }: UpgradeCtaProps) {
   return (
-    <div className="max-w-md mx-auto my-8 p-6 rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/50 via-white to-sky-50/30 text-center shadow-soft relative overflow-hidden">
+    <div className="max-w-md mx-auto my-8 p-6 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/50 via-white to-sky-50/30 text-center shadow-soft relative overflow-hidden">
       {/* Top gradient border accent */}
       <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-teal-500" />
       
