@@ -40,6 +40,7 @@ import { cn, formatKwh, formatRupiah } from "@/lib/utils";
 import { generateAnalysisAction } from "@/app/actions/electricity";
 import { activateProTrialAction } from "@/app/actions/subscription";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { FreeOnlyAdSlot } from "@/components/ads/free-only-ad-slot";
 
 
 type AttentionStatus = "Efisien" | "Normal" | "Perlu Dicek" | "Boros" | "Sangat Boros";
@@ -149,6 +150,7 @@ interface DashboardClientProps {
     };
   } | null;
   expiredTrial?: boolean;
+  adsEnabled?: boolean;
   applianceSummary?: {
     totalEstimatedKwh: number;
     totalEstimatedCost: number;
@@ -173,6 +175,7 @@ export default function DashboardClient({
   subscription = null,
   expiredTrial = false,
   applianceSummary = null,
+  adsEnabled = false,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
@@ -1690,6 +1693,7 @@ export default function DashboardClient({
 
       {/* Ads Placement: Dashboard Bottom */}
       <AdSlot placement="dashboard_bottom" businessType={aiFactors?.businessType} />
+      <FreeOnlyAdSlot adsEnabled={adsEnabled} placement="dashboard_bottom" />
 
       {/* Disclaimers */}
       <div className="mt-8 flex gap-3.5 rounded-2xl border border-slate-200/50 bg-slate-100/40 p-5 shadow-xs">

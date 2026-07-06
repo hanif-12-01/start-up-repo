@@ -7,6 +7,7 @@ import { getRekomendasiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
 import { isTrialActive } from "@/lib/plan-entitlements";
+import { shouldShowAds } from "@/lib/ads";
 
 const SAVINGS_DISCLAIMER = "Estimasi penghematan bersifat indikatif dan dapat berbeda dari tagihan PLN aktual.";
 
@@ -82,6 +83,7 @@ export default async function RekomendasiPage() {
 
   const latestBill = latestEntry?.costIdr ?? 0;
   const potentialSavingsIdr = recommendations.reduce((sum, rec) => sum + (rec.estimatedSavingIdr ?? 0), 0);
+  const adsEnabled = await shouldShowAds(session.user.id);
 
   return (
     <div>
@@ -100,6 +102,7 @@ export default async function RekomendasiPage() {
         latestEntryCost={latestEntry?.costIdr || null}
         latestEntryKwh={latestEntry?.usageKwh || null}
         isFreePlan={isFreePlan}
+        adsEnabled={adsEnabled}
       />
     </div>
   );

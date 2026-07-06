@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { formatRupiah } from "@/lib/utils";
 import { UpgradeCta } from "@/components/subscription/UpgradeCta";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { FreeOnlyAdSlot } from "@/components/ads/free-only-ad-slot";
 
 
 type Difficulty = "EASY" | "MEDIUM" | "HARD";
@@ -158,6 +159,7 @@ export function RekomendasiClient({
   potentialSavingsIdr,
   businessType,
   isFreePlan = false,
+  adsEnabled = false,
 }: {
   recommendations: RecommendationCardData[];
   businessName: string;
@@ -168,6 +170,7 @@ export function RekomendasiClient({
   latestEntryCost: number | null;
   latestEntryKwh: number | null;
   isFreePlan?: boolean;
+  adsEnabled?: boolean;
 }) {
   const { toast } = useToast();
   const [recs, setRecs] = useState(recommendations);
@@ -275,6 +278,7 @@ export function RekomendasiClient({
         </aside>
       </div>
       <AdSlot placement="recommendation_bottom" businessType={businessType} />
+      <FreeOnlyAdSlot adsEnabled={adsEnabled} placement="recommendation_bottom" />
     </div>
   );
 }

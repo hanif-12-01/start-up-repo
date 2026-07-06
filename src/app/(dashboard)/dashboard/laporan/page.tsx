@@ -11,6 +11,8 @@ import { getUserPlan } from "@/services/subscription";
 import { isTrialActive } from "@/lib/plan-entitlements";
 import { UpgradeCta } from "@/components/subscription/UpgradeCta";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { FreeOnlyAdSlot } from "@/components/ads/free-only-ad-slot";
+import { shouldShowAds } from "@/lib/ads";
 import {
   getLaporanDataForBusiness,
   getMonthlyReportsForBusiness,
@@ -106,6 +108,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
   const selectedYear = yearParam && yearParam >= 2020 ? yearParam : undefined;
 
   const business = await getLaporanDataForBusiness(session.user.id, selectedMonth, selectedYear);
+  const adsEnabled = await shouldShowAds(session.user.id);
 
   if (!business) {
     return (
@@ -520,6 +523,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
 
           {/* Ads Placement: Report Preview Bottom */}
           <AdSlot placement="report_preview" businessType={business.type} />
+          <FreeOnlyAdSlot adsEnabled={adsEnabled} placement="report_preview_bottom" />
 
           <footer className="flex gap-3 border-t border-slate-100 pt-7 text-[11px] leading-relaxed text-slate-500">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />

@@ -116,3 +116,24 @@ export async function selectAdForUser(
   const randomIndex = Math.floor(Math.random() * campaigns.length);
   return campaigns[randomIndex];
 }
+
+export type AdPlacement =
+  | "dashboard_bottom"
+  | "report_preview_bottom"
+  | "recommendation_bottom"
+  | "pricing_page_middle";
+
+export function getAdSlotByPlacement(placement: AdPlacement): string | null {
+  switch (placement) {
+    case "dashboard_bottom":
+      return process.env.NEXT_PUBLIC_ADSENSE_DASHBOARD_SLOT || null;
+    case "report_preview_bottom":
+      return process.env.NEXT_PUBLIC_ADSENSE_REPORT_SLOT || null;
+    case "recommendation_bottom":
+      return process.env.NEXT_PUBLIC_ADSENSE_RECOMMENDATION_SLOT || null;
+    case "pricing_page_middle":
+      return process.env.NEXT_PUBLIC_ADSENSE_PRICING_SLOT || null;
+    default:
+      return null;
+  }
+}

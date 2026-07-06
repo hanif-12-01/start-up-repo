@@ -23,6 +23,7 @@ import {
 } from "@/lib/cash-flow";
 import { getUserPlan } from "@/services/subscription";
 import { getApplianceSummaryForBusiness } from "@/services/appliance";
+import { shouldShowAds } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -303,6 +304,8 @@ export default async function DashboardPage() {
     ? await getApplianceSummaryForBusiness(session.user.id, activeBusinessId)
     : null;
 
+  const adsEnabled = await shouldShowAds(session.user.id);
+
   return (
     <DashboardClient
       ringkasan={ringkasan}
@@ -316,6 +319,7 @@ export default async function DashboardPage() {
       aiFactors={aiFactors}
       expiredTrial={!!expiredTrial}
       applianceSummary={applianceSummary}
+      adsEnabled={adsEnabled}
       subscription={subscription ? {
         status: subscription.status,
         trialEndDate: subscription.trialEndDate?.toISOString() || null,

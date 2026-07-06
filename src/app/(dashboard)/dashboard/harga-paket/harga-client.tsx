@@ -29,6 +29,7 @@ import { useToast } from "@/components/ui/toast";
 import { changeSubscriptionPlanAction } from "@/actions/billing";
 import { cn } from "@/lib/utils";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { FreeOnlyAdSlot } from "@/components/ads/free-only-ad-slot";
 
 
 interface Plan {
@@ -102,10 +103,12 @@ export default function HargaClient({
   plans,
   currentPlanCode,
   isTrialEligible = false,
+  adsEnabled = false,
 }: {
   plans: Plan[];
   currentPlanCode: string;
   isTrialEligible?: boolean;
+  adsEnabled?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -162,6 +165,27 @@ export default function HargaClient({
         currentPlanCode={currentPlanCode}
         onGoToBilling={() => router.push("/dashboard/billing")}
       />
+
+      {adsEnabled && (
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl border border-indigo-150 bg-indigo-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-extrabold text-indigo-950">Nikmati Akses WattWise AI Tanpa Batas</h4>
+              <p className="text-xs text-indigo-650/90 font-medium mt-0.5">
+                Upgrade ke Pro untuk pengalaman tanpa iklan, prediksi lengkap, dan laporan PDF.
+              </p>
+            </div>
+            <a
+              href="#PRO_UMKM"
+              className="btn bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-5 rounded-xl text-center border-0 shrink-0"
+            >
+              Lihat Paket Pro
+            </a>
+          </div>
+          
+          <FreeOnlyAdSlot adsEnabled={adsEnabled} placement="pricing_page_middle" />
+        </div>
+      )}
 
       {/* ─── Plan Cards Grid ────────────────────────────────── */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getUserPlan } from "@/services/subscription";
 import HargaClient from "./harga-client";
 import { PageHeader } from "@/components/ui/common";
+import { shouldShowAds } from "@/lib/ads";
 
 export const metadata = {
   title: "Pilih Paket - WattWise AI",
@@ -34,13 +35,15 @@ export default async function HargaPaketPage() {
     orderBy: { priceIdr: "asc" },
   });
 
+  const adsEnabled = userId ? await shouldShowAds(userId) : true;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <PageHeader
         title="Pilih Paket WattWise AI"
         subtitle="Dapatkan rekomendasi hemat energi cerdas, analisis mendalam, dan pantau banyak cabang usaha."
       />
-      <HargaClient plans={plans} currentPlanCode={currentPlan?.code || "FREE"} isTrialEligible={isTrialEligible} />
+      <HargaClient plans={plans} currentPlanCode={currentPlan?.code || "FREE"} isTrialEligible={isTrialEligible} adsEnabled={adsEnabled} />
     </div>
   );
 }

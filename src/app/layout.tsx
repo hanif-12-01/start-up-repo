@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import AdSenseScript from "@/components/ads/adsense-script";
 
 export const metadata: Metadata = {
   title: "WattWise AI — Listrik Lebih Cerdas, Biaya Lebih Terkendali",
@@ -14,6 +15,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
+      <head>
+        <AdSenseScript />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>
