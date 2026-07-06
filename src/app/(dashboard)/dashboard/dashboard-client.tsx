@@ -8,7 +8,9 @@ import {
   ArrowRight,
   Award,
   BadgeDollarSign,
+  Building2,
   ChevronRight,
+  Crown,
   DollarSign,
   Info,
   Loader2,
@@ -33,9 +35,12 @@ import {
   YAxis,
 } from "recharts";
 import { StatCard, StatusBadge } from "@/components/ui/common";
+import { useToast } from "@/components/ui/toast";
 import { cn, formatKwh, formatRupiah } from "@/lib/utils";
 import { generateAnalysisAction } from "@/app/actions/electricity";
-import { useToast } from "@/components/ui/toast";
+import { activateProTrialAction } from "@/app/actions/subscription";
+import { AdSlot } from "@/components/ads/ad-slot";
+
 
 type AttentionStatus = "Efisien" | "Normal" | "Perlu Dicek" | "Boros" | "Sangat Boros";
 type AttentionItem = {
@@ -143,6 +148,16 @@ interface DashboardClientProps {
       name: string;
     };
   } | null;
+  expiredTrial?: boolean;
+  applianceSummary?: {
+    totalEstimatedKwh: number;
+    totalEstimatedCost: number;
+    topAppliancesByKwh: any[];
+    applianceCount: number;
+    highestAppliance: any;
+    coverageRatio: number | null;
+    averageTariffIdrPerKwh: number;
+  } | null;
 }
 
 export default function DashboardClient({
@@ -156,11 +171,31 @@ export default function DashboardClient({
   historyMonths = 0,
   aiFactors = null,
   subscription = null,
+  expiredTrial = false,
+  applianceSummary = null,
 }: DashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [loadingTrial, setLoadingTrial] = useState(false);
+
+  const handleActivateTrial = async () => {
+    setLoadingTrial(true);
+    try {
+      const res = await activateProTrialAction();
+      if (res.success) {
+        toast("Masa Pro Trial 30 hari berhasil diaktifkan!", "success");
+        router.refresh();
+      } else {
+        toast(res.error || "Gagal mengaktifkan Pro Trial.", "error");
+      }
+    } catch {
+      toast("Terjadi kesalahan koneksi.", "error");
+    } finally {
+      setLoadingTrial(false);
+    }
+  };
 
   // Compact Rupiah formatter untuk axis chart supaya tidak overflow.
   // Contoh: 15_000_000 → "Rp15jt", 2_500_000_000 → "Rp2,5M".
@@ -207,8 +242,23 @@ export default function DashboardClient({
     <div>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200/40 pb-5 mb-8">
         <div className="flex-1">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-3xl leading-tight font-display">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-3xl leading-tight font-display flex items-center gap-3.5 flex-wrap">
             Dashboard Pemantauan Listrik
+            {subscription && (
+              <span className={cn(
+                "badge text-xs px-2.5 py-0.5 rounded-full font-bold leading-none border",
+                subscription.plan.code === "FREE" ? "bg-slate-100 text-slate-600 border-slate-200" :
+                subscription.plan.code === "PRO_TRIAL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                subscription.plan.code === "PRO_UMKM" ? "bg-emerald-50 text-emerald-700 border-emerald-250" :
+                subscription.plan.code === "BUSINESS" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                "bg-amber-50 text-amber-700 border-amber-250"
+              )}>
+                {subscription.plan.code === "PRO_TRIAL" ? "Pro Trial" : 
+                 subscription.plan.code === "ENTERPRISE" ? "Paket Enterprise" :
+                 subscription.plan.code === "BUSINESS" ? "Paket Bisnis" :
+                 subscription.plan.name}
+              </span>
+            )}
           </h1>
           <p className="mt-1.5 max-w-3xl text-sm text-slate-400 font-medium leading-relaxed">
             Ringkasan pemakaian listrik {ringkasan.businessName}. Ringkasan berdasarkan data input manual yang tersimpan di database.
@@ -235,9 +285,33 @@ export default function DashboardClient({
 
 
       {/* ─── TRIAL/SUBSCRIPTION COUNTDOWN BANNER ─── */}
-      {subscription && (
+      {expiredTrial && (
+        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3.5 items-center">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-rose-100 text-rose-600 shadow-sm animate-pulse">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">
+                Trial Pro Anda telah berakhir. Akun kembali ke Paket Gratis.
+              </h2>
+              <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                Terima kasih telah mencoba fitur premium. Semua data usaha Anda aman, namun fitur-fitur Pro kini terkunci.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/harga-paket"
+            className="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
+          >
+            Upgrade ke Pro <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
+
+      {!expiredTrial && subscription && (
         <div className="mb-6">
-          {subscription.status === "TRIAL_ACTIVE" ? (
+          {subscription.status === "TRIAL_ACTIVE" || subscription.plan.code === "PRO_TRIAL" ? (
             (() => {
               const trialEndDate = subscription.trialEndDate ? new Date(subscription.trialEndDate) : null;
               const today = new Date();
@@ -270,7 +344,7 @@ export default function DashboardClient({
               );
             })()
           ) : subscription.plan.code === "FREE" ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between font-sans">
               <div className="flex gap-3.5 items-center">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-emerald-100 text-emerald-600 shadow-sm">
                   <Zap className="h-5 w-5" />
@@ -284,12 +358,81 @@ export default function DashboardClient({
                   </p>
                 </div>
               </div>
-              <Link
-                href="/dashboard/harga-paket"
-                className="btn-primary py-2 px-4 shadow-sm text-xs font-bold shrink-0 self-start sm:self-auto"
-              >
-                Upgrade ke Pro <Sparkles className="h-3.5 w-3.5 ml-1 inline" />
-              </Link>
+              <div className="flex gap-2 flex-wrap shrink-0 self-start sm:self-auto font-sans">
+                <button
+                  onClick={handleActivateTrial}
+                  disabled={loadingTrial}
+                  className="btn bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 shadow-sm text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                >
+                  {loadingTrial ? "Mengaktifkan..." : "Aktifkan Pro Trial 30 Hari"} <Sparkles className="h-3.5 w-3.5" />
+                </button>
+                <Link
+                  href="/dashboard/harga-paket"
+                  className="btn-primary py-2 px-4 shadow-sm text-xs font-bold"
+                >
+                  Upgrade ke Pro
+                </Link>
+              </div>
+            </div>
+          ) : subscription.plan.code === "ENTERPRISE" ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex gap-3.5 items-center">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-amber-250 text-amber-600 shadow-sm">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800">
+                    Paket Aktif: Paket Enterprise (Custom Plan)
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                    Akses kontrol multi-lokasi, custom dashboard, custom onboarding, dan dedicated support aktif.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap shrink-0 self-start sm:self-auto font-sans">
+                <Link
+                  href="/dashboard/enterprise"
+                  className="btn bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 shadow-sm text-xs font-bold rounded-xl"
+                >
+                  Enterprise Center
+                </Link>
+                <Link
+                  href="/dashboard/agregat"
+                  className="btn btn-outline py-2 px-4 shadow-sm text-xs font-bold bg-white"
+                >
+                  Dashboard Agregat
+                </Link>
+              </div>
+            </div>
+          ) : subscription.plan.code === "BUSINESS" ? (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/20 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between font-sans">
+              <div className="flex gap-3.5 items-center">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-blue-250 text-blue-600 shadow-sm">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800">
+                    Paket Aktif: Paket Bisnis
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500 leading-relaxed">
+                    Akses multi-cabang (hingga 50 lokasi), dashboard agregat, dan manajemen tim aktif sepenuhnya.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap shrink-0 self-start sm:self-auto font-sans">
+                <Link
+                  href="/dashboard/agregat"
+                  className="btn bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 shadow-sm text-xs font-bold rounded-xl"
+                >
+                  Dashboard Agregat
+                </Link>
+                <Link
+                  href="/dashboard/tim"
+                  className="btn btn-outline py-2 px-4 shadow-sm text-xs font-bold bg-white"
+                >
+                  Manajemen Tim
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4.5 shadow-soft flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1239,6 +1382,144 @@ export default function DashboardClient({
         )}
       </section>
 
+      {/* section: Alat Listrik Usaha */}
+      <section className="mt-8">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-display flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-indigo-600" />
+              Alat Listrik Usaha
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              Estimasi pemakaian alat listrik berdasarkan data daya alat, jumlah unit, dan durasi pakai harian.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href="/dashboard/peralatan"
+              className="btn border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 py-1.5 px-4 text-xs font-bold rounded-xl"
+            >
+              Kelola Alat
+            </Link>
+            <Link
+              href="/dashboard/peralatan"
+              className="btn-primary py-1.5 px-4 text-xs font-bold rounded-xl"
+            >
+              Tambah Alat
+            </Link>
+          </div>
+        </div>
+
+        {!applianceSummary || applianceSummary.applianceCount === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-8 text-center shadow-xs">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 mb-3 border border-emerald-100">
+              <Building2 className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-bold text-slate-700 mb-2">
+              Belum Ada Data Alat Listrik
+            </p>
+            <p className="text-xs font-medium text-slate-500 mb-4 max-w-md mx-auto leading-relaxed">
+              Belum ada data alat listrik. Tambahkan alat agar WattWise dapat memperkirakan sumber pemakaian terbesar.
+            </p>
+            <Link
+              href="/dashboard/peralatan"
+              className="btn-primary py-2 px-5 text-xs font-bold inline-flex items-center gap-2"
+            >
+              Tambah Alat Pertama
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Summary card */}
+            <div className="card p-5 border border-slate-200/80 bg-white shadow-xs">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estimasi Total Alat</h3>
+              <div className="mt-3 space-y-4">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Total Konsumsi</span>
+                  <p className="text-2xl font-black text-slate-800 mt-0.5">
+                    {formatKwh(applianceSummary.totalEstimatedKwh)}
+                    <span className="text-xs font-semibold text-slate-400">/bulan</span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Estimasi Biaya Listrik Alat</span>
+                  <p className="text-2xl font-black text-emerald-600 mt-0.5">
+                    {formatRupiah(applianceSummary.totalEstimatedCost)}
+                    <span className="text-xs font-semibold text-emerald-600">/bulan</span>
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">Jumlah Terdaftar</span>
+                  <p className="text-sm font-extrabold text-slate-700 mt-0.5">
+                    {applianceSummary.applianceCount} Peralatan Aktif
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Top appliances card */}
+            <div className="card p-5 border border-slate-200/80 bg-white shadow-xs md:col-span-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5 mb-3">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sumber Pemakaian Terbesar (Top 3)</h3>
+                  {subscription?.plan?.code === "FREE" && (
+                    <span className="badge bg-indigo-50 border-indigo-200 text-indigo-700 text-[9px] uppercase tracking-wider">
+                      Basic Plan Limit
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {(applianceSummary.topAppliancesByKwh || []).slice(0, subscription?.plan?.code === "FREE" ? 2 : 3).map((item: any, idx: number) => (
+                    <div key={item.id} className="flex items-center justify-between gap-4 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100">
+                          #{idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-700 truncate">{item.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            {item.quantity} unit × {item.powerWatt}W × {item.dailyUsageHours} jam/hari
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-bold text-slate-700">{formatKwh(item.monthlyKwh)}</p>
+                        <p className="text-[10px] text-emerald-600 font-bold">{formatRupiah(item.monthlyCost)}</p>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {applianceSummary.applianceCount > (subscription?.plan?.code === "FREE" ? 2 : 3) && subscription?.plan?.code === "FREE" && (
+                    <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/20 p-3 text-center flex items-center justify-between gap-4">
+                      <p className="text-[10px] text-indigo-950 font-semibold leading-normal text-left">
+                        Ada alat lainnya yang tidak ditampilkan. Upgrade ke Pro untuk melihat daftar lengkap estimasi alat Anda.
+                      </p>
+                      <Link href="/dashboard/harga-paket" className="btn bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold py-1 px-3 rounded-lg shrink-0 border-0">
+                        Upgrade Pro
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[10px] text-slate-400 font-semibold">
+                <p>
+                  * Estimasi menggunakan asumsi 30 hari pemakaian.
+                </p>
+                {applianceSummary.coverageRatio !== null && (
+                  <div className="flex items-center gap-2">
+                    <span>Coverage Pemakaian Aktual:</span>
+                    <span className="font-extrabold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      {(applianceSummary.coverageRatio * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
       {mounted && (
         <div className="mt-6 grid gap-6 lg:grid-cols-12">
           {/* Monthly usage history */}
@@ -1406,6 +1687,9 @@ export default function DashboardClient({
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+
+      {/* Ads Placement: Dashboard Bottom */}
+      <AdSlot placement="dashboard_bottom" businessType={aiFactors.businessType} />
 
       {/* Disclaimers */}
       <div className="mt-8 flex gap-3.5 rounded-2xl border border-slate-200/50 bg-slate-100/40 p-5 shadow-xs">

@@ -5,7 +5,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clean database
+  await prisma.adClick.deleteMany();
+  await prisma.adImpression.deleteMany();
+  await prisma.adCampaign.deleteMany();
   await prisma.subscription.deleteMany();
+
   await prisma.payment.deleteMany();
   await prisma.plan.deleteMany();
   await prisma.authAttempt.deleteMany();
@@ -37,6 +41,24 @@ async function main() {
         'Rasio listrik terhadap pendapatan',
         'Rekomendasi AI terbatas',
         'Histori 1–3 bulan',
+      ],
+    },
+  });
+
+  const trialPlan = await prisma.plan.create({
+    data: {
+      code: 'PRO_TRIAL',
+      name: 'Pro Trial',
+      description: 'Akses uji coba fitur premium Pro selama 30 hari',
+      priceIdr: 0,
+      billingCycle: 'monthly',
+      features: [
+        'Uji coba gratis 30 hari',
+        'Sampai 3 bisnis/properti',
+        'Semua fitur Pro terbuka',
+        'Anomaly detection & AI',
+        'Rekomendasi AI detail',
+        'Laporan PDF bulanan',
       ],
     },
   });
@@ -429,7 +451,592 @@ async function main() {
     },
   });
 
-  console.log('Seed completed: Laundry Berkah + Frozen Jaya Purwokerto + Plans (MSME Demo Ready)');
+  // 1. FREE USER: free@wattwise.id
+  const freeUser = await prisma.user.create({
+    data: {
+      email: 'free@wattwise.id',
+      name: 'Hendra Wijaya (Free)',
+      password: hashedPassword,
+    },
+  });
+  await prisma.subscription.create({
+    data: {
+      userId: freeUser.id,
+      planId: freePlan.id,
+      status: 'ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+  const freeBiz = await prisma.business.create({
+    data: {
+      name: 'Kopi Seduh UMKM',
+      type: BusinessType.FNB,
+      address: 'Jl. Melati No. 12, Purwokerto',
+      powerVA: 2200,
+      operatingHours: '10:00 - 22:00',
+      userId: freeUser.id,
+      memberships: {
+        create: { userId: freeUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Mesin Espresso', powerWatt: 1200, quantity: 1, dailyUsageHours: 6, businessId: freeBiz.id },
+      { name: 'Kulkas Showcase', powerWatt: 180, quantity: 1, dailyUsageHours: 24, businessId: freeBiz.id },
+      { name: 'Lampu LED Toko', powerWatt: 15, quantity: 8, dailyUsageHours: 12, businessId: freeBiz.id }
+    ]
+  });
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: freeBiz.id, month: 4, year: 2026, usageKwh: 180.2, costIdr: 261290 },
+      { businessId: freeBiz.id, month: 5, year: 2026, usageKwh: 195.5, costIdr: 283475 }
+    ]
+  });
+  await prisma.analysisResult.create({
+    data: {
+      businessId: freeBiz.id, month: 5, year: 2026, totalUsageKwh: 195.5, totalCostIdr: 283475, efficiencyScore: 78.0
+    }
+  });
+
+  // 2. TRIAL USER: trial@wattwise.id
+  const trialUser = await prisma.user.create({
+    data: {
+      email: 'trial@wattwise.id',
+      name: 'Adi Saputra (Trial)',
+      password: hashedPassword,
+    },
+  });
+  await prisma.subscription.create({
+    data: {
+      userId: trialUser.id,
+      planId: trialPlan.id,
+      status: 'TRIAL_ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      trialStartDate: new Date(),
+      trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+  
+  // Business 1 (6+ months history to trigger LSTM)
+  const trialBiz1 = await prisma.business.create({
+    data: {
+      name: 'Pangkas Rambut Rapi',
+      type: BusinessType.RETAIL,
+      address: 'Jl. Sudirman No. 12',
+      powerVA: 3500,
+      userId: trialUser.id,
+      memberships: {
+        create: { userId: trialUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Hair Dryer', powerWatt: 800, quantity: 2, dailyUsageHours: 4, businessId: trialBiz1.id },
+      { name: 'AC 1 PK', powerWatt: 750, quantity: 1, dailyUsageHours: 10, businessId: trialBiz1.id },
+      { name: 'Lampu LED', powerWatt: 10, quantity: 10, dailyUsageHours: 12, businessId: trialBiz1.id }
+    ]
+  });
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: trialBiz1.id, month: 12, year: 2025, usageKwh: 340.5, costIdr: 493725 },
+      { businessId: trialBiz1.id, month: 1, year: 2026, usageKwh: 355.2, costIdr: 515040 },
+      { businessId: trialBiz1.id, month: 2, year: 2026, usageKwh: 330.0, costIdr: 478500 },
+      { businessId: trialBiz1.id, month: 3, year: 2026, usageKwh: 360.4, costIdr: 522580 },
+      { businessId: trialBiz1.id, month: 4, year: 2026, usageKwh: 380.0, costIdr: 551000 },
+      { businessId: trialBiz1.id, month: 5, year: 2026, usageKwh: 450.5, costIdr: 653225 }
+    ]
+  });
+  await prisma.analysisResult.create({
+    data: {
+      businessId: trialBiz1.id, month: 5, year: 2026, totalUsageKwh: 450.5, totalCostIdr: 653225, efficiencyScore: 65.0
+    }
+  });
+  await prisma.anomaly.create({
+    data: {
+      businessId: trialBiz1.id, month: 5, year: 2026, description: 'Beban AC naik 20% karena filter tersumbat debu.', severity: RiskLevel.MEDIUM, usageKwh: 450.5, expectedKwh: 400.0, isResolved: false
+    }
+  });
+  await prisma.recommendation.create({
+    data: {
+      businessId: trialBiz1.id, title: 'Bersihkan AC Berkala', description: 'Bersihkan filter AC untuk menghemat listrik.', estimatedSavingsIdr: 50000, difficulty: RecommendationDifficulty.EASY, isImplemented: false
+    }
+  });
+
+  // Business 2 (4 months history to trigger Gradient Boosting)
+  const trialBiz2 = await prisma.business.create({
+    data: {
+      name: 'Martabak Legenda',
+      type: BusinessType.FNB,
+      address: 'Jl. Merdeka No. 44',
+      powerVA: 2200,
+      userId: trialUser.id,
+      memberships: {
+        create: { userId: trialUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Kulkas Bahan', powerWatt: 200, quantity: 1, dailyUsageHours: 24, businessId: trialBiz2.id },
+      { name: 'Mixer Adonan', powerWatt: 400, quantity: 1, dailyUsageHours: 2, businessId: trialBiz2.id }
+    ]
+  });
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: trialBiz2.id, month: 2, year: 2026, usageKwh: 155.0, costIdr: 224750 },
+      { businessId: trialBiz2.id, month: 3, year: 2026, usageKwh: 162.4, costIdr: 235480 },
+      { businessId: trialBiz2.id, month: 4, year: 2026, usageKwh: 170.0, costIdr: 246500 },
+      { businessId: trialBiz2.id, month: 5, year: 2026, usageKwh: 185.5, costIdr: 268975 }
+    ]
+  });
+  await prisma.analysisResult.create({
+    data: {
+      businessId: trialBiz2.id, month: 5, year: 2026, totalUsageKwh: 185.5, totalCostIdr: 268975, efficiencyScore: 82.0
+    }
+  });
+
+  // Business 3 (2 months history)
+  const trialBiz3 = await prisma.business.create({
+    data: {
+      name: 'Laundry Kilat',
+      type: BusinessType.LAUNDRY,
+      address: 'Jl. Gatsu No. 5',
+      powerVA: 3500,
+      userId: trialUser.id,
+      memberships: {
+        create: { userId: trialUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Mesin Cuci Standard', powerWatt: 1000, quantity: 1, dailyUsageHours: 5, businessId: trialBiz3.id }
+    ]
+  });
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: trialBiz3.id, month: 4, year: 2026, usageKwh: 140.0, costIdr: 203000 },
+      { businessId: trialBiz3.id, month: 5, year: 2026, usageKwh: 152.0, costIdr: 220400 }
+    ]
+  });
+  await prisma.analysisResult.create({
+    data: {
+      businessId: trialBiz3.id, month: 5, year: 2026, totalUsageKwh: 152.0, totalCostIdr: 220400, efficiencyScore: 88.0
+    }
+  });
+
+  // 3. PRO USER: pro@wattwise.id
+  const proUser = await prisma.user.create({
+    data: {
+      email: 'pro@wattwise.id',
+      name: 'Siti Aminah (Pro)',
+      password: hashedPassword,
+    },
+  });
+  await prisma.subscription.create({
+    data: {
+      userId: proUser.id,
+      planId: proPlan.id,
+      status: 'ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+  const proBiz = await prisma.business.create({
+    data: {
+      name: 'Resto Padang Selera',
+      type: BusinessType.FNB,
+      address: 'Jl. Pahlawan No. 9',
+      powerVA: 5500,
+      userId: proUser.id,
+      memberships: {
+        create: { userId: proUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Magic Com Besar', powerWatt: 1000, quantity: 2, dailyUsageHours: 8, businessId: proBiz.id },
+      { name: 'Kulkas Penyimpanan', powerWatt: 250, quantity: 2, dailyUsageHours: 24, businessId: proBiz.id }
+    ]
+  });
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: proBiz.id, month: 12, year: 2025, usageKwh: 520.0, costIdr: 754000 },
+      { businessId: proBiz.id, month: 1, year: 2026, usageKwh: 545.2, costIdr: 790540 },
+      { businessId: proBiz.id, month: 2, year: 2026, usageKwh: 510.0, costIdr: 739500 },
+      { businessId: proBiz.id, month: 3, year: 2026, usageKwh: 530.4, costIdr: 769080 },
+      { businessId: proBiz.id, month: 4, year: 2026, usageKwh: 550.0, costIdr: 797500 },
+      { businessId: proBiz.id, month: 5, year: 2026, usageKwh: 580.5, costIdr: 841725 }
+    ]
+  });
+  await prisma.analysisResult.create({
+    data: {
+      businessId: proBiz.id, month: 5, year: 2026, totalUsageKwh: 580.5, totalCostIdr: 841725, efficiencyScore: 76.0
+    }
+  });
+
+  // 4. ENTERPRISE USER: enterprise@wattwise.id
+  // === BUSINESS USER: business@wattwise.id ===
+  const businessUser = await prisma.user.create({
+    data: {
+      email: 'business@wattwise.id',
+      name: 'Budi Santoso (Business)',
+      password: hashedPassword,
+    },
+  });
+
+  await prisma.subscription.create({
+    data: {
+      userId: businessUser.id,
+      planId: businessPlan.id,
+      status: 'ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Duplicate businesses for business@wattwise.id
+  const laundry2 = await prisma.business.create({
+    data: {
+      name: 'Laundry Berkah Cabang Timur',
+      type: BusinessType.LAUNDRY,
+      address: 'Jl. Ahmad Yani No. 120, Purwokerto',
+      powerVA: 5500,
+      operatingHours: '08:00 - 20:00 (12 Jam)',
+      userId: businessUser.id,
+      memberships: {
+        create: { userId: businessUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+
+  const frozen2 = await prisma.business.create({
+    data: {
+      name: 'Frozen Jaya Cabang Baturaden',
+      type: BusinessType.COLD_STORAGE,
+      address: 'Jl. Raya Baturaden No. 8, Baturaden',
+      powerVA: 11000,
+      operatingHours: '24 Jam Non-Stop',
+      userId: businessUser.id,
+      memberships: {
+        create: { userId: businessUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+      }
+    },
+  });
+
+  // Add appliances and bills to Business demo account
+  await prisma.appliance.createMany({
+    data: [
+      { name: 'Mesin Cuci Front Load', powerWatt: 1200, quantity: 2, dailyUsageHours: 8, usageStatus: UsageStatus.ACTIVE, businessId: laundry2.id },
+      { name: 'Mesin Pengering', powerWatt: 2200, quantity: 1, dailyUsageHours: 6, usageStatus: UsageStatus.ACTIVE, businessId: laundry2.id },
+      { name: 'Walk-in Freezer', powerWatt: 3800, quantity: 1, dailyUsageHours: 24, usageStatus: UsageStatus.ACTIVE, businessId: frozen2.id }
+    ]
+  });
+
+  await prisma.electricityEntry.createMany({
+    data: [
+      { businessId: laundry2.id, month: 4, year: 2026, usageKwh: 450.0, costIdr: 652500 },
+      { businessId: laundry2.id, month: 5, year: 2026, usageKwh: 480.0, costIdr: 696000 },
+      { businessId: frozen2.id, month: 4, year: 2026, usageKwh: 2800.0, costIdr: 4060000 },
+      { businessId: frozen2.id, month: 5, year: 2026, usageKwh: 2950.0, costIdr: 4277500 }
+    ]
+  });
+
+  await prisma.analysisResult.createMany({
+    data: [
+      { businessId: laundry2.id, month: 5, year: 2026, totalUsageKwh: 480.0, totalCostIdr: 696000, efficiencyScore: 82.0 },
+      { businessId: frozen2.id, month: 5, year: 2026, totalUsageKwh: 2950.0, totalCostIdr: 4277500, efficiencyScore: 78.5 }
+    ]
+  });
+
+  // === ENTERPRISE USER: enterprise@wattwise.id ===
+  const enterpriseUser = await prisma.user.create({
+    data: {
+      email: 'enterprise@wattwise.id',
+      name: 'Rudi Hermawan (Enterprise)',
+      password: hashedPassword,
+    },
+  });
+
+  await prisma.subscription.create({
+    data: {
+      userId: enterpriseUser.id,
+      planId: enterprisePlan.id,
+      status: 'ACTIVE',
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Helper to seed varied data for Enterprise locations
+  const seedEnterpriseLocation = async (
+    name: string,
+    type: BusinessType,
+    address: string,
+    powerVA: number,
+    operatingHours: string,
+    monthsCount: number,
+    status: 'Aman' | 'Perlu Dicek' | 'Boros'
+  ) => {
+    const business = await prisma.business.create({
+      data: {
+        name,
+        type,
+        address,
+        powerVA,
+        operatingHours,
+        userId: enterpriseUser.id,
+        memberships: {
+          create: { userId: enterpriseUser.id, role: 'BUSINESS_OWNER', status: 'ACTIVE' }
+        }
+      }
+    });
+
+    const appliances = [];
+    if (type === BusinessType.LAUNDRY) {
+      appliances.push(
+        { name: 'Mesin Cuci Industrial', powerWatt: 1500, quantity: 2, dailyUsageHours: 8, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Mesin Pengering Gas/Listrik', powerWatt: 300, quantity: 2, dailyUsageHours: 6, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Setrika Uap Listrik', powerWatt: 1200, quantity: 2, dailyUsageHours: 5, usageStatus: UsageStatus.ACTIVE, businessId: business.id }
+      );
+    } else if (type === BusinessType.COLD_STORAGE) {
+      appliances.push(
+        { name: 'Walk-in Cold Storage Room', powerWatt: 4500, quantity: 1, dailyUsageHours: 24, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Chest Freezer Box', powerWatt: 300, quantity: 3, dailyUsageHours: 24, usageStatus: UsageStatus.ACTIVE, businessId: business.id }
+      );
+    } else if (type === BusinessType.FNB) {
+      appliances.push(
+        { name: 'Showcase Chiller', powerWatt: 250, quantity: 2, dailyUsageHours: 24, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Mesin Kopi Espresso', powerWatt: 1500, quantity: 1, dailyUsageHours: 6, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Rice Cooker Besar', powerWatt: 800, quantity: 1, dailyUsageHours: 4, usageStatus: UsageStatus.ACTIVE, businessId: business.id }
+      );
+    } else if (type === BusinessType.RETAIL) {
+      appliances.push(
+        { name: 'Showcase Minuman', powerWatt: 280, quantity: 3, dailyUsageHours: 24, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'AC Showroom 2 PK', powerWatt: 1500, quantity: 1, dailyUsageHours: 12, usageStatus: UsageStatus.ACTIVE, businessId: business.id }
+      );
+    } else {
+      appliances.push(
+        { name: 'AC Split 1 PK', powerWatt: 750, quantity: 4, dailyUsageHours: 10, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Pemanas Air Listrik (Water Heater)', powerWatt: 1000, quantity: 2, dailyUsageHours: 3, usageStatus: UsageStatus.ACTIVE, businessId: business.id },
+        { name: 'Lampu Penerangan Lorong', powerWatt: 15, quantity: 20, dailyUsageHours: 12, usageStatus: UsageStatus.ACTIVE, businessId: business.id }
+      );
+    }
+    await prisma.appliance.createMany({ data: appliances });
+
+    const entries = [];
+    const baseUsage = type === BusinessType.COLD_STORAGE ? 5000 : type === BusinessType.LAUNDRY ? 600 : type === BusinessType.FNB ? 400 : 300;
+    const startMonth = 5;
+    const startYear = 2026;
+    
+    for (let i = 0; i < monthsCount; i++) {
+      let m = startMonth - i;
+      let y = startYear;
+      if (m <= 0) {
+        m = 12 + m;
+        y = startYear - 1;
+      }
+
+      let multiplier = 1.0 + Math.sin(m) * 0.1;
+      if (status === 'Boros') {
+        multiplier += 0.15 + (i === 0 ? 0.25 : 0.05);
+      } else if (status === 'Perlu Dicek') {
+        multiplier += 0.08 + (i === 0 ? 0.12 : 0.0);
+      } else {
+        multiplier -= 0.05;
+      }
+      
+      const usageKwh = parseFloat((baseUsage * multiplier).toFixed(2));
+      const costIdr = Math.round(usageKwh * 1450);
+      entries.push({ month: m, year: y, usageKwh, costIdr, businessId: business.id });
+    }
+
+    entries.reverse();
+    await prisma.electricityEntry.createMany({ data: entries });
+
+    const latestEntry = entries[entries.length - 1];
+    let score = 85.0;
+    if (status === 'Boros') score = 55.4;
+    else if (status === 'Perlu Dicek') score = 71.2;
+
+    await prisma.analysisResult.create({
+      data: {
+        businessId: business.id,
+        month: 5,
+        year: 2026,
+        totalUsageKwh: latestEntry.usageKwh,
+        totalCostIdr: latestEntry.costIdr,
+        avgDailyKwh: latestEntry.usageKwh / 30,
+        carbonKg: latestEntry.usageKwh * 0.78,
+        efficiencyScore: score,
+      }
+    });
+
+    if (status === 'Boros') {
+      await prisma.anomaly.create({
+        data: {
+          businessId: business.id,
+          month: 5,
+          year: 2026,
+          description: `Lonjakan drastis konsumsi energi terdeteksi pada peralatan ${appliances[0].name}. Indikasi pemborosan daya standby atau kebocoran arus listrik.`,
+          severity: RiskLevel.HIGH,
+          usageKwh: latestEntry.usageKwh,
+          expectedKwh: latestEntry.usageKwh * 0.75,
+          isResolved: false
+        }
+      });
+
+      await prisma.recommendation.create({
+        data: {
+          businessId: business.id,
+          title: `Optimalkan Siklus Daya ${appliances[0].name}`,
+          description: `Gunakan smart timer switch atau matikan total unit saat di luar jam operasional. Estimasi penghematan hingga Rp 250.000 per bulan.`,
+          estimatedSavingsIdr: 250000,
+          difficulty: RecommendationDifficulty.EASY,
+          isImplemented: false
+        }
+      });
+    } else if (status === 'Perlu Dicek') {
+      await prisma.anomaly.create({
+        data: {
+          businessId: business.id,
+          month: 5,
+          year: 2026,
+          description: `Efisiensi AC ruangan/showcase menurun. Konsumsi kWh berada di batas atas ambang batas normal.`,
+          severity: RiskLevel.MEDIUM,
+          usageKwh: latestEntry.usageKwh,
+          expectedKwh: latestEntry.usageKwh * 0.9,
+          isResolved: false
+        }
+      });
+
+      await prisma.recommendation.create({
+        data: {
+          businessId: business.id,
+          title: `Servis AC dan Pembersihan Filter`,
+          description: `Lakukan pembersihan unit AC indoor & outdoor serta pemeriksaan freon untuk mengembalikan efisiensi kompresor.`,
+          estimatedSavingsIdr: 95000,
+          difficulty: RecommendationDifficulty.EASY,
+          isImplemented: false
+        }
+      });
+    }
+
+    await prisma.recommendation.create({
+      data: {
+        businessId: business.id,
+        title: `Ganti ke Penerangan LED Hemat Energi`,
+        description: `Ganti lampu pijar/TL lama dengan lampu LED hemat daya.`,
+        estimatedSavingsIdr: 35000,
+        difficulty: RecommendationDifficulty.EASY,
+        isImplemented: status === 'Aman'
+      }
+    });
+
+    const predictedUsageKwh = parseFloat((latestEntry.usageKwh * 0.97).toFixed(2));
+    const predictedCostIdr = Math.round(predictedUsageKwh * 1450);
+    const methodUsed = monthsCount >= 6 ? 'LSTM_PROTOTYPE' : monthsCount >= 3 ? 'TABULAR_UMKM_V1' : 'RULE_BASED';
+    const confidence = monthsCount >= 6 ? 'HIGH' : monthsCount >= 3 ? 'MEDIUM' : 'LOW';
+
+    await prisma.predictionResult.create({
+      data: {
+        businessId: business.id,
+        month: 5,
+        year: 2026,
+        predictedForMonth: 6,
+        predictedForYear: 2026,
+        predictedUsageKwh,
+        predictedCostIdr,
+        trendDirection: 'TURUN',
+        trendPercent: -3.0,
+        confidenceLevel: confidence,
+        confidenceReason: `Prediksi berdasarkan ${monthsCount} bulan data historis dengan kecenderungan stabil.`,
+        method: methodUsed,
+        explanation: `Perkiraan pemakaian bulan depan sekitar ${predictedUsageKwh} kWh dengan biaya Rp ${predictedCostIdr.toLocaleString('id-ID')}.`,
+        disclaimer: 'Prediksi bersifat estimasi simulasi.',
+        modelVersion: 'v1.0.0-demo'
+      }
+    });
+
+    await prisma.monthlyReport.create({
+      data: {
+        businessId: business.id,
+        month: 5,
+        year: 2026,
+        status: ReportStatus.GENERATED,
+        summary: `Laporan Bulanan untuk ${name} (Mei 2026). Efisiensi energi berstatus ${status} dengan skor ${score}/100.`,
+      }
+    });
+  };
+
+  // Seed 10 locations for enterprise@wattwise.id
+  await seedEnterpriseLocation("Kos Melati Purwokerto", BusinessType.OTHER, "Jl. Melati No. 88, Purwokerto", 5500, "24 Jam", 12, "Boros");
+  await seedEnterpriseLocation("Kos Anggrek Sokaraja", BusinessType.OTHER, "Jl. Anggrek No. 12, Sokaraja", 5500, "24 Jam", 12, "Aman");
+  await seedEnterpriseLocation("Kos Mawar Baturaden", BusinessType.OTHER, "Jl. Mawar No. 4, Baturaden", 3500, "24 Jam", 4, "Aman");
+  await seedEnterpriseLocation("Laundry Cabang Utama", BusinessType.LAUNDRY, "Jl. Jend Sudirman No. 20", 11000, "08:00 - 21:00", 12, "Perlu Dicek");
+  await seedEnterpriseLocation("Laundry Cabang Timur", BusinessType.LAUNDRY, "Jl. Gatot Subroto No. 45", 5500, "08:00 - 20:00", 2, "Aman");
+  await seedEnterpriseLocation("Frozen Food Timur", BusinessType.COLD_STORAGE, "Kawasan Industri Sokaraja Blok A", 22000, "24 Jam", 12, "Boros");
+  await seedEnterpriseLocation("Frozen Food Barat", BusinessType.COLD_STORAGE, "Jl. Patimura No. 11", 16500, "24 Jam", 12, "Aman");
+  await seedEnterpriseLocation("Warung Kopi Cabang Barat", BusinessType.FNB, "Jl. Pemuda No. 77", 4400, "09:00 - 23:00", 12, "Aman");
+  await seedEnterpriseLocation("Minimarket Selatan", BusinessType.RETAIL, "Jl. Wahid Hasyim No. 9", 11000, "07:00 - 22:00", 12, "Perlu Dicek");
+  await seedEnterpriseLocation("Properti Campuran Utara", BusinessType.OTHER, "Jl. Raden Patah No. 3", 6600, "24 Jam", 12, "Aman");
+  
+  // Seed Ad Campaigns
+  const now = new Date();
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+  await prisma.adCampaign.createMany({
+    data: [
+      {
+        title: "Solusi Panel Surya untuk Ritel & F&B",
+        description: "Hemat tagihan listrik hingga 40% dengan sistem solar panel pintar. Khusus UMKM, dapatkan cicilan 0%!",
+        targetUrl: "https://www.google.com/search?q=solar+panel+umkm",
+        placement: "dashboard_bottom",
+        targetSegment: "UMKM",
+        isActive: true,
+        startDate: oneMonthAgo,
+        endDate: oneYearLater,
+      },
+      {
+        title: "Asuransi Properti Kos & Ruko Syariah",
+        description: "Lindungi bangunan kos dan ruko Anda dari korsleting listrik, kebakaran, dan banjir. Premi mulai Rp 50rb/bulan.",
+        targetUrl: "https://www.google.com/search?q=asuransi+kos",
+        placement: "report_preview",
+        targetSegment: "KOS",
+        isActive: true,
+        startDate: oneMonthAgo,
+        endDate: oneYearLater,
+      },
+      {
+        title: "Dapatkan WattWise Pro - Hemat 30% Tagihan",
+        description: "Aktifkan analisis LSTM dan deteksi anomali real-time sekarang juga. Dapatkan garansi penghematan tagihan listrik!",
+        targetUrl: "/dashboard/harga-paket",
+        placement: "recommendation_bottom",
+        targetSegment: "ALL",
+        isActive: true,
+        startDate: oneMonthAgo,
+        endDate: oneYearLater,
+      },
+      {
+        title: "Promo Smart Gateway IoT Phase 3",
+        description: "Instalasi smart power meter gateway untuk monitoring konsumsi listrik otomatis per kamar. Diskon pemasangan 20%.",
+        targetUrl: "https://www.google.com/search?q=smart+meter+iot",
+        placement: "pricing_page",
+        targetSegment: "ALL",
+        isActive: true,
+        startDate: oneMonthAgo,
+        endDate: oneYearLater,
+      },
+    ],
+  });
+
+  console.log('Seed completed: Laundry Berkah + Frozen Jaya Purwokerto + Plans + Demo Accounts + Ads (MSME Demo Ready)');
 }
 
 main()

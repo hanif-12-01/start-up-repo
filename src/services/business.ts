@@ -100,7 +100,7 @@ export const getDashboardDataForBusiness = cache(async (userId: string) => {
       appliances: {
         where: { usageStatus: "ACTIVE" },
         orderBy: { powerWatt: "desc" },
-        select: { name: true, powerWatt: true, quantity: true, dailyUsageHours: true },
+        select: { id: true, name: true, category: true, powerWatt: true, quantity: true, dailyUsageHours: true },
       },
       analysisResults: {
         orderBy: [{ year: "desc" }, { month: "desc" }],
@@ -217,7 +217,7 @@ export const getPeralatanDataForBusiness = cache(async (userId: string) => {
       name: true,
       appliances: {
         orderBy: [{ usageStatus: "asc" }, { powerWatt: "desc" }],
-        select: { id: true, name: true, powerWatt: true, quantity: true, dailyUsageHours: true, usageStatus: true },
+        select: { id: true, name: true, category: true, powerWatt: true, quantity: true, dailyUsageHours: true, usageStatus: true },
       },
       electricityEntries: {
         orderBy: [{ year: "desc" }, { month: "desc" }],

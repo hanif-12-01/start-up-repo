@@ -1,8 +1,11 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { Cpu, Radio, Timer, Wifi } from "lucide-react";
+import { Activity, CheckCircle2, Cpu, MapPin, Radio, Timer, Wifi } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/common";
+import { getUserPlan } from "@/services/subscription";
+import { canAccessFeature, isTrialActive, FEATURE_KEYS } from "@/lib/plan-entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +33,79 @@ export default async function AiotPage() {
     redirect("/login?callbackUrl=/dashboard/aiot");
   }
 
+  const { subscription, plan } = await getUserPlan(session.user.id);
+  const planCode = plan?.code || "FREE";
+  const trialActive = subscription ? isTrialActive(subscription) : false;
+  const hasFullSimulation = canAccessFeature(
+    FEATURE_KEYS.IOT_FULL_SIMULATION,
+    planCode,
+    trialActive,
+  );
+
+  const businessCount = hasFullSimulation
+    ? await db.business.count({ where: { userId: session.user.id } })
+    : 0;
+
   return (
     <div>
       <PageHeader
         title="AIoT"
         subtitle="Sensor pintar untuk memantau pemakaian listrik harian dan mendeteksi alat boros — segera hadir."
       />
+
+      {hasFullSimulation && (
+        <div className="mb-6 rounded-3xl border border-emerald-100 bg-emerald-50/40 p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500 text-white shadow-sm">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                Paket Bisnis · IoT-Ready Dashboard
+              </span>
+              <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
+                Simulasi AIoT — Multi-Lokasi
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-emerald-100 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase text-slate-400">Status perangkat</p>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-extrabold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Simulasi
+              </p>
+              <p className="mt-1 text-[11px] text-slate-500">Belum terhubung ke hardware real</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase text-slate-400">Lokasi terhubung</p>
+              <p className="mt-1 text-sm font-extrabold text-slate-800">
+                {businessCount} lokasi
+              </p>
+              <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+                <MapPin className="h-3 w-3" /> Semua bisnis Anda
+              </p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase text-slate-400">Data harian</p>
+              <p className="mt-1 text-sm font-extrabold text-slate-800">Simulasi</p>
+              <p className="mt-1 text-[11px] text-slate-500">Berdasarkan input manual + pola historis</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase text-slate-400">Sinkron dashboard</p>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-extrabold text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" /> Aktif (simulasi)
+              </p>
+              <p className="mt-1 text-[11px] text-slate-500">Update setiap input baru</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-relaxed text-slate-600">
+            <strong className="text-slate-700">Rencana MVP 3 — AIoT:</strong>{" "}
+            perangkat AIoT nirkabel yang membaca konsumsi listrik harian dan sinkron
+            otomatis ke dashboard multi-lokasi Anda. Saat ini masih simulasi visual
+            perangkat; belum ada sensor real-time atau integrasi resmi PLN.
+          </div>
+        </div>
+      )}
 
       {/* Hero coming-soon */}
       <div className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-8 md:p-10">

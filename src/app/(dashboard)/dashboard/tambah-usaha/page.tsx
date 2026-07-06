@@ -7,7 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Zap, Store, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, Sparkles, Check, X } from "lucide-react";
 import { BusinessType } from "@prisma/client";
-import { createOnboardingBusiness } from "@/app/actions/business";
+import { createOnboardingBusiness, checkBusinessLimitAction } from "@/app/actions/business";
+import { UpgradeCta } from "@/components/subscription/UpgradeCta";
+import { useEffect } from "react";
 import { useToast } from "@/components/ui/toast";
 import { PageHeader } from "@/components/ui/common";
 
@@ -84,6 +86,26 @@ export default function TambahUsahaPage() {
   const [step, setStep] = useState(1);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+  const [reachedLimit, setReachedLimit] = useState(false);
+  const [limitError, setLimitError] = useState("");
+
+  useEffect(() => {
+    async function runCheck() {
+      try {
+        const res = await checkBusinessLimitAction();
+        if (res.reached) {
+          setReachedLimit(true);
+          setLimitError(res.error || "");
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa batas usaha:", err);
+      } finally {
+        setCheckingLimit(false);
+      }
+    }
+    runCheck();
+  }, []);
 
   const {
     register,
@@ -165,8 +187,36 @@ export default function TambahUsahaPage() {
     }
   };
 
+  if (checkingLimit) {
+    return (
+      <div className="flex h-64 items-center justify-center font-sans">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-green" />
+        <span className="ml-2 text-xs font-semibold text-slate-500 font-sans">Memeriksa batas akun...</span>
+      </div>
+    );
+  }
+
+  if (reachedLimit) {
+    return (
+      <div className="max-w-3xl font-sans">
+        <PageHeader
+          title="Batas Usaha Tercapai"
+          subtitle="Upgrade paket Anda untuk dapat menambahkan cabang atau properti usaha baru."
+        />
+        <div className="mt-8">
+          <UpgradeCta 
+            title="Batas Cabang Properti Tercapai"
+            description={limitError || "Paket Anda telah mencapai batas kuota usaha/properti aktif."}
+            href="/dashboard/paket-demo"
+            buttonText="Upgrade Paket / Coba Pro"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl font-sans">
       <PageHeader
         title="Daftarkan Usaha Baru"
         subtitle="Tambahkan cabang atau lini bisnis baru Anda ke ekosistem WattWise AI untuk pemantauan terpusat."

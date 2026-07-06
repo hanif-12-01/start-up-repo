@@ -11,6 +11,9 @@ import {
 import { toggleRecommendationAction } from "@/app/actions/recommendation";
 import { useToast } from "@/components/ui/toast";
 import { formatRupiah } from "@/lib/utils";
+import { UpgradeCta } from "@/components/subscription/UpgradeCta";
+import { AdSlot } from "@/components/ads/ad-slot";
+
 
 type Difficulty = "EASY" | "MEDIUM" | "HARD";
 type Priority = "Tinggi" | "Sedang" | "Rendah";
@@ -153,6 +156,8 @@ export function RekomendasiClient({
   recommendations,
   businessName,
   potentialSavingsIdr,
+  businessType,
+  isFreePlan = false,
 }: {
   recommendations: RecommendationCardData[];
   businessName: string;
@@ -162,6 +167,7 @@ export function RekomendasiClient({
   appliances: any[];
   latestEntryCost: number | null;
   latestEntryKwh: number | null;
+  isFreePlan?: boolean;
 }) {
   const { toast } = useToast();
   const [recs, setRecs] = useState(recommendations);
@@ -216,7 +222,22 @@ export function RekomendasiClient({
               </p>
             </div>
           ) : (
-            recs.map((rec) => <RecommendationCard key={rec.id} rec={rec} onToggle={handleToggle} />)
+            <div className="space-y-4 font-sans">
+              {recs.map((rec) => (
+                <RecommendationCard key={rec.id} rec={rec} onToggle={handleToggle} />
+              ))}
+
+              {isFreePlan && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <UpgradeCta 
+                    title="Rekomendasi Hemat Lainnya Terkunci"
+                    description="Buka rekomendasi hemat energi AI yang dipersonalisasi lengkap untuk seluruh peralatan listrik usaha Anda."
+                    href="/dashboard/paket-demo"
+                    buttonText="Mulai Pro Trial"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </section>
 
@@ -253,6 +274,7 @@ export function RekomendasiClient({
           </div>
         </aside>
       </div>
+      <AdSlot placement="recommendation_bottom" businessType={businessType} />
     </div>
   );
 }

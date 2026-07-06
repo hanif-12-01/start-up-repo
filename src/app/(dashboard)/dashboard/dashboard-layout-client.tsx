@@ -83,6 +83,7 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Notifikasi", href: "/dashboard/notifikasi", icon: Bell },
       { label: "Harga Paket", href: "/dashboard/harga-paket", icon: CreditCard },
+      { label: "Simulasi Paket", href: "/dashboard/paket-demo", icon: Sparkles },
     ],
   },
 ];
@@ -96,12 +97,21 @@ interface DashboardLayoutClientProps {
   children: ReactNode;
   businesses: Business[];
   activeBusinessId: string;
+  subscription?: {
+    status: string;
+    trialEndDate: string | null;
+    plan: {
+      code: string;
+      name: string;
+    };
+  } | null;
 }
 
 export default function DashboardLayoutClient({
   children,
   businesses,
   activeBusinessId,
+  subscription = null,
 }: DashboardLayoutClientProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -186,15 +196,51 @@ export default function DashboardLayoutClient({
       .substring(0, 2)
       .toUpperCase();
 
+    const planCode = subscription?.plan?.code || "FREE";
+    const isTrial = planCode === "PRO_TRIAL" || subscription?.status === "TRIAL_ACTIVE";
+    let trialDays = 0;
+    if (isTrial && subscription?.trialEndDate) {
+      const trialEndDate = new Date(subscription.trialEndDate);
+      const today = new Date();
+      const diffTime = trialEndDate.getTime() - today.getTime();
+      trialDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 font-sans">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700 shadow-sm">
             {initials}
           </div>
           <div className="overflow-hidden">
             <p className="truncate text-xs font-bold text-slate-800 leading-tight">{name}</p>
-            <p className="truncate text-[10px] text-slate-400 font-medium mt-0.5">{session?.user?.email}</p>
+            <p className="truncate text-[10px] text-slate-400 font-medium mt-0.5 leading-tight">{session?.user?.email}</p>
+            {subscription && (
+              <div className="mt-1.5 flex flex-col gap-0.5">
+                <span className={cn(
+                  "inline-block rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider w-max text-center leading-none",
+                  planCode === "FREE" ? "bg-slate-100 text-slate-600 border border-slate-200" :
+                  planCode === "PRO_TRIAL" ? "bg-indigo-50 text-indigo-700 border border-indigo-200" :
+                  planCode === "PRO_UMKM" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                  planCode === "BUSINESS" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                  "bg-amber-50 text-amber-750 border border-amber-250"
+                )}>
+                  {planCode === "PRO_TRIAL" ? "Pro Trial" : 
+                   planCode === "ENTERPRISE" ? "Paket Enterprise" :
+                   planCode === "BUSINESS" ? "Paket Bisnis" :
+                   subscription.plan.name}
+                </span>
+                {planCode === "ENTERPRISE" && (
+                  <span className="text-[8px] font-bold text-amber-600 mt-1 block">Custom plan</span>
+                )}
+                {isTrial && trialDays > 0 && (
+                  <span className="text-[8px] font-bold text-indigo-600">Trial sisa {trialDays} hari</span>
+                )}
+                {isTrial && trialDays <= 0 && (
+                  <span className="text-[8px] font-bold text-rose-600">Trial berakhir</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <button

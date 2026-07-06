@@ -524,3 +524,38 @@ model DeviceReading {
   currentAmpere  Float?
   status         String   @default("NORMAL")
 }
+
+model AdCampaign {
+  id            String         @id @default(uuid())
+  title         String
+  description   String
+  imageUrl      String?
+  targetUrl     String
+  placement     String         // dashboard_bottom, report_preview, recommendation_bottom, pricing_page
+  targetSegment String         // KOS, UMKM, ALL
+  isActive      Boolean        @default(true)
+  startDate     DateTime
+  endDate       DateTime
+  impressions   AdImpression[]
+  clicks        AdClick[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model AdImpression {
+  id          String     @id @default(uuid())
+  campaignId  String
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String?
+  createdAt   DateTime   @default(now())
+  @@index([campaignId])
+}
+
+model AdClick {
+  id          String     @id @default(uuid())
+  campaignId  String
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String?
+  createdAt   DateTime   @default(now())
+  @@index([campaignId])
+}

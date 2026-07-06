@@ -16,7 +16,8 @@
     "test:adaptive:routing": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/test-adaptive-routing.ts",
     "test:tabular:parity": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/test-tabular-parity.ts",
     "test:adaptive-routing:evaluate": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/evaluate-adaptive-routing-test.ts",
-    "test:pln-model:seed": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/seed-pln-model-test-data.ts"
+    "test:pln-model:seed": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/seed-pln-model-test-data.ts",
+    "test:ads:entitlements": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/test-ads-entitlements.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

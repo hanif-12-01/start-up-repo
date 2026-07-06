@@ -11,7 +11,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { PageHeader, StatusBadge } from "@/components/ui/common";
-import { formatKwh, formatRupiah } from "@/lib/utils";
+import { cn, formatKwh, formatRupiah } from "@/lib/utils";
+import { UpgradeCta } from "@/components/subscription/UpgradeCta";
 
 interface AnomaliItem {
   id: string;
@@ -32,9 +33,10 @@ interface AnomaliClientProps {
     dampakEstimasi: string;
   };
   anomalies: AnomaliItem[];
+  isFreePlan?: boolean;
 }
 
-export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps) {
+export default function AnomaliClient({ summary, anomalies, isFreePlan = false }: AnomaliClientProps) {
   const [filter, setFilter] = useState<"ALL" | "Normal" | "Perlu Dicek" | "Boros">(
     "ALL"
   );
@@ -51,13 +53,33 @@ export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps
         subtitle="WattWise AI mendeteksi lonjakan pemakaian listrik yang tidak biasa. Segera periksa untuk mencegah tagihan membengkak."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card border-t-4 border-t-red-500 bg-red-50/50">
-          <div className="mb-3 flex items-center gap-2 text-red-600">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 font-sans">
+        <div className={cn(
+          "card border-t-4",
+          isFreePlan
+            ? summary.judulLonjakan === "Pemakaian Normal"
+              ? "border-t-green-500 bg-green-50/50 text-green-900"
+              : "border-t-yellow-500 bg-yellow-50/50 text-yellow-900"
+            : "border-t-red-500 bg-red-50/50 text-red-900"
+        )}>
+          <div className={cn(
+            "mb-3 flex items-center gap-2 font-bold",
+            isFreePlan
+              ? summary.judulLonjakan === "Pemakaian Normal"
+                ? "text-green-600"
+                : "text-yellow-600"
+              : "text-red-600"
+          )}>
             <AlertTriangle className="h-5 w-5" />
-            <h3 className="text-sm font-bold">Status Deteksi</h3>
+            <h3 className="text-sm">Status Deteksi</h3>
           </div>
-          <p className="font-semibold text-red-900">{summary.judulLonjakan}</p>
+          <p className="font-semibold">
+            {isFreePlan
+              ? summary.judulLonjakan === "Pemakaian Normal"
+                ? "Normal"
+                : "Perlu dicek"
+              : summary.judulLonjakan}
+          </p>
         </div>
 
         <div className="card">
@@ -65,7 +87,9 @@ export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps
             <Clock className="h-5 w-5 text-brand-blue" />
             <h3 className="text-sm font-bold">Estimasi Kejadian</h3>
           </div>
-          <p className="font-semibold">{summary.waktu}</p>
+          <p className="font-semibold">
+            {isFreePlan ? "Terkunci (Paket Pro)" : summary.waktu}
+          </p>
         </div>
 
         <div className="card">
@@ -73,7 +97,9 @@ export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps
             <Search className="h-5 w-5 text-brand-yellow" />
             <h3 className="text-sm font-bold">Kemungkinan Penyebab</h3>
           </div>
-          <p className="text-sm font-medium leading-relaxed">{summary.kemungkinanPenyebab}</p>
+          <p className="text-sm font-medium leading-relaxed">
+            {isFreePlan ? "Deteksi penyebab mendalam dinonaktifkan." : summary.kemungkinanPenyebab}
+          </p>
         </div>
 
         <div className="card">
@@ -81,7 +107,9 @@ export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps
             <DollarSign className="h-5 w-5 text-brand-green" />
             <h3 className="text-sm font-bold">Dampak Estimasi</h3>
           </div>
-          <p className="text-sm font-medium leading-relaxed">{summary.dampakEstimasi}</p>
+          <p className="text-sm font-medium leading-relaxed">
+            {isFreePlan ? "Perhitungan kerugian dinonaktifkan." : summary.dampakEstimasi}
+          </p>
         </div>
       </div>
 
@@ -137,7 +165,38 @@ export default function AnomaliClient({ summary, anomalies }: AnomaliClientProps
           </div>
         </div>
 
-        {filteredAnomalies.length > 0 ? (
+        {isFreePlan ? (
+          <div className="relative p-8 border border-slate-200 rounded-2xl bg-white shadow-soft font-sans">
+            <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10">
+              <UpgradeCta 
+                title="Riwayat Anomali Terkunci"
+                description="Detail riwayat kejadian anomali, klasifikasi penyebab, estimasi kerugian Rupiah, dan rekomendasi langkah perbaikan memerlukan paket Pro."
+                href="/dashboard/paket-demo"
+                buttonText="Coba Pro Trial"
+              />
+            </div>
+            <div className="filter blur-xs opacity-35 select-none pointer-events-none overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-6 py-4">Tanggal</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Penyebab</th>
+                    <th className="px-6 py-4">Estimasi Kerugian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="px-6 py-4">Mei 2026</td>
+                    <td className="px-6 py-4">Boros</td>
+                    <td className="px-6 py-4">Kerusakan gasket freezer...</td>
+                    <td className="px-6 py-4">Rp 450.000</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : filteredAnomalies.length > 0 ? (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">

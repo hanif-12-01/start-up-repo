@@ -5,6 +5,7 @@ import AnomaliClient from "./anomali-client";
 import { getAnomaliDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
+import { isTrialActive } from "@/lib/plan-entitlements";
 
 export default async function AnomaliPage() {
   const session = await getServerSession(authOptions);
@@ -13,18 +14,12 @@ export default async function AnomaliPage() {
     redirect("/login");
   }
 
-  // Feature gate check
-  const { plan } = await getUserPlan(session.user.id);
+  // Feature gate check: Free gets simplified summary, Pro gets full details
+  const { subscription, plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
-    return (
-      <FeatureGate
-        featureName="Deteksi Anomali Daya & Multi-Cabang"
-        requiredTier="Pro UMKM"
-        description="Pantau konsumsi daya peralatan secara real-time dan deteksi kebocoran daya atau anomali operasional di berbagai cabang usaha Anda secara otomatis."
-      />
-    );
-  }
+  const isTrial = planCode === "PRO_TRIAL" || subscription?.status === "TRIAL_ACTIVE";
+  const trialActive = subscription ? isTrialActive(subscription) : false;
+  const isFreePlan = planCode === "FREE" || (planCode === "PRO_TRIAL" && !trialActive);
 
   const business = await getAnomaliDataForBusiness(session.user.id);
 
@@ -142,6 +137,7 @@ export default async function AnomaliPage() {
     <AnomaliClient
       summary={summaryData}
       anomalies={mappedAnomalies}
+      isFreePlan={isFreePlan}
     />
   );
 }

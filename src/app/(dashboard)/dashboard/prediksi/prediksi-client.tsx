@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui/common";
 import { cn, formatKwh, formatRupiah } from "@/lib/utils";
+import { UpgradeCta } from "@/components/subscription/UpgradeCta";
 
 interface PrediksiClientProps {
   prediksi: {
@@ -42,6 +43,7 @@ interface PrediksiClientProps {
     method?: string;
     confidenceLevel?: string;
     confidenceReason?: string;
+    isFreePlan?: boolean;
     
     // AI Factors
     latestUsageKwh: number;
@@ -243,7 +245,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
           </div>
         </section>
 
-        <section className="card lg:col-span-8">
+        <section className="card lg:col-span-8 relative">
           <div className="mb-5">
             <h2 className="font-bold">Proyeksi Pemakaian Listrik</h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -251,182 +253,224 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
             </p>
           </div>
 
-          {mounted && proyeksiBulanIni.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={proyeksiBulanIni} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="hari"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#64748b" }}
-                    tickFormatter={(v: string) => `Tgl ${v}`}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "#64748b" }}
-                    tickFormatter={(v: number) => `${v} kWh`}
-                  />
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      formatKwh(value),
-                      name === "Aktual" ? "Pemakaian Aktual" : "Prediksi/Proyeksi",
-                    ]}
-                    contentStyle={{
-                      borderRadius: 14,
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
-                    }}
-                  />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                  <Line
-                    name="Aktual"
-                    type="monotone"
-                    dataKey="aktual"
-                    stroke="#16a34a"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                    connectNulls
-                  />
-                  <Line
-                    name="Proyeksi"
-                    type="monotone"
-                    dataKey="proyeksi"
-                    stroke="#eab308"
-                    strokeWidth={3}
-                    strokeDasharray="5 5"
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 7 }}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          {prediksi.isFreePlan ? (
+            <div className="relative h-80 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-2xl">
+                <UpgradeCta 
+                  title="Grafik Proyeksi Terkunci"
+                  description="Grafik proyeksi harian dinamis dan model AI mendalam hanya tersedia pada paket Pro."
+                  href="/dashboard/paket-demo"
+                  buttonText="Mulai Uji Coba Pro"
+                />
+              </div>
+              <div className="filter blur-xs opacity-40 select-none pointer-events-none h-full w-full">
+                {mounted && proyeksiBulanIni.length > 0 && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={proyeksiBulanIni} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="hari" />
+                      <YAxis />
+                      <Line type="monotone" dataKey="aktual" stroke="#16a34a" strokeWidth={3} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="h-80 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50">
-              <p className="text-slate-400 text-xs">Belum ada data pemakaian harian untuk proyeksi grafik.</p>
-            </div>
+            mounted && proyeksiBulanIni.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={proyeksiBulanIni} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="hari"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                      tickFormatter={(v: string) => `Tgl ${v}`}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tickFormatter={(v: number) => `${v} kWh`}
+                    />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [
+                        formatKwh(value),
+                        name === "Aktual" ? "Pemakaian Aktual" : "Prediksi/Proyeksi",
+                      ]}
+                      contentStyle={{
+                        borderRadius: 14,
+                        border: "1px solid #e2e8f0",
+                        boxShadow: "0 4px 20px -8px rgba(15,23,42,.18)",
+                      }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                    <Line
+                      name="Aktual"
+                      type="monotone"
+                      dataKey="aktual"
+                      stroke="#16a34a"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2 }}
+                      activeDot={{ r: 7 }}
+                      connectNulls
+                    />
+                    <Line
+                      name="Proyeksi"
+                      type="monotone"
+                      dataKey="proyeksi"
+                      stroke="#eab308"
+                      strokeWidth={3}
+                      strokeDasharray="5 5"
+                      dot={{ r: 4, strokeWidth: 2 }}
+                      activeDot={{ r: 7 }}
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-80 flex items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                <p className="text-slate-400 text-xs">Belum ada data pemakaian harian untuk proyeksi grafik.</p>
+              </div>
+            )
           )}
         </section>
       </div>
 
       {/* ─── Penjelasan & Faktor AI Section ─── */}
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <section className="card bg-linear-to-br from-indigo-50/50 via-white to-sky-50/30 border border-indigo-100 p-6 rounded-2xl shadow-xs">
-          <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
-            <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
-            Mengapa AI memilih model ini?
-          </h3>
-          <div className="space-y-4">
-            <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
-                Model Pilihan
-              </span>
-              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                {prediksi.modelVersion || "unknown"} ({formatMethod(prediksi.method)})
-              </p>
-              {getModelInfo(prediksi.method) && (
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed font-semibold">
-                  {getModelInfo(prediksi.method)}
-                </p>
-              )}
-            </div>
-            
-            <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
-                Alasan Routing & Analisis
-              </span>
-              <p className="text-xs font-semibold leading-relaxed text-slate-600">
-                {prediksi.explanation || prediksi.alasanUtama}
-              </p>
-              {prediksi.confidenceReason && (
-                <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed border-t border-slate-100 pt-2">
-                  Catatan Keandalan: {prediksi.confidenceReason}
-                </p>
-              )}
-            </div>
+      {prediksi.isFreePlan ? (
+        <div className="mt-6 p-8 rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/10 via-white to-sky-50/10 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10">
+            <UpgradeCta 
+              title="Faktor Analisis AI Terkunci"
+              description="Analisis mendalam routing model AI (LSTM/GB), tren bulanan lengkap, dan rata-rata 6 bulan hanya tersedia pada paket Pro."
+              href="/dashboard/paket-demo"
+              buttonText="Mulai Pro Trial"
+            />
           </div>
-        </section>
-
-        <section className="card bg-slate-50/50 border border-slate-200 p-6 rounded-2xl shadow-xs">
-          <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
-            <Info className="h-5 w-5 text-slate-500" />
-            Faktor yang dibaca AI
-          </h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Pemakaian Bulan Terakhir
-              </span>
-              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.latestUsageKwh)}</p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Pemakaian Bulan Sebelumnya
-              </span>
-              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.previousUsageKwh)}</p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Rata-rata 3 Bulan
-              </span>
-              <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.avg3)}</p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Rata-rata 6 Bulan
-              </span>
-              <p className="text-lg font-black text-slate-800">
-                {prediksi.avg6 !== null ? formatKwh(prediksi.avg6) : "Belum cukup data"}
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Tren 1 Bulan
-              </span>
-              <p className={cn(
-                "text-lg font-black",
-                prediksi.trend1 > 0 ? "text-rose-600" : prediksi.trend1 < 0 ? "text-emerald-600" : "text-slate-800"
-              )}>
-                {prediksi.trend1 >= 0 ? "+" : ""}{(prediksi.trend1 * 100).toFixed(1)}%
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Tren 3 Bulan
-              </span>
-              <p className={cn(
-                "text-lg font-black",
-                prediksi.trend3 > 0 ? "text-rose-600" : prediksi.trend3 < 0 ? "text-emerald-600" : "text-slate-800"
-              )}>
-                {prediksi.trend3 >= 0 ? "+" : ""}{(prediksi.trend3 * 100).toFixed(1)}%
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Jenis Usaha
-              </span>
-              <p className="text-sm font-black text-slate-800 mt-1">{prediksi.businessType}</p>
-            </div>
-
-            <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
-                Estimasi Tarif Listrik
-              </span>
-              <p className="text-sm font-black text-indigo-600 mt-1">{formatRupiah(prediksi.avgTariff)} / kWh</p>
-            </div>
+          <div className="grid gap-6 md:grid-cols-2 opacity-30 select-none pointer-events-none filter blur-xs">
+            <div className="card p-6">Panel Estimasi AI Terpilih</div>
+            <div className="card p-6">Faktor yang dibaca AI (Riwayat, Tren)</div>
           </div>
-        </section>
-      </div>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <section className="card bg-linear-to-br from-indigo-50/50 via-white to-sky-50/30 border border-indigo-100 p-6 rounded-2xl shadow-xs">
+            <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
+              <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
+              Mengapa AI memilih model ini?
+            </h3>
+            <div className="space-y-4">
+              <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
+                  Model Pilihan
+                </span>
+                <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  {prediksi.modelVersion || "unknown"} ({formatMethod(prediksi.method)})
+                </p>
+                {getModelInfo(prediksi.method) && (
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed font-semibold">
+                    {getModelInfo(prediksi.method)}
+                  </p>
+                )}
+              </div>
+              
+              <div className="bg-white/80 border border-indigo-100/50 rounded-xl p-4">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 block mb-1">
+                  Alasan Routing & Analisis
+                </span>
+                <p className="text-xs font-semibold leading-relaxed text-slate-600">
+                  {prediksi.explanation || prediksi.alasanUtama}
+                </p>
+                {prediksi.confidenceReason && (
+                  <p className="text-xs font-semibold text-slate-500 mt-2 italic leading-relaxed border-t border-slate-100 pt-2">
+                    Catatan Keandalan: {prediksi.confidenceReason}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+  
+          <section className="card bg-slate-50/50 border border-slate-200 p-6 rounded-2xl shadow-xs">
+            <h3 className="text-md font-extrabold text-slate-800 flex items-center gap-2 mb-4">
+              <Info className="h-5 w-5 text-slate-500" />
+              Faktor yang dibaca AI
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Pemakaian Bulan Terakhir
+                </span>
+                <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.latestUsageKwh)}</p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Pemakaian Bulan Sebelumnya
+                </span>
+                <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.previousUsageKwh)}</p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Rata-rata 3 Bulan
+                </span>
+                <p className="text-lg font-black text-slate-800">{formatKwh(prediksi.avg3)}</p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Rata-rata 6 Bulan
+                </span>
+                <p className="text-lg font-black text-slate-800">
+                  {prediksi.avg6 !== null ? formatKwh(prediksi.avg6) : "Belum cukup data"}
+                </p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Tren 1 Bulan
+                </span>
+                <p className={cn(
+                  "text-lg font-black",
+                  prediksi.trend1 > 0 ? "text-rose-600" : prediksi.trend1 < 0 ? "text-emerald-600" : "text-slate-800"
+                )}>
+                  {prediksi.trend1 >= 0 ? "+" : ""}{(prediksi.trend1 * 100).toFixed(1)}%
+                </p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Tren 3 Bulan
+                </span>
+                <p className={cn(
+                  "text-lg font-black",
+                  prediksi.trend3 > 0 ? "text-rose-600" : prediksi.trend3 < 0 ? "text-emerald-600" : "text-slate-800"
+                )}>
+                  {prediksi.trend3 >= 0 ? "+" : ""}{(prediksi.trend3 * 100).toFixed(1)}%
+                </p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Jenis Usaha
+                </span>
+                <p className="text-sm font-black text-slate-800 mt-1">{prediksi.businessType}</p>
+              </div>
+  
+              <div className="bg-white border border-slate-200/50 rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 block mb-0.5">
+                  Estimasi Tarif Listrik
+                </span>
+                <p className="text-sm font-black text-indigo-600 mt-1">{formatRupiah(prediksi.avgTariff)} / kWh</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       <div className="mt-6 flex items-start gap-3 rounded-2xl border border-green-100 bg-brand-greenSoft p-5">
         <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-brand-greenDark" />

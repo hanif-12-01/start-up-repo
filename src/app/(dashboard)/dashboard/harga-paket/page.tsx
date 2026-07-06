@@ -17,6 +17,18 @@ export default async function HargaPaketPage() {
   // Get current active plan info
   const { plan: currentPlan } = await getUserPlan(userId);
 
+  // Check if user has ever used a Pro Trial (to hide/show "Gratis 30 hari" badge)
+  let isTrialEligible = false;
+  if (userId) {
+    const hasTrialHistory = await db.subscription.findFirst({
+      where: {
+        userId,
+        plan: { code: { in: ["PRO_TRIAL", "PRO_UMKM", "BUSINESS", "ENTERPRISE"] } },
+      },
+    });
+    isTrialEligible = !hasTrialHistory;
+  }
+
   // Fetch all plans ordered by price
   const plans = await db.plan.findMany({
     orderBy: { priceIdr: "asc" },
@@ -28,7 +40,7 @@ export default async function HargaPaketPage() {
         title="Pilih Paket WattWise AI"
         subtitle="Dapatkan rekomendasi hemat energi cerdas, analisis mendalam, dan pantau banyak cabang usaha."
       />
-      <HargaClient plans={plans} currentPlanCode={currentPlan?.code || "FREE"} />
+      <HargaClient plans={plans} currentPlanCode={currentPlan?.code || "FREE"} isTrialEligible={isTrialEligible} />
     </div>
   );
 }

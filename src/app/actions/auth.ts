@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { safeError } from "@/lib/safe-log";
 import { checkRateLimit, recordAuthAttempt } from "@/lib/rate-limit";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function registerUser(formData: FormData) {
   const name = formData.get("name") as string;
@@ -51,4 +53,34 @@ export async function registerUser(formData: FormData) {
     safeError("register", error);
     return { error: "Terjadi kesalahan server. Coba lagi nanti." };
   }
+}
+
+/**
+ * Check if the currently logged-in user is a brand-new user eligible for the
+ * Pro Trial 30-day offer.  Conditions:
+ *  1. User is authenticated.
+ *  2. User has 0 businesses (hasn't onboarded yet).
+ *  3. User has never had a PRO_TRIAL, PRO_UMKM, BUSINESS, or ENTERPRISE
+ *     subscription (i.e. truly first-time / fresh signup).
+ */
+export async function checkIsNewUserForTrialOffer() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { isNew: false };
+
+  const userId = session.user.id;
+
+  // Must have 0 businesses
+  const businessCount = await db.business.count({ where: { userId } });
+  if (businessCount > 0) return { isNew: false };
+
+  // Must never have had a non-FREE subscription
+  const hasNonFreeHistory = await db.subscription.findFirst({
+    where: {
+      userId,
+      plan: { code: { in: ["PRO_TRIAL", "PRO_UMKM", "BUSINESS", "ENTERPRISE"] } },
+    },
+  });
+  if (hasNonFreeHistory) return { isNew: false };
+
+  return { isNew: true };
 }

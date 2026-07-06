@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { AlertCircle, CheckCircle2, FileText, Info, PlusCircle, UserCheck, Zap } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Info, PlusCircle, UserCheck, Zap, Lock } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/common";
 import { formatKwh, formatRupiah } from "@/lib/utils";
 import { LaporanPdfButton } from "./laporan-pdf-button";
 import { CsvExportButton } from "@/components/csv-export-button";
+import { getUserPlan } from "@/services/subscription";
+import { isTrialActive } from "@/lib/plan-entitlements";
+import { UpgradeCta } from "@/components/subscription/UpgradeCta";
+import { AdSlot } from "@/components/ads/ad-slot";
 import {
   getLaporanDataForBusiness,
   getMonthlyReportsForBusiness,
@@ -187,6 +191,12 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
     return monthMatches && yearMatches;
   });
 
+  const { subscription, plan } = await getUserPlan(session.user.id);
+  const planCode = plan?.code || "FREE";
+  const isTrial = planCode === "PRO_TRIAL" || subscription?.status === "TRIAL_ACTIVE";
+  const trialActive = subscription ? isTrialActive(subscription) : false;
+  const isFreePlan = planCode === "FREE" || (planCode === "PRO_TRIAL" && !trialActive);
+
   return (
     <div className="max-w-5xl">
       <PageHeader
@@ -194,17 +204,40 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
         subtitle="Pratinjau profesional untuk melihat pemakaian, risiko, rekomendasi, dan potensi hemat usaha Anda."
       />
 
-      <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between font-sans">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-brand-green">Laporan Tersedia</span>
           <h2 className="text-lg font-bold text-brand-ink">Laporan Periode {period}</h2>
           <p className="text-xs text-slate-500">Dibuat otomatis pada {generatedAt}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <LaporanPdfButton month={latestEntry.month} year={latestEntry.year} />
-          <CsvExportButton type="electricity" label="Ekspor Riwayat CSV" />
+          {isFreePlan ? (
+            <button disabled className="btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed text-xs font-bold py-2 px-4 rounded-xl flex items-center gap-1.5 opacity-60">
+              <Lock className="h-3.5 w-3.5" /> Download PDF (Terkunci)
+            </button>
+          ) : (
+            <LaporanPdfButton month={latestEntry.month} year={latestEntry.year} />
+          )}
+          {isFreePlan ? (
+            <button disabled className="btn border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed text-xs font-bold py-2 px-4 rounded-xl flex items-center gap-1.5 opacity-60">
+              <Lock className="h-3.5 w-3.5" /> Ekspor CSV (Terkunci)
+            </button>
+          ) : (
+            <CsvExportButton type="electricity" label="Ekspor Riwayat CSV" />
+          )}
         </div>
       </div>
+
+      {isFreePlan && (
+        <div className="mb-6">
+          <UpgradeCta 
+            title="Ekspor Laporan Terkunci"
+            description="Fitur download laporan bulanan PDF terperinci dan ekspor CSV lengkap untuk kebutuhan pembukuan bisnis memerlukan paket Pro."
+            href="/dashboard/paket-demo"
+            buttonText="Coba Pro Trial"
+          />
+        </div>
+      )}
 
       <section className='card space-y-5'>
         <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
@@ -484,6 +517,9 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
               </>
             )}
           </section>
+
+          {/* Ads Placement: Report Preview Bottom */}
+          <AdSlot placement="report_preview" businessType={business.type} />
 
           <footer className="flex gap-3 border-t border-slate-100 pt-7 text-[11px] leading-relaxed text-slate-500">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />

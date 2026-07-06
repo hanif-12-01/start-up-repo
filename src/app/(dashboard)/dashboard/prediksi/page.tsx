@@ -7,6 +7,7 @@ import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
 import { db } from "@/lib/db";
 import { calculateHistoryStats } from "@/lib/prediction";
+import { isTrialActive } from "@/lib/plan-entitlements";
 
 export default async function PrediksiPage() {
   const session = await getServerSession(authOptions);
@@ -15,18 +16,12 @@ export default async function PrediksiPage() {
     redirect("/login");
   }
 
-  // Feature gate check
-  const { plan } = await getUserPlan(session.user.id);
+  // Feature gate check: Free plan gets basic predictions, Pro gets full predictions.
+  const { subscription, plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
-    return (
-      <FeatureGate
-        featureName="Prediksi Pintar Energi"
-        requiredTier="Pro UMKM"
-        description="Analisis pola pemakaian listrik masa lalu dan dapatkan prediksi tagihan serta estimasi kenaikan penggunaan di masa depan secara otomatis dengan AI."
-      />
-    );
-  }
+  const isTrial = planCode === "PRO_TRIAL" || subscription?.status === "TRIAL_ACTIVE";
+  const trialActive = subscription ? isTrialActive(subscription) : false;
+  const isFreePlan = planCode === "FREE" || (planCode === "PRO_TRIAL" && !trialActive);
 
   const business = await getPrediksiDataForBusiness(session.user.id);
 
@@ -66,6 +61,7 @@ export default async function PrediksiPage() {
   
   const prediksiData = {
     hasPrediction: !!prediction,
+    isFreePlan,
     businessId: business.id,
     latestMonth: latestEntry ? latestEntry.month : undefined,
     latestYear: latestEntry ? latestEntry.year : undefined,

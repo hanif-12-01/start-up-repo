@@ -11,10 +11,11 @@ import { z } from "zod";
 
 const applianceSchema = z.object({
   name: z.string().trim().min(2, "Nama alat minimal 2 karakter."),
+  category: z.string().optional().nullable(),
   powerWatt: z.coerce.number().min(1, "Daya minimal 1 watt."),
   quantity: z.coerce.number().int().min(1, "Jumlah minimal 1."),
-  dailyUsageHours: z.coerce.number().gt(0, "Jam pakai harus lebih dari 0.").max(24, "Jam pakai maksimal 24 jam."),
-  usageStatus: z.enum([UsageStatus.ACTIVE, UsageStatus.INACTIVE, UsageStatus.MAINTENANCE]),
+  dailyUsageHours: z.coerce.number().min(0, "Jam pakai minimal 0 jam.").max(24, "Jam pakai maksimal 24 jam."),
+  usageStatus: z.enum([UsageStatus.ACTIVE, UsageStatus.INACTIVE, UsageStatus.MAINTENANCE]).default(UsageStatus.ACTIVE),
 });
 
 export type ApplianceInput = z.input<typeof applianceSchema>;

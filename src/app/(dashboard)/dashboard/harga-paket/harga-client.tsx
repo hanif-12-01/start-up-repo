@@ -28,6 +28,8 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { changeSubscriptionPlanAction } from "@/actions/billing";
 import { cn } from "@/lib/utils";
+import { AdSlot } from "@/components/ads/ad-slot";
+
 
 interface Plan {
   id: string;
@@ -99,9 +101,11 @@ const PLAN_CONFIG: Record<string, PlanConfig> = {
 export default function HargaClient({
   plans,
   currentPlanCode,
+  isTrialEligible = false,
 }: {
   plans: Plan[];
   currentPlanCode: string;
+  isTrialEligible?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -228,11 +232,22 @@ export default function HargaClient({
                       <p className="text-[11px] text-brand-muted mt-1">Hubungi tim sales kami</p>
                     </div>
                   ) : (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-                        {formatCurrency(plan.priceIdr)}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-400">/bulan</span>
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-extrabold tracking-tight text-slate-800">
+                          {formatCurrency(plan.priceIdr)}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-400">/bulan</span>
+                      </div>
+                      {/* Show "Gratis 30 hari" badge for Pro plan when user has never used a trial */}
+                      {plan.code === "PRO_UMKM" && isTrialEligible && currentPlanCode === "FREE" && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 px-2.5 py-1">
+                          <Sparkles className="h-3 w-3 text-indigo-600" />
+                          <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider">
+                            Gratis 30 Hari Uji Coba
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -648,6 +663,9 @@ function FeatureUnlockPreview({ currentPlanCode }: { currentPlanCode: string }) 
           </div>
         ))}
       </div>
+      
+      {/* Ads Placement: Pricing Page Bottom */}
+      <AdSlot placement="pricing_page" />
     </div>
   );
 }

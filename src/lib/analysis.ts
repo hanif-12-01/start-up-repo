@@ -1,4 +1,4 @@
-﻿import { BusinessType, RecommendationDifficulty, ReportStatus, RiskLevel } from '@prisma/client';
+import { BusinessType, RecommendationDifficulty, ReportStatus, RiskLevel } from '@prisma/client';
 import { db } from './db';
 import { classifyApplianceEfficiency } from '@/services/appliance-efficiency';
 import { buildRecommendationReasoning, SAVINGS_DISCLAIMER } from '@/services/recommendation-reasoning';
@@ -175,12 +175,14 @@ function buildInsightsAndAnomalies(input: {
   threeMonthComparison: ComparisonOutput;
   expectedKwh: number;
   applianceGapPct: number | null;
+  appliances: { name: string; powerWatt: number; quantity: number; dailyUsageHours: number }[];
 }) {
   const insights: string[] = [];
   const anomalies: { description: string; severity: RiskLevel; usageKwh?: number; expectedKwh?: number }[] = [];
   const threeRise = input.threeMonthComparison.kwhChangePct ?? 0;
   const previousRise = input.previousComparison.kwhChangePct ?? 0;
   const costRise = input.previousComparison.costChangePct ?? 0;
+  
   if (threeRise > 30) {
     anomalies.push({ description: 'Pemakaian kWh naik ' + threeRise + '% dibanding rata-rata 3 bulan terakhir. Status pemakaian masuk kategori Boros.', severity: RiskLevel.HIGH, usageKwh: input.current.usageKwh, expectedKwh: input.threeMonthComparison.baselineKwh ?? undefined });
   } else if (threeRise > 15) {
@@ -195,11 +197,34 @@ function buildInsightsAndAnomalies(input: {
     anomalies.push({ description: 'Biaya listrik naik ' + costRise + '%, tetapi kWh hanya berubah ' + previousRise + '%. Periksa kemungkinan perubahan tarif, salah input, denda, pajak, atau biaya tambahan.', severity: RiskLevel.MEDIUM, usageKwh: input.current.usageKwh, expectedKwh: input.previousComparison.baselineKwh ?? undefined });
   }
 
+  // Appliance gap insights
   if (input.applianceGapPct !== null && input.applianceGapPct > 25) {
     anomalies.push({ description: 'Pemakaian aktual ' + formatKwh(input.current.usageKwh) + ' lebih tinggi ' + input.applianceGapPct + '% dari estimasi peralatan terdaftar. Ada indikasi alat menyala lebih lama, alat belum tercatat, atau efisiensi alat menurun.', severity: input.applianceGapPct > 50 ? RiskLevel.HIGH : RiskLevel.MEDIUM, usageKwh: input.current.usageKwh, expectedKwh: input.expectedKwh });
+    insights.push('Pemakaian aktual lebih tinggi dari estimasi alat yang tercatat. Ada kemungkinan alat belum tercatat atau jam pakai berubah.');
   } else if (input.applianceGapPct !== null && input.applianceGapPct < -30) {
     insights.push('Estimasi peralatan lebih tinggi dari pemakaian aktual. Periksa apakah ada alat yang sudah tidak aktif atau jam pakai perlu diperbarui.');
   }
+
+  // Top appliance check candidate logic
+  let highestAppliance = null;
+  let maxApplianceKwh = 0;
+  let totalApplianceKwh = 0;
+  for (const app of input.appliances || []) {
+    const kwh = (app.powerWatt * app.quantity * app.dailyUsageHours * 30) / 1000;
+    totalApplianceKwh += kwh;
+    if (kwh > maxApplianceKwh) {
+      maxApplianceKwh = kwh;
+      highestAppliance = app;
+    }
+  }
+
+  if (highestAppliance && totalApplianceKwh > 0) {
+    const share = (maxApplianceKwh / totalApplianceKwh) * 100;
+    if (share > 30) {
+      insights.push(`${highestAppliance.name} menjadi kandidat alat yang perlu dicek karena estimasi pemakaiannya paling besar (${share.toFixed(0)}% dari total estimasi alat).`);
+    }
+  }
+
   if (insights.length === 0 && anomalies.length === 0) {
     insights.push('Pemakaian listrik relatif stabil terhadap data pembanding yang tersedia.');
   }
@@ -369,8 +394,41 @@ function buildRecommendations(input: {
     potentialSavingsIdr: input.potentialSavingsIdr,
   });
 
+  // Dynamically add top appliance optimization recommendation if appliances exist
+  let topAppliance = null;
+  let maxApplianceKwh = 0;
+  for (const app of input.appliances || []) {
+    const kwh = (app.powerWatt * app.quantity * app.dailyUsageHours * 30) / 1000;
+    if (kwh > maxApplianceKwh) {
+      maxApplianceKwh = kwh;
+      topAppliance = app;
+    }
+  }
+
+  const customRecs: GeneratedRecommendation[] = [];
+  if (topAppliance) {
+    customRecs.push({
+      title: `Optimalkan penggunaan ${topAppliance.name}`,
+      description: `${topAppliance.name} memiliki estimasi pemakaian terbesar berdasarkan daya, jumlah unit, dan jam pakai yang Anda masukkan.`,
+      estimatedSavingsIdr: Math.round(input.potentialSavingsIdr * 0.25),
+      estimatedSavingsKwh: round1((input.potentialSavingsIdr * 0.25) / input.tariff),
+      difficulty: RecommendationDifficulty.EASY,
+      priority: 'Tinggi',
+      impact: 'Tinggi',
+      reason: `${topAppliance.name} memiliki estimasi pemakaian terbesar berdasarkan daya, jumlah unit, dan jam pakai yang Anda masukkan.`,
+      practicalSteps: [
+        'Atur jadwal pemakaian batch',
+        'Kurangi jam idle',
+        'Cek perawatan alat',
+        'Pertimbangkan alat yang lebih efisien jika sering digunakan'
+      ],
+      disclaimer: 'Analisis ini bersifat perkiraan/indikasi awal saja dan memerlukan verifikasi manual.',
+      triggerApplianceName: topAppliance.name,
+    });
+  }
+
   const byTitle = new Map<string, GeneratedRecommendation>();
-  for (const rec of [...reasoned, ...fallback]) {
+  for (const rec of [...customRecs, ...reasoned, ...fallback]) {
     if (!byTitle.has(rec.title)) byTitle.set(rec.title, rec);
   }
   return Array.from(byTitle.values()).slice(0, 6);
@@ -539,6 +597,7 @@ export async function runElectricityAnalysis(
     threeMonthComparison: threeMonthAverageComparison,
     expectedKwh: applianceEstimateKwh,
     applianceGapPct,
+    appliances: business.appliances,
   });
 
   const trendPct = previousComparison.kwhChangePct ?? threeMonthAverageComparison.kwhChangePct ?? 2;

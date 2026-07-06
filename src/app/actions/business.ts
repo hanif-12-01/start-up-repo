@@ -43,8 +43,11 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
     if (planCode === "FREE" && existingCount >= 1) {
       return { success: false, error: "Paket Gratis hanya mendukung maksimal 1 usaha. Silakan upgrade ke paket premium." };
     }
-    if (planCode === "PRO_UMKM" && existingCount >= 3) {
-      return { success: false, error: "Paket Pro UMKM hanya mendukung maksimal 3 usaha. Silakan upgrade ke paket Business." };
+    if ((planCode === "PRO_UMKM" || planCode === "PRO_TRIAL" || planCode === "PRO") && existingCount >= 3) {
+      return { success: false, error: "Paket Pro hanya mendukung maksimal 3 usaha. Silakan upgrade ke paket Bisnis." };
+    }
+    if (planCode === "BUSINESS" && existingCount >= 50) {
+      return { success: false, error: "Paket Bisnis mendukung maksimal 50 usaha. Hubungi tim WattWise untuk kebutuhan Enterprise khusus." };
     }
 
     const business = await db.business.create({
@@ -113,8 +116,15 @@ export async function createBusinessAction(input: {
     if (planCode === "FREE" && existingCount >= 1) {
       return { success: false, error: "Paket Gratis hanya mendukung maksimal 1 usaha. Silakan upgrade ke paket premium untuk menambahkan usaha baru." };
     }
-    if (planCode === "PRO_UMKM" && existingCount >= 3) {
-      return { success: false, error: "Paket Pro UMKM hanya mendukung maksimal 3 usaha. Silakan upgrade ke paket Business untuk menambahkan usaha baru." };
+    if ((planCode === "PRO_UMKM" || planCode === "PRO_TRIAL" || planCode === "PRO") && existingCount >= 3) {
+      return { success: false, error: "Paket Pro mendukung maksimal 3 bisnis/properti. Upgrade ke Paket Bisnis untuk dashboard agregat dan kebutuhan multi-cabang." };
+    }
+    if (planCode === "BUSINESS" && existingCount >= 50) {
+      return { success: false, error: "Paket Bisnis mendukung maksimal 50 bisnis/properti. Hubungi tim WattWise untuk kebutuhan enterprise khusus." };
+    }
+    if (planCode === "ENTERPRISE") {
+      // Enterprise has custom limits, allow more than 50 logically for demo/simulation.
+      // Limit check bypassed.
     }
 
     const business = await db.business.create({
@@ -291,5 +301,31 @@ export async function switchActiveBusinessAction(businessId: string) {
   } catch (error: any) {
     safeError("switchBusiness", error);
     return { success: false, error: error.message || "Gagal mengganti usaha." };
+  }
+}
+
+export async function checkBusinessLimitAction() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { reached: true, error: "Sesi tidak valid." };
+
+    const { plan } = await getUserPlan(session.user.id);
+    const planCode = plan?.code || "FREE";
+    const count = await db.business.count({
+      where: { userId: session.user.id },
+    });
+
+    if (planCode === "FREE" && count >= 1) {
+      return { reached: true, planCode, count, error: "Akun Paket Gratis Anda telah mencapai batas maksimal 1 usaha." };
+    }
+    if ((planCode === "PRO_UMKM" || planCode === "PRO_TRIAL" || planCode === "PRO") && count >= 3) {
+      return { reached: true, planCode, count, error: "Akun Paket Pro Anda telah mencapai batas maksimal 3 usaha." };
+    }
+    if (planCode === "BUSINESS" && count >= 50) {
+      return { reached: true, planCode, count, error: "Akun Paket Bisnis Anda telah mencapai batas maksimal 50 usaha." };
+    }
+    return { reached: false, planCode, count };
+  } catch (error: any) {
+    return { reached: true, error: error.message };
   }
 }

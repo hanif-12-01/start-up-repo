@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { cache } from "react";
+import { canAccessFeature, isTrialActive as checkTrialActive } from "@/lib/plan-entitlements";
 
 export interface PlanFeature {
   key: string;
@@ -12,7 +13,7 @@ export const getUserPlan = cache(async (userId: string) => {
   let subscription = await db.subscription.findFirst({
     where: {
       userId,
-      status: "ACTIVE",
+      status: { in: ["ACTIVE", "TRIAL_ACTIVE"] },
     },
     include: {
       plan: true,
@@ -37,21 +38,19 @@ export const getUserPlan = cache(async (userId: string) => {
     });
 
     if (!anySub) {
-      // First time user: Auto-create a 30-day PRO_UMKM Trial
-      const proPlan = await db.plan.findUnique({
-        where: { code: "PRO_UMKM" },
+      // First time user: Auto-create a FREE plan
+      const freePlan = await db.plan.findUnique({
+        where: { code: "FREE" },
       });
 
-      if (proPlan) {
+      if (freePlan) {
         subscription = await db.subscription.create({
           data: {
             userId,
-            planId: proPlan.id,
+            planId: freePlan.id,
             status: "ACTIVE",
             startsAt: new Date(),
-            endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-            trialStartDate: new Date(),
-            trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            endsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
           },
           include: {
             plan: true,
@@ -92,74 +91,10 @@ export const getUserPlan = cache(async (userId: string) => {
 
 // Check if user has access to a specific feature key or plan limit
 export async function hasFeature(userId: string, featureKey: string): Promise<boolean> {
-  const { plan } = await getUserPlan(userId);
+  const { subscription, plan } = await getUserPlan(userId);
   if (!plan) return false;
-
-  // FREE plan features
-  const freeFeatures = [
-    "1-usaha",
-    "dashboard-dasar",
-    "input-manual",
-    "input-pendapatan",
-    "prediksi-kwh-dasar",
-    "estimasi-tagihan-dasar",
-    "rasio-listrik-pendapatan",
-    "rekomendasi-dasar",
-    "histori-3-bulan",
-  ];
-  
-  // PRO plan features (includes all Free + advanced)
-  const proFeatures = [
-    ...freeFeatures,
-    "multi-usaha",
-    "semua-analitik",
-    "anomaly-detection",
-    "rekomendasi-lanjutan",
-    "laporan-pdf",
-    "histori-12-bulan",
-    "potensi-penghematan",
-    "reminder-input",
-    "simulasi-iot",
-    "prediksi-tagihan",
-    "appliance-classifier",
-    "export-csv",
-  ];
-  
-  // BUSINESS plan features (includes all Pro + multi-cabang)
-  const businessFeatures = [
-    ...proFeatures,
-    "multi-cabang",
-    "dashboard-agregat",
-    "laporan-per-lokasi",
-    "multi-user-admin",
-    "export-massal",
-    "prioritas-support",
-    "komparasi-lokasi",
-    "laporan-bulanan",
-    "fitur-pilot",
-  ];
-
-  // ENTERPRISE plan features (includes all Business + custom)
-  const enterpriseFeatures = [
-    ...businessFeatures,
-    "onboarding-khusus",
-    "integrasi-iot-lanjutan",
-    "support-khusus",
-    "unlimited-bisnis",
-  ];
-
-  let allowedFeatures: string[] = [];
-  if (plan.code === "FREE") {
-    allowedFeatures = freeFeatures;
-  } else if (plan.code === "PRO_UMKM") {
-    allowedFeatures = proFeatures;
-  } else if (plan.code === "BUSINESS") {
-    allowedFeatures = businessFeatures;
-  } else if (plan.code === "ENTERPRISE") {
-    allowedFeatures = enterpriseFeatures;
-  }
-
-  return allowedFeatures.includes(featureKey);
+  const trialActive = subscription ? checkTrialActive(subscription) : false;
+  return canAccessFeature(featureKey, plan.code, trialActive);
 }
 
 // Throws error if feature is missing

@@ -6,6 +6,7 @@ import { RekomendasiClient, type RecommendationCardData } from "./rekomendasi-cl
 import { getRekomendasiDataForBusiness } from "@/services/business";
 import { getUserPlan } from "@/services/subscription";
 import { FeatureGate } from "@/components/feature-gate";
+import { isTrialActive } from "@/lib/plan-entitlements";
 
 const SAVINGS_DISCLAIMER = "Estimasi penghematan bersifat indikatif dan dapat berbeda dari tagihan PLN aktual.";
 
@@ -39,24 +40,12 @@ export default async function RekomendasiPage() {
     redirect("/login");
   }
 
-  // Feature gate check
-  const { plan } = await getUserPlan(session.user.id);
+  // Feature gate check: Free plans get sliced recommendations, Pro gets full list
+  const { subscription, plan } = await getUserPlan(session.user.id);
   const planCode = plan?.code || "FREE";
-  if (planCode !== "PRO_UMKM" && planCode !== "BUSINESS") {
-    return (
-      <div>
-        <PageHeader
-          title="Rekomendasi Hemat Listrik"
-          subtitle="Saran praktis berbasis aturan untuk bisnis Anda."
-        />
-        <FeatureGate
-          featureName="Rekomendasi Hemat Listrik"
-          requiredTier="Pro UMKM"
-          description="Dapatkan rekomendasi hemat daya cerdas yang dipersonalisasi untuk peralatan usaha Anda, lengkap dengan proyeksi penghematan biaya dalam Rupiah."
-        />
-      </div>
-    );
-  }
+  const isTrial = planCode === "PRO_TRIAL" || subscription?.status === "TRIAL_ACTIVE";
+  const trialActive = subscription ? isTrialActive(subscription) : false;
+  const isFreePlan = planCode === "FREE" || (planCode === "PRO_TRIAL" && !trialActive);
 
   const business = await getRekomendasiDataForBusiness(session.user.id);
 
@@ -87,7 +76,9 @@ export default async function RekomendasiPage() {
     };
   });
 
-  const recommendations: RecommendationCardData[] = savedRecommendations;
+  const recommendations: RecommendationCardData[] = isFreePlan 
+    ? savedRecommendations.slice(0, 2)
+    : savedRecommendations;
 
   const latestBill = latestEntry?.costIdr ?? 0;
   const potentialSavingsIdr = recommendations.reduce((sum, rec) => sum + (rec.estimatedSavingIdr ?? 0), 0);
@@ -108,6 +99,7 @@ export default async function RekomendasiPage() {
         appliances={business.appliances}
         latestEntryCost={latestEntry?.costIdr || null}
         latestEntryKwh={latestEntry?.usageKwh || null}
+        isFreePlan={isFreePlan}
       />
     </div>
   );

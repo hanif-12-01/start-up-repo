@@ -50,7 +50,7 @@ export default function RegisterPage() {
           redirect: false,
           email,
           password,
-          callbackUrl: "/dashboard",
+          callbackUrl: "/tawaran-pro",
         });
 
         if (loginRes?.error) {
@@ -58,7 +58,7 @@ export default function RegisterPage() {
           router.push("/login");
         } else {
           router.refresh();
-          router.push("/dashboard");
+          router.push("/tawaran-pro");
         }
       }
     } catch {
