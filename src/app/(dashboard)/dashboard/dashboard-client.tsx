@@ -1689,7 +1689,7 @@ export default function DashboardClient({
       </div>
 
       {/* Ads Placement: Dashboard Bottom */}
-      <AdSlot placement="dashboard_bottom" businessType={aiFactors.businessType} />
+      <AdSlot placement="dashboard_bottom" businessType={aiFactors?.businessType} />
 
       {/* Disclaimers */}
       <div className="mt-8 flex gap-3.5 rounded-2xl border border-slate-200/50 bg-slate-100/40 p-5 shadow-xs">
