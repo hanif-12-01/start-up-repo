@@ -1,13 +1,9 @@
 import { db } from "../lib/db";
 import { PredictionResult } from "@prisma/client";
-import {
-  calculateHistoryStats,
-  buildTabularFeatures,
-  buildLstmSequence,
-  predictRuleBased,
-  predictTabularUmkm,
-  predictLstmUmkm,
-} from "../lib/prediction";
+import { calculateHistoryStats, buildTabularFeatures, buildLstmSequence } from "../lib/prediction/feature-builder";
+import { predictRuleBased } from "../lib/prediction/rule-based-model";
+import { predictTabularUmkm } from "../lib/prediction/tabular-umkm-model";
+import { predictLstmUmkm } from "../lib/prediction/lstm-umkm-model";
 
 
 export interface PredictionInput {
