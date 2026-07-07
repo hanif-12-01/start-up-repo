@@ -82,7 +82,7 @@ function EmptyState({
 }) {
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Laporan Bulanan Listrik" subtitle="Pratinjau Laporan berbasis data usaha dan pemakaian listrik terbaru." />
+      <PageHeader title="Laporan Bulanan Listrik" subtitle="Pratinjau Laporan berbasis data properti/usaha dan pemakaian listrik terbaru." />
       <div className="card flex flex-col items-center gap-4 py-14 text-center">
         <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-greenSoft text-brand-green">{icon}</div>
         <h2 className="text-lg font-bold text-brand-ink">{title}</h2>
@@ -114,10 +114,10 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
     return (
       <EmptyState
         icon={<UserCheck className="h-7 w-7" />}
-        title="Profil Usaha Belum Lengkap"
-        message="Lengkapi profil usaha terlebih dahulu agar WattWise AI dapat membuat laporan bulanan yang sesuai dengan jenis usaha, daya listrik, dan jam operasional Anda."
+        title="Profil Properti/Usaha Belum Lengkap"
+        message="Lengkapi profil properti atau usaha terlebih dahulu agar WattWise AI dapat membuat laporan bulanan yang sesuai dengan jenis, daya listrik, dan jam operasional Anda."
         href="/onboarding"
-        cta="Lengkapi Profil Usaha"
+        cta="Lengkapi Profil Properti"
       />
     );
   }
@@ -131,7 +131,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
       <EmptyState
         icon={<PlusCircle className="h-7 w-7" />}
         title="Data Laporan Belum Cukup"
-        message="WattWise AI memerlukan profil usaha dan minimal satu input data listrik untuk membuat pratinjau laporan bulanan. Silakan isi data pemakaian listrik terlebih dahulu."
+        message="WattWise AI memerlukan profil properti/usaha dan minimal satu input data listrik untuk membuat pratinjau laporan bulanan. Silakan isi data pemakaian listrik terlebih dahulu."
         href="/dashboard/input"
         cta="Input Data Listrik"
       />
@@ -204,7 +204,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
     <div className="max-w-5xl">
       <PageHeader
         title="Laporan Bulanan Listrik"
-        subtitle="Pratinjau profesional untuk melihat pemakaian, risiko, rekomendasi, dan potensi hemat usaha Anda."
+        subtitle="Pratinjau profesional untuk melihat pemakaian, risiko, rekomendasi, dan potensi hemat properti atau usaha Anda."
       />
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-card sm:flex-row sm:items-center sm:justify-between font-sans">
@@ -293,7 +293,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/70">WattWise AI</p>
                 <h1 className="mt-1 text-2xl font-extrabold">Pratinjau Laporan Energi Bulanan</h1>
-                <p className="mt-1 text-sm text-white/75">Listrik Cerdas untuk UMKM</p>
+                <p className="mt-1 text-sm text-white/75">Listrik Lebih Cerdas</p>
               </div>
             </div>
             <div className="rounded-2xl bg-white/15 p-4 text-left sm:text-right">
@@ -513,7 +513,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
                       Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.
                     </p>
                     <p>
-                      Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.
+                      Prediksi dan estimasi WattWise AI bersifat simulasi perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN atau audit energi bersertifikasi.
                     </p>
                   </div>
                 </div>
@@ -528,8 +528,7 @@ export default async function LaporanPage({ searchParams }: { searchParams?: { m
           <footer className="flex gap-3 border-t border-slate-100 pt-7 text-[11px] leading-relaxed text-slate-500">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
             <p>
-              <strong>Disclaimer:</strong> Laporan ini adalah estimasi berdasarkan data yang dimasukkan pengguna dan analisis WattWise AI. Laporan ini bukan tagihan resmi PLN.
-              Tagihan aktual dapat berbeda tergantung tarif PLN, pajak, biaya administrasi, biaya lain, dan pemakaian listrik nyata di lapangan.
+              <strong>Disclaimer:</strong> Estimasi ini berdasarkan data yang Anda input dan bukan tagihan resmi PLN. WattWise AI bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan bukan alat ukur listrik resmi. Laporan ini adalah analisis simulatif untuk membantu pengelolaan biaya operasional internal Anda.
             </p>
           </footer>
         </div>

@@ -98,8 +98,8 @@ export async function generatePrediction({
 
     confidenceLevel = "LOW";
     confidenceReason = entries.length < 2
-      ? `Baru tersedia ${entries.length} bulan data pemakaian — model LSTM butuh 6 bulan. Silakan lengkapi data bulan berikutnya untuk akurasi yang lebih baik.`
-      : `Data historis ${entries.length} bulan — model LSTM butuh minimal 6 bulan. Sistem memakai estimasi sederhana (rule-based).`;
+      ? `Baru tersedia ${entries.length} bulan data pemakaian — Model Estimasi Adaptif butuh 6 bulan. Silakan lengkapi data bulan berikutnya untuk akurasi yang lebih baik.`
+      : `Data historis ${entries.length} bulan — Model Estimasi Adaptif butuh minimal 6 bulan. Sistem memakai estimasi sederhana (rule-based).`;
 
     explanation = "Data historis belum cukup untuk model AI penuh, sehingga sistem memakai estimasi sederhana berbasis aturan.";
   }
@@ -136,20 +136,20 @@ export async function generatePrediction({
         });
         predictedUsageKwh = rbRes.predictedUsageKwh;
         confidenceLevel = "LOW";
-        confidenceReason = "Model utama menghasilkan output tidak wajar sehingga sistem beralih ke estimasi rule-based.";
-        explanation = "AI memilih model tabular karena data historis belum cukup untuk LSTM. Namun, karena model utama tidak stabil untuk data usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
+        confidenceReason = "Model utama menghasilkan output tidak wajar sehingga sistem beralih ke analisis berbasis pola.";
+        explanation = "AI memilih Hybrid AI Decision Support karena data historis belum mencukupi. Namun, karena model utama tidak stabil untuk data properti/usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
       } else {
         if (isKnownType && !isAnomalous) {
           confidenceLevel = "MEDIUM";
-          confidenceReason = `Model Gradient Boosting menganalisis data pemakaian usaha Anda selama ${entries.length} bulan; jenis usaha dikenali dan pola stabil.`;
+          confidenceReason = `Hybrid AI Decision Support menganalisis data pemakaian properti/usaha Anda selama ${entries.length} bulan; jenis usaha dikenali dan pola stabil.`;
         } else if (isAnomalous) {
           confidenceLevel = "LOW";
-          confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata ${entries.length} bulan) — prediksi model kurang akurat.`;
+          confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata ${entries.length} bulan) — prediksi Hybrid AI Decision Support kurang akurat.`;
         } else {
           confidenceLevel = "LOW";
-          confidenceReason = `Model Gradient Boosting menganalisis ${entries.length} bulan pemakaian, namun jenis usaha 'Lainnya' belum sepenuhnya dikenali oleh model.`;
+          confidenceReason = `Hybrid AI Decision Support menganalisis ${entries.length} bulan pemakaian, namun jenis usaha 'Lainnya' belum sepenuhnya dikenali.`;
         }
-        explanation = "AI memilih model tabular karena data historis belum cukup untuk LSTM. Prediksi dihitung dari pemakaian terakhir, rata-rata 3 bulan, tren pemakaian, jenis usaha, dan tarif listrik.";
+        explanation = "AI memilih Hybrid AI Decision Support. Prediksi dihitung dari pemakaian terakhir, rata-rata 3 bulan, tren pemakaian, tipe properti/usaha, dan tarif listrik.";
       }
     } catch (err) {
       // Fallback total
@@ -203,20 +203,20 @@ export async function generatePrediction({
         });
         predictedUsageKwh = rbRes.predictedUsageKwh;
         confidenceLevel = "LOW";
-        confidenceReason = "Model utama menghasilkan output tidak wajar sehingga sistem beralih ke estimasi rule-based.";
-        explanation = "AI memilih model LSTM karena tersedia 6 bulan data historis. Namun, karena model utama tidak stabil untuk data usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
+        confidenceReason = "Model utama menghasilkan output tidak wajar sehingga sistem beralih ke analisis berbasis pola.";
+        explanation = "AI memilih Hybrid AI Decision Support karena tersedia data historis yang memadai. Namun, karena model utama tidak stabil untuk data properti/usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
       } else {
         if (isKnownType && !isAnomalous) {
           confidenceLevel = "HIGH";
-          confidenceReason = "Model LSTM memakai 6 bulan pola pemakaian listrik yang lengkap; jenis usaha dikenali dan pola stabil tanpa anomali.";
+          confidenceReason = "Hybrid AI Decision Support memakai 6 bulan pola pemakaian listrik yang lengkap; jenis usaha dikenali dan pola stabil tanpa anomali.";
         } else if (isAnomalous) {
           confidenceLevel = "LOW";
-          confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata 6 bulan) — prediksi LSTM mungkin kurang akurat.`;
+          confidenceReason = `Terdeteksi lonjakan pemakaian tidak wajar (deviasi ${anomalyDeviation.toFixed(0)}% dari rata-rata 6 bulan) — prediksi Hybrid AI Decision Support mungkin kurang akurat.`;
         } else {
           confidenceLevel = "MEDIUM";
-          confidenceReason = "Model LSTM memakai 6 bulan pola pemakaian listrik, namun jenis usaha 'Lainnya' belum sepenuhnya dikenali oleh model.";
+          confidenceReason = "Hybrid AI Decision Support memakai 6 bulan pola pemakaian listrik, namun jenis usaha 'Lainnya' belum sepenuhnya dikenali.";
         }
-        explanation = `AI memilih model LSTM karena tersedia 6 bulan data historis. Model membaca pola pemakaian berurutan dan memperkirakan pemakaian bulan depan sebesar ${predictedUsageKwh.toFixed(1)} kWh.`;
+        explanation = `AI memilih Hybrid AI Decision Support karena tersedia data historis yang memadai. Model membaca pola pemakaian berurutan dan memperkirakan pemakaian bulan depan sebesar ${predictedUsageKwh.toFixed(1)} kWh.`;
       }
     } catch (err) {
       method = "HYBRID_FALLBACK";
@@ -230,8 +230,8 @@ export async function generatePrediction({
       });
       predictedUsageKwh = rbRes.predictedUsageKwh;
       confidenceLevel = "LOW";
-      confidenceReason = "Model utama mengalami kegagalan sistem sehingga dialihkan ke rule-based.";
-      explanation = "AI memilih model LSTM karena tersedia 6 bulan data historis. Namun, karena model utama tidak stabil untuk data usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
+      confidenceReason = "Model utama mengalami kegagalan sistem sehingga dialihkan ke analisis berbasis pola.";
+      explanation = "AI memilih Hybrid AI Decision Support karena tersedia data historis yang memadai. Namun, karena model utama tidak stabil untuk data properti/usaha Anda, sistem beralih ke estimasi cadangan berbasis aturan.";
     }
   }
 

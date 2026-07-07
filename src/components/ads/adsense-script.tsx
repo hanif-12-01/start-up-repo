@@ -1,10 +1,11 @@
 "use client";
 
 import Script from "next/script";
+import { getAdsenseClient, isAdsenseEnabled } from "@/lib/ads";
 
 export default function AdSenseScript() {
-  const enabled = process.env.NEXT_PUBLIC_ENABLE_ADSENSE === "true";
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+  const enabled = isAdsenseEnabled();
+  const clientId = getAdsenseClient();
 
   if (!enabled || !clientId) {
     return null;
@@ -12,6 +13,7 @@ export default function AdSenseScript() {
 
   return (
     <Script
+      id="google-adsense-script"
       async
       src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`}
       crossOrigin="anonymous"
@@ -19,3 +21,4 @@ export default function AdSenseScript() {
     />
   );
 }
+

@@ -7,7 +7,7 @@ export function FeatureGate({
   description,
 }: {
   featureName: string;
-  requiredTier: "Pro UMKM" | "Business" | "Enterprise";
+  requiredTier: "Pro" | "Business" | "Enterprise" | string;
   description: string;
 }) {
   const isEnterprise = requiredTier === "Enterprise";
@@ -30,7 +30,7 @@ export function FeatureGate({
       >
         {isEnterprise ? <Crown className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
       </div>
-
+ 
       <span 
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider mb-3 ${
           isEnterprise 
@@ -40,14 +40,14 @@ export function FeatureGate({
       >
         <Sparkles className="h-3 w-3" /> {isEnterprise ? "Fitur Enterprise" : "Fitur Premium"}
       </span>
-
+ 
       <h2 className="text-xl font-bold text-slate-800 mb-2">
         {featureName} Terkunci
       </h2>
       
       <p className="text-xs text-slate-500 leading-relaxed mb-6">
         {isEnterprise 
-          ? "Fitur ini tersedia untuk Paket Enterprise. Hubungi tim WattWise untuk kebutuhan custom multi-lokasi."
+          ? "Fitur ini tersedia untuk Paket Enterprise/Custom. Hubungi tim WattWise untuk kebutuhan custom multi-lokasi."
           : `${description} Halaman ini memerlukan langganan paket minimum ${requiredTier}.`
         }
       </p>

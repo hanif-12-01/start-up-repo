@@ -41,7 +41,7 @@ export default async function AnomaliPage() {
 
   let judulLonjakan = "Pemakaian Normal";
   let waktu = "Tidak terdeteksi";
-  let kemungkinanPenyebab = "Belum terdeteksi adanya peralatan listrik bermasalah.";
+  let kemungkinanPenyebab = "Belum terdeteksi adanya kemungkinan pemakaian tidak wajar.";
   let dampakEstimasi = "Tagihan listrik berjalan sesuai estimasi normal.";
 
   if (highSeverityAnomalies.length > 0) {
@@ -67,7 +67,7 @@ export default async function AnomaliPage() {
     if (unresolved.length > 0) {
       kemungkinanPenyebab = unresolved[0].description;
     } else {
-      kemungkinanPenyebab = "Beberapa anomali ringan terdeteksi namun telah ditangani.";
+      kemungkinanPenyebab = "Beberapa indikasi pemakaian tidak wajar ringan teridentifikasi namun telah ditangani.";
     }
 
     let totalImpact = 0;

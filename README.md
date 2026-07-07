@@ -1,7 +1,7 @@
 # ⚡ WattWise AI — MVP 2
 
-> **Asisten Hemat Listrik Berbasis AI untuk UMKM Indonesia**  
-> *Listrik Lebih Cerdas, Biaya Lebih Terkendali.*
+> **SaaS Electricity Cost Intelligence untuk Pemilik Kos & Properti Sewa**  
+> *Listrik Lebih Cerdas, Cash Flow Lebih Terkendali.*
 
 ---
 
@@ -18,13 +18,13 @@
 
 ## 💡 Apa itu WattWise AI?
 
-**WattWise AI** adalah platform asisten efisiensi dan pemantauan energi berbasis kecerdasan buatan (AI) yang dirancang untuk membantu sektor bisnis meminimalkan pengeluaran biaya listrik bulanan secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang menganalisis pola pemakaian dari data input manual, membantu memperkirakan tagihan, mendeteksi potensi anomali, dan memberikan rekomendasi aksi konkret.         
+**WattWise AI** adalah platform *SaaS electricity cost intelligence* berbasis kecerdasan buatan (AI) yang dirancang untuk membantu pemilik kos, pengelola properti kecil, dan pelaku UMKM padat energi menyelaraskan pengeluaran listrik dengan arus kas secara cerdas dan sistematis. Platform ini bertindak sebagai asisten virtual yang menganalisis pola pemakaian dari data input manual, membantu memperkirakan tagihan, mendeteksi potensi anomali, dan memberikan rekomendasi aksi konkret.         
 
 🌐 **Tautan Live Demo Vercel:** [https://start-up-repo-m131.vercel.app](https://start-up-repo-m131.vercel.app)
 
-## 🎯 Target User: UMKM (Usaha Mikro, Kecil, dan Menengah)
+## 🎯 Target User: Pemilik Kos, Properti Sewa, & UMKM Padat Energi
 
-WattWise AI secara khusus menargetkan pemilik **UMKM di Indonesia** (seperti usaha laundry, kuliner/F&B, minimarket/ritel, industri rumahan, dan cold storage) yang memiliki keterbatasan sumber daya untuk melakukan audit energi profesional namun menghadapi beban biaya operasional listrik yang tinggi dan fluktuatif.
+WattWise AI secara khusus menargetkan pemilik **properti kos, kontrakan, penginapan kecil**, serta **pelaku UMKM padat energi** (seperti laundry, cold storage, kuliner) di kota-kota kampus seperti Purwokerto, Banyumas. Platform ini membantu mereka menghentikan kebocoran arus kas akibat pemakaian listrik berlebih tanpa memerlukan biaya Audit Instan / Diagnosis Biaya Listrik profesional yang mahal.
 
 ---
 

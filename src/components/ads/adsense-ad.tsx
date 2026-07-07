@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { getAdSlotByPlacement, AdPlacement } from "@/lib/ads";
+import {
+  getAdSlotByPlacement,
+  getAdsenseClient,
+  isAdsenseEnabled,
+  AdPlacement,
+} from "@/lib/ads";
 
 interface AdSenseAdProps {
   placement: AdPlacement;
@@ -10,18 +15,19 @@ interface AdSenseAdProps {
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle?: unknown[];
   }
 }
 
 export function AdSenseAd({ placement, className }: AdSenseAdProps) {
   const slot = getAdSlotByPlacement(placement);
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+  const client = getAdsenseClient();
+  const enabled = isAdsenseEnabled();
   const isDev = process.env.NODE_ENV !== "production";
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!slot || !clientId || initialized.current) return;
+    if (!enabled || !slot || !client || initialized.current) return;
 
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -29,27 +35,30 @@ export function AdSenseAd({ placement, className }: AdSenseAdProps) {
     } catch (err) {
       console.error("AdSense push error for " + placement, err);
     }
-  }, [slot, clientId, placement]);
+  }, [enabled, slot, client, placement]);
 
-  if (!slot || !clientId) {
+  const isIncomplete = !enabled || !slot || !client;
+
+  if (isIncomplete) {
     if (isDev) {
       return (
-        <div className={`my-4 p-4 border border-dashed border-slate-300 rounded-lg text-center bg-slate-50 text-xs text-slate-500 font-mono ${className}`}>
-          [AdSense placeholder: {placement}]
-        </div>
+        <section aria-label="Iklan" className={`my-6 p-4 border border-dashed border-slate-300 rounded-2xl bg-slate-50 text-center shadow-xs ${className}`}>
+          <p className="mb-1 text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Iklan</p>
+          <p className="text-xs text-slate-500 font-mono font-semibold">Placeholder AdSense: {placement}</p>
+        </section>
       );
     }
     return null;
   }
 
   return (
-    <section aria-label="Iklan" className={`mt-6 ${className}`}>
-      <p className="mb-2 text-[10px] uppercase font-bold tracking-wider text-slate-400">Iklan</p>
-      <div className="overflow-hidden min-h-[90px] flex items-center justify-center bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+    <section aria-label="Iklan" className={`my-6 ${className}`}>
+      <p className="mb-2 text-[9px] uppercase font-extrabold tracking-wider text-slate-400">Iklan</p>
+      <div className="overflow-hidden min-h-[90px] flex items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-xs">
         <ins
           className="adsbygoogle"
           style={{ display: "block" }}
-          data-ad-client={clientId}
+          data-ad-client={client}
           data-ad-slot={slot}
           data-ad-format="auto"
           data-full-width-responsive="true"
@@ -58,3 +67,4 @@ export function AdSenseAd({ placement, className }: AdSenseAdProps) {
     </section>
   );
 }
+

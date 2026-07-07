@@ -38,7 +38,7 @@ export default async function PeralatanPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Total Estimasi" value={fmtKwh(totalKwh)} helper="Per bulan, asumsi 30 hari." icon={<Gauge className="h-5 w-5" />} tone="green" />
         <StatCard label="Estimasi Biaya" value={fmtIdr(totalCost)} helper={`Tarif estimasi ${fmtIdr(tariffPerKwh)}/kWh.`} icon={<CircleDollarSign className="h-5 w-5" />} tone="blue" />
-        <StatCard label="Alat Paling Boros" value={top?.name ?? "Belum Ada"} helper={top ? fmtKwh(estimateMonthlyKwh(top)) : "Tambah peralatan dulu."} icon={<Bolt className="h-5 w-5" />} tone="yellow" />
+        <StatCard label="Kandidat Alat Perlu Dicek" value={top?.name ?? "Belum Ada"} helper={top ? fmtKwh(estimateMonthlyKwh(top)) : "Tambah peralatan dulu."} icon={<Bolt className="h-5 w-5" />} tone="yellow" />
       </div>
 
       <PeralatanClient appliances={business.appliances} tariffPerKwh={tariffPerKwh} />

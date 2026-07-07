@@ -89,20 +89,20 @@ export function isTrialExpired(subscription: any): boolean {
   return false;
 }
 
-export function getPlanDisplayName(planCode: string, trialActive: boolean = false): string {
-  switch (planCode) {
+export function getPlanDisplayName(code: PlanCode, trialActive = false): string {
+  switch (code) {
     case "FREE":
-      return "Paket Gratis";
+      return "Gratis";
     case "PRO_TRIAL":
-      return trialActive ? "Pro Trial" : "Trial Berakhir";
+      return trialActive ? "Pro Trial 30 Hari" : "Trial Berakhir";
     case "PRO_UMKM":
       return "Pro";
     case "BUSINESS":
-      return "Paket Bisnis";
+      return "Business";
     case "ENTERPRISE":
-      return "Paket Enterprise";
+      return "Enterprise/Custom";
     default:
-      return planCode;
+      return code;
   }
 }
 
@@ -228,7 +228,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
     case "FREE":
       return {
         planCode: "FREE",
-        displayName: "Paket Gratis",
+        displayName: "Gratis",
         businessLimit: 1,
         historyMonthsLimit: 3,
         supportLevel: "Community",
@@ -240,7 +240,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
       // konsisten menampilkan ajakan upgrade sebelum masa trial berakhir.
       return {
         planCode: "PRO_TRIAL",
-        displayName: trialActive ? "Pro Trial" : "Trial Berakhir",
+        displayName: trialActive ? "Pro Trial 30 Hari" : "Trial Berakhir",
         businessLimit: 3,
         historyMonthsLimit: 12,
         supportLevel: "Standard support",
@@ -252,7 +252,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
     case "PRO_UMKM":
       return {
         planCode: "PRO_UMKM",
-        displayName: "Paket Pro",
+        displayName: "Pro",
         businessLimit: 3,
         historyMonthsLimit: 12,
         supportLevel: "Standard support",
@@ -262,7 +262,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
     case "BUSINESS":
       return {
         planCode: "BUSINESS",
-        displayName: "Paket Bisnis",
+        displayName: "Business",
         businessLimit: 50,
         historyMonthsLimit: 24,
         supportLevel: "Priority support",
@@ -272,7 +272,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
     case "ENTERPRISE":
       return {
         planCode: "ENTERPRISE",
-        displayName: "Paket Enterprise",
+        displayName: "Enterprise/Custom",
         businessLimit: null,
         isCustomLimit: true,
         historyMonthsLimit: "UNLIMITED",
@@ -285,7 +285,7 @@ export function getPlanMeta(planCode: string, trialActive: boolean = false): Pla
     default:
       return {
         planCode,
-        displayName: getPlanDisplayName(planCode, trialActive),
+        displayName: getPlanDisplayName(planCode as PlanCode, trialActive),
         businessLimit: 1,
         historyMonthsLimit: 3,
         supportLevel: "Community",

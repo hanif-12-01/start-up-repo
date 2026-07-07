@@ -90,8 +90,18 @@ export default function PeralatanClient({ appliances, tariffPerKwh }: { applianc
     <section className="card overflow-hidden p-0">
       <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Daftar Peralatan</h2>
-          <p className="text-sm text-slate-400">Rumus: watt × jumlah × jam/hari × 30 ÷ 1000. Estimasi menggunakan asumsi 30 hari pemakaian.</p>
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
+            Daftar Peralatan
+            <span className="cursor-help text-slate-400 group relative inline-block text-xs font-normal">
+              ⓘ
+              <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-slate-900 p-3 text-[10px] leading-relaxed text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 shadow-xl z-20 font-sans font-medium normal-case">
+                Perhitungan ini berdasarkan data daya dan jam pakai yang Anda input. Tanpa sensor, WattWise AI tidak mengukur konsumsi aktual tiap alat.
+              </span>
+            </span>
+          </h2>
+          <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+            <strong>Estimasi Simulatif:</strong> Perhitungan ini berdasarkan data daya dan jam pakai yang Anda input. Tanpa sensor, WattWise AI tidak mengukur konsumsi aktual tiap alat. Rumus: watt × jumlah × jam/hari × 30 ÷ 1000.
+          </p>
         </div>
         <button onClick={beginCreate} className="btn-primary" disabled={isPending}>
           <Plus className="h-4 w-4" /> Tambah Alat
@@ -116,8 +126,8 @@ export default function PeralatanClient({ appliances, tariffPerKwh }: { applianc
                 <th className="px-5 py-3">Daya</th>
                 <th className="px-5 py-3">Jumlah</th>
                 <th className="px-5 py-3">Jam/Hari</th>
-                <th className="px-5 py-3">kWh/Bulan</th>
-                <th className="px-5 py-3">Biaya/Bulan</th>
+                <th className="px-5 py-3">Estimasi kWh/Bulan</th>
+                <th className="px-5 py-3">Estimasi Biaya/Bulan</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Aksi</th>
               </tr>
@@ -183,9 +193,17 @@ export default function PeralatanClient({ appliances, tariffPerKwh }: { applianc
             <div><label className="label">Jam/Hari</label><input className="input" type="number" min={0} max={24} step={0.1} value={form.dailyUsageHours} onChange={(e) => setForm({ ...form, dailyUsageHours: Number(e.target.value) })} /></div>
             <div><label className="label">Status</label><select className="select" value={form.usageStatus} onChange={(e) => setForm({ ...form, usageStatus: e.target.value as UsageStatus })}>{Object.values(UsageStatus).map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}</select></div>
           </div>
-          <p className="helper">Estimasi: {fmtKwh(estimateMonthlyKwh(form))}/bulan · {fmtIdr(estimateMonthlyCost(form, tariffPerKwh))}/bulan.</p>
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-[10px] leading-relaxed text-indigo-950 font-semibold">
-            💡 <strong>Roadmap IoT MVP 3:</strong> Pada MVP 3, alat dapat dihubungkan ke perangkat AIoT untuk pembacaan pemakaian yang lebih detail dan otomatis.
+          <p className="helper flex items-center gap-1">
+            <span>Estimasi Simulatif: {fmtKwh(estimateMonthlyKwh(form))}/bulan · {fmtIdr(estimateMonthlyCost(form, tariffPerKwh))}/bulan.</span>
+            <span className="cursor-help text-slate-400 group relative inline-block text-xs font-normal">
+              ⓘ
+              <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-64 rounded-xl bg-slate-900 p-2.5 text-[10px] leading-relaxed text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 shadow-xl z-20 font-sans font-medium normal-case">
+                Perhitungan ini berdasarkan data daya dan jam pakai yang Anda input. Tanpa sensor, WattWise AI tidak mengukur konsumsi aktual tiap alat.
+              </span>
+            </span>
+          </p>
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 text-[10px] leading-relaxed text-indigo-950 font-semibold font-sans">
+            💡 <strong>Roadmap Phase 3:</strong> Pada Phase 3, peralatan dapat disimulasikan terhubung ke perangkat smart plug/AIoT untuk pembacaan detail otomatis.
           </div>
           <button type="submit" className="btn-primary w-full" disabled={isPending}>{isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Menyimpan...</> : "Simpan"}</button>
         </form>

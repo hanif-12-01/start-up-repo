@@ -20,47 +20,56 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import { segmenTarget } from "@/lib/mock-data";
 
 export default function LandingPage() {
   const fitur = [
     {
-      title: "Input Listrik Sederhana",
-      icon: <FileText className="h-5 w-5" />,
-      desc: "Isi nama usaha, peralatan utama, tagihan, dan kWh lewat formulir ringkas—tanpa pusing.",
-    },
-    {
-      title: "Dashboard Real-time",
-      icon: <Zap className="h-5 w-5" />,
-      desc: "Pantau tagihan, kWh, status efisiensi, dan estimasi hemat dalam satu layar.",
-    },
-    {
-      title: "Prediksi Tagihan Akurat",
+      title: "Perkiraan Tagihan Bulan Depan",
       icon: <TrendingUp className="h-5 w-5" />,
-      desc: "Ketahui perkiraan biaya listrik sebelum tagihan PLN terbit agar kas usaha aman.",
+      desc: "Bukan tagihan resmi PLN, tetapi perkiraan berdasarkan data yang Anda input.",
     },
     {
-      title: "Deteksi Kebocoran Energi",
+      title: "Pendapatan & Listrik",
+      icon: <Zap className="h-5 w-5" />,
+      desc: "Lihat berapa persen pendapatan bulanan terserap untuk listrik.",
+    },
+    {
+      title: "Pemakaian Perlu Dicek",
       icon: <AlertTriangle className="h-5 w-5" />,
-      desc: "Peringatan instan saat pemakaian alat tertentu naik tidak wajar secara anomali.",
+      desc: "WattWise memberi indikasi awal jika pemakaian terlihat tidak wajar.",
     },
     {
-      title: "Rekomendasi Hemat Pintar",
+      title: "Rekomendasi Hemat yang Praktis",
       icon: <Lightbulb className="h-5 w-5" />,
-      desc: "Saran hemat sesuai jenis usaha Anda, tanpa istilah teknis yang rumit.",
+      desc: "Saran sederhana yang bisa dilakukan pemilik kos atau usaha.",
     },
     {
-      title: "Kalkulator Potensi Rupiah",
+      title: "Estimasi Simulatif Peralatan",
       icon: <TrendingDown className="h-5 w-5" />,
-      desc: "Simulasikan pemotongan beban dan lihat potensi hemat kas bulanan & tahunan.",
+      desc: "Perkiraan dari daya alat dan jam pakai, bukan pengukuran sensor.",
+    },
+    {
+      title: "Laporan Internal",
+      icon: <FileText className="h-5 w-5" />,
+      desc: "Ringkasan bulanan untuk evaluasi pribadi atau tim.",
     },
   ];
 
   const stats = [
     { angka: "18%", label: "Rata-rata potensi hemat tagihan" },
     { angka: "Rp180rb", label: "Estimasi hemat per bulan" },
-    { angka: "6+", label: "Sektor UMKM yang didukung" },
+    { angka: "7+", label: "Target segmen & properti" },
     { angka: "0", label: "Perangkat IoT mahal dibutuhkan" },
+  ];
+
+  const targetSegments = [
+    { nama: "Kos-kosan", ikon: "bed", desc: "Penginapan & properti sewa kecil" },
+    { nama: "Kontrakan", ikon: "bed", desc: "Rumah sewa harian/bulanan/tahunan" },
+    { nama: "Properti kecil / ruko", ikon: "store", desc: "Ruko, kios, atau properti komersial kecil" },
+    { nama: "Laundry", ikon: "shirt", desc: "Jasa cuci, kering, dan setrika pakaian" },
+    { nama: "Warung / F&B", ikon: "utensils", desc: "Warung makan, kafe, depot kuliner padat energi" },
+    { nama: "Frozen food / cold storage", ikon: "snowflake", desc: "Freezer penyimpanan makanan beku" },
+    { nama: "Minimarket / toko kecil", ikon: "store", desc: "Toko kelontong, retail dengan mesin showcase" },
   ];
 
   const getUmkmIcon = (iconName: string) => {
@@ -103,10 +112,11 @@ export default function LandingPage() {
 
           <nav className="hidden items-center gap-8 text-[13px] font-semibold text-slate-500 md:flex">
             <a href="#masalah" className="transition hover:text-emerald-600">Masalah</a>
-            <a href="#solusi" className="transition hover:text-emerald-600">Solusi</a>
+            <a href="#cara-kerja" className="transition hover:text-emerald-600">Cara Kerja</a>
+            <a href="#untuk-siapa" className="transition hover:text-emerald-600">Untuk Siapa</a>
             <a href="#fitur" className="transition hover:text-emerald-600">Fitur</a>
-            <a href="#preview" className="transition hover:text-emerald-600">Preview</a>
-            <a href="#pln" className="transition hover:text-emerald-600">Misi PLN</a>
+            <a href="#preview" className="transition hover:text-emerald-600">Demo</a>
+            <a href="#roadmap" className="transition hover:text-emerald-600">Roadmap</a>
           </nav>
 
           <Link
@@ -130,17 +140,22 @@ export default function LandingPage() {
             <div className="lg:col-span-7 flex flex-col items-start text-left">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 bg-white/70 px-4 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
-                Asisten Hemat Listrik Pintar untuk UMKM Indonesia
+                SaaS electricity cost intelligence untuk kos, properti kecil, dan UMKM padat energi
               </div>
               <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
                 Listrik Lebih Cerdas,
                 <br />
-                Biaya Lebih <span className="gradient-text">Terkendali</span>
+                Cash Flow Lebih <span className="gradient-text">Terkendali</span>
               </h1>
               <p className="mt-5 max-w-xl text-base font-medium leading-relaxed text-slate-500">
-                WattWise AI membantu UMKM memantau pemakaian listrik, mendeteksi pemborosan,
-                memprediksi tagihan bulanan, dan memberi rekomendasi hemat biaya yang mudah dipahami.
+                WattWise AI membantu pemilik kos, pengelola properti kecil, dan UMKM padat energi memahami biaya listrik, memperkirakan tagihan bulan depan, dan melihat dampaknya ke pendapatan tanpa perlu paham istilah teknis.
               </p>
+              
+              <p className="mt-4 text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-550 shrink-0" />
+                Mulai dari input manual. Tanpa alat tambahan. Tanpa integrasi resmi PLN.
+              </p>
+
               <div className="mt-8 flex flex-wrap gap-3.5">
                 <Link
                   href="/login?callbackUrl=/dashboard"
@@ -149,8 +164,8 @@ export default function LandingPage() {
                   Coba Demo Dashboard
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-                <a href="#fitur" className="btn-outline px-7 py-3.5 text-sm">
-                  Pelajari Fitur
+                <a href="#cara-kerja" className="btn-outline px-7 py-3.5 text-sm">
+                  Lihat Cara Kerjanya
                 </a>
               </div>
             </div>
@@ -174,24 +189,24 @@ export default function LandingPage() {
                 <div className="bg-slate-50/40 p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Usaha Terdaftar</p>
-                      <h3 className="text-xs font-bold text-slate-800">Berkah Laundry & Dry Clean</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Properti Terdaftar</p>
+                      <h3 className="text-xs font-bold text-slate-800">Kos Melati Purwokerto</h3>
                     </div>
-                    <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[9px] font-bold text-emerald-700">Usaha Efisien</span>
+                    <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[9px] font-bold text-emerald-700">Properti Efisien</span>
                   </div>
 
                   <div className="mb-4 grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-slate-200/60 bg-white p-3 shadow-sm">
-                      <p className="text-[9px] font-bold uppercase text-slate-400">Estimasi Tagihan</p>
+                      <p className="text-[9px] font-bold uppercase text-slate-400">Perkiraan Tagihan</p>
                       <p className="mt-1 text-sm font-extrabold text-slate-800">Rp1.450.000</p>
                       <span className="mt-1 inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600">
                         <TrendingDown className="h-2 w-2" /> -8.2% bulan ini
                       </span>
                     </div>
                     <div className="rounded-xl border border-slate-200/60 bg-white p-3 shadow-sm">
-                      <p className="text-[9px] font-bold uppercase text-slate-400">Potensi Hemat</p>
+                      <p className="text-[9px] font-bold uppercase text-slate-400">Peluang Hemat</p>
                       <p className="mt-1 text-sm font-extrabold text-emerald-600">Rp240.000</p>
-                      <span className="mt-1 inline-flex items-center gap-0.5 text-[8px] font-semibold text-slate-400">Saran WattWise AI</span>
+                      <span className="mt-1 inline-flex items-center gap-0.5 text-[8px] font-semibold text-slate-400">Estimasi Simulatif</span>
                     </div>
                   </div>
 
@@ -219,9 +234,9 @@ export default function LandingPage() {
                       <AlertTriangle className="h-4 w-4" />
                     </div>
                     <div className="overflow-hidden">
-                      <h4 className="text-[10px] font-bold text-rose-950">Lonjakan Pemakaian Terdeteksi</h4>
+                      <h4 className="text-[10px] font-bold text-rose-950">Pemakaian malam hari perlu dicek</h4>
                       <p className="mt-0.5 text-[9px] font-semibold leading-relaxed text-slate-500">
-                        Pengering laundry beroperasi 3.5 jam lebih lama dari acuan efisiensi normal.
+                        Kemungkinan terkait lampu koridor, pompa air, atau alat yang menyala lebih lama dari biasanya. Perlu verifikasi manual.
                       </p>
                     </div>
                   </div>
@@ -247,18 +262,18 @@ export default function LandingPage() {
         <section id="masalah" className="border-y border-slate-100 bg-slate-50/60 py-20 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
-              <span className="eyebrow border-amber-200/70 bg-amber-50/80 text-amber-700">Masalah UMKM</span>
-              <h2 className="mt-4 section-title">Mengapa Biaya Listrik UMKM Sering Bengkak?</h2>
+              <span className="eyebrow border-amber-200/70 bg-amber-50/80 text-amber-700">Beban Listrik</span>
+              <h2 className="mt-4 section-title">Masalah yang Sering Dialami Pemilik Kos dan Usaha Padat Energi</h2>
               <p className="mt-4 text-base font-medium leading-relaxed text-slate-500">
-                Pelaku usaha kecil sulit mengontrol pengeluaran energi karena keterbatasan data dan alat pantau.
+                Pemilik kos, pengelola properti kecil, dan pelaku usaha padat energi seringkali kesulitan mengontrol biaya listrik harian karena tidak adanya pemetaan konsumsi.
               </p>
             </div>
 
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {[
-                { title: "Buta Pemakaian Harian", desc: "Baru sadar ada pemborosan di akhir bulan saat tagihan keluar, tanpa tahu alat mana penyebabnya.", icon: <AlertTriangle className="h-5 w-5" />, tone: "bg-amber-50 text-amber-600" },
-                { title: "Tagihan Sulit Diprediksi", desc: "Arus kas usaha terganggu karena nilai tagihan listrik naik mendadak di luar rencana.", icon: <TrendingUp className="h-5 w-5" />, tone: "bg-rose-50 text-rose-600" },
-                { title: "Saran Hemat Terlalu Umum", desc: "Artikel hemat energi di internet terlalu rumit, teknis, dan jarang cocok dengan peralatan UMKM.", icon: <HelpCircle className="h-5 w-5" />, tone: "bg-slate-100 text-slate-600" },
+                { title: "Tagihan naik, tapi tidak tahu kenapa", desc: "Pemilik baru sadar saat tagihan keluar, sementara penyebabnya belum jelas.", icon: <AlertTriangle className="h-5 w-5" />, tone: "bg-amber-50 text-amber-600" },
+                { title: "Pendapatan masuk, tapi listrik terasa menggerus", desc: "Sulit melihat berapa persen pendapatan bulanan habis untuk listrik.", icon: <TrendingUp className="h-5 w-5" />, tone: "bg-rose-50 text-rose-600" },
+                { title: "Saran hemat terlalu umum", desc: "Tips hemat listrik sering tidak sesuai dengan kondisi kos, kontrakan, laundry, warung, atau properti kecil.", icon: <HelpCircle className="h-5 w-5" />, tone: "bg-slate-100 text-slate-600" },
               ].map((m) => (
                 <div key={m.title} className="glow-card">
                   <div className={`mb-4 grid h-11 w-11 place-items-center rounded-xl ${m.tone}`}>{m.icon}</div>
@@ -270,21 +285,59 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ============ SOLUSI ============ */}
-        <section id="solusi" className="py-20 sm:py-24">
+        {/* ============ USER PERSONAS ============ */}
+        <section id="untuk-siapa" className="py-20 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center mb-12">
+              <span className="eyebrow">Pengguna WattWise</span>
+              <h2 className="mt-4 section-title">Dibuat agar mudah dipahami dua tipe pengguna</h2>
+              <p className="mt-4 text-base font-medium leading-relaxed text-slate-500">
+                WattWise dirancang dengan pendekatan berimbang untuk pengguna awam maupun yang memiliki latar belakang teknis.
+              </p>
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="glow-card p-8 border-l-4 border-l-emerald-500">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 font-display">Ibu Kos / Pemilik UMKM yang gaptek</h3>
+                </div>
+                <p className="text-sm font-medium leading-relaxed text-slate-500">
+                  Tidak perlu paham kWh, cash flow, atau model AI. WattWise menjelaskan dengan bahasa sederhana: tagihan naik, sisa pendapatan, dan langkah yang perlu dicek.
+                </p>
+              </div>
+
+              <div className="glow-card p-8 border-l-4 border-l-indigo-500">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 font-display">Teknisi / pengelola listrik yang butuh kontrol biaya</h3>
+                </div>
+                <p className="text-sm font-medium leading-relaxed text-slate-500">
+                  Untuk pengguna yang paham listrik, WattWise menampilkan asumsi, tren, perbandingan bulan sebelumnya, dan estimasi simulatif agar hasilnya bisa dipercaya.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ CARA KERJA ============ */}
+        <section id="cara-kerja" className="border-t border-slate-100 bg-slate-50/60 py-20 sm:py-24">
           <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
             <div>
-              <span className="eyebrow">Solusi WattWise AI</span>
-              <h2 className="mt-4 section-title">Data Manual Diubah Jadi Insight Pintar</h2>
+              <span className="eyebrow">Alur Sistem</span>
+              <h2 className="mt-4 section-title">Cara Kerja WattWise AI dalam 4 Langkah</h2>
               <p className="mt-4 text-sm font-medium leading-relaxed text-slate-500">
-                WattWise AI mengolah data tagihan, tipe peralatan, dan jam pakai harian usaha Anda menjadi
-                model penghematan nyata—diproyeksikan dalam Rupiah dan kWh.
+                Proses pengolahan data manual sederhana menjadi arahan hemat daya praktis siap tindak untuk properti Anda.
               </p>
 
               <div className="mt-8 space-y-4">
                 {[
                   "Visualisasi riwayat tagihan dan kWh secara interaktif.",
-                  "Deteksi dini pemakaian anomali di atas rata-rata normal.",
+                  "Peringatan pemakaian di atas rata-rata normal.",
                   "Klasifikasi status efisiensi peralatan (Boros, Normal, Efisien).",
                   "Input data praktis tanpa perlu perangkat IoT mahal.",
                 ].map((item) => (
@@ -298,7 +351,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Engine visual */}
             <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white to-emerald-50/40 p-6 shadow-xl shadow-emerald-900/5 md:p-8">
               <div className="pointer-events-none absolute -right-16 -bottom-16 h-52 w-52 rounded-full bg-emerald-400/10 blur-3xl" />
               <div className="flex items-center gap-4 border-b border-slate-200/60 pb-5">
@@ -306,16 +358,17 @@ export default function LandingPage() {
                   <Zap className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-800">WattWise AI Analysis Engine</h3>
-                  <p className="text-[10px] font-bold text-slate-400">Transformasi Data Konsumsi Listrik</p>
+                  <h3 className="text-sm font-extrabold text-slate-800">WattWise Pola Pembacaan</h3>
+                  <p className="text-[10px] font-bold text-slate-400">Proses Pengolahan Informasi Listrik</p>
                 </div>
               </div>
 
               <div className="mt-6 space-y-3">
                 {[
-                  { n: "1", t: "Input Data Tagihan & Peralatan", d: "Masukkan nominal tagihan dan profil daya alat utama.", tone: "bg-blue-50 text-blue-600 border-blue-100" },
-                  { n: "2", t: "Analisis Beban & Klasifikasi Pola", d: "Sistem membandingkan rata-rata jenis usaha dan jam operasional ideal.", tone: "bg-amber-50 text-amber-600 border-amber-100" },
-                  { n: "3", t: "Rekomendasi Hemat Listrik", d: "Saran aksi operasional keluar dengan estimasi Rupiah hemat per bulan.", tone: "bg-emerald-50 text-emerald-600 border-emerald-100", active: true },
+                  { n: "1", t: "Masukkan data listrik", d: "Input tagihan/token/kWh atau meter reading secara manual.", tone: "bg-blue-50 text-blue-600 border-blue-100" },
+                  { n: "2", t: "Tambahkan pendapatan", d: "Bisa angka pasti, range, atau lewati dulu.", tone: "bg-amber-50 text-amber-600 border-amber-100" },
+                  { n: "3", t: "WattWise membaca pola", d: "Sistem membandingkan bulan ini, bulan sebelumnya, rata-rata, dan data peralatan yang Anda input.", tone: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+                  { n: "4", t: "Dapatkan arahan", d: "Lihat perkiraan biaya listrik, rasio listrik terhadap pendapatan, dan kemungkinan hal yang perlu dicek.", tone: "bg-teal-50 text-teal-600 border-teal-100", active: true },
                 ].map((p, i) => (
                   <div key={p.n}>
                     <div className={`flex items-center gap-3.5 rounded-xl border p-3.5 shadow-sm ${p.active ? "border-emerald-100 bg-emerald-50/50" : "border-slate-200/60 bg-white"}`}>
@@ -325,7 +378,7 @@ export default function LandingPage() {
                         <p className={`mt-0.5 text-[10px] font-semibold ${p.active ? "text-emerald-700" : "text-slate-400"}`}>{p.d}</p>
                       </div>
                     </div>
-                    {i < 2 && <div className="mx-auto my-1 h-4 w-0.5 bg-slate-200" />}
+                    {i < 3 && <div className="mx-auto my-1 h-3.5 w-0.5 bg-slate-200" />}
                   </div>
                 ))}
               </div>
@@ -338,9 +391,9 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <span className="eyebrow">Fitur Unggulan</span>
-              <h2 className="mt-4 section-title">Dirancang Sederhana untuk Pemilik Usaha</h2>
+              <h2 className="mt-4 section-title">Dirancang Sederhana untuk Pemilik Properti &amp; Usaha</h2>
               <p className="mt-4 text-base font-medium leading-relaxed text-slate-500">
-                Semua fitur dioptimalkan agar tidak membingungkan pengguna non-teknis, dengan fokus pada penghematan biaya operasional.
+                Semua fitur dioptimalkan agar tidak membingungkan pengguna non-teknis, dengan fokus pada pengendalian biaya operasional.
               </p>
             </div>
 
@@ -351,26 +404,28 @@ export default function LandingPage() {
                     {f.icon}
                   </div>
                   <h3 className="text-sm font-bold text-slate-800">{f.title}</h3>
-                  <p className="mt-2 text-xs font-medium leading-relaxed text-slate-500">{f.desc}</p>
+                  <p className="mt-2 text-xs font-medium leading-relaxed text-slate-500">
+                    {f.desc}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ============ SEKTOR UMKM ============ */}
-        <section id="target" className="py-20 sm:py-24">
+        {/* ============ SEKTOR KOS & PROPERTI ============ */}
+        <section id="untuk-siapa" className="py-20 sm:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <span className="eyebrow">Kesesuaian Sektor</span>
-              <h2 className="mt-4 section-title">Cocok untuk Berbagai Sektor UMKM</h2>
+              <h2 className="mt-4 section-title">Fokus Awal: Kos dan Properti Kecil</h2>
               <p className="mt-4 text-base font-medium leading-relaxed text-slate-500">
-                Analisis WattWise AI menyesuaikan diri dengan pola beban listrik khas tiap jenis usaha.
+                Analisis WattWise AI menyesuaikan diri dengan pola beban listrik khas properti sewa dan usaha padat energi.
               </p>
             </div>
 
             <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {segmenTarget.map((s) => (
+              {targetSegments.map((s) => (
                 <div key={s.nama} className="group flex items-center gap-4 rounded-2xl border border-slate-200/70 bg-white p-4 transition-all hover:border-emerald-200/70 hover:shadow-md hover:shadow-emerald-900/5">
                   <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-teal-600 group-hover:text-white">
                     {getUmkmIcon(s.ikon)}
@@ -392,7 +447,7 @@ export default function LandingPage() {
               <span className="eyebrow">Antarmuka Nyata</span>
               <h2 className="mt-4 section-title">Lihat Tampilan Dashboard WattWise AI</h2>
               <p className="mt-4 text-base font-medium leading-relaxed text-slate-500">
-                Panel pemantauan listrik yang siap membantu usaha Anda menekan inefisiensi biaya operasional.
+                Panel pemantauan listrik yang siap membantu properti dan usaha Anda menekan inefisiensi biaya operasional.
               </p>
             </div>
 
@@ -419,10 +474,10 @@ export default function LandingPage() {
                     </div>
                     <div className="space-y-1">
                       {[
-                        { l: "Dashboard", a: false },
+                        { l: "Ringkasan Listrik", a: false },
                         { l: "Input Listrik", a: false },
-                        { l: "Prediksi Tagihan", a: false },
-                        { l: "Deteksi Anomali", a: true },
+                        { l: "Perkiraan Tagihan", a: false },
+                        { l: "Pemakaian Perlu Dicek", a: true },
                         { l: "Saran Rekomendasi", a: false },
                         { l: "Laporan Bulanan", a: false },
                       ].map((it, idx) => (
@@ -436,8 +491,8 @@ export default function LandingPage() {
                   <div className="col-span-12 overflow-y-auto bg-slate-50/20 p-6 md:col-span-9">
                     <div className="mb-6 flex flex-col gap-1 border-b border-slate-100 pb-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <h3 className="text-sm font-extrabold text-slate-800">Deteksi Anomali Pemakaian</h3>
-                        <p className="text-[10px] font-semibold text-slate-400">Tinjauan ketidakwajaran penggunaan daya mesin operasional laundry.</p>
+                        <h3 className="text-sm font-extrabold text-slate-800">Pemakaian Perlu Dicek</h3>
+                        <p className="text-[10px] font-semibold text-slate-400">Tinjauan ketidakwajaran penggunaan daya properti kos Anda.</p>
                       </div>
                       <span className="rounded-md border border-slate-200/50 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">Juli 2026</span>
                     </div>
@@ -447,9 +502,9 @@ export default function LandingPage() {
                         <AlertTriangle className="h-4 w-4" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-rose-950">Indikasi Kebocoran Daya Terdeteksi</h4>
+                        <h4 className="text-xs font-bold text-rose-950">Pemakaian malam hari perlu dicek</h4>
                         <p className="mt-0.5 text-[10px] font-semibold leading-relaxed text-slate-500">
-                          Mesin pengering gas-heater (1.200W) nyala konstan 5 jam pada 21:00–02:00. Di luar rentang wajar jam tutup laundry.
+                          Kemungkinan terkait lampu koridor, pompa air, atau alat yang menyala lebih lama dari biasanya. Perlu verifikasi manual.
                         </p>
                       </div>
                     </div>
@@ -461,7 +516,7 @@ export default function LandingPage() {
                           <h4 className="text-xs font-bold text-slate-800">Saran Tindakan Hemat</h4>
                         </div>
                         <p className="text-[10px] font-semibold leading-relaxed text-slate-500">
-                          Gunakan setrika uap dan kurangi pengering di malam hari. Memindahkan 2 jam operasional ke pagi hari memangkas tarif beban puncak.
+                          Batasi penggunaan pompa air di malam hari dan nyalakan lampu koridor menggunakan sensor cahaya otomatis.
                         </p>
                         <div className="mt-4 rounded-lg bg-emerald-50 p-2 text-center text-[10px] font-bold text-emerald-700">
                           Potensi hemat: Rp180.000 / bulan
@@ -470,7 +525,7 @@ export default function LandingPage() {
 
                       <div className="flex flex-col justify-between rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
                         <div>
-                          <h4 className="mb-1 text-xs font-bold text-slate-800">Rangkuman Anomali</h4>
+                          <h4 className="mb-1 text-xs font-bold text-slate-800">Rangkuman Pemeriksaan</h4>
                           <p className="text-[10px] font-semibold leading-relaxed text-slate-400">Data pemakaian abnormal ini didasarkan pada selisih 18.2% di atas pola acuan standar.</p>
                         </div>
                         <Link href="/login?callbackUrl=/dashboard" className="btn-primary mt-4 self-end px-3 py-2 text-[10px]">
@@ -486,8 +541,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ============ MISI PLN ============ */}
-        <section id="pln" className="relative overflow-hidden bg-slate-900 py-20 text-white sm:py-24">
+        {/* ============ MISI PLN / ROADMAP ============ */}
+        <section id="roadmap" className="relative overflow-hidden bg-slate-900 py-20 text-white sm:py-24">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.20),transparent_38%)]" />
           <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
           <div className="relative mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:items-center lg:px-8">
@@ -496,18 +551,17 @@ export default function LandingPage() {
                 Misi PLN ICE Startup
               </span>
               <h2 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">
-                Mendukung Transisi Energi & Efisiensi UMKM
+                Mendukung Transisi Energi &amp; Efisiensi Pengguna Listrik
               </h2>
               <p className="mt-4 text-sm font-medium leading-relaxed text-slate-400">
-                WattWise AI selaras dengan pilar PLN ICE (Innovation, Clean Energy, and Technology Exchange)—platform digital
-                pemantauan energi di sisi konsumen (Demand-Side Management) demi penghematan berkelanjutan.
+                WattWise AI selaras dengan pilar PLN ICE (Innovation, Clean Energy, and Technology Exchange)—platform digital pemantauan energi di sisi konsumen (Demand-Side Management) demi penghematan berkelanjutan.
               </p>
 
               <div className="mt-8 space-y-5">
                 {[
-                  { title: "AI for Energy Efficiency", desc: "Menganalisis anomali beban daya dan memproyeksikan tagihan untuk mencegah kebocoran finansial." },
+                  { title: "AI for Energy Efficiency", desc: "Membaca pola pemakaian dan memperkirakan tagihan bulanan untuk mencegah kebocoran finansial." },
                   { title: "Demand-Side Management", desc: "Edukasi operasional peralatan daya besar ke luar waktu beban puncak (peak load hours)." },
-                  { title: "Sustainability untuk UMKM", desc: "Mendukung bisnis hemat karbon melalui pengurangan sisa energi tidak terpakai." },
+                  { title: "Sustainability untuk Properti", desc: "Mendukung bisnis hemat karbon melalui pengurangan sisa energi tidak terpakai." },
                 ].map((item) => (
                   <div key={item.title} className="flex gap-4">
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-800/40 bg-emerald-500/10 text-emerald-400">
@@ -527,9 +581,9 @@ export default function LandingPage() {
               <h3 className="border-b border-slate-800 pb-4 text-base font-bold text-white">Peta Jalan Integrasi WattWise AI</h3>
               <div className="mt-6 space-y-5 text-xs font-medium leading-relaxed text-slate-300">
                 {[
-                  { f: "Fase 1", t: "Input Manual & Rule-Based Analysis (Sekarang):", d: " Validasi MVP dengan pencatatan tagihan dan profil peralatan operasional utama UMKM." },
-                  { f: "Fase 2", t: "Notifikasi WhatsApp & Laporan PDF:", d: " Otomatisasi peringatan anomali langsung ke ponsel pemilik usaha secara real-time." },
-                  { f: "Fase 3", t: "Integrasi IoT Smart Meter & AMI PLN:", d: " Konektivitas langsung ke kWh meter pintar untuk pemantauan tanpa input manual." },
+                  { f: "Phase 1 / MVP", t: "Input Manual, Dashboard, Perkiraan & Gating (Sekarang):", d: " Analisis berbasis input manual, dashboard biaya, proyeksi tagihan, metrik pendapatan & listrik, indikasi pemakaian tidak wajar, rekomendasi hemat, laporan internal, pembatasan fitur (gating), trial Pro, dan iklan AdSense khusus Paket Gratis." },
+                  { f: "Phase 2", t: "WhatsApp Reminder, Otomatisasi PDF, Payment Gateway & OCR:", d: " Pengingat catat data otomatis lewat WhatsApp, generate PDF otomatis, gerbang pembayaran digital untuk upgrade instan, serta scan tagihan fisik PLN dengan teknologi OCR." },
+                  { f: "Phase 3", t: "Simulasi IoT, Demo Smart Plug & Enterprise Dashboard:", d: " Integrasi unit smart plug untuk pembacaan simulatif, dashboard perbandingan cabang, dan konsol tata kelola multi-lokasi berskala besar." },
                 ].map((p) => (
                   <div key={p.f} className="flex gap-3">
                     <span className="h-5 shrink-0 rounded-lg border border-emerald-800/40 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400">{p.f}</span>
@@ -547,11 +601,11 @@ export default function LandingPage() {
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-6 py-14 text-center text-white shadow-2xl shadow-emerald-600/20 md:px-12 md:py-16">
               <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
               <div className="pointer-events-none absolute -left-10 bottom-0 h-52 w-52 rounded-full bg-teal-300/20 blur-3xl" />
-              <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                Kendalikan Biaya Listrik Usaha Anda Hari Ini
+              <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl font-display">
+                Mulai pahami biaya listrik tanpa perlu jadi ahli teknologi
               </h2>
               <p className="relative mx-auto mt-4 max-w-xl text-sm font-medium leading-relaxed text-emerald-50">
-                Coba demo interaktif dashboard WattWise AI. Deteksi kebocoran energi dan tingkatkan profitabilitas operasional UMKM Anda.
+                Coba demo WattWise AI untuk melihat bagaimana data tagihan sederhana bisa berubah menjadi arahan yang mudah dipahami.
               </p>
               <div className="relative mt-8">
                 <Link

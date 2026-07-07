@@ -26,9 +26,9 @@ export interface ProfilUsaha {
 }
 
 export const profilUsaha: ProfilUsaha = {
-  namaUsaha: "Laundry Berkah",
-  jenisUsaha: "Laundry",
-  lokasi: "Purwokerto, Jawa Tengah",
+  namaUsaha: "Kos Sederhana Purwokerto",
+  jenisUsaha: "Kos-kosan / Properti",
+  lokasi: "Banyumas, Purwokerto",
   dayaListrik: "2.200 VA",
   tarif: "R-1/TR",
   tagihanBulanLalu: 1_250_000,
@@ -37,9 +37,9 @@ export const profilUsaha: ProfilUsaha = {
   potensiHemat: 180_000,
   energyScore: 72,
   kwhBulanIni: 985,
-  jamOperasional: "08.00 - 21.00",
-  peralatanUtama: ["Mesin Cuci (2 unit)", "Pengering", "Setrika Uap", "Pompa Air", "Lampu LED 15 titik"],
-  kontak: "Bu Siti Rahayu",
+  jamOperasional: "24 Jam",
+  peralatanUtama: ["AC Kamar (8 unit)", "Pompa Air (1 unit)", "Lampu Koridor", "Kulkas Bersama"],
+  kontak: "Pak Hanif (Pemilik Kos)",
   preferensiNotifikasi: "WhatsApp",
 };
 
@@ -228,7 +228,7 @@ export const paketHarga: Paket[] = [
   },
   {
     nama: "Basic",
-    harga: "Rp49.000",
+    harga: "Rp49.000 [HIPOTESIS HARGA — MASIH VALIDASI]",
     hargaSub: "/bulan",
     fitur: ["Dashboard lengkap", "Prediksi tagihan", "Peringatan anomali", "Laporan bulanan"],
     populer: true,
@@ -248,24 +248,23 @@ export const paketHarga: Paket[] = [
   },
 ];
 
-// ---- Segmen target UMKM ----
 export const segmenTarget = [
-  { nama: "Kuliner", ikon: "utensils", desc: "Warung makan, kafe, minuman" },
+  { nama: "Kos-kosan", ikon: "bed", desc: "Penginapan & properti sewa kecil" },
   { nama: "Laundry", ikon: "shirt", desc: "Cuci, kering, setrika" },
+  { nama: "Kuliner", ikon: "utensils", desc: "Warung makan, kafe, minuman" },
   { nama: "Minimarket", ikon: "store", desc: "Toko kelontong, chiller" },
-  { nama: "Fotokopi", ikon: "printer", desc: "Percetakan, digital printing" },
   { nama: "Frozen Food", ikon: "snowflake", desc: "Freezer, cold storage" },
-  { nama: "Kos-kosan", ikon: "bed", desc: "Penginapan kecil" },
+  { nama: "Fotokopi", ikon: "printer", desc: "Percetakan, digital printing" },
 ];
 
 export const jenisUsahaOptions = [
-  "Kuliner/Makanan/Minuman",
+  "Kos-kosan/Penginapan Kecil",
   "Laundry",
+  "Kuliner/Makanan/Minuman",
   "Minimarket/Toko Kelontong",
   "Fotokopi/Percetakan",
   "Frozen Food",
   "Barbershop/Salon",
   "Bengkel",
   "Konveksi/Jahit",
-  "Kos-kosan/Penginapan Kecil",
 ];

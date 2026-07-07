@@ -243,17 +243,17 @@ async function main() {
       },
       {
         businessId: laundry.id, month: 3, year: 2026,
-        description: 'Penggunaan pompa air aktif di luar jam operasional (pukul 23:30). Potensi kebocoran pipa atau keran tidak tertutup.',
+        description: 'Penggunaan pompa air aktif di luar jam operasional (pukul 23:30). Kemungkinan pipa kurang rapat atau keran terbuka.',
         severity: RiskLevel.MEDIUM, usageKwh: 640.4, expectedKwh: 600.0, isResolved: true,
       },
       {
         businessId: laundry.id, month: 5, year: 2026,
-        description: 'Lonjakan konsumsi drastis 19% dari bulan lalu. Terdeteksi kebocoran elemen pemanas listrik pada boiler setrika uap.',
+        description: 'Lonjakan konsumsi drastis 19% dari bulan lalu. Indikasi inefisiensi pada elemen pemanas listrik pada boiler setrika uap.',
         severity: RiskLevel.HIGH, usageKwh: 810.5, expectedKwh: 680.0, isResolved: false,
       },
       {
         businessId: laundry.id, month: 5, year: 2026,
-        description: 'Ketidakseimbangan beban fasa terdeteksi pada panel listrik utama. Beban AC lobby melonjak — indikasi filter kotor atau freon bocor.',
+        description: 'Ketidakseimbangan beban fasa terdeteksi pada panel listrik utama. Beban AC lobby melonjak — kemungkinan filter kotor atau freon kurang optimal.',
         severity: RiskLevel.HIGH, usageKwh: 810.5, expectedKwh: 780.0, isResolved: false,
       },
     ],
@@ -265,7 +265,7 @@ async function main() {
       {
         businessId: laundry.id,
         title: 'Servis Boiler Setrika Uap',
-        description: 'Perbaiki elemen pemanas boiler setrika yang bocor arus. Dapat menghemat biaya listrik bulanan hingga Rp 150.000.',
+        description: 'Servis elemen pemanas boiler setrika agar bekerja dengan performa optimal. Dapat menghemat biaya listrik bulanan hingga Rp 150.000.',
         estimatedSavingsIdr: 150000, difficulty: RecommendationDifficulty.MEDIUM, isImplemented: false,
       },
       {
@@ -300,7 +300,7 @@ async function main() {
     data: {
       businessId: laundry.id, month: 5, year: 2026,
       status: ReportStatus.GENERATED,
-      summary: 'Laporan Laundry Berkah (Mei 2026): Total pemakaian 810.5 kWh (+19.2% MoM), tagihan Rp 1.175.225. Anomali kritis: kebocoran elemen boiler setrika uap pada 8-10 Mei. Potensi penghematan Rp 450.000/bulan dengan menerapkan 5 rekomendasi WattWise.',
+      summary: 'Laporan Laundry Berkah (Mei 2026): Total pemakaian 810.5 kWh (+19.2% MoM), tagihan Rp 1.175.225. Anomali kritis: kemungkinan elemen boiler setrika uap kurang optimal pada 8-10 Mei. Potensi penghematan Rp 450.000/bulan dengan menerapkan 5 rekomendasi WattWise.',
       pdfUrl: '/reports/laundry-berkah-2026-05.pdf',
     },
   });
@@ -383,7 +383,7 @@ async function main() {
       },
       {
         businessId: frozen.id, month: 5, year: 2026,
-        description: 'Kerusakan karet segel pintu (gasket) Walk-in Freezer. Udara dingin bocor keluar, kompresor aktif 24 jam penuh tanpa siklus istirahat.',
+        description: 'Indikasi karet segel pintu (gasket) Walk-in Freezer kurang rapat. Udara dingin terindikasi keluar, kompresor aktif terus-menerus untuk menjaga suhu.',
         severity: RiskLevel.HIGH, usageKwh: 5350.2, expectedKwh: 4620.0, isResolved: false,
       },
       {
@@ -400,7 +400,7 @@ async function main() {
       {
         businessId: frozen.id,
         title: 'Ganti Gasket Pintu Walk-in Freezer',
-        description: 'Ganti karet pintu yang telah mengeras dan robek agar kedap udara. Potensi penghematan Rp 450.000/bulan.',
+        description: 'Perbaiki karet pintu yang kurang rapat agar suhu dingin terjaga maksimal. Potensi penghematan Rp 450.000/bulan.',
         estimatedSavingsIdr: 450000, difficulty: RecommendationDifficulty.EASY, isImplemented: false,
       },
       {
@@ -883,7 +883,7 @@ async function main() {
           businessId: business.id,
           month: 5,
           year: 2026,
-          description: `Lonjakan drastis konsumsi energi terdeteksi pada peralatan ${appliances[0].name}. Indikasi pemborosan daya standby atau kebocoran arus listrik.`,
+          description: `Lonjakan drastis konsumsi energi terdeteksi pada peralatan ${appliances[0].name}. Kemungkinan pemborosan daya standby atau inefisiensi arus listrik.`,
           severity: RiskLevel.HIGH,
           usageKwh: latestEntry.usageKwh,
           expectedKwh: latestEntry.usageKwh * 0.75,

@@ -51,7 +51,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Input Data Listrik", href: "/dashboard/input", icon: PlusCircle },
       { label: "Pendapatan & Listrik", href: "/dashboard/pendapatan", icon: BadgeDollarSign },
-      { label: "Cashflow", href: "/dashboard/cashflow", icon: Wallet },
     ],
   },
   {
@@ -215,7 +214,7 @@ export default function DashboardLayoutClient({
           <div className="overflow-hidden">
             <p className="truncate text-xs font-bold text-slate-800 leading-tight">{name}</p>
             <p className="truncate text-[10px] text-slate-400 font-medium mt-0.5 leading-tight">{session?.user?.email}</p>
-            {subscription && (
+            {subscription ? (
               <div className="mt-1.5 flex flex-col gap-0.5">
                 <span className={cn(
                   "inline-block rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider w-max text-center leading-none",
@@ -225,9 +224,10 @@ export default function DashboardLayoutClient({
                   planCode === "BUSINESS" ? "bg-blue-50 text-blue-700 border border-blue-200" :
                   "bg-amber-50 text-amber-750 border border-amber-250"
                 )}>
-                  {planCode === "PRO_TRIAL" ? "Pro Trial" : 
-                   planCode === "ENTERPRISE" ? "Paket Enterprise" :
-                   planCode === "BUSINESS" ? "Paket Bisnis" :
+                  {planCode === "PRO_TRIAL" ? "Pro Trial 30 Hari" : 
+                   planCode === "PRO_UMKM" ? "Pro" : 
+                   planCode === "BUSINESS" ? "Business" :
+                   planCode === "ENTERPRISE" ? "Enterprise/Custom" :
                    subscription.plan.name}
                 </span>
                 {planCode === "ENTERPRISE" && (
@@ -239,6 +239,12 @@ export default function DashboardLayoutClient({
                 {isTrial && trialDays <= 0 && (
                   <span className="text-[8px] font-bold text-rose-600">Trial berakhir</span>
                 )}
+              </div>
+            ) : (
+              <div className="mt-1.5 flex flex-col gap-0.5">
+                <span className="inline-block rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider w-max text-center leading-none bg-slate-100 text-slate-600 border border-slate-200">
+                  Gratis
+                </span>
               </div>
             )}
           </div>
@@ -289,7 +295,7 @@ export default function DashboardLayoutClient({
               WattWise <span className="text-brand-green">AI</span>
             </span>
             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Listrik Cerdas UMKM
+              Listrik Lebih Cerdas
             </p>
           </div>
         </Link>

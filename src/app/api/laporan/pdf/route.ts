@@ -397,7 +397,7 @@ export async function GET(req: Request) {
     doc.text(cfDisc1, M, y, { width: CW, lineGap: 2 });
     y += doc.heightOfString(cfDisc1, { width: CW, lineGap: 2 }) + 4;
     const cfDisc2 =
-      "Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.";
+      "Prediksi dan estimasi WattWise AI bersifat simulasi perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN atau audit energi bersertifikasi.";
     doc.text(cfDisc2, M, y, { width: CW, lineGap: 2 });
     y += doc.heightOfString(cfDisc2, { width: CW, lineGap: 2 }) + 6;
 
@@ -407,9 +407,9 @@ export async function GET(req: Request) {
     y += 12;
     doc.fontSize(7.5).font("Helvetica").fillColor(GRAY)
       .text(
-        "Disclaimer: Laporan ini adalah estimasi berdasarkan data yang dimasukkan pengguna dan analisis WattWise AI. " +
-        "Laporan ini bukan tagihan resmi PLN. Tagihan aktual dapat berbeda tergantung tarif PLN, pajak, biaya administrasi, " +
-        "biaya lain, dan pemakaian listrik nyata di lapangan.",
+        "Disclaimer: Estimasi ini berdasarkan data yang Anda input dan bukan tagihan resmi PLN. " +
+        "WattWise AI bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan bukan alat ukur listrik resmi. " +
+        "Laporan ini adalah analisis simulatif untuk membantu pengelolaan biaya operasional internal Anda.",
         M, y, { width: CW, lineGap: 2 }
       );
     y += 40;

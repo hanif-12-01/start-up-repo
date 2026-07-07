@@ -18,6 +18,8 @@ export interface OnboardingInput {
   mode: string;
   revenueRange?: string;
   operatingDays?: number;
+  numberOfRooms?: number;
+  numberOfUnits?: number;
   appliances: {
     name: string;
     powerWatt: number;
@@ -60,6 +62,8 @@ export async function createOnboardingBusiness(input: OnboardingInput) {
         mode: input.mode,
         revenueRange: input.revenueRange,
         operatingDays: input.operatingDays ?? 30,
+        number_of_rooms: input.numberOfRooms,
+        number_of_units: input.numberOfUnits,
         userId: session.user.id,
         appliances: {
           create: input.appliances.map((app) => ({

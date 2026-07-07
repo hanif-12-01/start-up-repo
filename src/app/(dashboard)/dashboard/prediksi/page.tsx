@@ -57,7 +57,7 @@ export default async function PrediksiPage() {
   }
 
   const stats = calculateHistoryStats(business.electricityEntries);
-  let alasanUtama = prediction?.explanation || "Silakan lakukan generate prediksi untuk melihat analisis penyebab utama.";
+  let alasanUtama = prediction?.explanation || "Silakan lakukan generate prediksi untuk melihat analisis kemungkinan penyebab yang perlu dicek.";
   
   const prediksiData = {
     hasPrediction: !!prediction,

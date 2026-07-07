@@ -174,7 +174,7 @@ export default function TawaranProPage() {
               </h3>
               <ul className="space-y-2.5">
                 {[
-                  { icon: TrendingUp, text: "Prediksi kWh AI lengkap (LSTM & Gradient Boosting)" },
+                  { icon: TrendingUp, text: "Prediksi kWh lengkap dengan Model Estimasi Adaptif (Hybrid AI Decision Support)" },
                   { icon: Shield, text: "Deteksi anomali AI otomatis & penjelasan detail" },
                   { icon: Sparkles, text: "Rekomendasi hemat energi AI yang praktis" },
                   { icon: BarChart3, text: "Hingga 3 bisnis/properti sekaligus" },

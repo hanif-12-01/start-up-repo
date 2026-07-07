@@ -52,16 +52,16 @@ export default function PaketDemoClient({ currentPlanCode, trialActive }: PaketD
             Paket Aktif:{" "}
             <span className="text-indigo-400">
               {currentPlanCode === "FREE"
-                ? "Gratis (FREE)"
+                ? "Gratis"
                 : currentPlanCode === "PRO_TRIAL"
                 ? trialActive
-                  ? "Pro Trial (Aktif)"
-                  : "Pro Trial (Kedaluwarsa)"
+                  ? "Pro Trial 30 Hari (Aktif)"
+                  : "Pro Trial 30 Hari (Kedaluwarsa)"
                 : currentPlanCode === "PRO_UMKM"
-                ? "Pro UMKM"
+                ? "Pro"
                 : currentPlanCode === "BUSINESS"
                 ? "Business"
-                : "Enterprise"}
+                : "Enterprise/Custom"}
             </span>
           </h3>
           <p className="mt-2 text-xs text-slate-300 leading-relaxed font-semibold">
@@ -219,7 +219,7 @@ export default function PaketDemoClient({ currentPlanCode, trialActive }: PaketD
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span>Prediksi kWh AI lengkap (LSTM/GB)</span>
+                <span>Prediksi kWh dengan Model Estimasi Adaptif (Hybrid AI Decision Support)</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -262,7 +262,7 @@ export default function PaketDemoClient({ currentPlanCode, trialActive }: PaketD
               </div>
               <div>
                 <h3 className="font-extrabold text-slate-800 text-base leading-tight">Paket Pro</h3>
-                <span className="text-[11px] text-slate-400 font-semibold">PRO_UMKM (Simulated Paid)</span>
+                <span className="text-[11px] text-slate-400 font-semibold">PRO (Simulated Paid)</span>
               </div>
             </div>
 

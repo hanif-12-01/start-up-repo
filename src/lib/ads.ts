@@ -11,42 +11,73 @@ export type EffectivePlan = "FREE" | "PRO" | "BUSINESS" | "ENTERPRISE";
 export async function getEffectivePlan(userId: string): Promise<EffectivePlan> {
   if (!userId) return "FREE";
 
-  let subscription = await db.subscription.findFirst({
-    where: {
-      userId,
-      status: { in: ["ACTIVE", "TRIAL_ACTIVE"] },
-    },
-    include: {
-      plan: true,
-    },
+  const subscription = await db.subscription.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: { plan: true },
   });
 
   if (!subscription) {
     return "FREE";
   }
 
-  // Handle expiration check
-  if (subscription.endsAt && subscription.endsAt < new Date()) {
-    await db.subscription.update({
-      where: { id: subscription.id },
-      data: { status: "EXPIRED" },
-    });
+  const status = subscription.status;
+  const planCode = subscription.plan?.code;
+  const trialEndDate = subscription.trialEndDate;
+  const endsAt = subscription.endsAt;
+
+  // 1. FREE plan or FREE status
+  if (status === "FREE" || planCode === "FREE") {
     return "FREE";
   }
 
-  // Cancelled check (status CANCELLED is treated as expired/reverted to FREE)
-  if (subscription.status === "CANCELLED" || subscription.status === "EXPIRED") {
+  // 2. TRIAL_ACTIVE or PRO_TRIAL
+  if (status === "TRIAL_ACTIVE" || planCode === "PRO_TRIAL") {
+    const isTrialStillActive = trialEndDate
+      ? new Date(trialEndDate) > new Date()
+      : false;
+    return isTrialStillActive ? "PRO" : "FREE";
+  }
+
+  // 3. TRIAL_EXPIRED / CANCELLED / EXPIRED
+  if (
+    status === "TRIAL_EXPIRED" ||
+    status === "CANCELLED" ||
+    status === "EXPIRED"
+  ) {
     return "FREE";
   }
 
-  const code = subscription.plan?.code;
-  if (code === "PRO_TRIAL" || code === "PRO_UMKM") {
+  // 4. Check endsAt expiry
+  if (endsAt && new Date(endsAt) < new Date()) {
+    return "FREE";
+  }
+
+  // 5. PRO_ACTIVE or PRO_UMKM
+  if (
+    status === "PRO_ACTIVE" ||
+    planCode === "PRO_UMKM" ||
+    planCode === "PRO" ||
+    planCode === "PRO_ACTIVE"
+  ) {
     return "PRO";
   }
-  if (code === "BUSINESS") {
+
+  // 6. BUSINESS_ACTIVE or BUSINESS
+  if (
+    status === "BUSINESS_ACTIVE" ||
+    planCode === "BUSINESS" ||
+    planCode === "BUSINESS_ACTIVE"
+  ) {
     return "BUSINESS";
   }
-  if (code === "ENTERPRISE") {
+
+  // 7. ENTERPRISE_ACTIVE or ENTERPRISE
+  if (
+    status === "ENTERPRISE_ACTIVE" ||
+    planCode === "ENTERPRISE" ||
+    planCode === "ENTERPRISE_ACTIVE"
+  ) {
     return "ENTERPRISE";
   }
 
@@ -123,6 +154,14 @@ export type AdPlacement =
   | "recommendation_bottom"
   | "pricing_page_middle";
 
+export function isAdsenseEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_ADSENSE === "true";
+}
+
+export function getAdsenseClient(): string | null {
+  return process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT || null;
+}
+
 export function getAdSlotByPlacement(placement: AdPlacement): string | null {
   switch (placement) {
     case "dashboard_bottom":
@@ -137,3 +176,4 @@ export function getAdSlotByPlacement(placement: AdPlacement): string | null {
       return null;
   }
 }
+

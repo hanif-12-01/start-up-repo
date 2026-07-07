@@ -1,5 +1,6 @@
 "use client";
 
+import AdSenseScript from "./adsense-script";
 import { AdSenseAd } from "./adsense-ad";
 import { AdPlacement } from "@/lib/ads";
 
@@ -11,5 +12,11 @@ interface FreeOnlyAdSlotProps {
 
 export function FreeOnlyAdSlot({ adsEnabled, placement, className }: FreeOnlyAdSlotProps) {
   if (!adsEnabled) return null;
-  return <AdSenseAd placement={placement} className={className} />;
+  return (
+    <>
+      <AdSenseScript />
+      <AdSenseAd placement={placement} className={className} />
+    </>
+  );
 }
+

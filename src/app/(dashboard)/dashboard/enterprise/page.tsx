@@ -68,11 +68,11 @@ export default async function EnterprisePage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <span className="inline-block rounded-md bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700 border border-amber-200 uppercase tracking-wider">
-            Enterprise Control Center
+            Enterprise/Custom Control Center
           </span>
           <h1 className="text-2xl font-black text-brand-ink mt-1">Dashboard Pemantauan &amp; Entitlement</h1>
           <p className="text-slate-500 text-sm">
-            Halaman konsol khusus Paket Enterprise untuk mengelola multi-lokasi skala besar.
+            Halaman konsol khusus Paket Enterprise/Custom untuk mengelola multi-lokasi skala besar.
           </p>
         </div>
         <Link 

@@ -14,7 +14,7 @@ interface UpgradeCtaProps {
 export function UpgradeCta({
   title = "Fitur Premium Terkunci",
   description = "Aktifkan Pro Trial 30 hari untuk mencoba fitur ini tanpa biaya.",
-  requiredTier = "Pro UMKM",
+  requiredTier = "Pro",
   href = "/dashboard/paket-demo",
   buttonText = "Coba Pro Trial 30 Hari"
 }: UpgradeCtaProps) {

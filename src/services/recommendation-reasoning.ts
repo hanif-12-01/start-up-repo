@@ -60,7 +60,7 @@ function buildOne(businessType: string, appliance: ApplianceEfficiencyResult): R
       practicalSteps: [
         "Batching: gabungkan order/cucian agar mesin berjalan mendekati kapasitas penuh.",
         "Atur jadwal beban besar agar tidak menyala kecil-kecil sepanjang hari.",
-        "Bersihkan filter, jalur panas/uap, dan cek kebocoran pada pengering atau boiler.",
+        "Bersihkan filter, jalur panas/uap, dan periksa kemungkinan inefisiensi pada pengering atau boiler.",
       ],
     });
   }
@@ -71,7 +71,7 @@ function buildOne(businessType: string, appliance: ApplianceEfficiencyResult): R
       title: `Kurangi Beban Freezer ${appliance.name}`,
       rate: 0.1,
       difficulty: "MEDIUM",
-      why: `${appliance.name} menjadi beban utama cold storage, jadi kebocoran dingin kecil bisa menambah kerja kompresor sepanjang hari.`,
+      why: `${appliance.name} menjadi beban utama cold storage, sehingga suhu dingin kurang rapat bisa menambah kerja kompresor sepanjang hari.`,
       practicalSteps: [
         "Cek karet gasket pintu dengan tes selipan kertas.",
         "Setel suhu sesuai kebutuhan produk, jangan lebih dingin dari standar operasional.",

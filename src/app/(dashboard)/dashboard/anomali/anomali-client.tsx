@@ -49,8 +49,8 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
   return (
     <div>
       <PageHeader
-        title="Deteksi Pemakaian Tidak Normal"
-        subtitle="WattWise AI mendeteksi lonjakan pemakaian listrik yang tidak biasa. Segera periksa untuk mencegah tagihan membengkak."
+        title="Indikasi Pemakaian Tidak Wajar"
+        subtitle="WattWise AI mengidentifikasi indikasi pemakaian listrik yang tidak biasa. Segera periksa untuk mencegah tagihan membengkak. Disclaimer: Ini adalah indikasi awal berbasis data input, bukan diagnosis teknis atau bukti kerusakan alat."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 font-sans">
@@ -95,7 +95,7 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
         <div className="card">
           <div className="mb-3 flex items-center gap-2 text-slate-500">
             <Search className="h-5 w-5 text-brand-yellow" />
-            <h3 className="text-sm font-bold">Kemungkinan Penyebab</h3>
+            <h3 className="text-sm font-bold">Kemungkinan Penyebab yang Perlu Dicek</h3>
           </div>
           <p className="text-sm font-medium leading-relaxed">
             {isFreePlan ? "Deteksi penyebab mendalam dinonaktifkan." : summary.kemungkinanPenyebab}
@@ -169,7 +169,7 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
           <div className="relative p-8 border border-slate-200 rounded-2xl bg-white shadow-soft font-sans">
             <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10">
               <UpgradeCta 
-                title="Riwayat Anomali Terkunci"
+                title="Riwayat Indikasi Pemakaian Tidak Wajar Terkunci"
                 description="Detail riwayat kejadian anomali, klasifikasi penyebab, estimasi kerugian Rupiah, dan rekomendasi langkah perbaikan memerlukan paket Pro."
                 href="/dashboard/paket-demo"
                 buttonText="Coba Pro Trial"
@@ -206,7 +206,7 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
                     <th className="whitespace-nowrap px-6 py-4 font-bold">Pemakaian Normal</th>
                     <th className="whitespace-nowrap px-6 py-4 font-bold">Pemakaian Terdeteksi</th>
                     <th className="whitespace-nowrap px-6 py-4 font-bold">Status</th>
-                    <th className="min-w-[200px] px-6 py-4 font-bold">Kemungkinan Penyebab</th>
+                    <th className="min-w-[200px] px-6 py-4 font-bold">Kemungkinan Penyebab yang Perlu Dicek</th>
                     <th className="whitespace-nowrap px-6 py-4 font-bold">Estimasi Kerugian</th>
                     <th className="min-w-[250px] px-6 py-4 font-bold">Saran Penanganan</th>
                   </tr>
@@ -248,7 +248,7 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 bg-white">
             <CheckCircle className="h-10 w-10 text-green-500 mb-3" />
-            <h3 className="font-bold text-slate-800">Tidak Ada Anomali Ditemukan</h3>
+            <h3 className="font-bold text-slate-800">Tidak Ada Indikasi Pemakaian Tidak Wajar</h3>
             <p className="text-slate-500 text-xs mt-1 max-w-sm">
               Semua pemakaian listrik terpantau normal sesuai dengan kapasitas alat terdaftar. Bagus sekali!
             </p>
@@ -259,9 +259,9 @@ export default function AnomaliClient({ summary, anomalies, isFreePlan = false }
       <div className="mt-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-5">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
         <div>
-          <h4 className="text-sm font-bold text-blue-800">Bagaimana kami mendeteksi anomali?</h4>
-          <p className="mt-1 text-xs leading-relaxed text-blue-700">
-            WattWise AI membandingkan data pemakaian listrik harian dengan kapasitas standar dari peralatan yang didaftarkan pada profil usaha Anda. Jika terdeteksi konsumsi di luar batas wajar (misalnya boiler bocor atau AC kotor), sistem akan memberikan tanda peringatan.
+          <h4 className="text-sm font-bold text-blue-800">Bagaimana kami mendeteksi indikasi pemakaian tidak wajar?</h4>
+          <p className="mt-1 text-xs leading-relaxed text-blue-700 font-sans">
+            WattWise AI membandingkan data pemakaian listrik harian dengan kapasitas standar dari peralatan yang didaftarkan pada profil properti atau usaha Anda. Jika terdeteksi konsumsi di luar batas wajar, sistem akan memberikan tanda peringatan. <strong>Disclaimer:</strong> Ini adalah indikasi awal berbasis data input, bukan diagnosis teknis atau bukti kerusakan alat.
           </p>
         </div>
       </div>

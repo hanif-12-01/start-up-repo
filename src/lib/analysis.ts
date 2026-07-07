@@ -264,7 +264,7 @@ function buildBusinessFallbackRecommendations(input: {
       priority: 'Tinggi',
       impact: 'Tinggi',
       reason: 'Usaha laundry biasanya boros pada alat pemanas seperti dryer, setrika, atau boiler. Rekomendasi ini memakai data alat terdaftar dan tagihan terakhir.',
-      practicalSteps: ['Gabungkan cucian hingga kapasitas optimal sebelum dryer berjalan.', 'Jadwalkan setrika dalam batch besar, bukan berulang setiap order kecil.', 'Bersihkan filter dryer dan cek kebocoran panas/uap.'],
+      practicalSteps: ['Gabungkan cucian hingga kapasitas optimal sebelum dryer berjalan.', 'Jadwalkan setrika dalam batch besar, bukan berulang setiap order kecil.', 'Bersihkan filter dryer dan cek kemungkinan inefisiensi panas/uap.'],
       disclaimer: SAVINGS_DISCLAIMER,
       triggerApplianceName: laundryHeatName,
     }));
@@ -279,7 +279,7 @@ function buildBusinessFallbackRecommendations(input: {
       difficulty: RecommendationDifficulty.MEDIUM,
       priority: 'Tinggi',
       impact: 'Tinggi',
-      reason: 'Cold storage memiliki beban pendingin menyala lama. Kebocoran pintu, suhu terlalu rendah, atau kondensor kotor cepat menaikkan kWh.',
+      reason: 'Cold storage memiliki beban pendingin menyala lama. Karet pintu kurang rapat, suhu terlalu rendah, atau kondensor kotor cepat menaikkan kWh.',
       practicalSteps: ['Lakukan tes selipan kertas pada gasket pintu.', 'Setel suhu sesuai standar produk, bukan paling dingin.', 'Bersihkan kondensor dan pastikan aliran udara tidak tertutup stok.'],
       disclaimer: SAVINGS_DISCLAIMER,
       triggerApplianceName: coldName,

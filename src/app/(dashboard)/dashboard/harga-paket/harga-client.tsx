@@ -233,7 +233,9 @@ export default function HargaClient({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-extrabold text-slate-800">{plan.name}</h3>
+                        <h3 className="text-lg font-extrabold text-slate-800">
+                          {plan.code === "FREE" ? "Gratis" : plan.code === "PRO_UMKM" ? "Pro" : plan.code === "BUSINESS" ? "Business" : plan.code === "ENTERPRISE" ? "Enterprise/Custom" : plan.name}
+                        </h3>
                         {isCurrent && (
                           <span className="badge bg-emerald-50 border-emerald-200 text-emerald-700 text-[9px] py-0.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block mr-0.5" />
@@ -257,11 +259,18 @@ export default function HargaClient({
                     </div>
                   ) : (
                     <div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-                          {formatCurrency(plan.priceIdr)}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-400">/bulan</span>
+                      <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-extrabold tracking-tight text-slate-800">
+                            {formatCurrency(plan.priceIdr)}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-400">/bulan</span>
+                        </div>
+                        {plan.code !== "FREE" && (
+                          <span className="text-[10px] text-amber-600 font-bold bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded w-max mt-1 animate-pulse">
+                            Harga pilot / masih validasi
+                          </span>
+                        )}
                       </div>
                       {/* Show "Gratis 30 hari" badge for Pro plan when user has never used a trial */}
                       {plan.code === "PRO_UMKM" && isTrialEligible && currentPlanCode === "FREE" && (
@@ -324,7 +333,7 @@ export default function HargaClient({
                       "Kembali ke Gratis"
                     ) : (
                       <>
-                        Langganan {plan.name} <ArrowRight className="ml-1 h-3 w-3" />
+                        Langganan {plan.code === "FREE" ? "Gratis" : plan.code === "PRO_UMKM" ? "Pro" : plan.code === "BUSINESS" ? "Business" : plan.code === "ENTERPRISE" ? "Enterprise/Custom" : plan.name} <ArrowRight className="ml-1 h-3 w-3" />
                       </>
                     )}
                   </button>
@@ -346,6 +355,7 @@ export default function HargaClient({
             Ini adalah halaman simulasi paket. Tidak ada pembayaran riil atau transaksi uang sungguhan yang diproses.
             Anda bebas mencoba alur upgrade paket secara gratis untuk melihat fitur-fitur premium aktif.
             Pembayaran untuk Pro dan Business disimulasikan menggunakan Virtual Account.
+            <strong> Harga final akan disesuaikan setelah validasi bisnis dan kebutuhan pengguna. Enterprise/Custom mengikuti kebutuhan jumlah lokasi, laporan, onboarding, dan integrasi.</strong>
           </p>
         </div>
       </div>
@@ -394,7 +404,9 @@ function ActivePlanBanner({
                 Aktif
               </span>
             </div>
-            <h2 className="text-xl font-extrabold text-slate-800 mt-0.5">{currentPlan.name}</h2>
+            <h2 className="text-xl font-extrabold text-slate-800 mt-0.5">
+              {currentPlan.code === "FREE" ? "Gratis" : currentPlan.code === "PRO_UMKM" ? "Pro" : currentPlan.code === "BUSINESS" ? "Business" : currentPlan.code === "ENTERPRISE" ? "Enterprise/Custom" : currentPlan.name}
+            </h2>
             <p className="text-xs text-brand-muted">{config.tagline}</p>
           </div>
         </div>
@@ -458,7 +470,7 @@ function FeatureComparisonTable({ currentPlanCode }: { currentPlanCode: string }
     { code: "FREE", name: "Gratis", color: "text-slate-600" },
     { code: "PRO_UMKM", name: "Pro", color: "text-emerald-700" },
     { code: "BUSINESS", name: "Business", color: "text-blue-700" },
-    { code: "ENTERPRISE", name: "Enterprise", color: "text-amber-700" },
+    { code: "ENTERPRISE", name: "Enterprise/Custom", color: "text-amber-700" },
   ];
 
   return (
@@ -617,7 +629,7 @@ function FeatureUnlockPreview({ currentPlanCode }: { currentPlanCode: string }) 
       desc: "Integrasi langsung dengan smart meter dan sensor IoT perusahaan.",
       icon: <Wifi className="h-5 w-5" />,
       unlocked: isEnt,
-      tier: "Enterprise",
+      tier: "Enterprise/Custom",
     },
   ];
 
@@ -631,7 +643,7 @@ function FeatureUnlockPreview({ currentPlanCode }: { currentPlanCode: string }) 
           <div>
             <h2 className="text-lg font-extrabold text-slate-800">Pratinjau Fitur</h2>
             <p className="text-xs text-brand-muted">
-              Status fitur berdasarkan paket <strong>{currentPlanCode === "FREE" ? "Gratis" : currentPlanCode === "PRO_UMKM" ? "Pro" : currentPlanCode === "BUSINESS" ? "Business" : "Enterprise"}</strong> Anda
+              Status fitur berdasarkan paket <strong>{currentPlanCode === "FREE" ? "Gratis" : currentPlanCode === "PRO_UMKM" ? "Pro" : currentPlanCode === "BUSINESS" ? "Business" : "Enterprise/Custom"}</strong> Anda
             </p>
           </div>
         </div>

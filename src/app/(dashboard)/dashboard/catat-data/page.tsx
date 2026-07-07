@@ -27,13 +27,6 @@ const items = [
     icon: BadgeDollarSign,
     tone: "bg-emerald-50 text-emerald-600",
   },
-  {
-    label: "Cashflow",
-    href: "/dashboard/cashflow",
-    desc: "Catat kas masuk & kas keluar harian usaha Anda.",
-    icon: Wallet,
-    tone: "bg-blue-50 text-blue-600",
-  },
 ];
 
 export default async function CatatDataPage() {
@@ -46,7 +39,7 @@ export default async function CatatDataPage() {
     <div>
       <PageHeader
         title="Catat Data"
-        subtitle="Semua tempat mencatat data usaha Anda ada di sini — listrik, pendapatan, dan arus kas."
+        subtitle="Tempat mencatat data operasional Anda — listrik dan pendapatan."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

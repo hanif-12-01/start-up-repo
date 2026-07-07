@@ -5,6 +5,7 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowUpRight,
+  ChevronRight,
   DollarSign,
   HelpCircle,
   Info,
@@ -65,24 +66,24 @@ interface PrediksiClientProps {
 
 export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiClientProps) {
   const formatMethod = (m?: string) => {
-    if (m === "LSTM_PROTOTYPE") return "LSTM Sequence Model";
-    if (m === "RULE_BASED") return "Rule-Based Estimation";
-    if (m === "HYBRID_FALLBACK") return "Hybrid Fallback";
-    if (m === "TABULAR_MODEL" || m === "TABULAR_RIDGE" || m === "TABULAR_UMKM_V1") return "Tabular AI Model";
-    return m || "-";
+    if (m === "LSTM_PROTOTYPE") return "Hybrid AI Decision Support";
+    if (m === "RULE_BASED") return "Analisis Berbasis Pola Pemakaian";
+    if (m === "HYBRID_FALLBACK") return "Hybrid AI Decision Support";
+    if (m === "TABULAR_MODEL" || m === "TABULAR_RIDGE" || m === "TABULAR_UMKM_V1") return "Model Estimasi Adaptif";
+    return "Model Estimasi Adaptif";
   };
 
   const getModelInfo = (m?: string) => {
     if (m === "LSTM_PROTOTYPE") {
-      return "Model menggunakan 6 bulan histori pemakaian listrik untuk memprediksi pemakaian bulan berikutnya.";
+      return "Analisis berbasis pola pemakaian dan tren historis untuk memprediksi pemakaian bulan berikutnya.";
     }
     if (m === "RULE_BASED") {
-      return "Prediksi menggunakan pendekatan rule-based karena data historis belum cukup untuk LSTM.";
+      return "Prediksi menggunakan pendekatan rule-based berdasarkan pola pemakaian terdaftar.";
     }
     if (m === "HYBRID_FALLBACK") {
-      return "Sistem mencoba LSTM, tetapi menggunakan fallback karena data atau output model tidak memenuhi batas keamanan.";
+      return "Analisis berbasis pola pemakaian dan tren historis dengan fallback perlindungan biaya.";
     }
-    return null;
+    return "Analisis berbasis pola pemakaian dan tren historis.";
   };
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -214,7 +215,7 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
           <div>
             <h2 className="flex items-center gap-2 font-bold">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              Penyebab Utama Kenaikan
+              Kemungkinan penyebab yang perlu dicek
             </h2>
             <p className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium leading-relaxed text-slate-600">
               “{prediksi.alasanUtama}”
@@ -480,6 +481,53 @@ export default function PrediksiClient({ prediksi, proyeksiBulanIni }: PrediksiC
             Anda dapat menurunkan proyeksi biaya ini sekitar <strong>10-15%</strong> jika membagi
             waktu penggunaan alat berdaya besar di luar jam operasional sore.
           </p>
+        </div>
+      </div>
+
+      <div className="card border border-slate-200 bg-white p-6 shadow-sm mt-6">
+        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+          <Info className="h-5 w-5 text-indigo-650" />
+          Kenapa hasil ini bisa dipercaya?
+        </h3>
+        <ul className="list-disc pl-5 text-xs text-slate-650 leading-relaxed space-y-1.5 font-medium">
+          <li>Data berasal dari input tagihan/kWh yang Anda masukkan.</li>
+          <li>Perhitungan membandingkan bulan terakhir, bulan sebelumnya, dan rata-rata histori.</li>
+          <li>Estimasi biaya memakai tarif rata-rata dari data yang tersedia.</li>
+          <li>Peralatan dihitung secara simulatif dari daya, jumlah unit, dan jam pakai.</li>
+          <li>Tanpa sensor, WattWise tidak mengukur konsumsi aktual per alat.</li>
+        </ul>
+
+        <div className="mt-4 border-t border-slate-100 pt-3 font-sans">
+          <details className="group">
+            <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-slate-700 hover:text-slate-900 select-none">
+              <span>Lihat asumsi perhitungan</span>
+              <ChevronRight className="h-4 w-4 transition-transform duration-200 group-open:rotate-90" />
+            </summary>
+            <div className="mt-3 bg-slate-50 p-4 rounded-xl border border-slate-150 text-[11px] text-slate-500 space-y-2.5 font-medium leading-relaxed">
+              <div className="grid grid-cols-2 gap-y-2">
+                <span>Tarif Rata-rata:</span>
+                <span className="font-semibold text-slate-700 text-right">{formatRupiah(prediksi.avgTariff || 1450)} / kWh</span>
+                
+                <span>kWh Terakhir:</span>
+                <span className="font-semibold text-slate-700 text-right">{formatKwh(prediksi.latestUsageKwh || 0)}</span>
+
+                <span>kWh Sebelumnya:</span>
+                <span className="font-semibold text-slate-700 text-right">{prediksi.previousUsageKwh ? formatKwh(prediksi.previousUsageKwh) : "-"}</span>
+
+                <span>Rata-rata 3 Bulan:</span>
+                <span className="font-semibold text-slate-700 text-right">{prediksi.avg3 ? formatKwh(prediksi.avg3) : "-"}</span>
+
+                <span>Rata-rata 6 Bulan:</span>
+                <span className="font-semibold text-slate-700 text-right">{prediksi.avg6 ? formatKwh(prediksi.avg6) : "Belum tersedia"}</span>
+
+                <span>Jumlah Bulan Histori:</span>
+                <span className="font-semibold text-slate-700 text-right">{prediksi.historyMonths || 0} Bulan</span>
+              </div>
+              <p className="text-[10px] text-slate-450 italic border-t border-slate-200/60 pt-2 leading-relaxed">
+                Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.
+              </p>
+            </div>
+          </details>
         </div>
       </div>
 
