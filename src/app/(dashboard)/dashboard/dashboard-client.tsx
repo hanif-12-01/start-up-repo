@@ -41,6 +41,7 @@ import { generateAnalysisAction } from "@/app/actions/electricity";
 import { activateProTrialAction } from "@/app/actions/subscription";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { FreeOnlyAdSlot } from "@/components/ads/free-only-ad-slot";
+import GuidedTour from "@/components/tutorial/guided-tour";
 
 
 type AttentionStatus = "Efisien" | "Normal" | "Perlu Dicek" | "Boros" | "Sangat Boros";
@@ -244,8 +245,9 @@ export default function DashboardClient({
 
   return (
     <div>
+      <GuidedTour />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200/40 pb-5 mb-8">
-        <div className="flex-1">
+        <div className="flex-1" data-tour="dashboard-title">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-3xl leading-tight font-display flex items-center gap-3.5 flex-wrap font-sans">
             Ringkasan Listrik Bulan Ini
             {subscription && (
@@ -263,6 +265,17 @@ export default function DashboardClient({
                  subscription.plan.name}
               </span>
             )}
+            <button
+              onClick={() => {
+                localStorage.removeItem("wattwise_guided_tour_completed");
+                localStorage.removeItem("wattwise_guided_tour_skipped");
+                window.dispatchEvent(new Event("wattwise-start-tour"));
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-650 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 py-1 px-2.5 rounded-lg shadow-2xs transition-colors cursor-pointer"
+            >
+              <Info className="h-3 w-3" />
+              Buka Panduan
+            </button>
           </h1>
           <p className="mt-1.5 max-w-3xl text-sm text-slate-400 font-medium leading-relaxed font-sans">
             Lihat biaya listrik, pemakaian, dan dampaknya ke pendapatan berdasarkan data yang Anda input.
@@ -271,6 +284,7 @@ export default function DashboardClient({
         <button
           onClick={handleGenerateAnalysis}
           disabled={isAnalyzing || !ringkasan.hasElectricityData}
+          data-tour="run-analysis"
           className="btn-primary self-start md:self-auto flex items-center gap-2 shadow-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
         >
           {isAnalyzing ? (
@@ -561,27 +575,33 @@ export default function DashboardClient({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 font-sans">
-        <StatCard
-          label="Perkiraan Biaya Listrik"
-          value={ringkasan.hasElectricityData ? formatRupiah(ringkasan.prediksiBulanIni) : "-"}
-          helper="Perkiraan, bukan tagihan resmi PLN."
-          tone="blue"
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Pemakaian Listrik"
-          value={ringkasan.hasElectricityData ? formatKwh(ringkasan.kwhBulanIni) : "-"}
-          helper="Jumlah kWh dari data yang Anda masukkan."
-          tone="yellow"
-          icon={<Zap className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Peluang Hemat"
-          value={formatRupiah(ringkasan.potensiHemat)}
-          helper="Estimasi jika saran dijalankan."
-          tone="green"
-          icon={<DollarSign className="h-5 w-5" />}
-        />
+        <div data-tour="stat-estimated-cost" className="flex flex-col h-full">
+          <StatCard
+            label="Perkiraan Biaya Listrik"
+            value={ringkasan.hasElectricityData ? formatRupiah(ringkasan.prediksiBulanIni) : "-"}
+            helper="Perkiraan, bukan tagihan resmi PLN."
+            tone="blue"
+            icon={<TrendingUp className="h-5 w-5" />}
+          />
+        </div>
+        <div data-tour="stat-usage" className="flex flex-col h-full">
+          <StatCard
+            label="Pemakaian Listrik"
+            value={ringkasan.hasElectricityData ? formatKwh(ringkasan.kwhBulanIni) : "-"}
+            helper="Jumlah kWh dari data yang Anda masukkan."
+            tone="yellow"
+            icon={<Zap className="h-5 w-5" />}
+          />
+        </div>
+        <div data-tour="stat-saving" className="flex flex-col h-full">
+          <StatCard
+            label="Peluang Hemat"
+            value={formatRupiah(ringkasan.potensiHemat)}
+            helper="Estimasi jika saran dijalankan."
+            tone="green"
+            icon={<DollarSign className="h-5 w-5" />}
+          />
+        </div>
         <StatCard
           label="Skor Efisiensi"
           value={ringkasan.hasElectricityData ? `${ringkasan.energyScore}/100` : "-"}
@@ -589,38 +609,40 @@ export default function DashboardClient({
           tone="slate"
           icon={<Award className="h-5 w-5" />}
         />
-        <StatCard
-          label="Status Bulan Ini"
-          value={
-            ringkasan.statusPemakaian === "Belum Ada Data"
-              ? "Belum Ada Data"
-              : ringkasan.statusPemakaian === "Aman"
-              ? "Efisien"
-              : ringkasan.statusPemakaian === "Boros"
-              ? "Boros"
-              : "Perlu Perhatian"
-          }
-          helper="Aman, perlu dicek, atau boros."
-          tone={
-            ringkasan.statusPemakaian === "Belum Ada Data"
-              ? "slate"
-              : ringkasan.statusPemakaian === "Boros"
-              ? "red"
-              : ringkasan.statusPemakaian === "Perlu Perhatian"
-              ? "yellow"
-              : "green"
-          }
-          icon={<AlertTriangle className="h-5 w-5" />}
-          sub={
-            <div className="mt-2">
-              <StatusBadge status={ringkasan.statusPemakaian} />
-            </div>
-          }
-        />
+        <div data-tour="stat-status" className="flex flex-col h-full">
+          <StatCard
+            label="Status Bulan Ini"
+            value={
+              ringkasan.statusPemakaian === "Belum Ada Data"
+                ? "Belum Ada Data"
+                : ringkasan.statusPemakaian === "Aman"
+                ? "Efisien"
+                : ringkasan.statusPemakaian === "Boros"
+                ? "Boros"
+                : "Perlu Perhatian"
+            }
+            helper="Aman, perlu dicek, atau boros."
+            tone={
+              ringkasan.statusPemakaian === "Belum Ada Data"
+                ? "slate"
+                : ringkasan.statusPemakaian === "Boros"
+                ? "red"
+                : ringkasan.statusPemakaian === "Perlu Perhatian"
+                ? "yellow"
+                : "green"
+            }
+            icon={<AlertTriangle className="h-5 w-5" />}
+            sub={
+              <div className="mt-2">
+                <StatusBadge status={ringkasan.statusPemakaian} />
+              </div>
+            }
+          />
+        </div>
       </div>
 
       {/* Cara WattWise Membantu Membaca Pola */}
-      <section className="mt-8 font-sans">
+      <section className="mt-8 font-sans" data-tour="pattern-reading">
         <div className="mb-4">
           <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-display flex items-center gap-2">
             <Zap className="h-5 w-5 text-indigo-600 animate-pulse" />
@@ -684,6 +706,7 @@ export default function DashboardClient({
               <button
                 type="button"
                 onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                data-tour="technical-detail"
                 className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-sm"
               >
                 {showTechnicalDetails ? "Sembunyikan detail teknis estimasi" : "Lihat detail teknis estimasi"}

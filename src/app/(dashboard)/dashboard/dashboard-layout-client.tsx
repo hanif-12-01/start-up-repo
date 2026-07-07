@@ -126,11 +126,19 @@ export default function DashboardLayoutClient({
       if (!child.href) return null;
       const ChildIcon = child.icon;
       const active = isActive(child.href);
+      const dataTour = 
+        child.href === "/dashboard/pendapatan"
+          ? "sidebar-pendapatan"
+          : child.href === "/dashboard/rekomendasi"
+          ? "sidebar-rekomendasi"
+          : undefined;
+
       return (
         <Link
           key={child.href}
           href={child.href}
           onClick={closeMobile}
+          data-tour={dataTour}
           className={cn(
             "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-[13px] font-medium transition-all",
             active
@@ -150,12 +158,20 @@ export default function DashboardLayoutClient({
           const Icon = item.icon;
           const hasChildren = !!item.children?.length;
           const parentActive = item.href ? isActive(item.href) : false;
+          const parentDataTour = 
+            item.href === "/dashboard/catat-data"
+              ? "sidebar-catat-data"
+              : item.href === "/dashboard/laporan"
+              ? "sidebar-laporan"
+              : undefined;
+
           return (
             <div key={item.href ?? `heading-${idx}`}>
               {item.href ? (
                 <Link
                   href={item.href}
                   onClick={closeMobile}
+                  data-tour={parentDataTour}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200",
                     parentActive
