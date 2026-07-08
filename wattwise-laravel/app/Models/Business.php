@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -53,5 +54,21 @@ class Business extends Model
     public function electricityProfile(): HasOne
     {
         return $this->hasOne(ElectricityProfile::class);
+    }
+
+    /**
+     * Get the electricity entries for the business.
+     */
+    public function electricityEntries(): HasMany
+    {
+        return $this->hasMany(ElectricityEntry::class);
+    }
+
+    /**
+     * Get the revenue entries for the business.
+     */
+    public function revenueEntries(): HasMany
+    {
+        return $this->hasMany(RevenueEntry::class);
     }
 }
