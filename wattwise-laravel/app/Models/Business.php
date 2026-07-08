@@ -71,4 +71,12 @@ class Business extends Model
     {
         return $this->hasMany(RevenueEntry::class);
     }
+
+    /**
+     * Get the appliances for the business.
+     */
+    public function appliances(): HasMany
+    {
+        return $this->hasMany(Appliance::class);
+    }
 }

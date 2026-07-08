@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApplianceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\OnboardingController;
@@ -19,6 +20,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('revenue', [RevenueEntryController::class, 'index'])->name('revenue.index');
     Route::post('revenue', [RevenueEntryController::class, 'store'])->name('revenue.store');
+
+    Route::get('appliances', [ApplianceController::class, 'index'])->name('appliances.index');
+    Route::post('appliances', [ApplianceController::class, 'store'])->name('appliances.store');
+    Route::post('appliances/apply-template', [ApplianceController::class, 'applyTemplate'])->name('appliances.apply-template');
+    Route::put('appliances/{appliance}', [ApplianceController::class, 'update'])->name('appliances.update');
+    Route::delete('appliances/{appliance}', [ApplianceController::class, 'destroy'])->name('appliances.destroy');
 });
 
 require __DIR__.'/settings.php';

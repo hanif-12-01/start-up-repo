@@ -1,0 +1,195 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StoreApplianceRequest;
+use App\Http\Requests\UpdateApplianceRequest;
+use App\Models\Appliance;
+use App\Services\Appliances\ApplianceEstimator;
+use App\Services\Appliances\ApplianceTemplateService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class ApplianceController extends Controller
+{
+    public function __construct(
+        private readonly ApplianceEstimator $estimator,
+        private readonly ApplianceTemplateService $templateService,
+    ) {}
+
+    /**
+     * Display the appliances page for the active business.
+     */
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+        $businesses = $user->businesses()->get();
+        $activeBusiness = null;
+        $appliances = [];
+        $tariffPerKwh = null;
+        $templateSegmentLabel = null;
+        $templatePreview = [];
+
+        if ($businesses->isNotEmpty()) {
+            $activeBusinessId = $request->query('business_id');
+            if ($activeBusinessId) {
+                $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
+            }
+            if (!$activeBusiness) {
+                $activeBusiness = $businesses->first();
+            }
+
+            if ($activeBusiness) {
+                // Resolve tariff: electricity_profile first, then latest entry
+                $tariffPerKwh = $this->resolveTariff($activeBusiness);
+
+                $appliances = $activeBusiness->appliances()
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function (Appliance $appliance) use ($tariffPerKwh) {
+                        $watt = $appliance->watt !== null ? (float) $appliance->watt : null;
+                        $quantity = $appliance->quantity;
+                        $hoursPerDay = $appliance->hours_per_day !== null ? (float) $appliance->hours_per_day : null;
+                        $daysPerMonth = $appliance->days_per_month;
+
+                        $kwh = $this->estimator->estimateMonthlyKwh($watt, $quantity, $hoursPerDay, $daysPerMonth);
+                        $appliance->estimated_monthly_kwh = $kwh;
+
+                        $appliance->estimated_monthly_cost = $this->estimator->estimateMonthlyCost($kwh, $tariffPerKwh);
+                        $appliance->ranking_reason = $this->estimator->getRankingReason($watt, $quantity, $hoursPerDay);
+                        $appliance->potential_saving = $this->estimator->estimatePotentialSaving($watt, $quantity, $daysPerMonth, $tariffPerKwh);
+
+                        return $appliance;
+                    });
+
+                // Get template preview
+                $templateSegmentLabel = $this->templateService->getSegmentLabel($activeBusiness->business_type ?? 'OTHER');
+                $templatePreview = $this->templateService->getTemplateForBusinessType($activeBusiness->business_type ?? 'OTHER');
+            }
+        }
+
+        return Inertia::render('Appliances/Index', [
+            'businesses' => $businesses,
+            'activeBusinessId' => $activeBusiness?->id,
+            'businessType' => $activeBusiness?->business_type,
+            'appliances' => $appliances,
+            'tariffPerKwh' => $tariffPerKwh,
+            'templateSegmentLabel' => $templateSegmentLabel,
+            'templatePreview' => $templatePreview,
+        ]);
+    }
+
+    /**
+     * Store a newly created appliance.
+     */
+    public function store(StoreApplianceRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        Appliance::create([
+            'business_id' => $validated['business_id'],
+            'name' => $validated['name'],
+            'category' => $validated['category'] ?? null,
+            'watt' => $validated['watt'] ?? null,
+            'quantity' => $validated['quantity'],
+            'hours_per_day' => $validated['hours_per_day'] ?? null,
+            'days_per_month' => $validated['days_per_month'] ?? null,
+            'source' => 'MANUAL',
+            'confidence' => 'USER_CUSTOM',
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Peralatan berhasil ditambahkan.');
+    }
+
+    /**
+     * Update the specified appliance.
+     */
+    public function update(UpdateApplianceRequest $request, Appliance $appliance): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $appliance->update([
+            'name' => $validated['name'],
+            'category' => $validated['category'] ?? null,
+            'watt' => $validated['watt'] ?? null,
+            'quantity' => $validated['quantity'],
+            'hours_per_day' => $validated['hours_per_day'] ?? null,
+            'days_per_month' => $validated['days_per_month'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->back()->with('success', 'Peralatan berhasil diperbarui.');
+    }
+
+    /**
+     * Apply appliance template for the active/selected business.
+     */
+    public function applyTemplate(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $businesses = $user->businesses()->get();
+
+        if ($businesses->isEmpty()) {
+            return redirect()->back()->withErrors(['business' => 'Belum ada usaha terdaftar.']);
+        }
+
+        $activeBusinessId = $request->input('business_id');
+        $activeBusiness = null;
+        if ($activeBusinessId) {
+            $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
+        }
+        if (!$activeBusiness) {
+            $activeBusiness = $businesses->first();
+        }
+
+        $result = $this->templateService->applyTemplateToBusiness($activeBusiness);
+
+        if ($result['created_count'] > 0) {
+            return redirect()->back()->with('success', 'Template berhasil ditambahkan. Silakan hapus alat yang tidak ada atau ubah daya/jam pakainya sesuai kondisi sebenarnya.');
+        }
+
+        return redirect()->back()->with('success', 'Beberapa alat sudah ada, jadi tidak ditambahkan ulang.');
+    }
+
+    /**
+     * Delete the specified appliance.
+     */
+    public function destroy(Request $request, Appliance $appliance): RedirectResponse
+    {
+        // Authorization: ensure appliance belongs to current user's business
+        if ($appliance->business->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $appliance->delete();
+
+        return redirect()->back()->with('success', 'Peralatan berhasil dihapus.');
+    }
+
+    /**
+     * Resolve tariff per kWh from electricity profile or latest entry.
+     */
+    private function resolveTariff($business): ?float
+    {
+        // Priority 1: electricity_profile.tariff_per_kwh
+        $profile = $business->electricityProfile;
+        if ($profile && $profile->tariff_per_kwh !== null) {
+            return (float) $profile->tariff_per_kwh;
+        }
+
+        // Priority 2: latest electricity entry tariff_per_kwh
+        $latestEntry = $business->electricityEntries()
+            ->whereNotNull('tariff_per_kwh')
+            ->orderBy('period_month', 'desc')
+            ->first();
+
+        if ($latestEntry && $latestEntry->tariff_per_kwh !== null) {
+            return (float) $latestEntry->tariff_per_kwh;
+        }
+
+        return null;
+    }
+}
