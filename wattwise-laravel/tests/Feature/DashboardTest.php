@@ -24,4 +24,34 @@ class DashboardTest extends TestCase
         $response = $this->get(route('dashboard'));
         $response->assertOk();
     }
+
+    public function test_dashboard_includes_top_appliances_if_business_exists()
+    {
+        $user = User::factory()->create();
+        $business = \App\Models\Business::create([
+            'user_id' => $user->id,
+            'name' => 'Kos Melati',
+            'business_type' => 'KOS_PROPERTY',
+        ]);
+
+        \App\Models\Appliance::create([
+            'business_id' => $business->id,
+            'name' => 'AC kamar',
+            'watt' => 350,
+            'quantity' => 1,
+            'hours_per_day' => 8,
+            'days_per_month' => 30,
+            'source' => 'MANUAL',
+            'confidence' => 'USER_CUSTOM',
+        ]);
+
+        $this->actingAs($user);
+
+        $response = $this->get(route('dashboard'));
+        $response->assertOk();
+
+        $inertiaData = $response->original->getData();
+        $this->assertArrayHasKey('topAppliances', $inertiaData['page']['props']);
+        $this->assertNotEmpty($inertiaData['page']['props']['topAppliances']);
+    }
 }

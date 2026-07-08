@@ -30,6 +30,7 @@ const props = defineProps<{
     electricityRevenueRatioPercent: number | string | null;
     remainingRevenueAfterElectricity: number | string | null;
     dataCompleteness: 'COMPLETE' | 'NO_ELECTRICITY' | 'NO_REVENUE' | 'EMPTY';
+    topAppliances?: any[];
 }>();
 
 defineOptions({
@@ -291,6 +292,40 @@ const activeMonthName = computed(() => {
                     >
                         Catat Pendapatan
                     </Link>
+                </div>
+            </div>
+
+            <!-- Top Appliances Summary -->
+            <div v-if="topAppliances && topAppliances.length > 0" class="rounded-xl border border-border bg-card p-5 shadow-sm mt-4 flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-2 gap-2">
+                    <div class="flex flex-col gap-0.5">
+                        <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <AlertTriangle class="h-4 w-4 text-amber-500" />
+                            Kandidat Alat yang Perlu Dicek
+                        </h3>
+                        <p class="text-xs text-muted-foreground pl-6">
+                            Berdasarkan estimasi daya dan jam pakai. Ini bukan pengukuran sensor.
+                        </p>
+                    </div>
+                    <Link href="/appliances" class="text-xs text-primary hover:underline flex items-center gap-1">
+                        Lihat Semua Alat <ArrowRight class="h-3.5 w-3.5" />
+                    </Link>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div 
+                        v-for="(appliance, index) in topAppliances" 
+                        :key="appliance.id"
+                        class="p-3 border border-border bg-muted/20 rounded-lg flex items-center justify-between text-xs"
+                    >
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-amber-600 dark:text-amber-400">#{{ index + 1 }}</span>
+                            <span class="font-medium text-foreground">{{ appliance.name }}</span>
+                        </div>
+                        <span class="text-muted-foreground font-semibold">{{ formatKWh(appliance.estimated_monthly_kwh) }}</span>
+                    </div>
+                </div>
+                <div class="text-xs text-muted-foreground italic flex items-center gap-1">
+                    <span>*Estimasi Simulatif · Perlu Verifikasi Manual</span>
                 </div>
             </div>
 

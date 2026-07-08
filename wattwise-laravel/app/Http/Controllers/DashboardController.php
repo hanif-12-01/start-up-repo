@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Electricity\ElectricityCalculator;
+use App\Services\Appliances\ApplianceEstimator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -10,10 +11,12 @@ use Inertia\Response;
 class DashboardController extends Controller
 {
     protected ElectricityCalculator $calculator;
+    protected ApplianceEstimator $applianceEstimator;
 
-    public function __construct(ElectricityCalculator $calculator)
+    public function __construct(ElectricityCalculator $calculator, ApplianceEstimator $applianceEstimator)
     {
         $this->calculator = $calculator;
+        $this->applianceEstimator = $applianceEstimator;
     }
 
     /**
@@ -82,6 +85,35 @@ class DashboardController extends Controller
                         $electricityCostIdr
                     );
                 }
+
+                // Get top 3 appliances by energy consumption
+                $tariffForEstimate = null;
+                $profile = $activeBusiness->electricityProfile;
+                if ($profile && $profile->tariff_per_kwh !== null) {
+                    $tariffForEstimate = (float) $profile->tariff_per_kwh;
+                } elseif ($latestElectricityEntry && $latestElectricityEntry->tariff_per_kwh !== null) {
+                    $tariffForEstimate = (float) $latestElectricityEntry->tariff_per_kwh;
+                }
+
+                $topAppliances = $activeBusiness->appliances()
+                    ->get()
+                    ->map(function ($appliance) use ($tariffForEstimate) {
+                        $watt = $appliance->watt !== null ? (float) $appliance->watt : null;
+                        $quantity = $appliance->quantity;
+                        $hoursPerDay = $appliance->hours_per_day !== null ? (float) $appliance->hours_per_day : null;
+                        $daysPerMonth = $appliance->days_per_month;
+
+                        $kwh = $this->applianceEstimator->estimateMonthlyKwh($watt, $quantity, $hoursPerDay, $daysPerMonth);
+                        $appliance->estimated_monthly_kwh = $kwh;
+                        $appliance->estimated_monthly_cost = $this->applianceEstimator->estimateMonthlyCost($kwh, $tariffForEstimate);
+                        $appliance->ranking_reason = $this->applianceEstimator->getRankingReason($watt, $quantity, $hoursPerDay);
+                        return $appliance;
+                    })
+                    ->filter(fn($a) => $a->estimated_monthly_kwh > 0)
+                    ->sortByDesc('estimated_monthly_kwh')
+                    ->take(3)
+                    ->values()
+                    ->toArray();
             }
         }
 
@@ -114,6 +146,7 @@ class DashboardController extends Controller
             'electricityRevenueRatioPercent' => $electricityRevenueRatioPercent,
             'remainingRevenueAfterElectricity' => $remainingRevenueAfterElectricity,
             'dataCompleteness' => $dataCompleteness,
+            'topAppliances' => $topAppliances ?? [],
         ]);
     }
 }
