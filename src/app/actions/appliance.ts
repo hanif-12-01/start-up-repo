@@ -8,6 +8,7 @@ import { UsageStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getApplianceTemplateByBusinessType } from "@/lib/appliances/template-utils";
 
 const applianceSchema = z.object({
   name: z.string().trim().min(2, "Nama alat minimal 2 karakter."),
@@ -78,5 +79,56 @@ export async function deleteApplianceAction(id: string) {
   } catch (error: any) {
     safeError("deleteAppliance", error);
     return { success: false, error: error.message || "Gagal menghapus peralatan." };
+  }
+}
+
+export async function applyApplianceTemplateAction(businessTypeOrMode: string) {
+  try {
+    const { businessId } = await getScope();
+    const template = getApplianceTemplateByBusinessType(businessTypeOrMode);
+    if (!template || template.length === 0) {
+      throw new Error("Template tidak ditemukan.");
+    }
+
+    const existing = await db.appliance.findMany({
+      where: { businessId, usageStatus: UsageStatus.ACTIVE },
+      select: { name: true, category: true }
+    });
+
+    let appliedCount = 0;
+    let skippedCount = 0;
+
+    for (const item of template) {
+      // Check for similar name (case insensitive, trimmed)
+      const isDuplicate = existing.some(ext =>
+        ext.name.toLowerCase().trim() === item.displayName.toLowerCase().trim()
+      );
+
+      if (isDuplicate) {
+        skippedCount++;
+        continue;
+      }
+
+      await db.appliance.create({
+        data: {
+          businessId,
+          name: item.displayName,
+          category: item.category || "Lainnya",
+          powerWatt: item.defaultWatt,
+          quantity: item.defaultQuantity,
+          dailyUsageHours: item.defaultHoursPerDay,
+          source: "TEMPLATE",
+          usageStatus: UsageStatus.ACTIVE,
+          applianceCode: `WW-CAT-${item.id.toUpperCase()}`
+        }
+      });
+      appliedCount++;
+    }
+
+    revalidateApplianceViews();
+    return { success: true, appliedCount, skippedCount };
+  } catch (error: any) {
+    safeError("applyApplianceTemplate", error);
+    return { success: false, error: error.message || "Gagal menerapkan template." };
   }
 }

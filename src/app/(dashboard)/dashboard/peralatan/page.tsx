@@ -6,6 +6,8 @@ import { Bolt, CircleDollarSign, Gauge } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import PeralatanClient from "./peralatan-client";
+import { db } from "@/lib/db";
+import { getApplianceTemplateByBusinessType } from "@/lib/appliances/template-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,26 @@ export default async function PeralatanPage() {
 
   const business = await getPeralatanDataForBusiness(session.user.id);
   if (!business) redirect("/onboarding");
+
+  // Query type and mode directly to detect segment without database migration
+  const dbBusiness = await db.business.findUnique({
+    where: { id: business.id },
+    select: { type: true, mode: true }
+  });
+
+  const segment = dbBusiness?.mode === "KOS_PROPERTY" ? "KOS_PROPERTY" : (dbBusiness?.type || "OTHER");
+  const templateItems = getApplianceTemplateByBusinessType(segment);
+
+  const segmentLabels: Record<string, string> = {
+    KOS_PROPERTY: "Kos / Properti Sewa",
+    LAUNDRY: "Usaha Laundry",
+    FNB: "Makanan & Minuman (F&B / Warung / Cafe)",
+    COLD_STORAGE: "Cold Storage / Pembekuan",
+    RETAIL: "Ritel (Toko / Minimarket)",
+    MANUFACTURE: "Manufaktur / Produksi",
+    OTHER: "Usaha / Properti Lainnya",
+  };
+  const segmentLabel = segmentLabels[segment] || segmentLabels.OTHER;
 
   const latest = business.electricityEntries[0];
   const tariffPerKwh = latest?.usageKwh > 0 ? latest.costIdr / latest.usageKwh : 1450;
@@ -41,7 +63,13 @@ export default async function PeralatanPage() {
         <StatCard label="Kandidat Alat Perlu Dicek" value={top?.name ?? "Belum Ada"} helper={top ? fmtKwh(estimateMonthlyKwh(top)) : "Tambah peralatan dulu."} icon={<Bolt className="h-5 w-5" />} tone="yellow" />
       </div>
 
-      <PeralatanClient appliances={business.appliances} tariffPerKwh={tariffPerKwh} />
+      <PeralatanClient
+        appliances={business.appliances}
+        tariffPerKwh={tariffPerKwh}
+        businessSegment={segment}
+        businessSegmentLabel={segmentLabel}
+        templateAppliances={templateItems}
+      />
     </div>
   );
 }
