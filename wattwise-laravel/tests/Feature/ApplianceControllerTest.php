@@ -20,6 +20,13 @@ class ApplianceControllerTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
+        
+        \App\Models\Subscription::create([
+            'user_id' => $this->user->id,
+            'plan' => 'PRO',
+            'status' => 'ACTIVE',
+        ]);
+
         $this->business = Business::create([
             'user_id' => $this->user->id,
             'name' => 'Kos Melati',
