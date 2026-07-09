@@ -29,17 +29,24 @@ cd wattwise-laravel
 composer validate
 
 # 2. Verifikasi seluruh rute internal terdaftar tanpa error sintaksis
+# Pastikan tidak ada rute pembayaran/checkout (Stripe, Midtrans, dsb) atau rute Next.js lama
 php artisan route:list
 
 # 3. Verifikasi status migrasi database (harus berstatus "Ran")
 php artisan migrate:status
 
-# 4. Jalankan seluruh test suite otomatis (harus 100% Passed)
+# 4. Jalankan seluruh test suite otomatis (harus 100% Passed - 213 tests)
 php artisan test
 
-# 5. Jalankan build aset Vite untuk memastikan kelancaran kompilasi frontend
+# 5. Jalankan build aset Vite (wajib dilakukan sebelum deploy)
 npm run build
+
+# 6. Jalankan uji diagnostik demo lokal
+php artisan wattwise:diagnose-demo-login
 ```
+
+> [!WARNING]
+> **Pemisahan Port Server**: Vite dev server (`npm run dev`) biasanya berjalan pada port `5173`. Ini **bukan** port aplikasi utama, melainkan hanya untuk hot reloading aset. Anda harus selalu mengakses aplikasi utama melalui web server Laravel di `http://localhost:8000`.
 
 ---
 
@@ -70,6 +77,7 @@ Lakukan verifikasi cepat di browser lokal (`http://localhost:8000`) setelah menj
 Aplikasi dianggap lulus uji asap jika memenuhi kriteria berikut:
 * **Perintah Terminal**: Seluruh perintah di bagian 1 dan 2 selesai dijalankan dengan status sukses (exit code `0`).
 * **Test Suite**: Output dari `php artisan test` menunjukkan **213 passed** dengan **0 failures**.
+* **Diagnostik Akun Demo**: Output dari `php artisan wattwise:diagnose-demo-login` selesai dengan status sukses dan mengonfirmasi kesiapan fungsional login serta data seeder demo.
 * **Frontend Compilation**: Hasil build dari `npm run build` sukses memproduksi manifest aset di folder `public/build/`.
 * **Keterlihatan Halaman**: Tidak ada halaman blank (putih polos), error 500, atau kendala pemuatan aset CSS/JS di browser.
 

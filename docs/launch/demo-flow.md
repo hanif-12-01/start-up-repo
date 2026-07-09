@@ -10,11 +10,22 @@ Menunjukkan kapabilitas **WattWise AI** sebagai solusi **SaaS electricity cost i
 
 ---
 
-## 2. Informasi Akun Demo
+## 2. Informasi Akun Demo & Akses Aplikasi
 
-Gunakan akun berikut untuk melakukan demonstrasi di lingkungan lokal atau staging:
-- **Email**: `demo@wattwise.local`
-- **Password**: `password`
+* **Lokasi Aplikasi Laravel**: Folder `wattwise-laravel/`.
+* **Akses Aplikasi Lokal**: Buka `http://localhost:8000` di browser (dijalankan via `php artisan serve`).
+* **Peringatan Port Server**: Jangan gunakan port server pengembangan Vite (biasanya `5173`) untuk mengakses aplikasi. Port tersebut hanya untuk aset HMR. Akses utama selalu melalui port web server utama `8000`.
+* **Kredensial Akun Demo**:
+  - **Email**: `demo@wattwise.local`
+  - **Password**: `password`
+* **Perintah Diagnostik & Perbaikan Demo**:
+  Jika Anda mengalami masalah login dengan akun demo lokal, jalankan perintah ini di folder `wattwise-laravel/`:
+  ```bash
+  php artisan wattwise:diagnose-demo-login --fix
+  ```
+  Perintah ini aman dijalankan secara lokal karena tidak mencetak rahasia atau memodifikasi akun produksi.
+* **Status QA Otomatis**: Seluruh **213 pengujian otomatis** lulus dengan sukses sebelum rilis ini.
+* **Aplikasi Next.js Lama**: Aplikasi Next.js di folder `src/` / `app/` bersifat **legacy/reference only** dan tidak digunakan dalam demo.
 
 > [!CAUTION]
 > Akun ini khusus disediakan untuk kepentingan demo di lingkungan lokal (development) dan staging saja. **Bukan merupakan kredensial produksi**. Jangan pernah mengunggah kredensial atau kunci rahasia asli ke repositori publik.

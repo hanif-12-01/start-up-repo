@@ -6,9 +6,28 @@ Dokumen ini berisi panduan teknis deployment aplikasi WattWise AI (Laravel Rewri
 
 ## 1. Catatan Struktur Repositori
 
-Repository WattWise AI memiliki dua aplikasi utama:
-* **`wattwise-laravel/`**: Aplikasi produksi saat ini yang merupakan penulisan ulang lengkap (Laravel rewrite) menggunakan tumpukan Laravel + Inertia.js + Vue.js. Seluruh deployment baru ditargetkan ke subdirektori ini.
-* **`src/` & `app/` (Next.js Lama)**: Aplikasi Next.js versi lama yang dipertahankan dalam repository semata-mata untuk referensi riwayat pengembangan atau kebutuhan rollback darurat. Jangan menghapus direktori ini.
+Repositori WattWise AI memiliki komponen berikut:
+* **`wattwise-laravel/`**: Aplikasi utama produksi saat ini yang merupakan penulisan ulang lengkap (Laravel rewrite) menggunakan tumpukan Laravel + Inertia.js + Vue.js. Seluruh deployment baru ditargetkan ke subdirektori ini.
+* **`src/` & `app/` (Next.js Lama)**: Aplikasi Next.js versi lama yang bersifat **legacy/reference only**. Jangan mengubah berkas Next.js lama dan jangan hubungkan Next.js ke Laravel.
+
+---
+
+## 1b. Parameter Rilis & Batasan MVP (Release Parameters & MVP Limitations)
+
+Sebelum melakukan deployment, harap pahami batasan dan parameter rilis MVP berikut:
+* **Lokasi Aplikasi Laravel**: Folder `wattwise-laravel` di dalam repositori root.
+* **URL Aplikasi Lokal**: `http://localhost:8000` (dijalankan via `php artisan serve`).
+* **Pemisahan Server Vite**: Peringatan keras bahwa Vite dev server (`npm run dev`, biasanya berjalan di port 5173) **bukanlah aplikasi utama**. Port tersebut hanya digunakan oleh HMR (Hot Module Replacement) untuk aset frontend. Akses utama aplikasi selalu melalui port `http://localhost:8000`.
+* **Kredensial Login Demo**: `demo@wattwise.local` dengan kata sandi `password`.
+* **Perintah Diagnostik Demo**: Jalankan `php artisan wattwise:diagnose-demo-login` untuk memvalidasi atau memperbaiki (dengan flag `--fix`) fungsionalitas akun demo lokal.
+* **Status Pengujian**: Seluruh test suite otomatis saat ini lulus dengan total **213 passed** dan **0 failures**.
+* **Persyaratan Build Aset**: Perintah `npm run build` **wajib** dijalankan sebelum deployment ke produksi untuk menghasilkan manifest aset statis.
+* **Batasan & Non-Goals MVP**:
+  - **Bukan Aplikasi Resmi PLN**: WattWise AI bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan tidak memiliki integrasi API resmi dengan PLN.
+  - **Tanpa Payment Gateway**: MVP ini tidak mengintegrasikan sistem pembayaran riil (tidak ada Stripe, Midtrans, Xendit, checkout, tagihan invoice, maupun webhook langganan). Paket Pro diuji coba melalui tombol simulasi uji coba 30 hari secara gratis.
+  - **Tanpa Ekspor PDF**: Tombol ekspor/unduh laporan PDF tidak tersedia/terkunci untuk pengembangan fase berikutnya.
+  - **Tanpa IoT/Sensor**: Platform ini tidak menggunakan integrasi hardware IoT/sensor fisik untuk mengukur pemakaian listrik secara real-time.
+  - **Tanpa Model LSTM/Eksternal AI API**: Analisis efisiensi menggunakan rule-based engine hibrida lokal (tidak ada pemanggilan API OpenAI/Gemini atau inferensi LSTM lokal).
 
 ---
 

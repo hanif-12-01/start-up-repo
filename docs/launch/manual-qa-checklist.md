@@ -5,9 +5,14 @@ Dokumen ini digunakan oleh tim QA untuk melakukan verifikasi manual terhadap sel
 ---
 
 ## 1. Pre-Check
+- [ ] Berada di direktori aktif Laravel rewrite: `wattwise-laravel/`.
+- [ ] Menjalankan aplikasi utama melalui server PHP di `http://localhost:8000` (bukan port Vite dev server `5173`).
 - [ ] Database migrasi sudah berjalan lengkap tanpa error (`php artisan migrate:status`).
-- [ ] Aset frontend Vite berhasil dikompilasi tanpa error (`npm run build`).
+- [ ] Aset frontend Vite berhasil dikompilasi tanpa error (`npm run build` wajib dijalankan sebelum deployment).
+- [ ] Seluruh test suite otomatis lulus dengan sukses (**213 passed**, **0 failures** melalui `php artisan test`).
+- [ ] Jalankan perintah diagnosa demo lokal (`php artisan wattwise:diagnose-demo-login`) dan pastikan statusnya "READY".
 - [ ] Konfigurasi database Supabase PostgreSQL terhubung dengan aman.
+- [ ] Aplikasi Next.js versi lama (`src/` / `app/`) murni sebagai **legacy/reference only** dan tidak terhubung ke backend Laravel.
 - [ ] Tidak ada data kredensial atau rahasia asli di dalam file konfigurasi atau repositori git.
 
 ---
