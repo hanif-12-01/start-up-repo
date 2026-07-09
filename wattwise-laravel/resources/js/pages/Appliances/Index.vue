@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { Plug, ArrowLeft, HelpCircle, AlertTriangle, PlusCircle, Pencil, Trash2, Info } from '@lucide/vue';
+import { Plug, ArrowLeft, ArrowRight, HelpCircle, AlertTriangle, PlusCircle, Pencil, Trash2, Info } from '@lucide/vue';
 import { ref, computed } from 'vue';
 
 interface Business {
@@ -34,6 +34,11 @@ const props = defineProps<{
     tariffPerKwh: number | null;
     templateSegmentLabel?: string | null;
     templatePreview?: any[];
+    effectivePlan?: {
+        id: string;
+        label: string;
+    } | null;
+    applianceLimit?: number | null;
 }>();
 
 defineOptions({
@@ -61,6 +66,8 @@ const editingApplianceId = ref<number | null>(null);
 const showForm = ref(false);
 const deleteConfirmId = ref<number | null>(null);
 const showTemplateCard = ref(true);
+
+const isLimitReached = computed(() => props.applianceLimit !== null && props.appliances.length >= props.applianceLimit);
 
 const form = useForm({
     business_id: props.activeBusinessId || '',
@@ -304,7 +311,15 @@ const totalEstimatedCost = computed(() => {
                 </div>
 
                 <div class="flex flex-wrap gap-3">
+                    <Link 
+                        v-if="effectivePlan?.id === 'FREE'"
+                        href="/plans"
+                        class="inline-flex h-10 items-center justify-center rounded-md bg-muted text-muted-foreground border border-border px-5 py-2 text-sm font-medium hover:bg-muted/95 transition-colors gap-1.5"
+                    >
+                        <Zap class="h-3.5 w-3.5 fill-muted-foreground text-muted-foreground" /> Gunakan Template Ini (Pro)
+                    </Link>
                     <button 
+                        v-else
                         @click="applyTemplate"
                         :disabled="applyTemplateForm.processing"
                         class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:opacity-50"
@@ -422,12 +437,34 @@ const totalEstimatedCost = computed(() => {
                                 <span class="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full font-medium">
                                     {{ appliances.length }} Alat
                                 </span>
+                                <Link 
+                                    v-if="isLimitReached"
+                                    href="/plans"
+                                    class="inline-flex items-center gap-1 rounded-md bg-muted text-muted-foreground border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/95 transition-colors"
+                                >
+                                    <PlusCircle class="h-3.5 w-3.5" /> Tambah
+                                </Link>
                                 <button 
+                                    v-else
                                     @click="openAddForm"
                                     class="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                                 >
                                     <PlusCircle class="h-3.5 w-3.5" /> Tambah
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- Appliance limit reached warning banner -->
+                        <div v-if="isLimitReached" class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-xs text-amber-800 dark:text-amber-200 mx-5 my-4">
+                            <AlertTriangle class="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                            <div class="space-y-1">
+                                <span class="font-bold">Batas Jumlah Peralatan Tercapai (Maks. 10)</span>
+                                <p class="text-muted-foreground">
+                                    Paket Gratis dibatasi maksimal 10 peralatan listrik. Upgrade ke Pro untuk menambahkan peralatan tanpa batas.
+                                </p>
+                                <Link href="/plans" class="inline-flex items-center gap-1 font-bold text-primary hover:underline mt-1.5">
+                                    Tingkatkan Paket <ArrowRight class="h-3 w-3" />
+                                </Link>
                             </div>
                         </div>
 

@@ -13,10 +13,14 @@ use Inertia\Response;
 class ElectricityEntryController extends Controller
 {
     protected ElectricityCalculator $calculator;
+    protected \App\Services\FeatureGateService $featureGateService;
 
-    public function __construct(ElectricityCalculator $calculator)
-    {
+    public function __construct(
+        ElectricityCalculator $calculator,
+        \App\Services\FeatureGateService $featureGateService
+    ) {
         $this->calculator = $calculator;
+        $this->featureGateService = $featureGateService;
     }
 
     /**
@@ -45,10 +49,15 @@ class ElectricityEntryController extends Controller
             }
         }
 
+        $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;
+        $electricityLimit = $activeBusiness ? $this->featureGateService->limit($user, 'electricity.entries', $activeBusiness) : null;
+
         return Inertia::render('Electricity/Index', [
             'businesses' => $businesses,
             'activeBusinessId' => $activeBusiness ? $activeBusiness->id : null,
             'entries' => $entries,
+            'effectivePlan' => $effectivePlan,
+            'electricityLimit' => $electricityLimit,
         ]);
     }
 
@@ -61,6 +70,29 @@ class ElectricityEntryController extends Controller
 
         // Normalize period_month to the first day of the month
         $periodMonth = \Carbon\Carbon::parse($validated['period_month'])->startOfMonth();
+
+        $businessId = $validated['business_id'];
+
+        // Enforce plan limit for new entries
+        $exists = ElectricityEntry::where('business_id', $businessId)
+            ->where('period_month', $periodMonth)
+            ->exists();
+
+        if (!$exists) {
+            $user = $request->user();
+            $business = \App\Models\Business::find($businessId);
+            $limit = $this->featureGateService->limit($user, 'electricity.entries', $business);
+            if ($limit !== null) {
+                $usage = $this->featureGateService->usage($user, 'electricity.entries', $business);
+                if ($usage >= $limit) {
+                    \Inertia\Inertia::flash('toast', [
+                        'type' => 'error',
+                        'message' => $this->featureGateService->getUpgradeMessage('electricity.entries')
+                    ]);
+                    return redirect()->back()->with('error', $this->featureGateService->getUpgradeMessage('electricity.entries'));
+                }
+            }
+        }
 
         $usageKwh = $validated['usage_kwh'] ?? null;
         $billAmountIdr = $validated['bill_amount_idr'] ?? null;
@@ -85,7 +117,7 @@ class ElectricityEntryController extends Controller
         // Upsert by business_id + period_month
         ElectricityEntry::updateOrCreate(
             [
-                'business_id' => $validated['business_id'],
+                'business_id' => $businessId,
                 'period_month' => $periodMonth,
             ],
             [

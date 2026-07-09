@@ -85,6 +85,11 @@ const props = defineProps<{
         efficiency_score: EfficiencyScore;
         disclaimers: string[];
     };
+    effectivePlan?: {
+        id: string;
+        label: string;
+    } | null;
+    isLocked?: boolean;
 }>();
 
 defineOptions({
@@ -263,17 +268,38 @@ const completenessClass = computed(() => {
                 </div>
             </div>
 
-            <!-- Month warning when no months are available -->
-            <div 
-                v-if="report.available_months.length === 0"
-                class="flex items-center gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-400"
-            >
-                <AlertTriangle class="h-5 w-5 shrink-0 text-amber-600" />
-                <span>Belum ada bulan laporan. Tambahkan data listrik atau pendapatan terlebih dahulu.</span>
+            <!-- Lock state screen if historical report is locked -->
+            <div v-if="isLocked" class="bg-card border border-border rounded-xl p-8 shadow-sm flex flex-col items-center justify-center text-center gap-4 relative overflow-hidden py-16">
+                <div class="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <Zap class="h-8 w-8 fill-primary" />
+                </div>
+                <h2 class="text-xl font-bold text-foreground">Laporan Riwayat Bulanan Terkunci</h2>
+                <p class="text-sm text-muted-foreground max-w-md leading-relaxed">
+                    Pengguna Paket Gratis hanya dapat mengakses laporan bulan berjalan / bulan terbaru. Upgrade ke paket Pro untuk membuka akses riwayat seluruh laporan bulanan Anda.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center gap-3 mt-4">
+                    <Link href="/plans" class="inline-flex items-center justify-center rounded-md text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 shadow-md flex items-center gap-1.5">
+                        <Zap class="h-4 w-4 fill-primary-foreground" /> Mulai Pro Trial 30 Hari
+                    </Link>
+                    <Link href="/plans" class="inline-flex items-center justify-center rounded-md text-xs font-semibold border border-input bg-background hover:bg-accent px-4 py-2.5 shadow-sm">
+                        Lihat Paket Lain
+                    </Link>
+                </div>
             </div>
 
-            <!-- 4, 5, 6. Metric Cards Row -->
-            <div class="grid gap-6 md:grid-cols-3">
+            <!-- Main report sections (only show if not locked) -->
+            <div v-else class="space-y-6 flex flex-col gap-6 w-full">
+                <!-- Month warning when no months are available -->
+                <div 
+                    v-if="report.available_months.length === 0"
+                    class="flex items-center gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-400"
+                >
+                    <AlertTriangle class="h-5 w-5 shrink-0 text-amber-600" />
+                    <span>Belum ada bulan laporan. Tambahkan data listrik atau pendapatan terlebih dahulu.</span>
+                </div>
+
+                <!-- 4, 5, 6. Metric Cards Row -->
+                <div class="grid gap-6 md:grid-cols-3">
                 <!-- 4. Electricity Card -->
                 <div class="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
                     <div class="flex items-center justify-between border-b border-border pb-2">
@@ -637,6 +663,7 @@ const completenessClass = computed(() => {
                         {{ disclaimer }}
                     </li>
                 </ul>
+            </div>
             </div>
         </template>
     </div>

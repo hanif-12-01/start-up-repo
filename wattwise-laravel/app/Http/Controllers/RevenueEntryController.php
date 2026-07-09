@@ -11,6 +11,13 @@ use Inertia\Response;
 
 class RevenueEntryController extends Controller
 {
+    protected \App\Services\FeatureGateService $featureGateService;
+
+    public function __construct(\App\Services\FeatureGateService $featureGateService)
+    {
+        $this->featureGateService = $featureGateService;
+    }
+
     /**
      * Display a listing of revenue entries.
      */
@@ -37,10 +44,15 @@ class RevenueEntryController extends Controller
             }
         }
 
+        $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;
+        $revenueLimit = $activeBusiness ? $this->featureGateService->limit($user, 'revenue.entries', $activeBusiness) : null;
+
         return Inertia::render('Revenue/Index', [
             'businesses' => $businesses,
             'activeBusinessId' => $activeBusiness ? $activeBusiness->id : null,
             'entries' => $entries,
+            'effectivePlan' => $effectivePlan,
+            'revenueLimit' => $revenueLimit,
         ]);
     }
 
@@ -54,10 +66,33 @@ class RevenueEntryController extends Controller
         // Normalize period_month to the first day of the month as a Carbon instance for Eloquent query safety
         $periodMonth = \Carbon\Carbon::parse($validated['period_month'])->startOfMonth();
 
+        $businessId = $validated['business_id'];
+
+        // Enforce plan limit for new entries
+        $exists = RevenueEntry::where('business_id', $businessId)
+            ->where('period_month', $periodMonth)
+            ->exists();
+
+        if (!$exists) {
+            $user = $request->user();
+            $business = \App\Models\Business::find($businessId);
+            $limit = $this->featureGateService->limit($user, 'revenue.entries', $business);
+            if ($limit !== null) {
+                $usage = $this->featureGateService->usage($user, 'revenue.entries', $business);
+                if ($usage >= $limit) {
+                    \Inertia\Inertia::flash('toast', [
+                        'type' => 'error',
+                        'message' => $this->featureGateService->getUpgradeMessage('revenue.entries')
+                    ]);
+                    return redirect()->back()->with('error', $this->featureGateService->getUpgradeMessage('revenue.entries'));
+                }
+            }
+        }
+
         // Upsert by business_id + period_month
         RevenueEntry::updateOrCreate(
             [
-                'business_id' => $validated['business_id'],
+                'business_id' => $businessId,
                 'period_month' => $periodMonth,
             ],
             [

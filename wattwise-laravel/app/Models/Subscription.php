@@ -10,8 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'plan',
     'status',
+    'trial_starts_at',
     'trial_ends_at',
-    'current_period_ends_at'
+    'current_period_starts_at',
+    'current_period_ends_at',
+    'canceled_at',
+    'metadata'
 ])]
 class Subscription extends Model
 {
@@ -23,8 +27,12 @@ class Subscription extends Model
     protected function casts(): array
     {
         return [
+            'trial_starts_at' => 'datetime',
             'trial_ends_at' => 'datetime',
+            'current_period_starts_at' => 'datetime',
             'current_period_ends_at' => 'datetime',
+            'canceled_at' => 'datetime',
+            'metadata' => 'array',
         ];
     }
 

@@ -17,6 +17,7 @@ class ApplianceController extends Controller
     public function __construct(
         private readonly ApplianceEstimator $estimator,
         private readonly ApplianceTemplateService $templateService,
+        private readonly \App\Services\FeatureGateService $featureGateService,
     ) {}
 
     /**
@@ -70,6 +71,9 @@ class ApplianceController extends Controller
             }
         }
 
+        $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;
+        $applianceLimit = $activeBusiness ? $this->featureGateService->limit($user, 'appliances.manage', $activeBusiness) : null;
+
         return Inertia::render('Appliances/Index', [
             'businesses' => $businesses,
             'activeBusinessId' => $activeBusiness?->id,
@@ -78,6 +82,8 @@ class ApplianceController extends Controller
             'tariffPerKwh' => $tariffPerKwh,
             'templateSegmentLabel' => $templateSegmentLabel,
             'templatePreview' => $templatePreview,
+            'effectivePlan' => $effectivePlan,
+            'applianceLimit' => $applianceLimit,
         ]);
     }
 
@@ -87,9 +93,25 @@ class ApplianceController extends Controller
     public function store(StoreApplianceRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $user = $request->user();
+        $businessId = $validated['business_id'];
+        $business = \App\Models\Business::find($businessId);
+
+        // Check plan limits
+        $limit = $this->featureGateService->limit($user, 'appliances.manage', $business);
+        if ($limit !== null) {
+            $usage = $this->featureGateService->usage($user, 'appliances.manage', $business);
+            if ($usage >= $limit) {
+                \Inertia\Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => $this->featureGateService->getUpgradeMessage('appliances.manage')
+                ]);
+                return redirect()->back()->with('error', $this->featureGateService->getUpgradeMessage('appliances.manage'));
+            }
+        }
 
         Appliance::create([
-            'business_id' => $validated['business_id'],
+            'business_id' => $businessId,
             'name' => $validated['name'],
             'category' => $validated['category'] ?? null,
             'watt' => $validated['watt'] ?? null,
@@ -143,6 +165,15 @@ class ApplianceController extends Controller
         }
         if (!$activeBusiness) {
             $activeBusiness = $businesses->first();
+        }
+
+        // Check if template feature is allowed
+        if (!$this->featureGateService->can($user, 'appliances.templates', $activeBusiness)) {
+            \Inertia\Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => $this->featureGateService->getUpgradeMessage('appliances.templates')
+            ]);
+            return redirect()->back()->with('error', $this->featureGateService->getUpgradeMessage('appliances.templates'));
         }
 
         $result = $this->templateService->applyTemplateToBusiness($activeBusiness);

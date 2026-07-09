@@ -230,58 +230,74 @@ const formatMonth = (dateStr?: string) => {
                     <div 
                         v-for="rec in recommendations" 
                         :key="rec.type"
-                        class="rounded-xl border p-6 bg-card shadow-sm flex flex-col gap-4 transition-all hover:border-border/80"
+                        class="rounded-xl border p-6 bg-card shadow-sm flex flex-col gap-4 transition-all hover:border-border/80 relative overflow-hidden"
                         :class="{
-                            'border-l-4 border-l-red-500': rec.priority === 'HIGH',
-                            'border-l-4 border-l-yellow-500': rec.priority === 'MEDIUM',
-                            'border-l-4 border-l-blue-500': rec.priority === 'LOW'
+                            'border-l-4 border-l-red-500': rec.priority === 'HIGH' && !rec.is_locked,
+                            'border-l-4 border-l-yellow-500': rec.priority === 'MEDIUM' && !rec.is_locked,
+                            'border-l-4 border-l-blue-500': rec.priority === 'LOW' && !rec.is_locked,
+                            'border-l-4 border-l-muted-foreground/35': rec.is_locked
                         }"
                     >
-                        <div class="flex items-start justify-between gap-4 flex-wrap">
-                            <div class="flex items-center gap-2">
-                                <span 
-                                    class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
-                                    :class="{
-                                        'bg-red-500/10 text-red-500': rec.priority === 'HIGH',
-                                        'bg-yellow-500/10 text-yellow-500': rec.priority === 'MEDIUM',
-                                        'bg-blue-500/10 text-blue-500': rec.priority === 'LOW'
-                                    }"
-                                >
-                                    {{ rec.priority === 'HIGH' ? 'Prioritas Tinggi' : (rec.priority === 'MEDIUM' ? 'Prioritas Sedang' : 'Prioritas Ringan') }}
-                                </span>
-                                <h3 class="font-bold text-foreground text-sm">{{ rec.title }}</h3>
-                            </div>
-
-                            <span v-if="rec.estimated_saving_idr" class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1 rounded-lg">
-                                Estimasi Potensi Hemat: {{ formatIDR(rec.estimated_saving_idr) }}
-                            </span>
+                        <!-- Lock overlay if gated -->
+                        <div v-if="rec.is_locked" class="absolute inset-0 bg-background/50 backdrop-blur-[2.5px] flex flex-col items-center justify-center p-4 text-center z-10">
+                            <Zap class="h-6 w-6 text-primary mb-2 fill-primary animate-pulse" />
+                            <h4 class="font-bold text-xs text-foreground mb-1">Rekomendasi Hemat Tambahan Terkunci</h4>
+                            <p class="text-[10px] text-muted-foreground max-w-xs mb-3">
+                                Paket Gratis dibatasi hanya 3 rekomendasi teratas. Upgrade ke Pro untuk membuka semua analisis penghematan.
+                            </p>
+                            <Link href="/plans" class="inline-flex items-center justify-center rounded-md text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 shadow-sm">
+                                Mulai Pro Trial 30 Hari
+                            </Link>
                         </div>
 
-                        <div class="grid gap-4 md:grid-cols-3">
-                            <div class="md:col-span-2 flex flex-col gap-2">
-                                <div>
-                                    <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Wawasan:</span>
-                                    <p class="text-sm text-foreground leading-relaxed">{{ rec.description }}</p>
+                        <!-- Card contents (blurred if locked) -->
+                        <div :class="{ 'filter blur-sm select-none pointer-events-none': rec.is_locked }" class="flex flex-col gap-4 w-full">
+                            <div class="flex items-start justify-between gap-4 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span 
+                                        class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+                                        :class="{
+                                            'bg-red-500/10 text-red-500': rec.priority === 'HIGH',
+                                            'bg-yellow-500/10 text-yellow-500': rec.priority === 'MEDIUM',
+                                            'bg-blue-500/10 text-blue-500': rec.priority === 'LOW'
+                                        }"
+                                    >
+                                        {{ rec.priority === 'HIGH' ? 'Prioritas Tinggi' : (rec.priority === 'MEDIUM' ? 'Prioritas Sedang' : 'Prioritas Ringan') }}
+                                    </span>
+                                    <h3 class="font-bold text-foreground text-sm">{{ rec.title }}</h3>
                                 </div>
-                                <div class="mt-1">
-                                    <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Dasar Analisis:</span>
-                                    <p class="text-xs text-muted-foreground leading-relaxed">{{ rec.reason }}</p>
-                                </div>
+
+                                <span v-if="rec.estimated_saving_idr" class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1 rounded-lg">
+                                    Estimasi Potensi Hemat: {{ formatIDR(rec.estimated_saving_idr) }}
+                                </span>
                             </div>
 
-                            <div class="rounded-lg bg-muted/40 p-4 border border-border/40 flex flex-col justify-between gap-3">
-                                <div>
-                                    <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Tindakan Disarankan:</span>
-                                    <p class="text-sm font-semibold text-foreground leading-relaxed mt-1">{{ rec.action }}</p>
+                            <div class="grid gap-4 md:grid-cols-3">
+                                <div class="md:col-span-2 flex flex-col gap-2">
+                                    <div>
+                                        <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Wawasan:</span>
+                                        <p class="text-sm text-foreground leading-relaxed">{{ rec.description }}</p>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Dasar Analisis:</span>
+                                        <p class="text-xs text-muted-foreground leading-relaxed">{{ rec.reason }}</p>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-1.5 flex-wrap mt-2">
-                                    <span 
-                                        v-for="badge in rec.badges" 
-                                        :key="badge"
-                                        class="px-2 py-0.5 bg-muted rounded text-[10px] text-muted-foreground font-semibold border border-border/60"
-                                    >
-                                        {{ badge }}
-                                    </span>
+
+                                <div class="rounded-lg bg-muted/40 p-4 border border-border/40 flex flex-col justify-between gap-3">
+                                    <div>
+                                        <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Tindakan Disarankan:</span>
+                                        <p class="text-sm font-semibold text-foreground leading-relaxed mt-1">{{ rec.action }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 flex-wrap mt-2">
+                                        <span 
+                                            v-for="badge in rec.badges" 
+                                            :key="badge"
+                                            class="px-2 py-0.5 bg-muted rounded text-[10px] text-muted-foreground font-semibold border border-border/60"
+                                        >
+                                            {{ badge }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

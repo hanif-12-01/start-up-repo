@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { Coins, ArrowLeft, Calendar, Info, AlertTriangle, PlusCircle, FileText, Landmark } from '@lucide/vue';
+import { Coins, ArrowLeft, ArrowRight, Calendar, Info, AlertTriangle, PlusCircle, FileText, Landmark } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 interface Business {
@@ -25,6 +25,11 @@ const props = defineProps<{
     businesses: Business[];
     activeBusinessId: number | null;
     entries: RevenueEntry[];
+    effectivePlan?: {
+        id: string;
+        label: string;
+    } | null;
+    revenueLimit?: number | null;
 }>();
 
 defineOptions({
@@ -112,6 +117,8 @@ const submit = () => {
         },
     });
 };
+
+const isLimitReached = computed(() => props.revenueLimit !== null && props.entries.length >= props.revenueLimit);
 </script>
 
 <template>
@@ -237,6 +244,20 @@ const submit = () => {
                         <PlusCircle class="h-5 w-5 text-primary" /> Input Pendapatan
                     </h2>
 
+                    <!-- Limit exceeded warning banner inside form -->
+                    <div v-if="isLimitReached" class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-xs text-amber-800 dark:text-amber-200 mt-2">
+                        <AlertTriangle class="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div class="space-y-1">
+                            <span class="font-bold">Batas Entri Pendapatan Tercapai (Maks. 3 Bulan)</span>
+                            <p class="text-muted-foreground">
+                                Paket Gratis dibatasi maksimal 3 bulan pencatatan pendapatan. Upgrade ke Pro untuk menyimpan seluruh riwayat Anda.
+                            </p>
+                            <Link href="/plans" class="inline-flex items-center gap-1 font-bold text-primary hover:underline mt-1.5">
+                                Tingkatkan Paket <ArrowRight class="h-3 w-3" />
+                            </Link>
+                        </div>
+                    </div>
+
                     <form @submit.prevent="submit" class="flex flex-col gap-4">
                         <!-- Business Selection Hidden -->
                         <input type="hidden" v-model="form.business_id" />
@@ -338,10 +359,10 @@ const submit = () => {
                         <!-- Submit Button -->
                         <button 
                             type="submit" 
-                            :disabled="form.processing"
-                            class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:opacity-50 mt-2"
+                            :disabled="form.processing || isLimitReached"
+                            class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:opacity-50 mt-2 w-full"
                         >
-                            {{ form.processing ? 'Menyimpan...' : 'Simpan Pendapatan' }}
+                            {{ form.processing ? 'Menyimpan...' : (isLimitReached ? 'Batas Limit Tercapai' : 'Simpan Pendapatan') }}
                         </button>
                     </form>
                 </div>

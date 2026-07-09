@@ -12,7 +12,8 @@ class RecommendationController extends Controller
 {
     public function __construct(
         private readonly RecommendationService $recommendationService,
-        private readonly EfficiencyScoreService $efficiencyScoreService
+        private readonly EfficiencyScoreService $efficiencyScoreService,
+        private readonly \App\Services\FeatureGateService $featureGateService
     ) {}
 
     /**
@@ -35,6 +36,8 @@ class RecommendationController extends Controller
         $latestRevenueEntry = null;
         $applianceCount = 0;
 
+        $effectivePlan = null;
+
         if ($hasBusiness) {
             $activeBusinessId = $request->query('business_id');
             if ($activeBusinessId) {
@@ -45,7 +48,27 @@ class RecommendationController extends Controller
             }
 
             if ($activeBusiness) {
-                $recommendations = $this->recommendationService->getRecommendationsForBusiness($activeBusiness);
+                $effectivePlan = $this->featureGateService->getEffectivePlan($user, $activeBusiness);
+                $rawRecommendations = $this->recommendationService->getRecommendationsForBusiness($activeBusiness);
+                
+                // Map and apply gating to recommendations
+                $recommendations = collect($rawRecommendations)->map(function ($rec, $index) use ($effectivePlan) {
+                    if ($effectivePlan && $effectivePlan['id'] === 'FREE' && $index >= 3) {
+                        return [
+                            'priority' => $rec['priority'] ?? 'LOW',
+                            'title' => 'Rekomendasi Hemat Tambahan',
+                            'estimated_saving_idr' => null,
+                            'description' => 'Upgrade ke paket Pro untuk melihat analisis mendalam dan langkah penghematan terperinci.',
+                            'reason' => 'Tersedia setelah peningkatan akun.',
+                            'action' => 'Mulai Pro Trial 30 Hari',
+                            'badges' => ['Premium'],
+                            'is_locked' => true,
+                        ];
+                    }
+                    $rec['is_locked'] = false;
+                    return $rec;
+                })->toArray();
+
                 $efficiencyScore = $this->efficiencyScoreService->calculateForBusiness($activeBusiness);
                 
                 $latestElectricityEntry = $activeBusiness->electricityEntries()
@@ -81,6 +104,7 @@ class RecommendationController extends Controller
             'latestRevenueEntry' => $latestRevenueEntry,
             'applianceCount' => $applianceCount,
             'dataCompleteness' => $dataCompleteness,
+            'effectivePlan' => $effectivePlan,
         ]);
     }
 }

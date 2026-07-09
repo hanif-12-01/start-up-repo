@@ -7,6 +7,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\RevenueEntryController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\PlanController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -31,6 +32,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');
 });
 
 require __DIR__.'/settings.php';
