@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\Electricity\ElectricityCalculator;
 use App\Services\Appliances\ApplianceEstimator;
+use App\Services\Recommendations\RecommendationService;
+use App\Services\Recommendations\EfficiencyScoreService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,11 +14,19 @@ class DashboardController extends Controller
 {
     protected ElectricityCalculator $calculator;
     protected ApplianceEstimator $applianceEstimator;
+    protected RecommendationService $recommendationService;
+    protected EfficiencyScoreService $efficiencyScoreService;
 
-    public function __construct(ElectricityCalculator $calculator, ApplianceEstimator $applianceEstimator)
-    {
+    public function __construct(
+        ElectricityCalculator $calculator,
+        ApplianceEstimator $applianceEstimator,
+        RecommendationService $recommendationService,
+        EfficiencyScoreService $efficiencyScoreService
+    ) {
         $this->calculator = $calculator;
         $this->applianceEstimator = $applianceEstimator;
+        $this->recommendationService = $recommendationService;
+        $this->efficiencyScoreService = $efficiencyScoreService;
     }
 
     /**
@@ -117,6 +127,14 @@ class DashboardController extends Controller
             }
         }
 
+        $efficiencyScore = null;
+        $topRecommendations = [];
+
+        if ($activeBusiness) {
+            $efficiencyScore = $this->efficiencyScoreService->calculateForBusiness($activeBusiness);
+            $topRecommendations = $this->recommendationService->getTopRecommendationsForBusiness($activeBusiness, 3);
+        }
+
         // Determine data completeness status
         $dataCompleteness = 'COMPLETE';
         if (!$latestElectricityEntry && !$latestRevenueEntry) {
@@ -147,6 +165,10 @@ class DashboardController extends Controller
             'remainingRevenueAfterElectricity' => $remainingRevenueAfterElectricity,
             'dataCompleteness' => $dataCompleteness,
             'topAppliances' => $topAppliances ?? [],
+
+            // Week 4 recommendation props
+            'efficiencyScore' => $efficiencyScore,
+            'topRecommendations' => $topRecommendations,
         ]);
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { LayoutGrid, Building2, Zap, Coins, FileBarChart2, ArrowRight, AlertTriangle, HelpCircle, Activity } from '@lucide/vue';
+import { LayoutGrid, Building2, Zap, Coins, FileBarChart2, ArrowRight, AlertTriangle, HelpCircle, Activity, Sparkles, Lightbulb } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Business {
@@ -31,6 +31,16 @@ const props = defineProps<{
     remainingRevenueAfterElectricity: number | string | null;
     dataCompleteness: 'COMPLETE' | 'NO_ELECTRICITY' | 'NO_REVENUE' | 'EMPTY';
     topAppliances?: any[];
+
+    // Week 4 recommendation props
+    efficiencyScore?: {
+        score: number | null;
+        label: string;
+        status: 'GOOD' | 'WATCH' | 'CHECK' | 'INCOMPLETE';
+        confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+        explanation: string;
+    } | null;
+    topRecommendations?: any[];
 }>();
 
 defineOptions({
@@ -292,6 +302,132 @@ const activeMonthName = computed(() => {
                     >
                         Catat Pendapatan
                     </Link>
+                </div>
+            </div>
+
+            <!-- Insight Utama Section -->
+            <div class="mt-2 flex flex-col gap-4">
+                <div class="border-b border-border pb-2">
+                    <h2 class="text-xl font-semibold text-foreground flex items-center gap-2">
+                        <Sparkles class="h-5 w-5 text-primary" /> Insight Utama
+                    </h2>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-3">
+                    <!-- Skor Efisiensi Listrik Card -->
+                    <div class="md:col-span-1 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Skor Efisiensi Listrik</h3>
+                            <p class="text-xs text-muted-foreground mt-1">Estimasi Simulatif · Berdasarkan data input</p>
+                        </div>
+                        
+                        <div class="flex flex-col items-center justify-center py-4">
+                            <template v-if="efficiencyScore && efficiencyScore.score !== null">
+                                <div class="relative flex items-center justify-center">
+                                    <span class="text-5xl font-extrabold text-foreground">
+                                        {{ efficiencyScore.score }}<span class="text-2xl text-muted-foreground">/100</span>
+                                    </span>
+                                </div>
+                                <span 
+                                    class="mt-3 px-3 py-1 text-xs font-bold rounded-full"
+                                    :class="{
+                                        'bg-green-500/10 text-green-500': efficiencyScore.status === 'GOOD',
+                                        'bg-yellow-500/10 text-yellow-500': efficiencyScore.status === 'WATCH',
+                                        'bg-red-500/10 text-red-500': efficiencyScore.status === 'CHECK'
+                                    }"
+                                >
+                                    {{ efficiencyScore.label }}
+                                </span>
+                            </template>
+                            <template v-else>
+                                <span class="text-2xl font-bold text-muted-foreground text-center py-2">
+                                    Data belum cukup
+                                </span>
+                                <span class="mt-2 text-xs text-center text-muted-foreground px-2">
+                                    Isi tagihan listrik dan pendapatan untuk melihat skor.
+                                </span>
+                            </template>
+                        </div>
+
+                        <div class="border-t border-border/60 pt-3 text-[11px] text-muted-foreground leading-relaxed">
+                            Skor ini adalah estimasi internal WattWise berdasarkan data input, bukan audit energi resmi.
+                        </div>
+                    </div>
+
+                    <!-- Recommendations List Card -->
+                    <div class="md:col-span-2 rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between gap-4">
+                        <div class="flex items-center justify-between border-b border-border/60 pb-3">
+                            <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                                <Lightbulb class="h-4 w-4 text-primary" /> Rekomendasi Penghematan
+                            </h3>
+                            <Link 
+                                href="/recommendations"
+                                class="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                            >
+                                Lihat Rekomendasi Lengkap
+                                <ArrowRight class="h-3 w-3" />
+                            </Link>
+                        </div>
+
+                        <!-- List of Top 3 Recommendations -->
+                        <div class="flex-1 flex flex-col gap-4">
+                            <template v-if="topRecommendations && topRecommendations.length > 0">
+                                <div 
+                                    v-for="rec in topRecommendations" 
+                                    :key="rec.type"
+                                    class="flex flex-col gap-1.5 p-3 rounded-lg border border-border bg-muted/10"
+                                >
+                                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                                        <span class="font-bold text-foreground text-xs flex items-center gap-1.5">
+                                            <span class="h-1.5 w-1.5 rounded-full" :class="{
+                                                'bg-red-500': rec.priority === 'HIGH',
+                                                'bg-yellow-500': rec.priority === 'MEDIUM',
+                                                'bg-blue-500': rec.priority === 'LOW'
+                                            }"></span>
+                                            {{ rec.title }}
+                                        </span>
+                                        <span 
+                                            class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                            :class="{
+                                                'bg-red-500/10 text-red-500': rec.priority === 'HIGH',
+                                                'bg-yellow-500/10 text-yellow-500': rec.priority === 'MEDIUM',
+                                                'bg-blue-500/10 text-blue-500': rec.priority === 'LOW'
+                                            }"
+                                        >
+                                            {{ rec.priority === 'HIGH' ? 'Prioritas Tinggi' : (rec.priority === 'MEDIUM' ? 'Prioritas Sedang' : 'Prioritas Ringan') }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground leading-relaxed">
+                                        {{ rec.description }}
+                                    </p>
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mt-1 text-[11px]">
+                                        <span class="text-foreground/80 font-medium">
+                                            Tindakan: <span class="text-muted-foreground font-normal">{{ rec.action }}</span>
+                                        </span>
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <span 
+                                                v-for="badge in rec.badges" 
+                                                :key="badge"
+                                                class="px-1.5 py-0.5 bg-muted rounded text-[9px] text-muted-foreground font-medium border border-border/40"
+                                            >
+                                                {{ badge }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div class="flex flex-col items-center justify-center text-center py-8 text-muted-foreground">
+                                    <p class="text-sm">Belum ada rekomendasi aktif saat ini.</p>
+                                    <p class="text-xs mt-1">Lengkapi data usaha atau peralatan untuk memicu analisis.</p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="border-t border-border/60 pt-3 text-[10px] text-muted-foreground italic">
+                            *Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.
+                        </div>
+                    </div>
                 </div>
             </div>
 

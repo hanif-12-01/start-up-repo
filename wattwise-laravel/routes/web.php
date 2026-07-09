@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\RevenueEntryController;
+use App\Http\Controllers\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -26,6 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('appliances/apply-template', [ApplianceController::class, 'applyTemplate'])->name('appliances.apply-template');
     Route::put('appliances/{appliance}', [ApplianceController::class, 'update'])->name('appliances.update');
     Route::delete('appliances/{appliance}', [ApplianceController::class, 'destroy'])->name('appliances.destroy');
+
+    Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
 });
 
 require __DIR__.'/settings.php';
