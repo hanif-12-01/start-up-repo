@@ -79,6 +79,7 @@ Dokumen ini digunakan oleh tim QA untuk melakukan verifikasi manual terhadap sel
 
 ## 9. Laporan Bulanan (Reports)
 - [ ] Dropdown bulan menampilkan seluruh bulan yang memiliki data historis.
+- [ ] Dropdown pemilih bisnis (business switcher) bekerja dengan lancar jika pengguna memiliki lebih dari satu bisnis.
 - [ ] Memilih bulan tertentu memuat ringkasan laporan bulanan yang komprehensif.
 - [ ] Verifikasi Edge Case: Mengakses URL dengan parameter bulan tidak valid (misalnya `/reports?month=invalid` atau `/reports?month=9999-99`) ditangani secara aman oleh controller/routing, tidak menyebabkan crash/500, dan menampilkan pesan error atau kembali ke halaman default dengan aman.
 - [ ] Batasan paket Gratis teruji: Akses ke laporan bulan-bulan sebelumnya (riwayat lama) dikunci dan memicu banner ajakan upgrade ke paket Pro.

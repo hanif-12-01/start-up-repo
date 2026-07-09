@@ -69,7 +69,7 @@ Lakukan verifikasi cepat di browser lokal (`http://localhost:8000`) setelah menj
 
 Aplikasi dianggap lulus uji asap jika memenuhi kriteria berikut:
 * **Perintah Terminal**: Seluruh perintah di bagian 1 dan 2 selesai dijalankan dengan status sukses (exit code `0`).
-* **Test Suite**: Output dari `php artisan test` menunjukkan **189 passed** dengan **0 failures**.
+* **Test Suite**: Output dari `php artisan test` menunjukkan **213 passed** dengan **0 failures**.
 * **Frontend Compilation**: Hasil build dari `npm run build` sukses memproduksi manifest aset di folder `public/build/`.
 * **Keterlihatan Halaman**: Tidak ada halaman blank (putih polos), error 500, atau kendala pemuatan aset CSS/JS di browser.
 
