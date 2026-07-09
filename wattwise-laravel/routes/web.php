@@ -6,6 +6,7 @@ use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\RevenueEntryController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -29,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('appliances/{appliance}', [ApplianceController::class, 'destroy'])->name('appliances.destroy');
 
     Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 require __DIR__.'/settings.php';
