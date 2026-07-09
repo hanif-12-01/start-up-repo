@@ -90,6 +90,8 @@ const props = defineProps<{
         label: string;
     } | null;
     isLocked?: boolean;
+    businesses?: Business[];
+    activeBusinessId?: number | null;
 }>();
 
 defineOptions({
@@ -146,9 +148,14 @@ const formatKwh = (value: number | string | null | undefined) => {
     return `${Number(value).toFixed(2)} kWh`;
 };
 
+const switchBusiness = (event: Event) => {
+    const target = event.target as HTMLSelectElement;
+    router.get('/reports', { business_id: target.value, month: props.report.selected_month });
+};
+
 const onMonthChange = (event: Event) => {
     const target = event.target as HTMLSelectElement;
-    router.get('/reports', { month: target.value });
+    router.get('/reports', { month: target.value, business_id: props.activeBusinessId });
 };
 
 const completenessLabel = computed(() => {
@@ -181,14 +188,31 @@ const completenessClass = computed(() => {
     <Head title="Laporan Bulanan" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
-        <!-- Title Header -->
-        <div class="flex flex-col gap-2 border-b border-border pb-4">
-            <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <FileText class="h-8 w-8 text-primary" /> Laporan Bulanan
-            </h1>
-            <p class="text-muted-foreground text-sm">
-                Ringkasan listrik, pendapatan, peralatan, dan rekomendasi berdasarkan data yang Anda input.
-            </p>
+        <!-- Title Header with Business Switcher -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+            <div class="flex flex-col gap-2">
+                <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <FileText class="h-8 w-8 text-primary" /> Laporan Bulanan
+                </h1>
+                <p class="text-muted-foreground text-sm">
+                    Ringkasan listrik, pendapatan, peralatan, dan rekomendasi berdasarkan data yang Anda input.
+                </p>
+            </div>
+
+            <!-- Business Switcher -->
+            <div v-if="businesses && businesses.length > 0" class="flex flex-col gap-1.5 min-w-[200px]">
+                <label for="business-select" class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pilih Properti / Usaha</label>
+                <select
+                    id="business-select"
+                    :value="activeBusinessId"
+                    @change="switchBusiness"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                    <option v-for="b in businesses" :key="b.id" :value="b.id">
+                        {{ b.name }}
+                    </option>
+                </select>
+            </div>
         </div>
 
         <!-- 1. Empty State (No Business) -->

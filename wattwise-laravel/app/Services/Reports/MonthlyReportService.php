@@ -142,7 +142,17 @@ class MonthlyReportService
         usort($candidates, function ($a, $b) {
             $kwhA = $a['estimated_monthly_kwh'] ?? 0.0;
             $kwhB = $b['estimated_monthly_kwh'] ?? 0.0;
-            return $kwhB <=> $kwhA;
+            $diff = $kwhB <=> $kwhA;
+            if ($diff !== 0) {
+                return $diff;
+            }
+            $nameA = $a['name'] ?? '';
+            $nameB = $b['name'] ?? '';
+            $nameDiff = strcmp($nameA, $nameB);
+            if ($nameDiff !== 0) {
+                return $nameDiff;
+            }
+            return $a['id'] <=> $b['id'];
         });
 
         $topCandidates = array_slice($candidates, 0, 3);

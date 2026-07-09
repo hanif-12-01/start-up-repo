@@ -20,9 +20,18 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        
-        // Resolve authenticated user's active/first business
-        $business = $user ? $user->businesses()->first() : null;
+        $businesses = $user ? $user->businesses()->get() : collect();
+        $business = null;
+
+        if ($businesses->isNotEmpty()) {
+            $businessId = $request->query('business_id');
+            if ($businessId) {
+                $business = $businesses->firstWhere('id', $businessId);
+            }
+            if (!$business) {
+                $business = $businesses->first();
+            }
+        }
 
         // Read optional query parameter: month=YYYY-MM
         $month = $request->query('month');
@@ -66,6 +75,8 @@ class ReportController extends Controller
             'report' => $report,
             'effectivePlan' => $effectivePlan,
             'isLocked' => $isLocked,
+            'businesses' => $businesses,
+            'activeBusinessId' => $business ? $business->id : null,
         ]);
     }
 }

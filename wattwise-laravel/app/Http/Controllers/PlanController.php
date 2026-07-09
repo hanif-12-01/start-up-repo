@@ -59,12 +59,19 @@ class PlanController extends Controller
     {
         $user = $request->user();
 
-        // Check if user already had a trial
+        // Check if user already had a trial or has active subscription
         $subscription = $user->subscription;
 
-        if ($subscription && $subscription->trial_ends_at !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.']);
-            return redirect()->back()->with('error', 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.');
+        if ($subscription) {
+            if ($subscription->trial_ends_at !== null) {
+                Inertia::flash('toast', ['type' => 'error', 'message' => 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.']);
+                return redirect()->back()->with('error', 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.');
+            }
+
+            if (!in_array(strtoupper($subscription->plan), ['FREE', 'PRO_TRIAL']) && strtoupper($subscription->status) === 'ACTIVE') {
+                Inertia::flash('toast', ['type' => 'error', 'message' => 'Anda sudah memiliki langganan berbayar yang aktif.']);
+                return redirect()->back()->with('error', 'Anda sudah memiliki langganan berbayar yang aktif.');
+            }
         }
 
         // Initialize or update subscription with 30-day Pro Trial
