@@ -37,6 +37,13 @@ class WattWiseDemoSeeder extends Seeder
             ]
         );
 
+        // Ensure the demo account is fully login-ready: mark the email as
+        // verified so login still works if email verification is enforced
+        // later. email_verified_at is not mass-assignable, so set it directly.
+        if (is_null($user->email_verified_at)) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+
         // 2. Create or Update Business
         $business = Business::updateOrCreate(
             [
