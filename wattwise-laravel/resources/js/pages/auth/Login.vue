@@ -15,8 +15,9 @@ import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Masuk ke WattWise AI',
+        description:
+            'SaaS electricity cost intelligence untuk pemilik kos, pengelola properti kecil, dan UMKM padat energi',
     },
 });
 
@@ -27,13 +28,24 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Masuk ke WattWise AI" />
 
     <div
         v-if="status"
         class="mb-4 text-center text-sm font-medium text-green-600"
     >
         {{ status }}
+    </div>
+
+    <div
+        class="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900 dark:bg-green-950/40"
+    >
+        <p class="font-medium text-green-800 dark:text-green-300">
+            Demo lokal: demo@wattwise.local / password
+        </p>
+        <p class="mt-1 text-xs text-green-700/80 dark:text-green-400/80">
+            Akun demo hanya untuk pengujian lokal, bukan kredensial produksi.
+        </p>
     </div>
 
     <PasskeyVerify />
@@ -46,7 +58,7 @@ defineProps<{
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Email</Label>
                 <Input
                     id="email"
                     type="email"
@@ -62,14 +74,14 @@ defineProps<{
 
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
+                    <Label for="password">Kata sandi</Label>
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot your password?
+                        Lupa kata sandi?
                     </TextLink>
                 </div>
                 <PasswordInput
@@ -86,7 +98,7 @@ defineProps<{
             <div class="flex items-center justify-between">
                 <Label for="remember" class="flex items-center space-x-3">
                     <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
+                    <span>Ingat saya</span>
                 </Label>
             </div>
 
@@ -98,13 +110,13 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                Masuk
             </Button>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+            Belum punya akun?
+            <TextLink :href="register()" :tabindex="5">Daftar</TextLink>
         </div>
     </Form>
 </template>

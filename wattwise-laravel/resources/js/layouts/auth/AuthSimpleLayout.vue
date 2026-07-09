@@ -21,14 +21,19 @@ defineProps<{
                         class="flex flex-col items-center gap-2 font-medium"
                     >
                         <div
-                            class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
+                            class="mb-1 flex h-11 w-11 items-center justify-center rounded-xl bg-green-600 text-white shadow-sm"
                         >
-                            <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
-                            />
+                            <AppLogoIcon class="size-6 fill-current text-white" />
                         </div>
-                        <span class="sr-only">{{ title }}</span>
+                        <span class="text-lg font-semibold tracking-tight"
+                            >WattWise AI</span
+                        >
                     </Link>
+                    <p
+                        class="text-center text-sm font-medium text-green-700 dark:text-green-400"
+                    >
+                        Listrik Lebih Cerdas, Cash Flow Lebih Terkendali.
+                    </p>
                     <div class="space-y-2 text-center">
                         <h1 class="text-xl font-medium">{{ title }}</h1>
                         <p class="text-center text-sm text-muted-foreground">

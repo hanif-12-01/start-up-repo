@@ -16,14 +16,14 @@ defineProps<{
 
 defineOptions({
     layout: {
-        title: 'Create an account',
-        description: 'Enter your details below to create your account',
+        title: 'Daftar WattWise AI',
+        description: 'Mulai pantau biaya listrik usaha Anda',
     },
 });
 </script>
 
 <template>
-    <Head title="Register" />
+    <Head title="Daftar WattWise AI" />
 
     <Form
         v-bind="store.form()"
@@ -33,7 +33,7 @@ defineOptions({
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">Nama</Label>
                 <Input
                     id="name"
                     type="text"
@@ -42,13 +42,13 @@ defineOptions({
                     :tabindex="1"
                     autocomplete="name"
                     name="name"
-                    placeholder="Full name"
+                    placeholder="Nama lengkap"
                 />
                 <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Email</Label>
                 <Input
                     id="email"
                     type="email"
@@ -62,28 +62,28 @@ defineOptions({
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Password</Label>
+                <Label for="password">Kata sandi</Label>
                 <PasswordInput
                     id="password"
                     required
                     :tabindex="3"
                     autocomplete="new-password"
                     name="password"
-                    placeholder="Password"
+                    placeholder="Kata sandi"
                     :passwordrules="passwordRules"
                 />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">Konfirmasi kata sandi</Label>
                 <PasswordInput
                     id="password_confirmation"
                     required
                     :tabindex="4"
                     autocomplete="new-password"
                     name="password_confirmation"
-                    placeholder="Confirm password"
+                    placeholder="Konfirmasi kata sandi"
                     :passwordrules="passwordRules"
                 />
                 <InputError :message="errors.password_confirmation" />
@@ -97,17 +97,17 @@ defineOptions({
                 data-test="register-user-button"
             >
                 <Spinner v-if="processing" />
-                Create account
+                Buat akun
             </Button>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
-            Already have an account?
+            Sudah punya akun?
             <TextLink
                 :href="login()"
                 class="underline underline-offset-4"
                 :tabindex="6"
-                >Log in</TextLink
+                >Masuk</TextLink
             >
         </div>
     </Form>

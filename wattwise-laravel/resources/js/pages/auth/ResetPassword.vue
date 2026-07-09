@@ -11,8 +11,8 @@ import { update } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Reset password',
-        description: 'Please enter your new password below',
+        title: 'Atur Ulang Kata Sandi',
+        description: 'Masukkan kata sandi baru untuk akun WattWise AI Anda',
     },
 });
 
@@ -26,7 +26,7 @@ const inputEmail = ref(props.email);
 </script>
 
 <template>
-    <Head title="Reset password" />
+    <Head title="Atur Ulang Kata Sandi" />
 
     <Form
         v-bind="update.form()"
@@ -50,7 +50,7 @@ const inputEmail = ref(props.email);
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Password</Label>
+                <Label for="password">Kata sandi</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -64,7 +64,7 @@ const inputEmail = ref(props.email);
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation"> Confirm password </Label>
+                <Label for="password_confirmation"> Konfirmasi kata sandi </Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
@@ -83,7 +83,7 @@ const inputEmail = ref(props.email);
                 data-test="reset-password-button"
             >
                 <Spinner v-if="processing" />
-                Reset password
+                Atur ulang kata sandi
             </Button>
         </div>
     </Form>
