@@ -120,7 +120,11 @@ class DashboardController extends Controller
                         return $appliance;
                     })
                     ->filter(fn($a) => $a->estimated_monthly_kwh > 0)
-                    ->sortByDesc('estimated_monthly_kwh')
+                    ->sortBy([
+                        ['estimated_monthly_kwh', 'desc'],
+                        ['name', 'asc'],
+                        ['id', 'asc'],
+                    ])
                     ->take(3)
                     ->values()
                     ->toArray();

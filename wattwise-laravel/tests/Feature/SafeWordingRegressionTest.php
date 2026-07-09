@@ -17,6 +17,7 @@ class SafeWordingRegressionTest extends TestCase
             'sensor membaca',
             'terdeteksi real-time',
             'AI memastikan',
+            'prediksi tagihan',
         ];
 
         $filesToScan = [
@@ -124,5 +125,17 @@ class SafeWordingRegressionTest extends TestCase
         $content = file_get_contents($plansPagePath);
 
         $this->assertStringContainsString('pilot dan validasi pasar', $content);
+    }
+
+    /**
+     * Test that Recommendations Index.vue imports the Activity icon to avoid crash.
+     */
+    public function test_recommendations_page_imports_activity_icon(): void
+    {
+        $path = resource_path('js/pages/Recommendations/Index.vue');
+        $this->assertFileExists($path);
+
+        $content = file_get_contents($path);
+        $this->assertStringContainsString('Activity', $content);
     }
 }

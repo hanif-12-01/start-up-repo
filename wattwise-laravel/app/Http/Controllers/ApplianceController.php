@@ -152,17 +152,24 @@ class ApplianceController extends Controller
     public function applyTemplate(Request $request): RedirectResponse
     {
         $user = $request->user();
+
+        $request->validate([
+            'business_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('businesses', 'id')->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                }),
+            ],
+        ]);
+
+        $activeBusinessId = $request->input('business_id');
         $businesses = $user->businesses()->get();
 
         if ($businesses->isEmpty()) {
             return redirect()->back()->withErrors(['business' => 'Belum ada usaha terdaftar.']);
         }
 
-        $activeBusinessId = $request->input('business_id');
-        $activeBusiness = null;
-        if ($activeBusinessId) {
-            $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
-        }
+        $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
         if (!$activeBusiness) {
             $activeBusiness = $businesses->first();
         }

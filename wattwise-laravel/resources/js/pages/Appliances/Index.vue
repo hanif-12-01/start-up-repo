@@ -199,7 +199,11 @@ const executeDelete = () => {
 const topCandidates = computed(() => {
     return [...props.appliances]
         .filter(a => a.estimated_monthly_kwh !== null && a.estimated_monthly_kwh > 0)
-        .sort((a, b) => (b.estimated_monthly_kwh ?? 0) - (a.estimated_monthly_kwh ?? 0))
+        .sort((a, b) => {
+            const diff = (b.estimated_monthly_kwh ?? 0) - (a.estimated_monthly_kwh ?? 0);
+            if (diff !== 0) return diff;
+            return a.name.localeCompare(b.name);
+        })
         .slice(0, 5);
 });
 

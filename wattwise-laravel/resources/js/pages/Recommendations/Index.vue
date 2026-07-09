@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Sparkles, Lightbulb, Building2, Zap, Coins, ArrowRight, AlertTriangle, HelpCircle, Info, ChevronRight } from '@lucide/vue';
+import { Sparkles, Lightbulb, Building2, Zap, Coins, ArrowRight, AlertTriangle, HelpCircle, Info, ChevronRight, Activity } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Business {
