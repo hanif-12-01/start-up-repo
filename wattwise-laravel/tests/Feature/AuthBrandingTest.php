@@ -38,7 +38,7 @@ class AuthBrandingTest extends TestCase
             'Listrik Lebih Cerdas, Cash Flow Lebih Terkendali.',
             'SaaS electricity cost intelligence untuk pemilik kos, pengelola properti kecil, dan UMKM padat energi',
             'Demo lokal: demo@wattwise.local / password',
-            'Akun demo hanya untuk pengujian lokal, bukan kredensial produksi.',
+            'Akun demo hanya untuk pengujian lokal atau staging terkontrol, bukan kredensial produksi.',
         ];
 
         foreach ($required as $needle) {
@@ -190,5 +190,36 @@ class AuthBrandingTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Welcome'));
+    }
+
+    public function test_login_inertia_prop_show_demo_credentials_is_false_when_demo_flag_is_false(): void
+    {
+        config(['demo.enabled' => false]);
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('auth/Login')
+                ->where('showDemoCredentials', false)
+            );
+    }
+
+    public function test_login_inertia_prop_show_demo_credentials_is_true_when_demo_flag_is_true(): void
+    {
+        config(['demo.enabled' => true]);
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('auth/Login')
+                ->where('showDemoCredentials', true)
+            );
+    }
+
+    public function test_login_vue_conditionally_renders_banner_using_show_demo_credentials(): void
+    {
+        $login = $this->source('js/pages/auth/Login.vue');
+
+        $this->assertStringContainsString('v-if="showDemoCredentials"', $login);
     }
 }

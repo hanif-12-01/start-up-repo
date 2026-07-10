@@ -34,12 +34,37 @@ class DiagnoseDemoLoginCommandTest extends TestCase
         $this->assertTrue(Hash::check('password', $user->password));
     }
 
-    public function test_command_refuses_to_run_outside_local_or_testing(): void
+    public function test_command_refuses_to_run_outside_local_or_testing_when_demo_flag_is_false(): void
     {
         $this->app->detectEnvironment(fn () => 'production');
+        config(['demo.enabled' => false]);
 
         $this->artisan('wattwise:diagnose-demo-login')
             ->expectsOutputToContain('Refusing to run')
             ->assertExitCode(1);
+    }
+
+    public function test_command_is_allowed_outside_local_or_testing_when_demo_flag_is_true(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+        config(['demo.enabled' => true]);
+
+        $this->artisan('wattwise:diagnose-demo-login')
+            ->expectsOutputToContain('does NOT exist')
+            ->assertExitCode(0);
+    }
+
+    public function test_command_fix_allowed_outside_local_or_testing_when_demo_flag_is_true(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+        config(['demo.enabled' => true]);
+
+        $this->artisan('wattwise:diagnose-demo-login', ['--fix' => true])
+            ->assertExitCode(0);
+
+        $user = User::where('email', self::DEMO_EMAIL)->first();
+        $this->assertNotNull($user);
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertTrue(Hash::check('password', $user->password));
     }
 }

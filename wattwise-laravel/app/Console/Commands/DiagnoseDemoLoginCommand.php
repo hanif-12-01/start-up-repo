@@ -36,10 +36,20 @@ class DiagnoseDemoLoginCommand extends Command
 
     public function handle(): int
     {
-        if (! app()->environment('local', 'testing')) {
-            $this->error('Refusing to run outside the local/testing environment.');
+        $demoAllowed = app()->environment('local', 'testing')
+            || config('demo.enabled');
+
+        if (! $demoAllowed) {
+            $this->error(
+                'Refusing to run because demo login is disabled. '
+                .'Set DEMO_LOGIN_ENABLED=true only on an isolated staging environment.'
+            );
 
             return self::FAILURE;
+        }
+
+        if (! app()->environment('local', 'testing')) {
+            $this->warn('WARNING: Demo login is enabled outside local/testing. Do not enable DEMO_LOGIN_ENABLED on a real customer production database containing actual client data.');
         }
 
         if ($this->option('fix')) {

@@ -93,8 +93,8 @@ Provide the following environment variable keys in the Railway console. **Do not
 | `SESSION_DRIVER` | `database` (or `file`) |
 | `CACHE_STORE` | `database` (or `file`) |
 | `QUEUE_CONNECTION`| `sync` |
-| `MAIL_MAILER` | `log` |
 | `VITE_APP_NAME` | `WattWise AI` |
+| `DEMO_LOGIN_ENABLED`| `true` (Set to true only in staging to show demo login credentials and allow diagnostics) |
 
 > [!IMPORTANT]
 > * `APP_URL` must exactly match the Railway public domain name.
@@ -127,21 +127,32 @@ php artisan migrate --force && php artisan config:cache && php artisan route:cac
 ## 8. Migration and Demo Seed Strategy
 To prepare the database with demonstrative staging data:
 
-1. **Run Migrations:**
+1. **Enable Demo in Environment:**
+   Set `DEMO_LOGIN_ENABLED=true` in the Railway variables.
+2. **Clear Config Cache:**
+   ```bash
+   php artisan optimize:clear
+   ```
+3. **Run Migrations:**
    ```bash
    php artisan migrate --force
    ```
-2. **Seed Demo Data:**
+4. **Seed Demo Data:**
    Run the specific seeder to populate the Kos Melati Purwokerto profile (6-month history, 10 sample appliances, active trial state):
    ```bash
    php artisan db:seed --class=WattWiseDemoSeeder
    ```
-3. **Diagnose Demo Login:**
+5. **Diagnose Demo Login:**
    Run the utility script to ensure that the seeded demo account is properly functioning:
    ```bash
    php artisan wattwise:diagnose-demo-login
    ```
-4. **Staging Demo Account Credentials:**
+6. **Repair via Diagnostic Command:**
+   If the demo user is missing or has stale credentials, run the fix option:
+   ```bash
+   php artisan wattwise:diagnose-demo-login --fix
+   ```
+7. **Staging Demo Account Credentials:**
    * **Email:** `demo@wattwise.local`
    * **Password:** `password`
 

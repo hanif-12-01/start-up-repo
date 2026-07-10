@@ -24,6 +24,7 @@ defineOptions({
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    showDemoCredentials: boolean;
 }>();
 </script>
 
@@ -38,13 +39,14 @@ defineProps<{
     </div>
 
     <div
+        v-if="showDemoCredentials"
         class="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900 dark:bg-green-950/40"
     >
         <p class="font-medium text-green-800 dark:text-green-300">
             Demo lokal: demo@wattwise.local / password
         </p>
         <p class="mt-1 text-xs text-green-700/80 dark:text-green-400/80">
-            Akun demo hanya untuk pengujian lokal, bukan kredensial produksi.
+            Akun demo hanya untuk pengujian lokal atau staging terkontrol, bukan kredensial produksi.
         </p>
     </div>
 
