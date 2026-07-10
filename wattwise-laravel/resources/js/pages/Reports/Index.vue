@@ -618,7 +618,7 @@ const completenessClass = computed(() => {
                                     <!-- Foreground circle -->
                                     <circle 
                                         cx="50" cy="50" r="40" 
-                                        class="fill-none transition-all duration-500 ease-out" 
+                                        class="fill-none transition-all duration-500 ease-out gauge-path"
                                         :class="{
                                             'stroke-emerald-500': report.efficiency_score.status === 'GOOD',
                                             'stroke-amber-500': report.efficiency_score.status === 'WATCH',

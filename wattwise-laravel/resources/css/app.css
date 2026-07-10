@@ -170,3 +170,30 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Smooth SVG gauge transition styles */
+.gauge-path {
+    transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                stroke 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gauge-path {
+        transition: none !important;
+    }
+}
+
+/* Subtle horizontal scroll cues for overflow tables */
+.overflow-x-auto {
+    background:
+        /* Shadow covers (matches the page background) */
+        linear-gradient(to right, var(--background) 30%, transparent),
+        linear-gradient(to left, var(--background) 30%, transparent) 100% 0,
+        /* Edge shadows (visible when scrolled) */
+        radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.08), transparent),
+        radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.08), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 30px 100%, 30px 100%, 8px 100%, 8px 100%;
+    background-attachment: local, local, scroll, scroll;
+}

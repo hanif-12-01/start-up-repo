@@ -359,7 +359,7 @@ const activeMonthName = computed(() => {
                                     <svg class="absolute w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-muted/10 dark:text-muted/20" stroke="currentColor" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                         <path
-                                            class="text-emerald-500 transition-all duration-500"
+                                            class="text-emerald-500 transition-all duration-500 gauge-path"
                                             :class="{
                                                 'text-emerald-500': efficiencyScore.status === 'GOOD',
                                                 'text-yellow-500': efficiencyScore.status === 'WATCH',
