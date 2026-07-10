@@ -364,4 +364,13 @@ class WattWiseDemoSeederTest extends TestCase
             ->where('name', self::DEMO_BUSINESS_NAME)
             ->firstOrFail();
     }
+
+    public function test_database_seeder_does_not_automatically_seed_demo_data_in_production_or_staging(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        $this->artisan('db:seed', ['--force' => true]);
+
+        $this->assertDatabaseMissing('users', ['email' => self::DEMO_EMAIL]);
+    }
 }
