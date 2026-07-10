@@ -55,7 +55,7 @@ class PlanGatingRegressionTest extends TestCase
         $plan = $this->featureGateService->getEffectivePlan($user);
 
         $this->assertEquals('PRO_TRIAL', $plan['id']);
-        $this->assertEquals('Pro Trial 30 Hari', $plan['label']);
+        $this->assertEquals('Pro Trial', $plan['label']);
         $this->assertTrue($plan['is_trial']);
         $this->assertFalse($plan['is_expired']);
     }

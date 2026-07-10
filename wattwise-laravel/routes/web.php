@@ -8,6 +8,8 @@ use App\Http\Controllers\RevenueEntryController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\AnomalyController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -31,6 +33,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('appliances/{appliance}', [ApplianceController::class, 'destroy'])->name('appliances.destroy');
 
     Route::get('recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
+
+    Route::get('predictions', [PredictionController::class, 'index'])->name('predictions.index');
+    Route::post('predictions/generate', [PredictionController::class, 'generate'])->name('predictions.generate');
+
+    Route::get('anomalies', [AnomalyController::class, 'index'])->name('anomalies.index');
+
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
     Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');

@@ -47,9 +47,7 @@ defineOptions({
     },
 });
 
-const currentBusiness = computed(() => {
-    return props.businesses.find(b => b.id === props.activeBusinessId) || null;
-});
+
 
 const form = useForm({
     business_id: props.activeBusinessId || '',
@@ -77,7 +75,10 @@ const switchBusiness = (event: Event) => {
 };
 
 const formatIDR = (value: string | number | null) => {
-    if (value === null || value === undefined || value === '') return 'Rp -';
+    if (value === null || value === undefined || value === '') {
+return 'Rp -';
+}
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -86,8 +87,12 @@ const formatIDR = (value: string | number | null) => {
 };
 
 const formatMonth = (dateStr: string) => {
-    if (!dateStr) return '';
+    if (!dateStr) {
+return '';
+}
+
     const date = new Date(dateStr);
+
     return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
 };
 
@@ -118,11 +123,14 @@ const submit = () => {
     });
 };
 
-const isLimitReached = computed(() => props.revenueLimit !== null && props.entries.length >= props.revenueLimit);
+const isLimitReached = computed(() => props.revenueLimit != null && props.entries.length >= props.revenueLimit);
 
 // Computed summary fields derived from entries
 const sortedEntries = computed(() => {
-    if (!props.entries) return [];
+    if (!props.entries) {
+return [];
+}
+
     return [...props.entries].sort((a, b) => b.period_month.localeCompare(a.period_month));
 });
 

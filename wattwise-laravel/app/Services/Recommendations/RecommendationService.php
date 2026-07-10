@@ -114,7 +114,7 @@ class RecommendationService
                     'title' => 'Rasio listrik terhadap pendapatan perlu dipantau',
                     'description' => "Biaya listrik bulan ini sekitar {$ratioText} dari pendapatan. Ini belum memperhitungkan biaya operasional lain.",
                     'action' => 'Cek alat dengan kontribusi estimasi terbesar dan jam pakai paling lama.',
-                    'reason' => "Pengeluaran biaya listrik sebesar {$ratioText} dari total pemasukan berisiko menekan profit margin bersih usaha Anda.",
+                    'reason' => "Pengeluaran biaya listrik sebesar {$ratioText} dari total pemasukan berisiko menekan sisa pendapatan setelah listrik usaha Anda.",
                     'estimated_saving_idr' => null,
                     'badges' => ['Berdasarkan data input'],
                 ];
@@ -131,7 +131,7 @@ class RecommendationService
                 'title' => 'Tambahkan daftar peralatan',
                 'description' => 'Daftar peralatan membantu memperkirakan kandidat alat yang perlu dicek.',
                 'action' => 'Gunakan template peralatan atau tambah manual.',
-                'reason' => 'Sistem tidak dapat mengidentifikasi kandidat alat penyedot energi utama jika daftar alat kosong.',
+                'reason' => 'Sistem tidak dapat mengidentifikasi kandidat alat dengan estimasi konsumsi terbesar jika daftar alat kosong.',
                 'estimated_saving_idr' => null,
                 'badges' => ['Perlu Verifikasi Manual'],
             ];
@@ -251,7 +251,7 @@ class RecommendationService
                 'type' => 'DATA_COMPLETENESS_REMINDER',
                 'priority' => 'LOW',
                 'title' => 'Lengkapi profil dan data berkala',
-                'description' => 'WattWise membutuhkan data tagihan listrik, pendapatan, dan peralatan secara lengkap untuk memberikan rekomendasi dengan akurasi maksimal.',
+                'description' => 'WattWise membutuhkan data tagihan listrik, pendapatan, dan peralatan secara lengkap untuk memberikan rekomendasi dengan hasil yang lebih relevan berdasarkan kelengkapan data.',
                 'action' => 'Lengkapi seluruh data input pada menu yang tersedia.',
                 'reason' => 'Rekomendasi yang lebih spesifik membutuhkan kelengkapan data operasional berkala Anda.',
                 'estimated_saving_idr' => null,

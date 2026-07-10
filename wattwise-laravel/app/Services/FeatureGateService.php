@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\ElectricityEntry;
 use App\Models\RevenueEntry;
 use App\Models\Appliance;
+use Illuminate\Support\Carbon;
 
 class FeatureGateService
 {
@@ -23,6 +24,12 @@ class FeatureGateService
                 'reports.full' => false,
                 'export.pdf' => false,
                 'ads.hidden' => false,
+                // Sprint 1 prediction & anomaly entitlement contract
+                'prediction.summary' => true,
+                'prediction.detailed' => false,
+                'anomaly.summary' => true,
+                'anomaly.detailed' => false,
+                'anomaly.history' => false,
             ],
             'limits' => [
                 'electricity.entries' => 3,
@@ -33,7 +40,7 @@ class FeatureGateService
             ]
         ],
         'PRO_TRIAL' => [
-            'label' => 'Pro Trial 30 Hari',
+            'label' => 'Pro Trial',
             'features' => [
                 'dashboard.view' => true,
                 'onboarding.use' => true,
@@ -43,12 +50,18 @@ class FeatureGateService
                 'reports.full' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
+                // Sprint 1 prediction & anomaly entitlement contract
+                'prediction.summary' => true,
+                'prediction.detailed' => true,
+                'anomaly.summary' => true,
+                'anomaly.detailed' => true,
+                'anomaly.history' => true,
             ],
             'limits' => [
                 'electricity.entries' => null,
                 'revenue.entries' => null,
                 'appliances.manage' => null,
-                'businesses.multiple' => 1,
+                'businesses.multiple' => 3,
                 'team.members' => 0,
             ]
         ],
@@ -63,12 +76,18 @@ class FeatureGateService
                 'reports.full' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
+                // Sprint 1 prediction & anomaly entitlement contract
+                'prediction.summary' => true,
+                'prediction.detailed' => true,
+                'anomaly.summary' => true,
+                'anomaly.detailed' => true,
+                'anomaly.history' => true,
             ],
             'limits' => [
                 'electricity.entries' => null,
                 'revenue.entries' => null,
                 'appliances.manage' => null,
-                'businesses.multiple' => 1,
+                'businesses.multiple' => 3,
                 'team.members' => 0,
             ]
         ],
@@ -83,12 +102,18 @@ class FeatureGateService
                 'reports.full' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
+                // Sprint 1 prediction & anomaly entitlement contract
+                'prediction.summary' => true,
+                'prediction.detailed' => true,
+                'anomaly.summary' => true,
+                'anomaly.detailed' => true,
+                'anomaly.history' => true,
             ],
             'limits' => [
                 'electricity.entries' => null,
                 'revenue.entries' => null,
                 'appliances.manage' => null,
-                'businesses.multiple' => 5,
+                'businesses.multiple' => 50,
                 'team.members' => 5,
             ]
         ],
@@ -103,6 +128,12 @@ class FeatureGateService
                 'reports.full' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
+                // Sprint 1 prediction & anomaly entitlement contract
+                'prediction.summary' => true,
+                'prediction.detailed' => true,
+                'anomaly.summary' => true,
+                'anomaly.detailed' => true,
+                'anomaly.history' => true,
             ],
             'limits' => [
                 'electricity.entries' => null,
@@ -130,9 +161,10 @@ class FeatureGateService
             return [
                 'id' => 'FREE',
                 'label' => self::PLANS['FREE']['label'],
-                'trial_ends_at' => null,
                 'is_trial' => false,
                 'is_expired' => false,
+                'trial_ends_at' => null,
+                'remaining_trial_days' => 0,
             ];
         }
 
@@ -151,18 +183,20 @@ class FeatureGateService
                 return [
                     'id' => 'FREE',
                     'label' => self::PLANS['FREE']['label'],
-                    'trial_ends_at' => $trialEnds,
                     'is_trial' => true,
                     'is_expired' => true,
+                    'trial_ends_at' => $trialEnds,
+                    'remaining_trial_days' => 0,
                 ];
             }
 
             return [
                 'id' => 'PRO_TRIAL',
                 'label' => self::PLANS['PRO_TRIAL']['label'],
-                'trial_ends_at' => $trialEnds,
                 'is_trial' => true,
                 'is_expired' => false,
+                'trial_ends_at' => $trialEnds,
+                'remaining_trial_days' => $this->calculateRemainingTrialDays($trialEnds),
             ];
         }
 
@@ -175,19 +209,45 @@ class FeatureGateService
             return [
                 'id' => 'FREE',
                 'label' => self::PLANS['FREE']['label'],
-                'trial_ends_at' => null,
                 'is_trial' => false,
                 'is_expired' => true,
+                'trial_ends_at' => null,
+                'remaining_trial_days' => 0,
             ];
         }
 
         return [
             'id' => $planId,
             'label' => self::PLANS[$planId]['label'],
-            'trial_ends_at' => null,
             'is_trial' => false,
             'is_expired' => false,
+            'trial_ends_at' => null,
+            'remaining_trial_days' => 0,
         ];
+    }
+
+    /**
+     * Calculate the whole number of days remaining until a trial ends (rounded up).
+     * Returns 0 when there is no active future trial end date.
+     *
+     * @param \Carbon\CarbonInterface|null $trialEndsAt
+     * @return int
+     */
+    private function calculateRemainingTrialDays(?\Carbon\CarbonInterface $trialEndsAt): int
+    {
+        if ($trialEndsAt === null) {
+            return 0;
+        }
+
+        $now = Carbon::now();
+
+        if (!$trialEndsAt->greaterThan($now)) {
+            return 0;
+        }
+
+        $secondsRemaining = $trialEndsAt->getTimestamp() - $now->getTimestamp();
+
+        return (int) ceil($secondsRemaining / 86400);
     }
 
     /**

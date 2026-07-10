@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\FeatureGateService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,24 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
+            // Standardized effective plan contract, resolved server-side for the
+            // authenticated user. Null for guests. This is the single source of
+            // truth for plan state across every page — never assume a demo plan.
+            'effectivePlan' => $user
+                ? app(FeatureGateService::class)->getEffectivePlan($user)
+                : null,
+            // Whether the authenticated user still needs onboarding (has no
+            // business yet). Drives conditional visibility of the Onboarding
+            // navigation item — hidden once onboarding is complete.
+            'needsOnboarding' => $user ? ! $user->businesses()->exists() : false,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

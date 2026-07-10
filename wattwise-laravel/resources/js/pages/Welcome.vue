@@ -9,7 +9,6 @@ import {
     CheckCircle2,
     Lightbulb,
     Users,
-    Building2,
     FileText,
 } from '@lucide/vue';
 import { dashboard, login, register } from '@/routes';

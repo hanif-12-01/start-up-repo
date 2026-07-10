@@ -5,19 +5,14 @@ import {
     X, 
     Zap, 
     Shield, 
-    Building2, 
-    Users, 
     Sparkles, 
-    ArrowRight, 
-    HelpCircle,
     Info,
-    Calendar,
     CreditCard
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 interface PlanDetail {
     id: string;
@@ -32,7 +27,7 @@ interface UsageMetric {
     limit: number | null;
 }
 
-const props = defineProps<{
+defineProps<{
     effectivePlan: PlanDetail;
     usage: {
         electricity_entries: UsageMetric;
@@ -69,8 +64,12 @@ const activateTrial = () => {
 };
 
 const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '';
+    if (!dateStr) {
+return '';
+}
+
     const date = new Date(dateStr);
+
     return date.toLocaleDateString('id-ID', {
         year: 'numeric',
         month: 'long',

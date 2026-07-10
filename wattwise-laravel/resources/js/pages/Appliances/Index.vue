@@ -24,6 +24,9 @@ interface ApplianceData {
     confidence: string;
     notes: string | null;
     estimated_monthly_kwh: number | null;
+    ranking_reason?: string;
+    estimated_monthly_cost?: number | null;
+    potential_saving?: number | null;
 }
 
 const props = defineProps<{
@@ -56,9 +59,6 @@ defineOptions({
     },
 });
 
-const currentBusiness = computed(() => {
-    return props.businesses.find(b => b.id === props.activeBusinessId) || null;
-});
 
 // Form mode: 'add' | 'edit'
 const formMode = ref<'add' | 'edit'>('add');
@@ -67,7 +67,7 @@ const showForm = ref(false);
 const deleteConfirmId = ref<number | null>(null);
 const showTemplateCard = ref(true);
 
-const isLimitReached = computed(() => props.applianceLimit !== null && props.appliances.length >= props.applianceLimit);
+const isLimitReached = computed(() => props.applianceLimit != null && props.appliances.length >= props.applianceLimit);
 
 const form = useForm({
     business_id: props.activeBusinessId || '',
@@ -109,7 +109,10 @@ const switchBusiness = (event: Event) => {
 };
 
 const formatIDR = (value: number | null) => {
-    if (value === null || value === undefined) return '-';
+    if (value === null || value === undefined) {
+return '-';
+}
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -118,12 +121,18 @@ const formatIDR = (value: number | null) => {
 };
 
 const formatKWh = (value: number | null) => {
-    if (value === null || value === undefined) return '-';
+    if (value === null || value === undefined) {
+return '-';
+}
+
     return Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kWh';
 };
 
 const estimateCost = (kwh: number | null): number | null => {
-    if (kwh === null || props.tariffPerKwh === null) return null;
+    if (kwh === null || props.tariffPerKwh === null) {
+return null;
+}
+
     return kwh * props.tariffPerKwh;
 };
 
@@ -201,7 +210,11 @@ const topCandidates = computed(() => {
         .filter(a => a.estimated_monthly_kwh !== null && a.estimated_monthly_kwh > 0)
         .sort((a, b) => {
             const diff = (b.estimated_monthly_kwh ?? 0) - (a.estimated_monthly_kwh ?? 0);
-            if (diff !== 0) return diff;
+
+            if (diff !== 0) {
+return diff;
+}
+
             return a.name.localeCompare(b.name);
         })
         .slice(0, 5);
@@ -212,7 +225,10 @@ const totalEstimatedKwh = computed(() => {
 });
 
 const totalEstimatedCost = computed(() => {
-    if (props.tariffPerKwh === null) return null;
+    if (props.tariffPerKwh === null) {
+return null;
+}
+
     return totalEstimatedKwh.value * props.tariffPerKwh;
 });
 </script>

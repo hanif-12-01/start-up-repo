@@ -18,6 +18,11 @@ class SafeWordingRegressionTest extends TestCase
             'terdeteksi real-time',
             'AI memastikan',
             'prediksi tagihan',
+            // Step 2 copy corrections — old phrasing must not reappear
+            'memengaruhi profitabilitas',
+            'profit margin bersih',
+            'alat penyedot energi utama',
+            'akurasi maksimal',
         ];
 
         $filesToScan = [
@@ -28,6 +33,8 @@ class SafeWordingRegressionTest extends TestCase
             resource_path('js/pages/Recommendations/Index.vue'),
             resource_path('js/pages/Reports/Index.vue'),
             resource_path('js/pages/Plans/Index.vue'),
+            resource_path('js/pages/Predictions/Index.vue'),
+            resource_path('js/components/PredictionChart.vue'),
             resource_path('js/pages/Onboarding.vue'),
             resource_path('js/components/AppSidebar.vue'),
             app_path('Services/Recommendations/RecommendationService.php'),
@@ -64,6 +71,8 @@ class SafeWordingRegressionTest extends TestCase
             resource_path('js/pages/Recommendations/Index.vue'),
             resource_path('js/pages/Reports/Index.vue'),
             resource_path('js/pages/Plans/Index.vue'),
+            resource_path('js/pages/Predictions/Index.vue'),
+            resource_path('js/components/PredictionChart.vue'),
             resource_path('js/pages/Onboarding.vue'),
             resource_path('js/components/AppSidebar.vue'),
             app_path('Services/Recommendations/RecommendationService.php'),
@@ -125,6 +134,40 @@ class SafeWordingRegressionTest extends TestCase
         $content = file_get_contents($plansPagePath);
 
         $this->assertStringContainsString('pilot dan validasi pasar', $content);
+    }
+
+    /**
+     * Test that the Step 2 safe-copy corrections are applied with the new phrasing.
+     */
+    public function test_step2_copy_corrections_are_applied(): void
+    {
+        $recommendationService = file_get_contents(app_path('Services/Recommendations/RecommendationService.php'));
+        $dashboard = file_get_contents(resource_path('js/pages/Dashboard.vue'));
+
+        $this->assertStringContainsString('sisa pendapatan setelah listrik', $recommendationService);
+        $this->assertStringContainsString('kandidat alat dengan estimasi konsumsi terbesar', $recommendationService);
+        $this->assertStringContainsString('hasil yang lebih relevan berdasarkan kelengkapan data', $recommendationService);
+        $this->assertStringContainsString('memengaruhi porsi pendapatan', $dashboard);
+    }
+
+    /**
+     * Test that the Predictions page uses safe wording and the required disclaimer.
+     */
+    public function test_predictions_page_uses_safe_wording_and_disclaimer(): void
+    {
+        $path = resource_path('js/pages/Predictions/Index.vue');
+        $this->assertFileExists($path);
+
+        $content = file_get_contents($path);
+
+        $this->assertStringContainsString('Prediksi pemakaian listrik', $content);
+        $this->assertStringContainsString('Estimasi tagihan listrik', $content);
+        $this->assertStringContainsString('Berdasarkan data input', $content);
+        $this->assertStringContainsString('Perlu Verifikasi Manual', $content);
+        $this->assertStringContainsString(
+            'Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.',
+            $content
+        );
     }
 
     /**

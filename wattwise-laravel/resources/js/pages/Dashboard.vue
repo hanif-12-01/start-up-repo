@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { LayoutGrid, Building2, Zap, Coins, FileBarChart2, ArrowRight, AlertTriangle, HelpCircle, Activity, Sparkles, Lightbulb, Info } from '@lucide/vue';
+import { Building2, Zap, Coins, ArrowRight, AlertTriangle, HelpCircle, Activity, Sparkles, Lightbulb, Info } from '@lucide/vue';
 import { computed } from 'vue';
+import CostRevenueChart from '@/components/charts/CostRevenueChart.vue';
+import ElectricityTrendChart from '@/components/charts/ElectricityTrendChart.vue';
+import PredictionChart from '@/components/charts/PredictionChart.vue';
+import PlanBadge from '@/components/PlanBadge.vue';
 
 interface Business {
     id: number;
@@ -41,6 +45,9 @@ const props = defineProps<{
         explanation: string;
     } | null;
     topRecommendations?: any[];
+
+    // Week 6/7 chart props
+    chartsData?: any;
 }>();
 
 defineOptions({
@@ -72,7 +79,10 @@ const formatBusinessType = (type?: string | null) => {
 };
 
 const formatIDR = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return 'Rp -';
+    if (value === null || value === undefined || value === '') {
+return 'Rp -';
+}
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -81,18 +91,28 @@ const formatIDR = (value: number | string | null | undefined) => {
 };
 
 const formatKWh = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return '- kWh';
+    if (value === null || value === undefined || value === '') {
+return '- kWh';
+}
+
     return Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kWh';
 };
 
 const formatPercent = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return '-';
+    if (value === null || value === undefined || value === '') {
+return '-';
+}
+
     return Number(value).toFixed(1) + '%';
 };
 
 const formatMonth = (dateStr?: string) => {
-    if (!dateStr) return '';
+    if (!dateStr) {
+return '';
+}
+
     const date = new Date(dateStr);
+
     return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 };
 
@@ -100,9 +120,11 @@ const activeMonthName = computed(() => {
     if (props.latestElectricityEntry?.period_month) {
         return formatMonth(props.latestElectricityEntry.period_month);
     }
+
     if (props.latestRevenueEntry?.period_month) {
         return formatMonth(props.latestRevenueEntry.period_month);
     }
+
     return '';
 });
 </script>
@@ -118,9 +140,7 @@ const activeMonthName = computed(() => {
                     <h1 class="text-3xl font-extrabold tracking-tight text-foreground">
                         Selamat Datang, {{ userName || 'Pengguna' }}!
                     </h1>
-                    <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                        Demo PRO_TRIAL
-                    </span>
+                    <PlanBadge />
                 </div>
                 <p class="text-muted-foreground text-sm sm:text-base max-w-2xl leading-relaxed">
                     Kelola pemakaian listrik, analisis biaya operasional, dan optimalkan cash flow usaha properti Anda secara cerdas.
@@ -302,6 +322,24 @@ const activeMonthName = computed(() => {
                     </div>
                 </div>
 
+                <!-- Charts Section -->
+                <div v-if="chartsData && chartsData.has_data" class="grid gap-6 md:grid-cols-2 mt-2">
+                    <!-- 1. Electricity Trend Chart -->
+                    <ElectricityTrendChart :data="chartsData.months" />
+
+                    <!-- 2. Cash Flow / Cost Revenue Chart -->
+                    <CostRevenueChart :data="chartsData.months" />
+
+                    <!-- 3. Realization & Target / Occupancy Chart -->
+                    <div class="md:col-span-2">
+                        <PredictionChart
+                            :data="chartsData.months"
+                            :isKosProperty="chartsData.is_kos_property"
+                            :nextMonthPrediction="chartsData.next_month_prediction"
+                        />
+                    </div>
+                </div>
+
                 <!-- Conditional warnings / empty states -->
                 <div v-if="dataCompleteness === 'EMPTY' || dataCompleteness === 'NO_ELECTRICITY'" class="rounded-2xl border border-yellow-250 bg-yellow-500/5 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 shadow-sm">
                     <div class="flex items-start gap-3.5">
@@ -324,7 +362,7 @@ const activeMonthName = computed(() => {
                         <Info class="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                         <div class="flex flex-col gap-0.5">
                             <p class="text-sm font-bold text-blue-900 dark:text-blue-300">Data pendapatan bulanan belum dicatat</p>
-                            <p class="text-xs text-blue-850/80 dark:text-blue-400/85">Catat pendapatan kotor Anda untuk menghitung seberapa besar pengeluaran listrik memengaruhi profitabilitas.</p>
+                            <p class="text-xs text-blue-850/80 dark:text-blue-400/85">Catat pendapatan kotor Anda untuk menghitung seberapa besar pengeluaran listrik memengaruhi porsi pendapatan.</p>
                         </div>
                     </div>
                     <Link

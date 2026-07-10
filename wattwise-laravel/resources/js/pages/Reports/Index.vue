@@ -11,8 +11,7 @@ import {
     Plug, 
     Sparkles, 
     Info, 
-    ChevronRight,
-    CheckCircle2
+    ChevronRight
 } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -122,20 +121,31 @@ const formatBusinessType = (type?: string | null) => {
 };
 
 const formatMonth = (monthStr: string) => {
-    if (!monthStr) return '';
+    if (!monthStr) {
+return '';
+}
+
     const parts = monthStr.split('-');
-    if (parts.length < 2) return monthStr;
+
+    if (parts.length < 2) {
+return monthStr;
+}
+
     const [year, month] = parts;
     const monthNames = [
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     const monthIdx = parseInt(month, 10) - 1;
+
     return `${monthNames[monthIdx]} ${year}`;
 };
 
 const formatIDR = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return 'Rp 0';
+    if (value === null || value === undefined || value === '') {
+return 'Rp 0';
+}
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -144,7 +154,10 @@ const formatIDR = (value: number | string | null | undefined) => {
 };
 
 const formatKwh = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return '- kWh';
+    if (value === null || value === undefined || value === '') {
+return '- kWh';
+}
+
     return `${Number(value).toFixed(2)} kWh`;
 };
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Sparkles, Lightbulb, Building2, Zap, Coins, ArrowRight, AlertTriangle, HelpCircle, Info, ChevronRight, Activity } from '@lucide/vue';
-import { computed } from 'vue';
+import { Sparkles, Lightbulb, Building2, Zap, ArrowRight, HelpCircle, Activity } from '@lucide/vue';
 
 interface Business {
     id: number;
@@ -11,7 +10,7 @@ interface Business {
     province: string | null;
 }
 
-const props = defineProps<{
+defineProps<{
     hasBusiness: boolean;
     businesses: Business[];
     activeBusinessId: number | null;
@@ -63,7 +62,10 @@ const formatBusinessType = (type?: string | null) => {
 };
 
 const formatIDR = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined || value === '') return 'Rp -';
+    if (value === null || value === undefined || value === '') {
+return 'Rp -';
+}
+
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -72,8 +74,12 @@ const formatIDR = (value: number | string | null | undefined) => {
 };
 
 const formatMonth = (dateStr?: string) => {
-    if (!dateStr) return '';
+    if (!dateStr) {
+return '';
+}
+
     const date = new Date(dateStr);
+
     return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 };
 </script>

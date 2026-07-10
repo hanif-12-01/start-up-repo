@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, ClipboardList, Building2, Settings, Zap, Coins, Plug, Sparkles, FileText, CreditCard } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { LayoutGrid, Building2, Zap, Coins, Plug, Sparkles, FileText, CreditCard, Settings, ClipboardList, TrendingUp, AlertTriangle } from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
-import NavMain from '@/components/NavMain.vue';
+import NavGroup from '@/components/NavGroup.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
@@ -17,70 +17,41 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Beranda',
-        href: '/dashboard',
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Catat Listrik',
-        href: '/electricity',
-        icon: Zap,
-    },
-    {
-        title: 'Catat Pendapatan',
-        href: '/revenue',
-        icon: Coins,
-    },
-    {
-        title: 'Peralatan',
-        href: '/appliances',
-        icon: Plug,
-    },
-    {
-        title: 'Rekomendasi',
-        href: '/recommendations',
-        icon: Sparkles,
-    },
-    {
-        title: 'Laporan',
-        href: '/reports',
-        icon: FileText,
-    },
-    {
-        title: 'Paket',
-        href: '/plans',
-        icon: CreditCard,
-    },
-    {
-        title: 'Onboarding',
-        href: '/onboarding',
-        icon: ClipboardList,
-    },
-    {
-        title: 'Usaha/Properti',
-        href: '/businesses',
-        icon: Building2,
-    },
-    {
-        title: 'Pengaturan',
-        href: '/settings',
-        icon: Settings,
-    },
+const page = usePage();
+const needsOnboarding = computed(() => page.props.needsOnboarding === true);
+
+const berandaItems: NavItem[] = [
+    { title: 'Beranda', href: '/dashboard', icon: LayoutGrid },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
+// Onboarding is only surfaced while the user still needs it (no business yet).
+const onboardingItems: NavItem[] = [
+    { title: 'Onboarding', href: '/onboarding', icon: ClipboardList },
+];
+
+const catatDataItems: NavItem[] = [
+    { title: 'Data Listrik', href: '/electricity', icon: Zap },
+    { title: 'Pendapatan & Listrik', href: '/revenue', icon: Coins },
+];
+
+const analisisItems: NavItem[] = [
+    { title: 'Prediksi & Estimasi', href: '/predictions', icon: TrendingUp },
+    { title: 'Deteksi Anomali', href: '/anomalies', icon: AlertTriangle },
+    { title: 'Rekomendasi Hemat', href: '/recommendations', icon: Sparkles },
+];
+
+const propertiItems: NavItem[] = [
+    { title: 'Usaha / Properti', href: '/businesses', icon: Building2 },
+    { title: 'Peralatan', href: '/appliances', icon: Plug },
+];
+
+const laporanItems: NavItem[] = [
+    { title: 'Laporan', href: '/reports', icon: FileText },
+];
+
+const akunItems: NavItem[] = [
+    { title: 'Paket & Langganan', href: '/plans', icon: CreditCard },
+    { title: 'Pengaturan', href: '/settings', icon: Settings },
 ];
 </script>
 
@@ -99,11 +70,16 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavGroup :items="berandaItems" />
+            <NavGroup v-if="needsOnboarding" :items="onboardingItems" />
+            <NavGroup label="Catat Data" :items="catatDataItems" />
+            <NavGroup label="Analisis" :items="analisisItems" />
+            <NavGroup label="Properti & Peralatan" :items="propertiItems" />
+            <NavGroup :items="laporanItems" />
+            <NavGroup label="Akun" :items="akunItems" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
