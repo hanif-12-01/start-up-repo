@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApplianceController;
+use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\OnboardingController;
@@ -18,7 +19,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('onboarding', [OnboardingController::class, 'index'])->name('onboarding');
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
-    Route::inertia('businesses', 'Businesses')->name('businesses');
+    Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
+    Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
+    Route::put('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
 
     Route::get('electricity', [ElectricityEntryController::class, 'index'])->name('electricity.index');
     Route::post('electricity', [ElectricityEntryController::class, 'store'])->name('electricity.store');

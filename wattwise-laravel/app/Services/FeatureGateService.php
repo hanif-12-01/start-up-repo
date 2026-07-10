@@ -310,7 +310,11 @@ class FeatureGateService
                 return Appliance::where('business_id', $business->id)->count();
 
             case 'businesses.multiple':
-                return $user->businesses()->count();
+                // Only ACTIVE businesses count toward the plan limit; archived
+                // businesses are preserved but never counted (locked decision).
+                return $user->businesses()
+                    ->where('status', Business::STATUS_ACTIVE)
+                    ->count();
 
             case 'team.members':
                 return 0; // Future capability

@@ -21,6 +21,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Business extends Model
 {
     /**
+     * Business lifecycle statuses. Businesses are never hard-deleted —
+     * they are archived instead (archive/restore lands in Step 11).
+     */
+    public const STATUS_ACTIVE = 'ACTIVE';
+    public const STATUS_ARCHIVED = 'ARCHIVED';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
