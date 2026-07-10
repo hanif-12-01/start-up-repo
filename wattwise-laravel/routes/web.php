@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
     Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
     Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
+    Route::post('businesses/select', \App\Http\Controllers\BusinessSelectionController::class)->name('businesses.select');
     Route::put('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
     Route::post('businesses/{business}/archive', [BusinessController::class, 'archive'])->name('businesses.archive');
     Route::post('businesses/{business}/restore', [BusinessController::class, 'restore'])->name('businesses.restore');

@@ -25,19 +25,9 @@ class AnomalyController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user->businesses()->active()->get();
-        $activeBusiness = null;
-
-        // Ownership Isolation: only resolve active business if it belongs to the authenticated user
-        if ($businesses->isNotEmpty()) {
-            $businessId = $request->query('business_id');
-            if ($businessId) {
-                $activeBusiness = $businesses->firstWhere('id', (int) $businessId);
-            }
-            if (!$activeBusiness) {
-                $activeBusiness = $businesses->first();
-            }
-        }
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $activeBusiness = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
 
         $analysis = null;
         $availableMonths = [];

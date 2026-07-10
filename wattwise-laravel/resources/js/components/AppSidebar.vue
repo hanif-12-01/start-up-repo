@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, Building2, Zap, Coins, Plug, Sparkles, FileText, CreditCard, Settings, ClipboardList, TrendingUp, AlertTriangle } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import BusinessSwitcher from '@/components/businesses/BusinessSwitcher.vue';
 import NavGroup from '@/components/NavGroup.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -67,6 +68,7 @@ const akunItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
+            <BusinessSwitcher />
         </SidebarHeader>
 
         <SidebarContent>

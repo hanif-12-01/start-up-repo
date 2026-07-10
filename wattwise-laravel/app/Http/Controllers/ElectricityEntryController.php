@@ -29,24 +29,15 @@ class ElectricityEntryController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user->businesses()->active()->get();
-        $activeBusiness = null;
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $activeBusiness = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
         $entries = [];
 
-        if ($businesses->isNotEmpty()) {
-            $activeBusinessId = $request->query('business_id');
-            if ($activeBusinessId) {
-                $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
-            }
-            if (!$activeBusiness) {
-                $activeBusiness = $businesses->first();
-            }
-
-            if ($activeBusiness) {
-                $entries = $activeBusiness->electricityEntries()
-                    ->orderBy('period_month', 'desc')
-                    ->get();
-            }
+        if ($activeBusiness) {
+            $entries = $activeBusiness->electricityEntries()
+                ->orderBy('period_month', 'desc')
+                ->get();
         }
 
         $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;

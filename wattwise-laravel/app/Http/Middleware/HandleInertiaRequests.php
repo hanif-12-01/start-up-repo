@@ -50,6 +50,21 @@ class HandleInertiaRequests extends Middleware
             'effectivePlan' => $user
                 ? app(FeatureGateService::class)->getEffectivePlan($user)
                 : null,
+            'businessContext' => fn () => $user ? [
+                'activeBusinesses' => app(\App\Services\ActiveBusinessResolver::class)->activeBusinesses($request)->map(fn ($b) => [
+                    'id' => $b->id,
+                    'name' => $b->name,
+                    'business_type' => $b->business_type,
+                ])->values()->toArray(),
+                'activeBusiness' => ($active = app(\App\Services\ActiveBusinessResolver::class)->resolve($request)) ? [
+                    'id' => $active->id,
+                    'name' => $active->name,
+                    'business_type' => $active->business_type,
+                ] : null,
+            ] : [
+                'activeBusinesses' => [],
+                'activeBusiness' => null,
+            ],
             // Whether the authenticated user still needs onboarding (has no
             // business yet). Drives conditional visibility of the Onboarding
             // navigation item — hidden once onboarding is complete.

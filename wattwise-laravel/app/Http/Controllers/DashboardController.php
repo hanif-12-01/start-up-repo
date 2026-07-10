@@ -44,8 +44,9 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user ? $user->businesses()->active()->get() : collect();
-        $activeBusiness = null;
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $activeBusiness = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
         $businessCount = $businesses->count();
         $hasBusiness = $businessCount > 0;
 
@@ -59,16 +60,7 @@ class DashboardController extends Controller
         $electricityRevenueRatioPercent = null;
         $remainingRevenueAfterElectricity = null;
 
-        if ($hasBusiness) {
-            $activeBusinessId = $request->query('business_id');
-            if ($activeBusinessId) {
-                $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
-            }
-            if (!$activeBusiness) {
-                $activeBusiness = $businesses->first();
-            }
-
-            if ($activeBusiness) {
+        if ($activeBusiness) {
                 // Get latest monthly entries
                 $latestElectricityEntry = $activeBusiness->electricityEntries()
                     ->orderBy('period_month', 'desc')
@@ -138,8 +130,6 @@ class DashboardController extends Controller
                     ->values()
                     ->toArray();
             }
-        }
-
         $efficiencyScore = null;
         $topRecommendations = [];
 

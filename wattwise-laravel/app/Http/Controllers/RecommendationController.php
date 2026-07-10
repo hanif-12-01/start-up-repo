@@ -25,8 +25,9 @@ class RecommendationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user ? $user->businesses()->active()->get() : collect();
-        $activeBusiness = null;
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $activeBusiness = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
         $businessCount = $businesses->count();
         $hasBusiness = $businessCount > 0;
 
@@ -38,49 +39,39 @@ class RecommendationController extends Controller
 
         $effectivePlan = null;
 
-        if ($hasBusiness) {
-            $activeBusinessId = $request->query('business_id');
-            if ($activeBusinessId) {
-                $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
-            }
-            if (!$activeBusiness) {
-                $activeBusiness = $businesses->first();
-            }
+        if ($activeBusiness) {
+            $effectivePlan = $this->featureGateService->getEffectivePlan($user, $activeBusiness);
+            $rawRecommendations = $this->recommendationService->getRecommendationsForBusiness($activeBusiness);
 
-            if ($activeBusiness) {
-                $effectivePlan = $this->featureGateService->getEffectivePlan($user, $activeBusiness);
-                $rawRecommendations = $this->recommendationService->getRecommendationsForBusiness($activeBusiness);
-                
-                // Map and apply gating to recommendations
-                $recommendations = collect($rawRecommendations)->map(function ($rec, $index) use ($effectivePlan) {
-                    if ($effectivePlan && $effectivePlan['id'] === 'FREE' && $index >= 3) {
-                        return [
-                            'priority' => $rec['priority'] ?? 'LOW',
-                            'title' => 'Rekomendasi Hemat Tambahan',
-                            'estimated_saving_idr' => null,
-                            'description' => 'Upgrade ke paket Pro untuk melihat analisis mendalam dan langkah penghematan terperinci.',
-                            'reason' => 'Tersedia setelah peningkatan akun.',
-                            'action' => 'Mulai Pro Trial 30 Hari',
-                            'badges' => ['Premium'],
-                            'is_locked' => true,
-                        ];
-                    }
-                    $rec['is_locked'] = false;
-                    return $rec;
-                })->toArray();
+            // Map and apply gating to recommendations
+            $recommendations = collect($rawRecommendations)->map(function ($rec, $index) use ($effectivePlan) {
+                if ($effectivePlan && $effectivePlan['id'] === 'FREE' && $index >= 3) {
+                    return [
+                        'priority' => $rec['priority'] ?? 'LOW',
+                        'title' => 'Rekomendasi Hemat Tambahan',
+                        'estimated_saving_idr' => null,
+                        'description' => 'Upgrade ke paket Pro untuk melihat analisis mendalam dan langkah penghematan terperinci.',
+                        'reason' => 'Tersedia setelah peningkatan akun.',
+                        'action' => 'Mulai Pro Trial 30 Hari',
+                        'badges' => ['Premium'],
+                        'is_locked' => true,
+                    ];
+                }
+                $rec['is_locked'] = false;
+                return $rec;
+            })->toArray();
 
-                $efficiencyScore = $this->efficiencyScoreService->calculateForBusiness($activeBusiness);
-                
-                $latestElectricityEntry = $activeBusiness->electricityEntries()
-                    ->orderBy('period_month', 'desc')
-                    ->first();
+            $efficiencyScore = $this->efficiencyScoreService->calculateForBusiness($activeBusiness);
 
-                $latestRevenueEntry = $activeBusiness->revenueEntries()
-                    ->orderBy('period_month', 'desc')
-                    ->first();
+            $latestElectricityEntry = $activeBusiness->electricityEntries()
+                ->orderBy('period_month', 'desc')
+                ->first();
 
-                $applianceCount = $activeBusiness->appliances()->count();
-            }
+            $latestRevenueEntry = $activeBusiness->revenueEntries()
+                ->orderBy('period_month', 'desc')
+                ->first();
+
+            $applianceCount = $activeBusiness->appliances()->count();
         }
 
         // Determine data completeness status

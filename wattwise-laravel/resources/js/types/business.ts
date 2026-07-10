@@ -26,3 +26,14 @@ export interface BusinessRow {
     business_profile: BusinessProfile | null;
     electricity_profile: ElectricityProfile | null;
 }
+
+export interface BusinessSummary {
+    id: number;
+    name: string;
+    business_type: string;
+}
+
+export interface BusinessContext {
+    activeBusinesses: BusinessSummary[];
+    activeBusiness: BusinessSummary | null;
+}

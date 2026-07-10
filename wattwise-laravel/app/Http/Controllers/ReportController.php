@@ -20,18 +20,9 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user ? $user->businesses()->active()->get() : collect();
-        $business = null;
-
-        if ($businesses->isNotEmpty()) {
-            $businessId = $request->query('business_id');
-            if ($businessId) {
-                $business = $businesses->firstWhere('id', $businessId);
-            }
-            if (!$business) {
-                $business = $businesses->first();
-            }
-        }
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $business = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
 
         // Read optional query parameter: month=YYYY-MM
         $month = $request->query('month');

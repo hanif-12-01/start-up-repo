@@ -26,49 +26,40 @@ class ApplianceController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user->businesses()->active()->get();
-        $activeBusiness = null;
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $activeBusiness = $resolver->resolve($request);
+        $businesses = $resolver->activeBusinesses($request);
         $appliances = [];
         $tariffPerKwh = null;
         $templateSegmentLabel = null;
         $templatePreview = [];
 
-        if ($businesses->isNotEmpty()) {
-            $activeBusinessId = $request->query('business_id');
-            if ($activeBusinessId) {
-                $activeBusiness = $businesses->firstWhere('id', $activeBusinessId);
-            }
-            if (!$activeBusiness) {
-                $activeBusiness = $businesses->first();
-            }
+        if ($activeBusiness) {
+            // Resolve tariff: electricity_profile first, then latest entry
+            $tariffPerKwh = $this->resolveTariff($activeBusiness);
 
-            if ($activeBusiness) {
-                // Resolve tariff: electricity_profile first, then latest entry
-                $tariffPerKwh = $this->resolveTariff($activeBusiness);
+            $appliances = $activeBusiness->appliances()
+                ->orderBy('name')
+                ->get()
+                ->map(function (Appliance $appliance) use ($tariffPerKwh) {
+                    $watt = $appliance->watt !== null ? (float) $appliance->watt : null;
+                    $quantity = $appliance->quantity;
+                    $hoursPerDay = $appliance->hours_per_day !== null ? (float) $appliance->hours_per_day : null;
+                    $daysPerMonth = $appliance->days_per_month;
 
-                $appliances = $activeBusiness->appliances()
-                    ->orderBy('name')
-                    ->get()
-                    ->map(function (Appliance $appliance) use ($tariffPerKwh) {
-                        $watt = $appliance->watt !== null ? (float) $appliance->watt : null;
-                        $quantity = $appliance->quantity;
-                        $hoursPerDay = $appliance->hours_per_day !== null ? (float) $appliance->hours_per_day : null;
-                        $daysPerMonth = $appliance->days_per_month;
+                    $kwh = $this->estimator->estimateMonthlyKwh($watt, $quantity, $hoursPerDay, $daysPerMonth);
+                    $appliance->estimated_monthly_kwh = $kwh;
 
-                        $kwh = $this->estimator->estimateMonthlyKwh($watt, $quantity, $hoursPerDay, $daysPerMonth);
-                        $appliance->estimated_monthly_kwh = $kwh;
+                    $appliance->estimated_monthly_cost = $this->estimator->estimateMonthlyCost($kwh, $tariffPerKwh);
+                    $appliance->ranking_reason = $this->estimator->getRankingReason($watt, $quantity, $hoursPerDay);
+                    $appliance->potential_saving = $this->estimator->estimatePotentialSaving($watt, $quantity, $daysPerMonth, $tariffPerKwh);
 
-                        $appliance->estimated_monthly_cost = $this->estimator->estimateMonthlyCost($kwh, $tariffPerKwh);
-                        $appliance->ranking_reason = $this->estimator->getRankingReason($watt, $quantity, $hoursPerDay);
-                        $appliance->potential_saving = $this->estimator->estimatePotentialSaving($watt, $quantity, $daysPerMonth, $tariffPerKwh);
+                    return $appliance;
+                });
 
-                        return $appliance;
-                    });
-
-                // Get template preview
-                $templateSegmentLabel = $this->templateService->getSegmentLabel($activeBusiness->business_type ?? 'OTHER');
-                $templatePreview = $this->templateService->getTemplateForBusinessType($activeBusiness->business_type ?? 'OTHER');
-            }
+            // Get template preview
+            $templateSegmentLabel = $this->templateService->getSegmentLabel($activeBusiness->business_type ?? 'OTHER');
+            $templatePreview = $this->templateService->getTemplateForBusinessType($activeBusiness->business_type ?? 'OTHER');
         }
 
         $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;
@@ -164,7 +155,8 @@ class ApplianceController extends Controller
         ]);
 
         $activeBusinessId = $request->input('business_id');
-        $businesses = $user->businesses()->active()->get();
+        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $businesses = $resolver->activeBusinesses($request);
 
         if ($businesses->isEmpty()) {
             return redirect()->back()->withErrors(['business' => 'Belum ada usaha terdaftar.']);

@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { BusinessContext } from '@/types/business';
 import type { EffectivePlan } from '@/types/plan';
 
 // Extend ImportMeta interface for Vite...
@@ -22,6 +23,7 @@ declare module '@inertiajs/core' {
             effectivePlan: EffectivePlan | null;
             needsOnboarding: boolean;
             sidebarOpen: boolean;
+            businessContext: BusinessContext;
             [key: string]: unknown;
         };
     }
