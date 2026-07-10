@@ -11,7 +11,8 @@ import {
     Plug, 
     Sparkles, 
     Info, 
-    ChevronRight
+    ChevronRight,
+    Download
 } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -212,19 +213,32 @@ const completenessClass = computed(() => {
                 </p>
             </div>
 
-            <!-- Business Switcher -->
-            <div v-if="businesses && businesses.length > 0" class="flex flex-col gap-1.5 min-w-[200px]">
-                <label for="business-select" class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pilih Properti / Usaha</label>
-                <select
-                    id="business-select"
-                    :value="activeBusinessId"
-                    @change="switchBusiness"
-                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            <!-- Actions & Business Switcher -->
+            <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full sm:w-auto">
+                <!-- Export button -->
+                <a
+                    v-if="report.business && !isLocked && report.available_months.length > 0 && report.available_months.includes(report.selected_month)"
+                    :href="`/reports/export?month=${report.selected_month}`"
+                    class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm w-full sm:w-auto shrink-0"
                 >
-                    <option v-for="b in businesses" :key="b.id" :value="b.id">
-                        {{ b.name }}
-                    </option>
-                </select>
+                    <Download class="h-4 w-4" />
+                    <span>Ekspor CSV</span>
+                </a>
+
+                <!-- Business Switcher -->
+                <div v-if="businesses && businesses.length > 0" class="flex flex-col gap-1.5 min-w-[200px] w-full sm:w-auto">
+                    <label for="business-select" class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pilih Properti / Usaha</label>
+                    <select
+                        id="business-select"
+                        :value="activeBusinessId"
+                        @change="switchBusiness"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                        <option v-for="b in businesses" :key="b.id" :value="b.id">
+                            {{ b.name }}
+                        </option>
+                    </select>
+                </div>
             </div>
         </div>
 

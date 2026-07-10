@@ -46,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('anomalies', [AnomalyController::class, 'index'])->name('anomalies.index');
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
     Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');
 });
