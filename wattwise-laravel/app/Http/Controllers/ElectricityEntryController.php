@@ -29,7 +29,7 @@ class ElectricityEntryController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user->businesses()->get();
+        $businesses = $user->businesses()->active()->get();
         $activeBusiness = null;
         $entries = [];
 

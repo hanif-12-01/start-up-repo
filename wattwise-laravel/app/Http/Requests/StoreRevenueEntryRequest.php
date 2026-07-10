@@ -26,7 +26,8 @@ class StoreRevenueEntryRequest extends FormRequest
             'business_id' => [
                 'required',
                 Rule::exists('businesses', 'id')->where(function ($query) {
-                    $query->where('user_id', $this->user()->id);
+                    $query->where('user_id', $this->user()->id)
+                        ->where('status', \App\Models\Business::STATUS_ACTIVE);
                 }),
             ],
             'period_month' => ['required', 'date'],

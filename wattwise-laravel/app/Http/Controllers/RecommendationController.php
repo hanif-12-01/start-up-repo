@@ -25,7 +25,7 @@ class RecommendationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user ? $user->businesses()->get() : collect();
+        $businesses = $user ? $user->businesses()->active()->get() : collect();
         $activeBusiness = null;
         $businessCount = $businesses->count();
         $hasBusiness = $businessCount > 0;

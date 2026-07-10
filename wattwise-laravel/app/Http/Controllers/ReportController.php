@@ -20,7 +20,7 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user ? $user->businesses()->get() : collect();
+        $businesses = $user ? $user->businesses()->active()->get() : collect();
         $business = null;
 
         if ($businesses->isNotEmpty()) {

@@ -22,6 +22,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
     Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
     Route::put('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
+    Route::post('businesses/{business}/archive', [BusinessController::class, 'archive'])->name('businesses.archive');
+    Route::post('businesses/{business}/restore', [BusinessController::class, 'restore'])->name('businesses.restore');
 
     Route::get('electricity', [ElectricityEntryController::class, 'index'])->name('electricity.index');
     Route::post('electricity', [ElectricityEntryController::class, 'store'])->name('electricity.store');

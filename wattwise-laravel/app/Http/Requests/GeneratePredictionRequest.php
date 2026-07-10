@@ -21,7 +21,10 @@ class GeneratePredictionRequest extends FormRequest
             'business_id' => [
                 'required',
                 'integer',
-                Rule::exists('businesses', 'id')->where('user_id', $this->user()->id),
+                Rule::exists('businesses', 'id')->where(function ($query) {
+                    $query->where('user_id', $this->user()->id)
+                        ->where('status', \App\Models\Business::STATUS_ACTIVE);
+                }),
             ],
         ];
     }

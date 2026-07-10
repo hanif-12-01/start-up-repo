@@ -26,7 +26,7 @@ class ApplianceController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $businesses = $user->businesses()->get();
+        $businesses = $user->businesses()->active()->get();
         $activeBusiness = null;
         $appliances = [];
         $tariffPerKwh = null;
@@ -157,13 +157,14 @@ class ApplianceController extends Controller
             'business_id' => [
                 'required',
                 \Illuminate\Validation\Rule::exists('businesses', 'id')->where(function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
+                    $query->where('user_id', $user->id)
+                        ->where('status', \App\Models\Business::STATUS_ACTIVE);
                 }),
             ],
         ]);
 
         $activeBusinessId = $request->input('business_id');
-        $businesses = $user->businesses()->get();
+        $businesses = $user->businesses()->active()->get();
 
         if ($businesses->isEmpty()) {
             return redirect()->back()->withErrors(['business' => 'Belum ada usaha terdaftar.']);
@@ -200,6 +201,10 @@ class ApplianceController extends Controller
         // Authorization: ensure appliance belongs to current user's business
         if ($appliance->business->user_id !== $request->user()->id) {
             abort(403);
+        }
+
+        if ($appliance->business->status !== \App\Models\Business::STATUS_ACTIVE) {
+            abort(403, 'Usaha yang diarsipkan tidak dapat diubah.');
         }
 
         $appliance->delete();

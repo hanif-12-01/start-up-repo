@@ -86,4 +86,20 @@ class Business extends Model
     {
         return $this->hasMany(Appliance::class);
     }
+
+    /**
+     * Scope a query to only include active businesses.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    /**
+     * Scope a query to only include archived businesses.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->where('status', self::STATUS_ARCHIVED);
+    }
 }

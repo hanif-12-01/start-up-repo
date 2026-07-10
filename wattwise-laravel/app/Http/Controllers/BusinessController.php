@@ -156,4 +156,64 @@ class BusinessController extends Controller
             ->route('businesses.index')
             ->with('success', 'Data usaha/properti berhasil diperbarui.');
     }
+
+    /**
+     * Archive the specified business.
+     */
+    public function archive(Request $request, Business $business): RedirectResponse
+    {
+        Gate::authorize('archive', $business);
+
+        if ($business->status === Business::STATUS_ARCHIVED) {
+            return redirect()
+                ->route('businesses.index')
+                ->with('success', 'Usaha atau properti berhasil diarsipkan. Seluruh data historis tetap tersimpan.');
+        }
+
+        $activeCount = $request->user()->businesses()->active()->count();
+
+        if ($activeCount <= 1) {
+            throw ValidationException::withMessages([
+                'business_archive' => 'Minimal satu usaha atau properti harus tetap aktif.',
+            ]);
+        }
+
+        $business->status = Business::STATUS_ARCHIVED;
+        $business->save();
+
+        return redirect()
+            ->route('businesses.index')
+            ->with('success', 'Usaha atau properti berhasil diarsipkan. Seluruh data historis tetap tersimpan.');
+    }
+
+    /**
+     * Restore the specified business.
+     */
+    public function restore(Request $request, Business $business): RedirectResponse
+    {
+        Gate::authorize('restore', $business);
+
+        if ($business->status === Business::STATUS_ACTIVE) {
+            return redirect()
+                ->route('businesses.index')
+                ->with('success', 'Usaha atau properti berhasil dipulihkan dan kembali aktif.');
+        }
+
+        $user = $request->user();
+        $limit = $this->featureGateService->limit($user, 'businesses.multiple');
+        $activeCount = $user->businesses()->active()->count();
+
+        if ($limit !== null && $activeCount >= $limit) {
+            throw ValidationException::withMessages([
+                'business_limit' => 'Batas usaha aktif untuk paket Anda telah tercapai. Arsipkan usaha lain atau tingkatkan paket sebelum memulihkan usaha ini.',
+            ]);
+        }
+
+        $business->status = Business::STATUS_ACTIVE;
+        $business->save();
+
+        return redirect()
+            ->route('businesses.index')
+            ->with('success', 'Usaha atau properti berhasil dipulihkan dan kembali aktif.');
+    }
 }

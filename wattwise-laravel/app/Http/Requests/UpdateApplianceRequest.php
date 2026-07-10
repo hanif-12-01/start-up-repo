@@ -15,7 +15,8 @@ class UpdateApplianceRequest extends FormRequest
 
         return $appliance
             && $appliance->business
-            && $appliance->business->user_id === $this->user()->id;
+            && $appliance->business->user_id === $this->user()->id
+            && $appliance->business->status === \App\Models\Business::STATUS_ACTIVE;
     }
 
     /**
