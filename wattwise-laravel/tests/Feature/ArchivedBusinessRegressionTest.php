@@ -431,4 +431,39 @@ class ArchivedBusinessRegressionTest extends TestCase
         $response->assertForbidden();
         $this->assertNotNull($appliance->fresh());
     }
+
+    public function test_archived_owned_business_cannot_be_updated(): void
+    {
+        $user = User::factory()->create();
+        $business = $this->makeBusiness($user, 'Target', Business::STATUS_ARCHIVED);
+
+        $response = $this->actingAs($user)->put(
+            route('businesses.update', $business),
+            [
+                'name' => 'Nama Baru',
+                'business_type' => 'LAUNDRY',
+                'city' => 'Bandung',
+                'province' => 'Jawa Barat',
+                'address' => 'Alamat Baru',
+                'room_count' => 12,
+                'occupied_room_count' => 10,
+                'employee_count' => 5,
+                'operating_days_per_month' => 25,
+                'business_notes' => 'Catatan Baru',
+                'customer_type' => 'R1',
+                'power_va' => 2200,
+                'tariff_per_kwh' => 1500,
+                'payment_method' => 'PRABAYAR',
+                'meter_type' => 'Token',
+                'electricity_notes' => 'Catatan Listrik Baru',
+            ]
+        );
+
+        $response->assertSessionHasErrors('business_status');
+
+        $business->refresh();
+        $this->assertSame('Target', $business->name);
+        $this->assertSame(10, $business->businessProfile->room_count);
+        $this->assertSame(1300, $business->electricityProfile->power_va);
+    }
 }

@@ -124,6 +124,12 @@ class BusinessController extends Controller
     {
         Gate::authorize('update', $business);
 
+        if ($business->status === Business::STATUS_ARCHIVED) {
+            throw ValidationException::withMessages([
+                'business_status' => 'Usaha yang diarsipkan harus dipulihkan sebelum dapat diedit.',
+            ]);
+        }
+
         $validated = $request->validated();
 
         DB::transaction(function () use ($validated, $business) {

@@ -1,32 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, ArrowLeft, Archive, RotateCcw, AlertTriangle, CheckCircle2, Info, MapPin, Zap } from '@lucide/vue';
+import { Building2, ArrowLeft, Archive, RotateCcw, AlertTriangle, CheckCircle2, Info, MapPin, Zap, Plus, Edit } from '@lucide/vue';
 import { ref, computed } from 'vue';
-
-interface BusinessProfile {
-    room_count: number | null;
-    occupied_room_count: number | null;
-    employee_count: number | null;
-    operating_days_per_month: number | null;
-}
-
-interface ElectricityProfile {
-    customer_type: string | null;
-    power_va: number | null;
-    tariff_per_kwh: number | string | null;
-    payment_method: string | null;
-    meter_type: string | null;
-}
-
-interface BusinessRow {
-    id: number;
-    name: string;
-    business_type: string;
-    city: string | null;
-    province: string | null;
-    business_profile: BusinessProfile | null;
-    electricity_profile: ElectricityProfile | null;
-}
+import BusinessFormDialog from '@/components/businesses/BusinessFormDialog.vue';
+import type {BusinessRow} from '@/types';
 
 const props = defineProps<{
     activeBusinesses: BusinessRow[];
@@ -156,6 +133,24 @@ const restoreBusiness = (id: number) => {
         },
     });
 };
+
+const isFormDialogOpen = ref(false);
+const selectedBusiness = ref<BusinessRow | null>(null);
+
+const openCreateDialog = () => {
+    selectedBusiness.value = null;
+    isFormDialogOpen.value = true;
+};
+
+const openEditDialog = (business: BusinessRow) => {
+    selectedBusiness.value = business;
+    isFormDialogOpen.value = true;
+};
+
+const closeFormDialog = () => {
+    isFormDialogOpen.value = false;
+    selectedBusiness.value = null;
+};
 </script>
 
 <template>
@@ -163,17 +158,37 @@ const restoreBusiness = (id: number) => {
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-5xl mx-auto w-full">
         <!-- Header -->
-        <div class="flex flex-col gap-2">
-            <Link href="/dashboard" class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">
-                <ArrowLeft class="h-4 w-4" />
-                Kembali ke Beranda
-            </Link>
-            <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <Building2 class="h-8 w-8 text-primary" /> Usaha & Properti
-            </h1>
-            <p class="text-muted-foreground text-base">
-                Kelola profil usaha, informasi operasional, dan data kelistrikan setiap lokasi.
-            </p>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col gap-2">
+                <Link href="/dashboard" class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">
+                    <ArrowLeft class="h-4 w-4" />
+                    Kembali ke Beranda
+                </Link>
+                <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <Building2 class="h-8 w-8 text-primary" /> Usaha & Properti
+                </h1>
+                <p class="text-muted-foreground text-base">
+                    Kelola profil usaha, informasi operasional, dan data kelistrikan setiap lokasi.
+                </p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <button
+                    v-if="canCreateBusiness"
+                    type="button"
+                    @click="openCreateDialog"
+                    class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+                >
+                    <Plus class="h-4 w-4" />
+                    Tambah Usaha
+                </button>
+                <Link
+                    v-else
+                    href="/plans"
+                    class="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:bg-muted transition-colors shadow-xs"
+                >
+                    Lihat Paket
+                </Link>
+            </div>
         </div>
 
         <!-- Flash success -->
@@ -295,7 +310,16 @@ const restoreBusiness = (id: number) => {
                         </div>
                     </div>
 
-                    <div class="flex justify-end border-t border-border pt-3">
+                    <div class="flex justify-between items-center border-t border-border pt-3">
+                        <button
+                            type="button"
+                            @click="openEditDialog(b)"
+                            :disabled="processingId === b.id"
+                            class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                        >
+                            <Edit class="h-4 w-4" />
+                            Edit
+                        </button>
                         <button
                             type="button"
                             @click="openArchiveDialog(b.id)"
@@ -400,5 +424,12 @@ const restoreBusiness = (id: number) => {
                 </div>
             </div>
         </Teleport>
+
+        <!-- Business Form Dialog -->
+        <BusinessFormDialog
+            :open="isFormDialogOpen"
+            :business="selectedBusiness"
+            @close="closeFormDialog"
+        />
     </div>
 </template>
