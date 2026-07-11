@@ -3,17 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ExportReportRequest;
+use App\Services\ActiveBusinessResolver;
+use App\Services\FeatureGateService;
 use App\Services\Reports\MonthlyReportService;
+use App\Services\Reports\ReportExportService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
     public function __construct(
         private readonly MonthlyReportService $monthlyReportService,
-        private readonly \App\Services\FeatureGateService $featureGateService,
-        private readonly \App\Services\Reports\ReportExportService $reportExportService
+        private readonly FeatureGateService $featureGateService,
+        private readonly ReportExportService $reportExportService
     ) {}
 
     /**
@@ -22,7 +28,7 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $resolver = app(ActiveBusinessResolver::class);
         $business = $resolver->resolve($request);
         $businesses = $resolver->activeBusinesses($request);
 
@@ -69,16 +75,16 @@ class ReportController extends Controller
     /**
      * Export the monthly report as a CSV file.
      */
-    public function export(ExportReportRequest $request)
+    public function export(ExportReportRequest $request): RedirectResponse|StreamedResponse
     {
         $user = $request->user();
-        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $resolver = app(ActiveBusinessResolver::class);
 
         // Strip business_id query parameter from the request to prevent unexpected session changes
         $requestWithoutBusinessId = $request->duplicate(query: array_diff_key($request->query(), ['business_id' => '']));
         $business = $resolver->resolve($requestWithoutBusinessId);
 
-        if (!$business) {
+        if (! $business) {
             return redirect()->route('reports.index')->with('error', 'Anda belum memiliki usaha aktif.');
         }
 
@@ -89,7 +95,7 @@ class ReportController extends Controller
         $month = $request->validated()['month'] ?? null;
 
         if ($month !== null) {
-            if (!in_array($month, $availableMonths, true)) {
+            if (! in_array($month, $availableMonths, true)) {
                 return redirect()->route('reports.index')->with('error', "Laporan untuk bulan {$month} tidak tersedia.");
             }
         } else {
@@ -125,8 +131,14 @@ class ReportController extends Controller
         return response()->stream(
             function () use ($report) {
                 $stream = fopen('php://output', 'w');
-                $this->reportExportService->export($stream, $report);
-                fclose($stream);
+                if ($stream === false) {
+                    throw new RuntimeException('Unable to open the CSV output stream.');
+                }
+                try {
+                    $this->reportExportService->export($stream, $report);
+                } finally {
+                    fclose($stream);
+                }
             },
             200,
             [
@@ -141,6 +153,9 @@ class ReportController extends Controller
 
     /**
      * Check if the selected month is locked based on the user's plan.
+     *
+     * @param  array<string, mixed>|null  $effectivePlan
+     * @param  array<int, string>  $availableMonths
      */
     private function isMonthLocked(?array $effectivePlan, array $availableMonths, ?string $selectedMonth): bool
     {
@@ -152,6 +167,7 @@ class ReportController extends Controller
                 }
             }
         }
+
         return false;
     }
 }

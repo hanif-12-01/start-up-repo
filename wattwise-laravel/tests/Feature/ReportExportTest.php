@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appliance;
 use App\Models\Business;
 use App\Models\ElectricityEntry;
-use App\Models\RevenueEntry;
-use App\Models\Appliance;
-use App\Models\User;
 use App\Models\Subscription;
+use App\Models\User;
 use App\Services\Reports\ReportExportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +17,7 @@ class ReportExportTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Business $business;
 
     protected function setUp(): void
@@ -519,7 +519,7 @@ class ReportExportTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $this->business->name = "Usaha Kopi Toraja ☕";
+        $this->business->name = 'Usaha Kopi Toraja ☕';
         $this->business->save();
 
         ElectricityEntry::create([
@@ -587,7 +587,7 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString("'=SUM(1,1)", $content);
 
         // Verify focused tests on ReportExportService::sanitizeForCsv directly
-        $exportService = new ReportExportService();
+        $exportService = new ReportExportService;
 
         // Neutralize dangerous prefixes
         $this->assertEquals("'=SUM(1,1)", $exportService->sanitizeForCsv('=SUM(1,1)'));

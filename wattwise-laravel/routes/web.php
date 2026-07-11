@@ -1,16 +1,17 @@
 <?php
 
+use App\Http\Controllers\AnomalyController;
 use App\Http\Controllers\ApplianceController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessSelectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\RevenueEntryController;
-use App\Http\Controllers\RecommendationController;
-use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PredictionController;
-use App\Http\Controllers\AnomalyController;
+use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RevenueEntryController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -21,7 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
     Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
     Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
-    Route::post('businesses/select', \App\Http\Controllers\BusinessSelectionController::class)->name('businesses.select');
+    Route::post('businesses/select', BusinessSelectionController::class)->name('businesses.select');
     Route::put('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
     Route::post('businesses/{business}/archive', [BusinessController::class, 'archive'])->name('businesses.archive');
     Route::post('businesses/{business}/restore', [BusinessController::class, 'restore'])->name('businesses.restore');

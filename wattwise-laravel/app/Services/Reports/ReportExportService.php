@@ -9,9 +9,8 @@ class ReportExportService
     /**
      * Export report data to a stream resource.
      *
-     * @param resource $stream
-     * @param array $report
-     * @return void
+     * @param  resource  $stream
+     * @param  array<string, mixed>  $report
      */
     public function export($stream, array $report): void
     {
@@ -54,14 +53,14 @@ class ReportExportService
         $revenue = $report['revenue'] ?? [];
         $impact = $report['financial_impact'] ?? [];
 
-        $usageKwh = $electricity['usage_kwh'] !== null ? $electricity['usage_kwh'] . ' kWh' : 'Tidak tersedia';
-        $billAmount = $electricity['bill_amount'] !== null ? 'Rp ' . number_format($electricity['bill_amount'], 0, ',', '.') : 'Tidak tersedia';
-        $tariff = $electricity['tariff_per_kwh'] !== null ? 'Rp ' . number_format($electricity['tariff_per_kwh'], 0, ',', '.') : 'Tidak tersedia';
+        $usageKwh = $electricity['usage_kwh'] !== null ? $electricity['usage_kwh'].' kWh' : 'Tidak tersedia';
+        $billAmount = $electricity['bill_amount'] !== null ? 'Rp '.number_format($electricity['bill_amount'], 0, ',', '.') : 'Tidak tersedia';
+        $tariff = $electricity['tariff_per_kwh'] !== null ? 'Rp '.number_format($electricity['tariff_per_kwh'], 0, ',', '.') : 'Tidak tersedia';
 
-        $revenueAmount = $revenue['amount'] !== null ? 'Rp ' . number_format($revenue['amount'], 0, ',', '.') : 'Tidak tersedia';
+        $revenueAmount = $revenue['amount'] !== null ? 'Rp '.number_format($revenue['amount'], 0, ',', '.') : 'Tidak tersedia';
 
-        $ratio = $impact['electricity_revenue_ratio_percent'] !== null ? number_format($impact['electricity_revenue_ratio_percent'], 1, ',', '.') . '%' : 'Tidak tersedia';
-        $remaining = $impact['remaining_revenue_after_electricity'] !== null ? 'Rp ' . number_format($impact['remaining_revenue_after_electricity'], 0, ',', '.') : 'Tidak tersedia';
+        $ratio = $impact['electricity_revenue_ratio_percent'] !== null ? number_format($impact['electricity_revenue_ratio_percent'], 1, ',', '.').'%' : 'Tidak tersedia';
+        $remaining = $impact['remaining_revenue_after_electricity'] !== null ? 'Rp '.number_format($impact['remaining_revenue_after_electricity'], 0, ',', '.') : 'Tidak tersedia';
 
         $writeRow(['RINGKASAN METRIK BULANAN']);
         $writeRow([
@@ -70,7 +69,7 @@ class ReportExportService
             'Tarif per kWh (Rupiah)',
             'Total Pendapatan (Rupiah)',
             'Rasio Listrik terhadap Pendapatan (%)',
-            'Sisa Pendapatan setelah Listrik (Rupiah)'
+            'Sisa Pendapatan setelah Listrik (Rupiah)',
         ]);
         $writeRow([
             $usageKwh,
@@ -78,13 +77,13 @@ class ReportExportService
             $tariff,
             $revenueAmount,
             $ratio,
-            $remaining
+            $remaining,
         ]);
         $writeRow([]);
 
         // 6. Efficiency Score Section
         $scoreData = $report['efficiency_score'] ?? [];
-        $score = $scoreData['score'] !== null ? (string)$scoreData['score'] : 'Tidak tersedia';
+        $score = $scoreData['score'] !== null ? (string) $scoreData['score'] : 'Tidak tersedia';
         $label = $scoreData['label'] ?? 'Tidak tersedia';
         $confidence = $scoreData['confidence'] ?? 'Tidak tersedia';
         $explanation = $scoreData['explanation'] ?? '';
@@ -99,17 +98,17 @@ class ReportExportService
         $writeRow(['Peringkat', 'Nama Peralatan', 'Kategori', 'Estimasi Pemakaian Bulanan (kWh)', 'Estimasi Biaya Bulanan (Rupiah)', 'Catatan / Alasan']);
 
         $candidates = $report['appliances']['top_candidates'] ?? [];
-        if (!empty($candidates)) {
+        if (! empty($candidates)) {
             foreach ($candidates as $index => $candidate) {
-                $cKwh = $candidate['estimated_monthly_kwh'] !== null ? number_format($candidate['estimated_monthly_kwh'], 2, ',', '.') . ' kWh' : '-';
-                $cCost = $candidate['estimated_monthly_cost'] !== null ? 'Rp ' . number_format($candidate['estimated_monthly_cost'], 0, ',', '.') : '-';
+                $cKwh = $candidate['estimated_monthly_kwh'] !== null ? number_format($candidate['estimated_monthly_kwh'], 2, ',', '.').' kWh' : '-';
+                $cCost = $candidate['estimated_monthly_cost'] !== null ? 'Rp '.number_format($candidate['estimated_monthly_cost'], 0, ',', '.') : '-';
                 $writeRow([
-                    (string)($index + 1),
+                    (string) ($index + 1),
                     $candidate['name'] ?? '',
                     $this->formatApplianceCategory($candidate['category'] ?? ''),
                     $cKwh,
                     $cCost,
-                    $candidate['ranking_reason'] ?? ''
+                    $candidate['ranking_reason'] ?? '',
                 ]);
             }
         } else {
@@ -122,17 +121,17 @@ class ReportExportService
         $writeRow(['Prioritas', 'Judul Rekomendasi', 'Deskripsi', 'Rencana Tindakan', 'Alasan', 'Potensi Hemat Bulanan (Rupiah)']);
 
         $recommendations = $report['recommendations'] ?? [];
-        if (!empty($recommendations)) {
+        if (! empty($recommendations)) {
             foreach ($recommendations as $rec) {
                 $priority = $this->formatPriority($rec['priority'] ?? '');
-                $saving = ($rec['estimated_saving_idr'] ?? null) !== null ? 'Rp ' . number_format($rec['estimated_saving_idr'], 0, ',', '.') : '-';
+                $saving = ($rec['estimated_saving_idr'] ?? null) !== null ? 'Rp '.number_format($rec['estimated_saving_idr'], 0, ',', '.') : '-';
                 $writeRow([
                     $priority,
                     $rec['title'] ?? '',
                     $rec['description'] ?? '',
                     $rec['action'] ?? '',
                     $rec['reason'] ?? '',
-                    $saving
+                    $saving,
                 ]);
             }
         } else {
@@ -161,7 +160,7 @@ class ReportExportService
         }
 
         if (preg_match('/^[\s\x00-\x1F\x7F]*[=\+\-\@\t\r\n]/', $value)) {
-            return "'" . $value;
+            return "'".$value;
         }
 
         return $value;
