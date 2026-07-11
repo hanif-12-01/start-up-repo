@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DownloadPdfReportRequest;
 use App\Http\Requests\ExportReportRequest;
+use App\Models\Business;
 use App\Services\ActiveBusinessResolver;
 use App\Services\FeatureGateService;
 use App\Services\Reports\MonthlyReportService;
+use App\Services\Reports\PdfReportService;
 use App\Services\Reports\ReportExportService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -69,6 +74,40 @@ class ReportController extends Controller
             'isLocked' => $isLocked,
             'businesses' => $businesses,
             'activeBusinessId' => $business ? $business->id : null,
+            'pdfExport' => [
+                'enabled' => (bool) config('pdf_reports.enabled'),
+                'eligible' => $business ? $this->featureGateService->can($user, 'reports.pdf', $business) : false,
+            ],
+        ]);
+    }
+
+    public function pdf(
+        DownloadPdfReportRequest $request,
+        Business $business,
+        PdfReportService $pdfReportService,
+    ): HttpResponse {
+        abort_unless((bool) config('pdf_reports.enabled'), 404);
+
+        $user = $request->user();
+        abort_if($business->user_id !== $user->id, 403);
+        abort_if($business->status !== Business::STATUS_ACTIVE, 403);
+        abort_unless($this->featureGateService->can($user, 'reports.pdf', $business), 403);
+
+        $month = (string) $request->validated('month');
+        $availableMonths = $this->monthlyReportService->getAvailableMonths($business);
+        abort_unless(in_array($month, $availableMonths, true), 404);
+
+        $report = $this->monthlyReportService->generate($business, $month);
+        $contents = $pdfReportService->render($report, CarbonImmutable::now());
+        $filename = "wattwise-laporan-{$this->safeBusinessName($business->name)}-{$month}.pdf";
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Content-Length' => (string) strlen($contents),
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -116,15 +155,7 @@ class ReportController extends Controller
         }
 
         // Sanitize business name for filename
-        $businessName = $business->name ?? 'usaha';
-        $safeBusinessName = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $businessName);
-        $safeBusinessName = preg_replace('/-+/', '-', $safeBusinessName);
-        $safeBusinessName = preg_replace('/_+/', '_', $safeBusinessName);
-        $safeBusinessName = trim($safeBusinessName, '-_');
-        $safeBusinessName = strtolower($safeBusinessName);
-        if (empty($safeBusinessName)) {
-            $safeBusinessName = 'usaha';
-        }
+        $safeBusinessName = $this->safeBusinessName($business->name);
 
         $filename = "wattwise-laporan-{$safeBusinessName}-{$selectedMonth}.csv";
 
@@ -169,5 +200,15 @@ class ReportController extends Controller
         }
 
         return false;
+    }
+
+    private function safeBusinessName(?string $businessName): string
+    {
+        $safeBusinessName = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $businessName ?? 'usaha');
+        $safeBusinessName = preg_replace('/-+/', '-', $safeBusinessName ?? '');
+        $safeBusinessName = preg_replace('/_+/', '_', $safeBusinessName ?? '');
+        $safeBusinessName = strtolower(trim($safeBusinessName ?? '', '-_'));
+
+        return $safeBusinessName !== '' ? $safeBusinessName : 'usaha';
     }
 }

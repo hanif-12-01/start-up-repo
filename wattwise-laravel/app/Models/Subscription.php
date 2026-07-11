@@ -5,7 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $plan
+ * @property string $status
+ * @property Carbon|null $trial_starts_at
+ * @property Carbon|null $trial_ends_at
+ * @property Carbon|null $current_period_starts_at
+ * @property Carbon|null $current_period_ends_at
+ * @property Carbon|null $canceled_at
+ * @property array<string, mixed>|null $metadata
+ */
 #[Fillable([
     'user_id',
     'plan',
@@ -15,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'current_period_starts_at',
     'current_period_ends_at',
     'canceled_at',
-    'metadata'
+    'metadata',
 ])]
 class Subscription extends Model
 {
@@ -38,6 +51,8 @@ class Subscription extends Model
 
     /**
      * Get the user that owns the subscription.
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
