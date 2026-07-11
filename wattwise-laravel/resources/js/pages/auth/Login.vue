@@ -13,6 +13,8 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
+import type { DemoState } from '@/types/demo';
+
 defineOptions({
     layout: {
         title: 'Masuk ke WattWise AI',
@@ -24,7 +26,7 @@ defineOptions({
 defineProps<{
     status?: string;
     canResetPassword: boolean;
-    showDemoCredentials: boolean;
+    demo: DemoState;
 }>();
 </script>
 
@@ -39,15 +41,25 @@ defineProps<{
     </div>
 
     <div
-        v-if="showDemoCredentials"
-        class="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900 dark:bg-green-950/40"
+        v-if="demo.enabled"
+        class="mb-6 rounded-lg border p-3 text-sm"
+        :class="demo.ready
+            ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/40'
+            : 'border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/40'"
     >
-        <p class="font-medium text-green-800 dark:text-green-300">
-            Demo lokal: demo@wattwise.local / password
-        </p>
-        <p class="mt-1 text-xs text-green-700/80 dark:text-green-400/80">
-            Akun demo hanya untuk pengujian lokal atau staging terkontrol, bukan kredensial produksi.
-        </p>
+        <div v-if="demo.ready && demo.credentials">
+            <p class="font-medium text-green-800 dark:text-green-300">
+                Demo lokal: {{ demo.credentials.email }} / {{ demo.credentials.password }}
+            </p>
+            <p class="mt-1 text-xs text-green-700/80 dark:text-green-400/80">
+                Akun demo hanya untuk pengujian lokal atau staging terkontrol, bukan kredensial produksi.
+            </p>
+        </div>
+        <div v-else-if="demo.message">
+            <p class="font-medium text-yellow-850 dark:text-yellow-350">
+                {{ demo.message }}
+            </p>
+        </div>
     </div>
 
     <PasskeyVerify />

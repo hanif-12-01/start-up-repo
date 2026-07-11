@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Appliance;
 use App\Models\Business;
 use App\Models\BusinessProfile;
-use App\Models\ElectricityProfile;
 use App\Models\ElectricityEntry;
+use App\Models\ElectricityProfile;
 use App\Models\RevenueEntry;
-use App\Models\Appliance;
 use App\Models\Subscription;
+use App\Models\User;
+use App\Support\DemoAccount;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -28,12 +29,20 @@ class WattWiseDemoSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('Refusing to run demo seeder in production.');
+        }
+
+        if (! DemoAccount::environmentAllowed()) {
+            throw new \RuntimeException('Refusing to run demo seeder in unsafe environment: '.app()->environment());
+        }
+
         // 1. Create or Update Demo User
         $user = User::updateOrCreate(
-            ['email' => 'demo@wattwise.local'],
+            ['email' => DemoAccount::EMAIL],
             [
-                'name' => 'Demo WattWise',
-                'password' => Hash::make('password'),
+                'name' => DemoAccount::USER_NAME,
+                'password' => Hash::make(DemoAccount::PASSWORD),
             ]
         );
 
@@ -48,7 +57,7 @@ class WattWiseDemoSeeder extends Seeder
         $business = Business::updateOrCreate(
             [
                 'user_id' => $user->id,
-                'name' => 'Kos Melati Purwokerto',
+                'name' => DemoAccount::BUSINESS_NAME,
             ],
             [
                 'business_type' => 'KOS_PROPERTY',
@@ -88,7 +97,7 @@ class WattWiseDemoSeeder extends Seeder
         Subscription::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'plan' => 'PRO_TRIAL',
+                'plan' => DemoAccount::SUBSCRIPTION_PLAN,
                 'status' => 'ACTIVE',
                 'trial_starts_at' => now(),
                 'trial_ends_at' => now()->addDays(30),
@@ -131,7 +140,7 @@ class WattWiseDemoSeeder extends Seeder
         $months = [];
 
         for ($i = 5; $i >= 0; $i--) {
-            $months[] = $current->copy()->subMonths($i);
+            $months[] = Carbon::instance($current->copy()->subMonths($i));
         }
 
         return $months;
@@ -143,8 +152,7 @@ class WattWiseDemoSeeder extends Seeder
      * Months are dynamic (ending at current month) so the dashboard
      * always has meaningful data. Values are deterministic per position.
      *
-     * @param Business $business
-     * @param Carbon[] $months
+     * @param  Carbon[]  $months
      */
     private function seedElectricityEntries(Business $business, array $months): void
     {
@@ -200,8 +208,7 @@ class WattWiseDemoSeeder extends Seeder
      * Revenue = occupied_rooms × sewa_per_kamar (Rp 800.000/kamar).
      * Variation reflects seasonal occupancy changes.
      *
-     * @param Business $business
-     * @param Carbon[] $months
+     * @param  Carbon[]  $months
      */
     private function seedRevenueEntries(Business $business, array $months): void
     {
