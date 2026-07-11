@@ -115,7 +115,7 @@ composer install --no-dev --optimize-autoloader && npm ci && npm run build
 ### Pre-Deploy / Start Command (Railway Release Step)
 Run the following commands right before starting the web server container:
 ```bash
-php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan migrate --force && php artisan wattwise:ensure-demo-login && php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
 > [!NOTE]
@@ -155,6 +155,27 @@ To prepare the database with demonstrative staging data:
 7. **Staging Demo Account Credentials:**
    * **Email:** `demo@wattwise.local`
    * **Password:** `password`
+
+### 8.1 Railway Release Contract and Safeguards
+
+The release command pipeline executes `php artisan wattwise:ensure-demo-login` during deployment (prior to config/route caching).
+
+#### Staging Environment Config:
+- `APP_ENV=staging`
+- `APP_DEBUG=false`
+- `DEMO_LOGIN_ENABLED=true`
+
+#### Production Environment Config:
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `DEMO_LOGIN_ENABLED=false`
+
+#### Release/Deploy Guarantees:
+- **No-op Safety:** The `ensure-demo-login` command is a safe no-op when `DEMO_LOGIN_ENABLED=false` (e.g., in production).
+- **Hard Refusal:** Deployment must fail (exit code 1) if `DEMO_LOGIN_ENABLED=true` is set in an unsafe environment (e.g. production).
+- **Fail-closed Advertising:** The frontend will only display the demo banner and credentials if the database is fully repaired and verified ready (`demo.ready = true`).
+- **Data Isolation:** Never use a staging demo database for live customer production data.
+- **Manual Dashboard Control:** Environment variables and Railway settings remain manual after branch merge.
 
 > [!WARNING]
 > * Never seed demo credentials or run `WattWiseDemoSeeder` in a live production environment containing actual client data.

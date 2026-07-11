@@ -140,6 +140,12 @@ const disclaimers = [
     'Perhitungan peralatan berdasarkan data daya dan jam pakai yang Anda input. Tanpa sensor, WattWise AI tidak mengukur konsumsi aktual tiap alat.',
     'Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.',
 ];
+
+import type { DemoState } from '@/types/demo';
+
+defineProps<{
+    demo: DemoState;
+}>();
 </script>
 
 <template>
@@ -187,7 +193,7 @@ const disclaimers = [
                     :href="login()"
                     class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-emerald-500/30"
                 >
-                    Coba Demo
+                    {{ demo.ready ? 'Coba Demo' : 'Masuk' }}
                     <ArrowRight class="h-4 w-4" />
                 </Link>
             </div>
@@ -249,7 +255,7 @@ const disclaimers = [
                                 :href="login()"
                                 class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/35"
                             >
-                                Coba Demo Dashboard
+                                {{ demo.ready ? 'Coba Demo Dashboard' : 'Masuk ke Dashboard' }}
                                 <ArrowRight class="h-5 w-5" />
                             </Link>
                             <a
@@ -651,31 +657,83 @@ const disclaimers = [
                             </p>
 
                             <div
-                                class="mt-6 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm"
+                                v-if="demo.enabled"
+                                class="mt-6 rounded-2xl border p-5 shadow-sm"
+                                :class="demo.ready ? 'border-emerald-200 bg-white' : 'border-yellow-200 bg-yellow-50/50'"
                             >
-                                <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                                    Demo lokal
+                                <div v-if="demo.ready && demo.credentials">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">
+                                        Demo lokal
+                                    </p>
+                                    <p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+                                        {{ demo.credentials.email }} / {{ demo.credentials.password }}
+                                    </p>
+                                    <p class="mt-2 text-xs font-medium text-slate-500">
+                                        Akun demo hanya untuk pengujian lokal, bukan
+                                        kredensial produksi.
+                                    </p>
+                                    <div class="mt-4 flex flex-wrap gap-3">
+                                        <Link
+                                            :href="login()"
+                                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02]"
+                                        >
+                                            Masuk ke Dashboard Demo
+                                            <ArrowRight class="h-4 w-4" />
+                                        </Link>
+                                        <Link
+                                            :href="register()"
+                                            class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:border-emerald-300 hover:text-emerald-700"
+                                        >
+                                            Daftar
+                                        </Link>
+                                    </div>
+                                </div>
+                                <div v-else-if="demo.message">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-yellow-700">
+                                        Status Demo
+                                    </p>
+                                    <p class="mt-1 text-sm font-medium text-slate-850 dark:text-slate-350">
+                                        {{ demo.message }}
+                                    </p>
+                                    <div class="mt-4 flex flex-wrap gap-3">
+                                        <Link
+                                            :href="login()"
+                                            class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:border-emerald-300 hover:text-emerald-700"
+                                        >
+                                            Masuk
+                                        </Link>
+                                        <Link
+                                            :href="register()"
+                                            class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:border-emerald-300 hover:text-emerald-700"
+                                        >
+                                            Daftar
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                v-else
+                                class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                            >
+                                <p class="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    WattWise AI
                                 </p>
-                                <p class="mt-1 font-mono text-sm font-semibold text-slate-800">
-                                    demo@wattwise.local / password
-                                </p>
-                                <p class="mt-2 text-xs font-medium text-slate-500">
-                                    Akun demo hanya untuk pengujian lokal, bukan
-                                    kredensial produksi.
+                                <p class="mt-1 text-sm font-medium text-slate-700">
+                                    Mulai kelola efisiensi biaya listrik kos dan bisnis Anda secara cerdas.
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-3">
                                     <Link
                                         :href="login()"
                                         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02]"
                                     >
-                                        Masuk ke Dashboard Demo
+                                        Masuk ke Dashboard
                                         <ArrowRight class="h-4 w-4" />
                                     </Link>
                                     <Link
                                         :href="register()"
                                         class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:border-emerald-300 hover:text-emerald-700"
                                     >
-                                        Daftar
+                                        Daftar Sekarang
                                     </Link>
                                 </div>
                             </div>
@@ -794,20 +852,21 @@ const disclaimers = [
                         <h2
                             class="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
                         >
-                            Siap lihat demo WattWise AI?
+                            {{ demo.ready ? 'Siap lihat demo WattWise AI?' : 'Siap kelola beban listrik Anda?' }}
                         </h2>
                         <p
                             class="relative mx-auto mt-4 max-w-xl text-sm font-medium leading-relaxed text-emerald-50"
                         >
-                            Lihat bagaimana data tagihan sederhana bisa berubah
-                            menjadi arahan yang mudah dipahami.
+                            {{ demo.ready
+                                ? 'Lihat bagaimana data tagihan sederhana bisa berubah menjadi arahan yang mudah dipahami.'
+                                : 'Mulai pahami biaya listrik, buat estimasi tagihan, dan kendalikan cash flow kos atau bisnis Anda.' }}
                         </p>
                         <div class="relative mt-8 flex flex-wrap justify-center gap-3.5">
                             <Link
                                 :href="login()"
                                 class="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-extrabold text-emerald-700 shadow-lg transition-all hover:scale-[1.02] hover:bg-emerald-50"
                             >
-                                Masuk ke Dashboard Demo
+                                {{ demo.ready ? 'Masuk ke Dashboard Demo' : 'Masuk ke Dashboard' }}
                                 <ArrowRight class="h-5 w-5" />
                             </Link>
                             <Link
