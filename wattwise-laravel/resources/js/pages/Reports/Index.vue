@@ -14,7 +14,7 @@ import {
     ChevronRight,
     Download
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 
 interface Business {
     id: number;
@@ -196,6 +196,119 @@ const completenessClass = computed(() => {
             return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50';
     }
 });
+
+const isExporting = ref(false);
+const exportError = ref<string | null>(null);
+
+const isEligible = computed(() => {
+    return !!(
+        props.report.business &&
+        !props.isLocked &&
+        props.report.available_months.length > 0 &&
+        props.report.available_months.includes(props.report.selected_month) &&
+        !isExporting.value
+    );
+});
+
+const exportUrl = computed(() => {
+    return `/reports/export?month=${encodeURIComponent(props.report.selected_month)}`;
+});
+
+const sanitizeDownloadFilename = (value: string, fallback: string) => {
+    const finalComponent = value.split(/[\\/]/).pop() ?? '';
+    const sanitized = finalComponent
+        .replace(/[\u0000-\u001f\u007f]/g, '')
+        .replace(/^"+|"+$/g, '')
+        .trim();
+
+    if (!sanitized || sanitized === '.' || sanitized === '..') {
+        return fallback;
+    }
+
+    return sanitized.toLowerCase().endsWith('.csv') ? sanitized : `${sanitized}.csv`;
+};
+
+const handleExport = async () => {
+    if (!isEligible.value || isExporting.value) {
+        return;
+    }
+
+    isExporting.value = true;
+    exportError.value = null;
+
+    try {
+        const response = await fetch(exportUrl.value, {
+            method: 'GET',
+            headers: {
+                'Accept': 'text/csv'
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                exportError.value = 'Sesi Anda telah berakhir. Silakan login kembali.';
+            } else if (response.status === 403) {
+                exportError.value = 'Laporan bulan historis dikunci. Silakan upgrade ke Pro.';
+            } else if (response.status === 422) {
+                exportError.value = 'Parameter bulan tidak valid.';
+            } else {
+                exportError.value = 'CSV belum dapat diunduh. Silakan coba lagi.';
+            }
+
+            return;
+        }
+
+        const contentType = response.headers.get('Content-Type');
+        const mediaType = contentType?.split(';', 1)[0]?.trim().toLowerCase();
+
+        if (mediaType !== 'text/csv' && mediaType !== 'application/csv') {
+            exportError.value = 'CSV belum dapat diunduh. Silakan coba lagi.';
+
+            return;
+        }
+
+        const blob = await response.blob();
+
+        // Extract filename from Content-Disposition safely when present
+        let filename = `wattwise-laporan-usaha-${props.report.selected_month}.csv`;
+
+        if (props.report.business?.name) {
+            const safeBusinessName = props.report.business.name
+                .replace(/[^a-zA-Z0-9_\-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/_+/g, '_')
+                .replace(/^[-_]+|[-_]+$/g, '')
+                .toLowerCase();
+
+            if (safeBusinessName) {
+                filename = `wattwise-laporan-${safeBusinessName}-${props.report.selected_month}.csv`;
+            }
+        }
+
+        const contentDisposition = response.headers.get('Content-Disposition');
+
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename\s*=\s*"([^"]+)"/i);
+
+            if (filenameMatch && filenameMatch[1]) {
+                filename = sanitizeDownloadFilename(filenameMatch[1], filename);
+            }
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    } catch {
+        exportError.value = 'CSV belum dapat diunduh. Silakan coba lagi.';
+    } finally {
+        isExporting.value = false;
+    }
+};
 </script>
 
 <template>
@@ -216,14 +329,26 @@ const completenessClass = computed(() => {
             <!-- Actions & Business Switcher -->
             <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full sm:w-auto">
                 <!-- Export button -->
-                <a
-                    v-if="report.business && !isLocked && report.available_months.length > 0 && report.available_months.includes(report.selected_month)"
-                    :href="`/reports/export?month=${report.selected_month}`"
-                    class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm w-full sm:w-auto shrink-0"
+                <button
+                    v-if="report.business && !isLocked && report.available_months.length > 0"
+                    type="button"
+                    :disabled="!isEligible || isExporting"
+                    @click="handleExport"
+                    class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm w-full sm:w-auto shrink-0 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    :aria-busy="isExporting"
                 >
-                    <Download class="h-4 w-4" />
-                    <span>Ekspor CSV</span>
-                </a>
+                    <template v-if="isExporting">
+                        <svg class="animate-spin h-4 w-4 text-muted-foreground animate-duration-1000" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span role="status" aria-live="polite">Menyiapkan CSV...</span>
+                    </template>
+                    <template v-else>
+                        <Download class="h-4 w-4" />
+                        <span>Ekspor CSV</span>
+                    </template>
+                </button>
 
                 <!-- Business Switcher -->
                 <div v-if="businesses && businesses.length > 0" class="flex flex-col gap-1.5 min-w-[200px] w-full sm:w-auto">
@@ -239,6 +364,18 @@ const completenessClass = computed(() => {
                         </option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <!-- Export Feedback Alert Area -->
+        <div aria-live="polite" class="w-full">
+            <div
+                v-if="exportError"
+                role="alert"
+                class="flex items-center gap-3 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-400"
+            >
+                <AlertTriangle class="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
+                <span>{{ exportError }}</span>
             </div>
         </div>
 
