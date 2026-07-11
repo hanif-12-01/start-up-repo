@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -30,7 +29,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── PHP ────────────────────────────────────────────────
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
@@ -49,7 +47,6 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
-      # ── Node ───────────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -58,7 +55,6 @@ jobs:
 
       - run: npm ci
 
-      # ── Laravel bootstrap ──────────────────────────────────
       - name: Prepare environment
         run: |
           cp .env.example .env
@@ -66,7 +62,6 @@ jobs:
 
       - run: php artisan optimize:clear
 
-      # ── Backend checks ─────────────────────────────────────
       - name: PHP lint (Pint, changed files)
         shell: bash
         run: |
@@ -85,12 +80,7 @@ jobs:
           fi
 
           echo "Pint comparison: ${BASE_SHA}..${HEAD_SHA}"
-
           git rev-parse --verify "$HEAD_SHA^{commit}"
-
-          if ! [[ "$BASE_SHA" =~ ^0+$ ]]; then
-            git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null || true
-          fi
 
           mapfile -t PHP_FILES < <(
             git diff --name-only --diff-filter=ACMRT "$BASE_SHA" "$HEAD_SHA" |
@@ -108,24 +98,59 @@ jobs:
 
           ./vendor/bin/pint --parallel --test "${PHP_FILES[@]}"
 
-      - name: PHP static analysis (PHPStan)
-        run: composer run types:check
+      - name: PHP static analysis (PHPStan, changed files)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+
+            if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+              BASE_SHA="$(git hash-object -t tree /dev/null)"
+            fi
+          fi
+
+          echo "PHPStan comparison: ${BASE_SHA}..${HEAD_SHA}"
+          git rev-parse --verify "$HEAD_SHA^{commit}"
+
+          mapfile -t PHP_FILES < <(
+            git diff --name-only --diff-filter=ACMRT "$BASE_SHA" "$HEAD_SHA" |
+            grep '^wattwise-laravel/.*\.php$' |
+            sed 's#^wattwise-laravel/##' || true
+          )
+
+          if [[ ${#PHP_FILES[@]} -eq 0 ]]; then
+            echo "No changed Laravel PHP files to analyze."
+            exit 0
+          fi
+
+          echo "Analyzing changed Laravel PHP files:"
+          printf ' - %s\n' "${PHP_FILES[@]}"
+
+          php -d memory_limit=-1 vendor/bin/phpstan analyse \
+            --no-progress \
+            "${PHP_FILES[@]}"
+
+
+      - name: Vite production build
+        run: npm run build
 
       - name: PHPUnit tests
         run: php artisan test
 
-      # ── Frontend checks ────────────────────────────────────
       - name: ESLint
         run: npm run lint:check
 
       - name: TypeScript (vue-tsc)
         run: npm run types:check
 
-      - name: Vite production build
-        run: npm run build
-
   secret-scan:
-    name: Test Token and Gitleaks
+    name: Secret scan
     runs-on: ubuntu-latest
 
     steps:
@@ -133,19 +158,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Test token
-        env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "ERROR: Secret MY_GITHUB_PAT tidak ditemukan"
-            exit 1
-          fi
-
-          gh api "repos/${GITHUB_REPOSITORY}" \
-            --jq '"TOKEN BERHASIL! Repository: \(.full_name)"'
-
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
