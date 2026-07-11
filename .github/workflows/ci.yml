@@ -8,29 +8,71 @@ on:
 
 jobs:
   build:
+    name: Laravel CI
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: wattwise-laravel
+
     steps:
       - uses: actions/checkout@v4
 
+      # ── PHP ────────────────────────────────────────────────
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, bcmath, ctype, fileinfo, json, tokenizer
+          coverage: none
+
+      - name: Get Composer cache dir
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('wattwise-laravel/composer.lock') }}
+          restore-keys: composer-
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      # ── Node ───────────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: wattwise-laravel/package-lock.json
 
       - run: npm ci
 
-      - run: npx prisma validate
+      # ── Laravel bootstrap ──────────────────────────────────
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
-      - run: npx prisma generate
+      - run: php artisan optimize:clear
 
-      - run: npm run build
-        env:
-          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
-          DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
-          NEXTAUTH_URL: "http://localhost:3000"
-          NEXTAUTH_SECRET: "ci-test-secret-at-least-32-characters-long"
+      # ── Backend checks ─────────────────────────────────────
+      - name: PHP lint (Pint)
+        run: composer run lint:check
 
-      - run: npm audit --audit-level=high || true
+      - name: PHP static analysis (PHPStan)
+        run: composer run types:check
+
+      - name: PHPUnit tests
+        run: php artisan test
+
+      # ── Frontend checks ────────────────────────────────────
+      - name: ESLint
+        run: npm run lint:check
+
+      - name: TypeScript (vue-tsc)
+        run: npm run types:check
+
+      - name: Vite production build
+        run: npm run build
 
   secret-scan:
     runs-on: ubuntu-latest
