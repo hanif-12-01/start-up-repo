@@ -7,6 +7,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -26,6 +28,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read NotificationPreference|null $notificationPreference
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -50,17 +53,31 @@ class User extends Authenticatable implements PasskeyUser
 
     /**
      * Get the businesses for the user.
+     *
+     * @return HasMany<Business, $this>
      */
-    public function businesses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function businesses(): HasMany
     {
         return $this->hasMany(Business::class);
     }
 
     /**
      * Get the subscription for the user.
+     *
+     * @return HasOne<Subscription, $this>
      */
-    public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);
+    }
+
+    /**
+     * Get the notification (WhatsApp reminder) preference for the user.
+     *
+     * @return HasOne<NotificationPreference, $this>
+     */
+    public function notificationPreference(): HasOne
+    {
+        return $this->hasOne(NotificationPreference::class);
     }
 }

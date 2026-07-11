@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\WhatsAppGateway;
+use App\Services\ActiveBusinessResolver;
+use App\Services\WhatsApp\LogWhatsAppGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +18,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Services\ActiveBusinessResolver::class);
+        $this->app->singleton(ActiveBusinessResolver::class);
+
+        // Provider-neutral WhatsApp gateway. Only the safe, non-delivering
+        // "log" driver exists in this scope; future drivers bind here.
+        $this->app->bind(WhatsAppGateway::class, function ($app) {
+            return match (config('whatsapp.driver')) {
+                default => $app->make(LogWhatsAppGateway::class),
+            };
+        });
     }
 
     /**

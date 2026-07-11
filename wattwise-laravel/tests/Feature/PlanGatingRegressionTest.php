@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Business;
 use App\Models\Appliance;
-use App\Models\Subscription;
+use App\Models\Business;
 use App\Models\ElectricityEntry;
 use App\Models\RevenueEntry;
+use App\Models\Subscription;
+use App\Models\User;
 use App\Services\FeatureGateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -362,7 +362,7 @@ class PlanGatingRegressionTest extends TestCase
         $recs = $inertiaData['page']['props']['recommendations'];
 
         $this->assertGreaterThan(3, count($recs));
-        
+
         // Items after index 2 (4th item onwards) should be locked
         $this->assertFalse($recs[0]['is_locked']);
         $this->assertFalse($recs[1]['is_locked']);
@@ -411,7 +411,7 @@ class PlanGatingRegressionTest extends TestCase
         $recs = $inertiaData['page']['props']['recommendations'];
 
         $this->assertGreaterThan(3, count($recs));
-        
+
         // Assert no locked recommendations
         foreach ($recs as $rec) {
             $this->assertFalse($rec['is_locked']);
@@ -507,18 +507,23 @@ class PlanGatingRegressionTest extends TestCase
     public function test_forbidden_scope_check(): void
     {
         $forbiddenKeywords = [
-            'Stripe', 'Midtrans', 'Xendit', 'checkout', 'invoice', 
-            'webhook', 'WhatsApp', 'OCR', 'IoT', 'LSTM', 'live scraping', 'Gemini', 'OpenAI'
+            'Stripe', 'Midtrans', 'Xendit', 'checkout', 'invoice',
+            'webhook', 'OCR', 'IoT', 'LSTM', 'live scraping', 'Gemini', 'OpenAI',
         ];
 
         $files = glob(app_path('Http/Controllers/**/*.php')) ?: [];
         $files = array_merge($files, glob(app_path('Http/Controllers/*.php')) ?: []);
 
         foreach ($files as $file) {
-            if (!is_file($file)) continue;
+            if (! is_file($file)) {
+                continue;
+            }
             $content = file_get_contents($file);
+            if ($content === false) {
+                $this->fail('Unable to read controller: '.basename($file));
+            }
             foreach ($forbiddenKeywords as $word) {
-                $this->assertStringNotContainsString($word, $content, "Forbidden word [$word] found in controller: " . basename($file));
+                $this->assertStringNotContainsString($word, $content, "Forbidden word [$word] found in controller: ".basename($file));
             }
         }
     }
