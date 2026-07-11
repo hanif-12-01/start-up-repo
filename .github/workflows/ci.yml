@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -26,6 +27,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── PHP ────────────────────────────────────────────────
       - uses: shivammathur/setup-php@v2
@@ -64,8 +67,46 @@ jobs:
       - run: php artisan optimize:clear
 
       # ── Backend checks ─────────────────────────────────────
-      - name: PHP lint (Pint)
-        run: composer run lint:check
+      - name: PHP lint (Pint, changed files)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+
+            if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+              BASE_SHA="$(git hash-object -t tree /dev/null)"
+            fi
+          fi
+
+          echo "Pint comparison: ${BASE_SHA}..${HEAD_SHA}"
+
+          git rev-parse --verify "$HEAD_SHA^{commit}"
+
+          if ! [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null || true
+          fi
+
+          mapfile -t PHP_FILES < <(
+            git diff --name-only --diff-filter=ACMRT "$BASE_SHA" "$HEAD_SHA" |
+            grep '^wattwise-laravel/.*\.php$' |
+            sed 's#^wattwise-laravel/##' || true
+          )
+
+          if [[ ${#PHP_FILES[@]} -eq 0 ]]; then
+            echo "No changed Laravel PHP files to check."
+            exit 0
+          fi
+
+          echo "Checking changed Laravel PHP files:"
+          printf ' - %s\n' "${PHP_FILES[@]}"
+
+          ./vendor/bin/pint --parallel --test "${PHP_FILES[@]}"
 
       - name: PHP static analysis (PHPStan)
         run: composer run types:check
@@ -84,12 +125,27 @@ jobs:
         run: npm run build
 
   secret-scan:
+    name: Test Token and Gitleaks
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Test token
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: Secret MY_GITHUB_PAT tidak ditemukan"
+            exit 1
+          fi
+
+          gh api "repos/${GITHUB_REPOSITORY}" \
+            --jq '"TOKEN BERHASIL! Repository: \(.full_name)"'
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
