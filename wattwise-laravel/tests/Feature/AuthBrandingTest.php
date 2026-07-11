@@ -24,20 +24,23 @@ class AuthBrandingTest extends TestCase
         $path = resource_path($relativePath);
         $this->assertFileExists($path);
 
-        return file_get_contents($path);
+        $content = file_get_contents($path);
+        $this->assertNotFalse($content);
+
+        return $content;
     }
 
     public function test_login_screen_shows_wattwise_branding_and_copy(): void
     {
         $combined = $this->source('js/pages/auth/Login.vue')
-            . $this->source('js/layouts/auth/AuthSimpleLayout.vue');
+            .$this->source('js/layouts/auth/AuthSimpleLayout.vue');
 
         $required = [
             'WattWise AI',
             'Masuk ke WattWise AI',
             'Listrik Lebih Cerdas, Cash Flow Lebih Terkendali.',
             'SaaS electricity cost intelligence untuk pemilik kos, pengelola properti kecil, dan UMKM padat energi',
-            'Demo lokal: demo@wattwise.local / password',
+            'Demo lokal: {{ demo.credentials.email }} / {{ demo.credentials.password }}',
             'Akun demo hanya untuk pengujian lokal atau staging terkontrol, bukan kredensial produksi.',
         ];
 
@@ -112,7 +115,6 @@ class AuthBrandingTest extends TestCase
             'Estimasi tagihan listrik',
             'Hybrid AI Decision Support',
             'Demo lokal',
-            'demo@wattwise.local / password',
             'Kos Melati Purwokerto',
         ];
 
@@ -169,7 +171,7 @@ class AuthBrandingTest extends TestCase
 
     public function test_app_name_default_is_wattwise_not_laravel(): void
     {
-        $appTs = file_get_contents(resource_path('js/app.ts'));
+        $appTs = (string) file_get_contents(resource_path('js/app.ts'));
 
         // When VITE_APP_NAME is absent, the app name must fall back to
         // WattWise AI, never the Laravel default (which produced tab titles
@@ -192,7 +194,7 @@ class AuthBrandingTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->component('Welcome'));
     }
 
-    public function test_login_inertia_prop_show_demo_credentials_is_false_when_demo_flag_is_false(): void
+    public function test_login_inertia_prop_demo_is_disabled_when_demo_flag_is_false(): void
     {
         config(['demo.enabled' => false]);
 
@@ -200,11 +202,13 @@ class AuthBrandingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('auth/Login')
-                ->where('showDemoCredentials', false)
+                ->where('demo.enabled', false)
+                ->where('demo.ready', false)
+                ->missing('demo.credentials')
             );
     }
 
-    public function test_login_inertia_prop_show_demo_credentials_is_true_when_demo_flag_is_true(): void
+    public function test_login_inertia_prop_demo_is_enabled_but_not_ready_when_demo_flag_is_true_without_seeding(): void
     {
         config(['demo.enabled' => true]);
 
@@ -212,14 +216,17 @@ class AuthBrandingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('auth/Login')
-                ->where('showDemoCredentials', true)
+                ->where('demo.enabled', true)
+                ->where('demo.ready', false)
+                ->where('demo.message', 'Demo sementara tidak tersedia.')
+                ->missing('demo.credentials')
             );
     }
 
-    public function test_login_vue_conditionally_renders_banner_using_show_demo_credentials(): void
+    public function test_login_vue_conditionally_renders_banner_using_demo_enabled(): void
     {
         $login = $this->source('js/pages/auth/Login.vue');
 
-        $this->assertStringContainsString('v-if="showDemoCredentials"', $login);
+        $this->assertStringContainsString('v-if="demo.enabled"', $login);
     }
 }
