@@ -137,6 +137,9 @@ jobs:
             "${PHP_FILES[@]}"
 
 
+      - name: Vite production build
+        run: npm run build
+
       - name: PHPUnit tests
         run: php artisan test
 
@@ -145,9 +148,6 @@ jobs:
 
       - name: TypeScript (vue-tsc)
         run: npm run types:check
-
-      - name: Vite production build
-        run: npm run build
 
   secret-scan:
     name: Secret scan
