@@ -86,6 +86,15 @@ export default defineConfigWithVueTs(
             'resources/js/wayfinder/**',
         ],
     },
+    {
+        files: ['tests/**/*.ts'],
+        languageOptions: {
+            parserOptions: {
+                projectService: false,
+                project: './tsconfig.meter-ocr-test.json',
+            },
+        },
+    },
     prettier,
     {
         plugins: {

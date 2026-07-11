@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreElectricityEntryRequest;
+use App\Models\Business;
 use App\Models\ElectricityEntry;
+use App\Services\ActiveBusinessResolver;
 use App\Services\Electricity\ElectricityCalculator;
+use App\Services\FeatureGateService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,11 +17,12 @@ use Inertia\Response;
 class ElectricityEntryController extends Controller
 {
     protected ElectricityCalculator $calculator;
-    protected \App\Services\FeatureGateService $featureGateService;
+
+    protected FeatureGateService $featureGateService;
 
     public function __construct(
         ElectricityCalculator $calculator,
-        \App\Services\FeatureGateService $featureGateService
+        FeatureGateService $featureGateService
     ) {
         $this->calculator = $calculator;
         $this->featureGateService = $featureGateService;
@@ -29,19 +34,41 @@ class ElectricityEntryController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $resolver = app(\App\Services\ActiveBusinessResolver::class);
+        $resolver = app(ActiveBusinessResolver::class);
         $activeBusiness = $resolver->resolve($request);
         $businesses = $resolver->activeBusinesses($request);
         $entries = [];
+        $meterHistory = [];
 
         if ($activeBusiness) {
             $entries = $activeBusiness->electricityEntries()
                 ->orderBy('period_month', 'desc')
                 ->get();
+
+            $meterHistory = ElectricityEntry::query()
+                ->where('business_id', $activeBusiness->id)
+                ->whereNotNull('meter_end')
+                ->select(['period_month', 'meter_end'])
+                ->orderBy('period_month', 'desc')
+                ->get()
+                ->map(fn (ElectricityEntry $entry): array => [
+                    'period_month' => substr((string) $entry->period_month, 0, 10),
+                    'meter_end' => (float) $entry->meter_end,
+                ])
+                ->toArray();
         }
 
         $effectivePlan = $activeBusiness ? $this->featureGateService->getEffectivePlan($user, $activeBusiness) : null;
         $electricityLimit = $activeBusiness ? $this->featureGateService->limit($user, 'electricity.entries', $activeBusiness) : null;
+
+        $ocrConfig = [
+            'enabled' => (bool) config('meter_ocr.enabled'),
+            'driver' => config('meter_ocr.driver', 'browser'),
+            'minimum_confidence' => (int) config('meter_ocr.minimum_confidence', 75),
+            'maximum_file_size_kb' => (int) config('meter_ocr.maximum_file_size_kb', 8192),
+            'maximum_image_dimension' => (int) config('meter_ocr.maximum_image_dimension', 2400),
+            'processing_timeout_seconds' => (int) config('meter_ocr.processing_timeout_seconds', 30),
+        ];
 
         return Inertia::render('Electricity/Index', [
             'businesses' => $businesses,
@@ -49,6 +76,8 @@ class ElectricityEntryController extends Controller
             'entries' => $entries,
             'effectivePlan' => $effectivePlan,
             'electricityLimit' => $electricityLimit,
+            'meterHistory' => $meterHistory,
+            'ocrConfig' => $ocrConfig,
         ]);
     }
 
@@ -60,7 +89,7 @@ class ElectricityEntryController extends Controller
         $validated = $request->validated();
 
         // Normalize period_month to the first day of the month
-        $periodMonth = \Carbon\Carbon::parse($validated['period_month'])->startOfMonth();
+        $periodMonth = Carbon::parse($validated['period_month'])->startOfMonth();
 
         $businessId = $validated['business_id'];
 
@@ -69,17 +98,18 @@ class ElectricityEntryController extends Controller
             ->where('period_month', $periodMonth)
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             $user = $request->user();
-            $business = \App\Models\Business::find($businessId);
+            $business = Business::where('id', $businessId)->first();
             $limit = $this->featureGateService->limit($user, 'electricity.entries', $business);
             if ($limit !== null) {
                 $usage = $this->featureGateService->usage($user, 'electricity.entries', $business);
                 if ($usage >= $limit) {
-                    \Inertia\Inertia::flash('toast', [
+                    Inertia::flash('toast', [
                         'type' => 'error',
-                        'message' => $this->featureGateService->getUpgradeMessage('electricity.entries')
+                        'message' => $this->featureGateService->getUpgradeMessage('electricity.entries'),
                     ]);
+
                     return redirect()->back()->with('error', $this->featureGateService->getUpgradeMessage('electricity.entries'));
                 }
             }

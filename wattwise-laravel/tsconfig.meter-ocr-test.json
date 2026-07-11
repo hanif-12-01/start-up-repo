@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "resources/js/services/meter-ocr/meterReadingParser.ts",
+    "resources/js/services/meter-ocr/BrowserMeterOcrEngine.ts",
+    "tests/meter-ocr-parser.test.ts"
+  ]
+}
