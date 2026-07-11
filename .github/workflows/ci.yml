@@ -149,6 +149,9 @@ jobs:
       - name: TypeScript (vue-tsc)
         run: npm run types:check
 
+      - name: Meter OCR parser tests
+        run: npm run test:meter-ocr
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

@@ -38,6 +38,7 @@ credentials.json
 # no markdown files
 *.md
 **/*.md
+!docs/product/meter-ocr-manual-qa.md
 
 # vercel
 .vercel
