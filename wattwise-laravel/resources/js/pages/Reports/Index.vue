@@ -26,6 +26,8 @@ interface ElectricityData {
     usage_kwh: number | null;
     bill_amount: number | null;
     tariff_per_kwh: number | null;
+    meter_start: number | null;
+    meter_end: number | null;
     data_status: 'AVAILABLE' | 'MISSING';
 }
 
@@ -92,6 +94,10 @@ const props = defineProps<{
     isLocked?: boolean;
     businesses?: Business[];
     activeBusinessId?: number | null;
+    pdfExport?: {
+        enabled: boolean;
+        eligible: boolean;
+    };
 }>();
 
 defineOptions({
@@ -198,6 +204,7 @@ const completenessClass = computed(() => {
 });
 
 const isExporting = ref(false);
+const isPdfExporting = ref(false);
 const exportError = ref<string | null>(null);
 
 const isEligible = computed(() => {
@@ -212,6 +219,22 @@ const isEligible = computed(() => {
 
 const exportUrl = computed(() => {
     return `/reports/export?month=${encodeURIComponent(props.report.selected_month)}`;
+});
+
+const isPdfEligible = computed(() => {
+    return !!(
+        props.pdfExport?.enabled &&
+        props.pdfExport.eligible &&
+        props.report.business &&
+        props.activeBusinessId &&
+        !props.isLocked &&
+        props.report.available_months.includes(props.report.selected_month) &&
+        !isPdfExporting.value
+    );
+});
+
+const pdfUrl = computed(() => {
+    return `/reports/${encodeURIComponent(String(props.activeBusinessId ?? ''))}/pdf?month=${encodeURIComponent(props.report.selected_month)}`;
 });
 
 const sanitizeDownloadFilename = (value: string, fallback: string) => {
@@ -309,6 +332,73 @@ const handleExport = async () => {
         isExporting.value = false;
     }
 };
+
+const handlePdfExport = async () => {
+    if (!isPdfEligible.value || isPdfExporting.value) {
+        return;
+    }
+
+    isPdfExporting.value = true;
+    exportError.value = null;
+
+    try {
+        const response = await fetch(pdfUrl.value, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        });
+
+        if (!response.ok) {
+            exportError.value = response.status === 403
+                ? 'Unduh PDF tersedia untuk paket Pro atau trial aktif.'
+                : response.status === 422
+                    ? 'Parameter bulan tidak valid.'
+                    : 'PDF belum dapat diunduh. Silakan coba lagi.';
+
+            return;
+        }
+
+        const mediaType = response.headers.get('Content-Type')?.split(';', 1)[0]?.trim().toLowerCase();
+
+        if (mediaType !== 'application/pdf') {
+            exportError.value = 'PDF belum dapat diunduh. Silakan coba lagi.';
+
+            return;
+        }
+
+        const blob = await response.blob();
+        let filename = `wattwise-laporan-usaha-${props.report.selected_month}.pdf`;
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filenameMatch = contentDisposition?.match(/filename\s*=\s*"([^"]+)"/i);
+
+        if (filenameMatch?.[1]) {
+            const candidate = filenameMatch[1]
+                .split(/[\\/]/)
+                .pop()
+                ?.replace(/[\u0000-\u001f\u007f]/g, '')
+                .replace(/^"+|"+$/g, '')
+                .trim();
+
+            if (candidate && candidate !== '.' && candidate !== '..') {
+                filename = candidate.toLowerCase().endsWith('.pdf') ? candidate : `${candidate}.pdf`;
+            }
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    } catch {
+        exportError.value = 'PDF belum dapat diunduh. Silakan coba lagi.';
+    } finally {
+        isPdfExporting.value = false;
+    }
+};
 </script>
 
 <template>
@@ -328,6 +418,21 @@ const handleExport = async () => {
 
             <!-- Actions & Business Switcher -->
             <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full sm:w-auto">
+                <button
+                    v-if="report.business && pdfExport?.enabled && report.available_months.length > 0"
+                    type="button"
+                    :disabled="!isPdfEligible || isPdfExporting"
+                    @click="handlePdfExport"
+                    class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors shadow-sm hover:bg-primary/90 w-full sm:w-auto shrink-0 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    :aria-busy="isPdfExporting"
+                    :title="pdfExport.eligible ? 'Unduh laporan PDF' : 'Tersedia untuk paket Pro atau trial aktif'"
+                >
+                    <Download class="h-4 w-4" />
+                    <span v-if="isPdfExporting" role="status" aria-live="polite">Menyiapkan PDF...</span>
+                    <span v-else-if="pdfExport.eligible">Unduh PDF</span>
+                    <span v-else>PDF Paket Pro</span>
+                </button>
+
                 <!-- Export button -->
                 <button
                     v-if="report.business && !isLocked && report.available_months.length > 0"

@@ -3,10 +3,12 @@
 namespace App\Services\Reports;
 
 use App\Models\Business;
-use App\Services\Electricity\ElectricityCalculator;
+use App\Models\ElectricityEntry;
+use App\Models\RevenueEntry;
 use App\Services\Appliances\ApplianceEstimator;
-use App\Services\Recommendations\RecommendationService;
+use App\Services\Electricity\ElectricityCalculator;
 use App\Services\Recommendations\EfficiencyScoreService;
+use App\Services\Recommendations\RecommendationService;
 use Carbon\Carbon;
 
 class MonthlyReportService
@@ -21,14 +23,13 @@ class MonthlyReportService
     /**
      * Generate the monthly report summary.
      *
-     * @param Business|null $business
-     * @param string|null $selectedMonth
-     * @return array
+     * @return array<string, mixed>
      */
     public function generate(?Business $business, ?string $selectedMonth = null): array
     {
         if ($business === null) {
             $currentMonth = Carbon::now()->format('Y-m');
+
             return [
                 'business' => null,
                 'selected_month' => $currentMonth,
@@ -38,6 +39,8 @@ class MonthlyReportService
                     'usage_kwh' => null,
                     'bill_amount' => null,
                     'tariff_per_kwh' => null,
+                    'meter_start' => null,
+                    'meter_end' => null,
                     'data_status' => 'MISSING',
                 ],
                 'revenue' => [
@@ -69,7 +72,7 @@ class MonthlyReportService
 
         // Load Electricity Entry
         $electricityEntry = $business->electricityEntries()
-            ->whereDate('period_month', $normalizedMonth . '-01')
+            ->whereDate('period_month', $normalizedMonth.'-01')
             ->first();
 
         $usageKwh = $electricityEntry ? ($electricityEntry->usage_kwh !== null ? (float) $electricityEntry->usage_kwh : null) : null;
@@ -87,7 +90,7 @@ class MonthlyReportService
 
         // Load Revenue Entry
         $revenueEntry = $business->revenueEntries()
-            ->whereDate('period_month', $normalizedMonth . '-01')
+            ->whereDate('period_month', $normalizedMonth.'-01')
             ->first();
 
         $revenueAmount = $revenueEntry ? ($revenueEntry->revenue_amount_idr !== null ? (float) $revenueEntry->revenue_amount_idr : null) : null;
@@ -146,12 +149,13 @@ class MonthlyReportService
             if ($diff !== 0) {
                 return $diff;
             }
-            $nameA = $a['name'] ?? '';
-            $nameB = $b['name'] ?? '';
+            $nameA = $a['name'];
+            $nameB = $b['name'];
             $nameDiff = strcmp($nameA, $nameB);
             if ($nameDiff !== 0) {
                 return $nameDiff;
             }
+
             return $a['id'] <=> $b['id'];
         });
 
@@ -179,6 +183,8 @@ class MonthlyReportService
                 'usage_kwh' => $usageKwh,
                 'bill_amount' => $billAmount,
                 'tariff_per_kwh' => $tariffPerKwh,
+                'meter_start' => $electricityEntry?->meter_start !== null ? (float) $electricityEntry->meter_start : null,
+                'meter_end' => $electricityEntry?->meter_end !== null ? (float) $electricityEntry->meter_end : null,
                 'data_status' => $electricityEntry ? 'AVAILABLE' : 'MISSING',
             ],
             'revenue' => [
@@ -202,15 +208,17 @@ class MonthlyReportService
     /**
      * Get list of unique available months.
      *
-     * @param Business $business
-     * @return array
+     * @return list<string>
      */
     public function getAvailableMonths(Business $business): array
     {
         $electricityMonths = $business->electricityEntries()
             ->pluck('period_month')
-            ->map(function ($date) {
-                if (!$date) return null;
+            ->map(function (mixed $date): ?string {
+                if (! $date) {
+                    return null;
+                }
+
                 return Carbon::parse($date)->format('Y-m');
             })
             ->filter()
@@ -218,8 +226,11 @@ class MonthlyReportService
 
         $revenueMonths = $business->revenueEntries()
             ->pluck('period_month')
-            ->map(function ($date) {
-                if (!$date) return null;
+            ->map(function (mixed $date): ?string {
+                if (! $date) {
+                    return null;
+                }
+
                 return Carbon::parse($date)->format('Y-m');
             })
             ->filter()
@@ -228,15 +239,13 @@ class MonthlyReportService
         $allMonths = array_unique(array_merge($electricityMonths, $revenueMonths));
         rsort($allMonths);
 
-        return array_values($allMonths);
+        return $allMonths;
     }
 
     /**
      * Normalize selected month to YYYY-MM format, falling back safely if invalid.
      *
-     * @param string|null $selectedMonth
-     * @param array $availableMonths
-     * @return string
+     * @param  list<string>  $availableMonths
      */
     public function normalizeSelectedMonth(?string $selectedMonth, array $availableMonths): string
     {
@@ -244,7 +253,7 @@ class MonthlyReportService
             return $selectedMonth;
         }
 
-        if (!empty($availableMonths)) {
+        if (! empty($availableMonths)) {
             return $availableMonths[0];
         }
 
@@ -256,7 +265,7 @@ class MonthlyReportService
      */
     private function isValidMonth(?string $month): bool
     {
-        if (!$month) {
+        if (! $month) {
             return false;
         }
 
@@ -266,6 +275,7 @@ class MonthlyReportService
 
         try {
             Carbon::createFromFormat('Y-m', $month);
+
             return true;
         } catch (\Exception) {
             return false;
@@ -275,26 +285,25 @@ class MonthlyReportService
     /**
      * Resolve the data completeness status based on available records.
      */
-    private function resolveDataCompleteness($electricityEntry, $revenueEntry, int $applianceCount): string
-    {
+    private function resolveDataCompleteness(
+        ?ElectricityEntry $electricityEntry,
+        ?RevenueEntry $revenueEntry,
+        int $applianceCount,
+    ): string {
         $hasElectricity = ($electricityEntry !== null);
         $hasRevenue = ($revenueEntry !== null);
         $hasAppliances = ($applianceCount > 0);
 
-        if ($hasElectricity && $hasRevenue && $hasAppliances) {
-            return 'COMPLETE';
+        if ($hasElectricity && $hasRevenue) {
+            return $hasAppliances ? 'COMPLETE' : 'NO_APPLIANCES';
         }
 
-        if (!$hasElectricity && $hasRevenue) {
+        if (! $hasElectricity && $hasRevenue) {
             return 'NO_ELECTRICITY';
         }
 
-        if ($hasElectricity && !$hasRevenue) {
+        if ($hasElectricity) {
             return 'NO_REVENUE';
-        }
-
-        if ($hasElectricity && $hasRevenue && !$hasAppliances) {
-            return 'NO_APPLIANCES';
         }
 
         return 'PARTIAL';
@@ -302,6 +311,8 @@ class MonthlyReportService
 
     /**
      * Get the static safe disclaimers.
+     *
+     * @return list<string>
      */
     private function getDisclaimers(): array
     {
@@ -309,7 +320,7 @@ class MonthlyReportService
             'Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.',
             'WattWise AI bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan bukan alat ukur listrik resmi.',
             'Perhitungan peralatan berdasarkan data daya dan jam pakai yang Anda input. Tanpa sensor, WattWise AI tidak mengukur konsumsi aktual tiap alat.',
-            'Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.'
+            'Sisa pendapatan setelah listrik belum memperhitungkan biaya operasional lain seperti bahan baku, gaji, sewa, air, internet, dan biaya lainnya.',
         ];
     }
 }

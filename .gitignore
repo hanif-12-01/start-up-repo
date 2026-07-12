@@ -39,6 +39,7 @@ credentials.json
 *.md
 **/*.md
 !docs/product/meter-ocr-manual-qa.md
+!docs/product/pdf-reports-manual-qa.md
 
 # vercel
 .vercel

@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Models\Appliance;
 use App\Models\Business;
-use App\Models\Subscription;
 use App\Models\ElectricityEntry;
 use App\Models\RevenueEntry;
-use App\Models\Appliance;
+use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 class FeatureGateService
@@ -22,6 +22,7 @@ class FeatureGateService
                 'recommendations.view' => true,
                 'reports.view' => true,
                 'reports.full' => false,
+                'reports.pdf' => false,
                 'export.pdf' => false,
                 'ads.hidden' => false,
                 // Sprint 1 prediction & anomaly entitlement contract
@@ -37,7 +38,7 @@ class FeatureGateService
                 'appliances.manage' => 10,
                 'businesses.multiple' => 1,
                 'team.members' => 0,
-            ]
+            ],
         ],
         'PRO_TRIAL' => [
             'label' => 'Pro Trial',
@@ -48,6 +49,7 @@ class FeatureGateService
                 'recommendations.view' => true,
                 'reports.view' => true,
                 'reports.full' => true,
+                'reports.pdf' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
                 // Sprint 1 prediction & anomaly entitlement contract
@@ -63,7 +65,7 @@ class FeatureGateService
                 'appliances.manage' => null,
                 'businesses.multiple' => 3,
                 'team.members' => 0,
-            ]
+            ],
         ],
         'PRO' => [
             'label' => 'Pro',
@@ -74,6 +76,7 @@ class FeatureGateService
                 'recommendations.view' => true,
                 'reports.view' => true,
                 'reports.full' => true,
+                'reports.pdf' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
                 // Sprint 1 prediction & anomaly entitlement contract
@@ -89,7 +92,7 @@ class FeatureGateService
                 'appliances.manage' => null,
                 'businesses.multiple' => 3,
                 'team.members' => 0,
-            ]
+            ],
         ],
         'BUSINESS' => [
             'label' => 'Business',
@@ -100,6 +103,7 @@ class FeatureGateService
                 'recommendations.view' => true,
                 'reports.view' => true,
                 'reports.full' => true,
+                'reports.pdf' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
                 // Sprint 1 prediction & anomaly entitlement contract
@@ -115,7 +119,7 @@ class FeatureGateService
                 'appliances.manage' => null,
                 'businesses.multiple' => 50,
                 'team.members' => 5,
-            ]
+            ],
         ],
         'ENTERPRISE' => [
             'label' => 'Enterprise / Custom',
@@ -126,6 +130,7 @@ class FeatureGateService
                 'recommendations.view' => true,
                 'reports.view' => true,
                 'reports.full' => true,
+                'reports.pdf' => true,
                 'export.pdf' => false,
                 'ads.hidden' => true,
                 // Sprint 1 prediction & anomaly entitlement contract
@@ -141,23 +146,21 @@ class FeatureGateService
                 'appliances.manage' => null,
                 'businesses.multiple' => null,
                 'team.members' => null,
-            ]
-        ]
+            ],
+        ],
     ];
 
     /**
      * Get the effective active plan for a user.
      * Evaluates trial status expiration.
      *
-     * @param User $user
-     * @param Business|null $business
-     * @return array
+     * @return array{id: string, label: string, is_trial: bool, is_expired: bool, trial_ends_at: CarbonInterface|null, remaining_trial_days: int}
      */
     public function getEffectivePlan(User $user, ?Business $business = null): array
     {
         $subscription = $user->subscription;
 
-        if (!$subscription) {
+        if (! $subscription) {
             return [
                 'id' => 'FREE',
                 'label' => self::PLANS['FREE']['label'],
@@ -170,7 +173,7 @@ class FeatureGateService
 
         $planId = strtoupper($subscription->plan);
 
-        if (!array_key_exists($planId, self::PLANS)) {
+        if (! array_key_exists($planId, self::PLANS)) {
             $planId = 'FREE';
         }
 
@@ -229,11 +232,8 @@ class FeatureGateService
     /**
      * Calculate the whole number of days remaining until a trial ends (rounded up).
      * Returns 0 when there is no active future trial end date.
-     *
-     * @param \Carbon\CarbonInterface|null $trialEndsAt
-     * @return int
      */
-    private function calculateRemainingTrialDays(?\Carbon\CarbonInterface $trialEndsAt): int
+    private function calculateRemainingTrialDays(?CarbonInterface $trialEndsAt): int
     {
         if ($trialEndsAt === null) {
             return 0;
@@ -241,7 +241,7 @@ class FeatureGateService
 
         $now = Carbon::now();
 
-        if (!$trialEndsAt->greaterThan($now)) {
+        if (! $trialEndsAt->greaterThan($now)) {
             return 0;
         }
 
@@ -252,11 +252,6 @@ class FeatureGateService
 
     /**
      * Check if a feature is enabled.
-     *
-     * @param User $user
-     * @param string $featureKey
-     * @param Business|null $business
-     * @return bool
      */
     public function can(User $user, string $featureKey, ?Business $business = null): bool
     {
@@ -268,11 +263,6 @@ class FeatureGateService
 
     /**
      * Get the limit value for a key. Returns null for unlimited.
-     *
-     * @param User $user
-     * @param string $limitKey
-     * @param Business|null $business
-     * @return int|null
      */
     public function limit(User $user, string $limitKey, ?Business $business = null): ?int
     {
@@ -284,11 +274,6 @@ class FeatureGateService
 
     /**
      * Calculate current usage for a limit key.
-     *
-     * @param User $user
-     * @param string $limitKey
-     * @param Business|null $business
-     * @return int
      */
     public function usage(User $user, string $limitKey, ?Business $business = null): int
     {
@@ -298,15 +283,24 @@ class FeatureGateService
 
         switch ($limitKey) {
             case 'electricity.entries':
-                if (!$business) return 0;
+                if (! $business) {
+                    return 0;
+                }
+
                 return ElectricityEntry::where('business_id', $business->id)->count();
 
             case 'revenue.entries':
-                if (!$business) return 0;
+                if (! $business) {
+                    return 0;
+                }
+
                 return RevenueEntry::where('business_id', $business->id)->count();
 
             case 'appliances.manage':
-                if (!$business) return 0;
+                if (! $business) {
+                    return 0;
+                }
+
                 return Appliance::where('business_id', $business->id)->count();
 
             case 'businesses.multiple':
@@ -326,9 +320,6 @@ class FeatureGateService
 
     /**
      * Get upgrade prompt message.
-     *
-     * @param string $featureKey
-     * @return string
      */
     public function getUpgradeMessage(string $featureKey): string
     {
@@ -345,6 +336,8 @@ class FeatureGateService
                 return 'Buka seluruh rekomendasi penghematan energi detail dengan paket Pro.';
             case 'reports.full':
                 return 'Akses laporan lengkap dan riwayat bulan-bulan sebelumnya dengan paket Pro.';
+            case 'reports.pdf':
+                return 'Unduh laporan bulanan PDF dengan paket Pro.';
             case 'businesses.multiple':
                 return 'Kelola beberapa bisnis atau properti sewaan secara terpusat dengan paket Business.';
             default:
