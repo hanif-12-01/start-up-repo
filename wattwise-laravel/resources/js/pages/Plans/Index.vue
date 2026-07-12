@@ -35,8 +35,17 @@ interface UsageMetric {
     limit: number | null;
 }
 
-defineProps<{
+interface BillingPlanSummary {
+    code: 'free' | 'pro' | 'business';
+    name: string;
+    price_amount: number;
+    currency: string;
+    interval: string;
+}
+
+const props = defineProps<{
     effectivePlan: PlanDetail;
+    billingPlans: BillingPlanSummary[];
     usage: {
         electricity_entries: UsageMetric;
         revenue_entries: UsageMetric;
@@ -62,7 +71,7 @@ defineOptions({
 
 const page = usePage();
 const billingEnabled = computed(
-    () => (page.props as Record<string, any>).billingEnabled === true,
+    () => page.props.billingEnabled === true,
 );
 const isProcessing = ref(false);
 
@@ -83,7 +92,7 @@ const idempotencyKeys = ref<Record<string, string>>({});
 
 const getOrGenerateIdempotencyKey = (planCode: string) => {
     if (!idempotencyKeys.value[planCode]) {
-        const userId = (page.props as any).auth?.user?.id ?? 'guest';
+        const userId = page.props.auth.user?.id ?? 'guest';
         idempotencyKeys.value[planCode] =
             `${userId}-${planCode}-${Math.random().toString(36).substring(2, 15)}`;
     }
@@ -134,12 +143,26 @@ const formatDate = (dateStr: string | null) => {
     });
 };
 
-// Plan options metadata
-const planCards = [
+const serverPrice = (code: BillingPlanSummary['code'], fallback: string) => {
+    const plan = props.billingPlans.find((candidate) => candidate.code === code);
+
+    if (!plan) {
+        return fallback;
+    }
+
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: plan.currency,
+        minimumFractionDigits: 0,
+    }).format(plan.price_amount);
+};
+
+// Plan feature copy remains product-owned; canonical billing prices come from the server.
+const planCards = computed(() => [
     {
         id: 'FREE',
         name: 'Gratis',
-        price: 'Rp 0',
+        price: serverPrice('free', 'Rp 0'),
         period: 'selamanya',
         description:
             'Untuk usaha mikro yang baru memulai pelacakan pengeluaran listrik.',
@@ -164,7 +187,7 @@ const planCards = [
     {
         id: 'PRO',
         name: 'Pro',
-        price: 'Rp 49.000',
+        price: serverPrice('pro', 'Rp 49.000'),
         period: 'bulan',
         description:
             'Ideal untuk pemilik kos dan UMKM padat energi yang butuh wawasan mendalam.',
@@ -184,7 +207,7 @@ const planCards = [
     {
         id: 'BUSINESS',
         name: 'Business',
-        price: 'Rp 149.000',
+        price: serverPrice('business', 'Rp 149.000'),
         period: 'bulan',
         description:
             'Untuk bisnis dengan banyak cabang, kos multi-lokasi, atau manajemen tim.',
@@ -219,7 +242,7 @@ const planCards = [
         buttonVariant: 'outline' as const,
         popular: false,
     },
-];
+]);
 
 const matrixFeatures = [
     {
@@ -319,28 +342,18 @@ const matrixFeatures = [
         <!-- Staging Sandbox Billing Alert -->
         <div
             v-if="billingEnabled"
-            class="flex flex-col items-start justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary shadow-sm sm:flex-row sm:items-center"
+            class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary shadow-sm"
         >
-            <div class="flex items-center gap-3">
-                <FlaskConical class="h-5 w-5 flex-shrink-0 text-primary" />
-                <div>
-                    <span class="block font-bold"
-                        >Mode Staging: Simulasi Billing Aktif</span
-                    >
-                    <span class="text-xs text-muted-foreground"
-                        >Anda dapat menguji alur pembayaran penuh tanpa biaya
-                        nyata.</span
-                    >
-                </div>
+            <FlaskConical class="h-5 w-5 flex-shrink-0 text-primary" />
+            <div>
+                <span class="block font-bold"
+                    >Mode Staging: Simulasi Billing Aktif</span
+                >
+                <span class="text-xs text-muted-foreground"
+                    >Simulasi pembayaran — tidak ada uang yang
+                    ditagihkan.</span
+                >
             </div>
-            <Button
-                size="sm"
-                variant="outline"
-                class="flex w-full items-center gap-1.5 border-primary font-semibold text-primary hover:bg-primary/10 sm:w-auto"
-                @click="router.get('/billing')"
-            >
-                <FlaskConical class="h-3.5 w-3.5" /> Buka Simulator Billing
-            </Button>
         </div>
 
         <!-- Current Active Plan Card -->

@@ -43,7 +43,6 @@ defineOptions({
         breadcrumbs: [
             { title: 'Beranda', href: '/dashboard' },
             { title: 'Paket & Langganan', href: '/plans' },
-            { title: 'Simulasi Billing', href: '/billing' },
             { title: 'Simulasi Pembayaran', href: '#' },
         ],
     },

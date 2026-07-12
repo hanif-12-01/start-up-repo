@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Contracts\BillingProvider;
 use App\Models\BillingPlan;
+use App\Models\Business;
+use App\Models\ElectricityEntry;
+use App\Models\RevenueEntry;
 use App\Models\SandboxInvoice;
 use App\Models\SandboxPayment;
 use App\Models\Subscription;
@@ -13,8 +16,13 @@ use App\Services\Billing\SandboxSimulatorProvider;
 use App\Services\Billing\UnknownBillingDriverException;
 use App\Services\FeatureGateService;
 use Database\Seeders\BillingPlanSeeder;
+use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
+use RuntimeException;
 use Tests\TestCase;
 
 class SandboxBillingTest extends TestCase
@@ -55,27 +63,70 @@ class SandboxBillingTest extends TestCase
         config(['billing.enabled' => false]);
 
         $this->actingAs($this->user)
-            ->get(route('billing.index'))
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
             ->assertNotFound();
     }
 
     public function test_production_hard_refusal_even_when_misconfigured(): void
     {
+        $this->withoutMiddleware(PreventRequestForgery::class);
         config(['billing.enabled' => true, 'billing.driver' => 'sandbox']);
         app()->detectEnvironment(fn () => 'production');
 
         $this->actingAs($this->user)
-            ->get(route('billing.index'))
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
             ->assertNotFound();
     }
 
     public function test_local_allowed_when_enabled(): void
     {
+        $this->withoutMiddleware(PreventRequestForgery::class);
+        app()->detectEnvironment(fn () => 'local');
         config(['billing.enabled' => true, 'billing.driver' => 'sandbox']);
 
         $this->actingAs($this->user)
-            ->get(route('billing.index'))
-            ->assertOk();
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
+            ->assertRedirect();
+    }
+
+    public function test_testing_allowed_when_enabled(): void
+    {
+        app()->detectEnvironment(fn () => 'testing');
+
+        $this->actingAs($this->user)
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
+            ->assertRedirect();
+    }
+
+    public function test_staging_allowed_when_enabled(): void
+    {
+        $this->withoutMiddleware(PreventRequestForgery::class);
+        app()->detectEnvironment(fn () => 'staging');
+
+        $this->actingAs($this->user)
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
+            ->assertRedirect();
+    }
+
+    public function test_non_allowlisted_environments_fail_closed(): void
+    {
+        $this->withoutMiddleware(PreventRequestForgery::class);
+        foreach (['preview', 'qa', 'development', 'unknown-environment'] as $environment) {
+            app()->detectEnvironment(fn () => $environment);
+
+            $this->actingAs($this->user)
+                ->post(route('billing.checkout'), ['plan_code' => 'pro'])
+                ->assertNotFound();
+        }
+    }
+
+    public function test_simulation_only_must_be_explicitly_enabled(): void
+    {
+        config(['billing.simulation_only' => false]);
+
+        $this->actingAs($this->user)
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
+            ->assertNotFound();
     }
 
     public function test_disabled_driver_returns_404(): void
@@ -83,7 +134,7 @@ class SandboxBillingTest extends TestCase
         config(['billing.enabled' => true, 'billing.driver' => 'disabled']);
 
         $this->actingAs($this->user)
-            ->get(route('billing.index'))
+            ->post(route('billing.checkout'), ['plan_code' => 'pro'])
             ->assertNotFound();
     }
 
@@ -103,6 +154,15 @@ class SandboxBillingTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('dashboard'))
             ->assertInertia(fn ($page) => $page->where('billingEnabled', true));
+    }
+
+    public function test_navigation_and_inertia_props_are_hidden_in_refused_environment(): void
+    {
+        app()->detectEnvironment(fn () => 'preview');
+
+        $this->actingAs($this->user)
+            ->get(route('plans.index'))
+            ->assertInertia(fn ($page) => $page->where('billingEnabled', false));
     }
 
     // === Phase 3: Subscription integration ===
@@ -133,20 +193,25 @@ class SandboxBillingTest extends TestCase
 
     public function test_guest_redirected_from_billing(): void
     {
-        $this->get(route('billing.index'))->assertRedirect(route('login'));
+        $this->post(route('billing.checkout'), ['plan_code' => 'pro'])->assertRedirect(route('login'));
     }
 
-    public function test_billing_page_shows_plans(): void
+    public function test_plans_page_is_the_only_plan_selection_source(): void
     {
         $this->actingAs($this->user)
-            ->get(route('billing.index'))
+            ->get(route('plans.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Billing/Index')
-                ->where('sandbox', true)
-                ->where('effectivePlan.id', 'FREE')
-                ->has('plans', 3)
+                ->component('Plans/Index')
+                ->where('billingEnabled', true)
+                ->has('billingPlans', 3)
+                ->where('billingPlans.1.code', 'pro')
+                ->where('billingPlans.1.price_amount', 49000)
+                ->where('billingPlans.2.code', 'business')
+                ->where('billingPlans.2.price_amount', 149000)
             );
+
+        $this->assertFalse(Route::has('billing.index'));
     }
 
     // === Behavioral proof: FREE → PRO → feature gates change ===
@@ -164,7 +229,7 @@ class SandboxBillingTest extends TestCase
         $payment = $this->startCheckout('pro');
         $this->actingAs($this->user)
             ->post(route('billing.payment.simulate', $payment), ['outcome' => 'success'])
-            ->assertRedirect(route('billing.index'));
+            ->assertRedirect(route('plans.index'));
 
         // Step 4: FeatureGateService reports PRO
         $this->user->unsetRelation('subscription');
@@ -173,6 +238,40 @@ class SandboxBillingTest extends TestCase
 
         // Step 5: reports.pdf now allowed
         $this->assertTrue($this->featureGateService->can($this->user, 'reports.pdf'));
+    }
+
+    public function test_simulated_pro_success_unlocks_the_pdf_route(): void
+    {
+        config(['pdf_reports.enabled' => true]);
+        $business = Business::create([
+            'user_id' => $this->user->id,
+            'name' => 'Kos Billing QA',
+            'business_type' => 'KOS_PROPERTY',
+            'status' => Business::STATUS_ACTIVE,
+        ]);
+        ElectricityEntry::create([
+            'business_id' => $business->id,
+            'period_month' => '2026-06-01',
+            'usage_kwh' => 120,
+            'bill_amount_idr' => 180000,
+        ]);
+        RevenueEntry::create([
+            'business_id' => $business->id,
+            'period_month' => '2026-06-01',
+            'revenue_amount_idr' => 5000000,
+            'revenue_input_mode' => 'EXACT',
+        ]);
+
+        $pdfRoute = route('reports.pdf', ['business' => $business, 'month' => '2026-06']);
+        $this->actingAs($this->user)->get($pdfRoute)->assertForbidden();
+
+        $payment = $this->startCheckout('pro');
+        app(BillingService::class)->simulateSuccess($payment);
+        $this->user->unsetRelation('subscription');
+
+        $response = $this->actingAs($this->user)->get($pdfRoute);
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', (string) $response->getContent());
     }
 
     public function test_failure_leaves_plan_unchanged(): void
@@ -207,6 +306,7 @@ class SandboxBillingTest extends TestCase
     {
         $payment = $this->startCheckout('pro');
         app(BillingService::class)->simulateSuccess($payment);
+        $payment->refresh();
 
         $this->user->unsetRelation('subscription');
         $this->assertSame('PRO', $this->featureGateService->getEffectivePlan($this->user)['id']);
@@ -237,6 +337,64 @@ class SandboxBillingTest extends TestCase
 
         $this->assertSame(1, SandboxInvoice::where('user_id', $this->user->id)->where('idempotency_key', $key)->count());
         $this->assertSame(1, SandboxPayment::where('user_id', $this->user->id)->count());
+    }
+
+    public function test_same_key_for_different_plan_creates_distinct_attempt(): void
+    {
+        $key = 'same-key-different-plan';
+        $service = app(BillingService::class);
+        $pro = BillingPlan::where('code', 'pro')->firstOrFail();
+        $business = BillingPlan::where('code', 'business')->firstOrFail();
+
+        $proPayment = $service->startCheckout($this->user, $pro, $key);
+        $businessPayment = $service->startCheckout($this->user, $business, $key);
+
+        $this->assertNotSame($proPayment->id, $businessPayment->id);
+        $this->assertSame($pro->id, $proPayment->invoice->plan_id);
+        $this->assertSame($business->id, $businessPayment->invoice->plan_id);
+        $this->assertSame(2, SandboxInvoice::where('user_id', $this->user->id)->where('idempotency_key', $key)->count());
+    }
+
+    public function test_terminal_checkout_retries_return_existing_attempt(): void
+    {
+        $service = app(BillingService::class);
+        $plan = BillingPlan::where('code', 'pro')->firstOrFail();
+
+        foreach (['success', 'failure', 'cancellation'] as $outcome) {
+            $key = 'terminal-retry-'.$outcome;
+            $payment = $service->startCheckout($this->user, $plan, $key);
+
+            match ($outcome) {
+                'success' => $service->simulateSuccess($payment),
+                'failure' => $service->simulateFailure($payment),
+                'cancellation' => $service->simulateCancellation($payment),
+            };
+
+            $retried = $service->startCheckout($this->user, $plan, $key);
+            $this->assertSame($payment->id, $retried->id);
+            $this->assertSame(1, SandboxInvoice::where('user_id', $this->user->id)->where('plan_id', $plan->id)->where('idempotency_key', $key)->count());
+            $this->assertSame(1, SandboxPayment::where('invoice_id', $payment->invoice_id)->count());
+        }
+    }
+
+    public function test_database_enforces_one_payment_per_invoice(): void
+    {
+        $payment = $this->startCheckout('pro');
+
+        try {
+            SandboxPayment::create([
+                'user_id' => $payment->user_id,
+                'invoice_id' => $payment->invoice_id,
+                'provider' => SandboxSimulatorProvider::IDENTIFIER,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+                'status' => SandboxPayment::STATUS_PENDING,
+                'simulated' => true,
+            ]);
+            $this->fail('A second payment for one invoice must violate the database constraint.');
+        } catch (QueryException) {
+            $this->assertSame(1, SandboxPayment::where('invoice_id', $payment->invoice_id)->count());
+        }
     }
 
     public function test_different_user_same_idempotency_key_creates_separate(): void
@@ -299,7 +457,7 @@ class SandboxBillingTest extends TestCase
         $payment = $this->startCheckout('pro');
         app(BillingService::class)->simulateFailure($payment);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         app(BillingService::class)->simulateSuccess($payment);
     }
 
@@ -308,7 +466,7 @@ class SandboxBillingTest extends TestCase
         $payment = $this->startCheckout('pro');
         app(BillingService::class)->simulateSuccess($payment);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         app(BillingService::class)->simulateFailure($payment);
     }
 
@@ -326,7 +484,117 @@ class SandboxBillingTest extends TestCase
         $payment = $this->startCheckout('pro');
         app(BillingService::class)->simulateCancellation($payment);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
+        app(BillingService::class)->simulateSuccess($payment);
+    }
+
+    public function test_failure_after_cancel_is_refused(): void
+    {
+        $payment = $this->startCheckout('pro');
+        app(BillingService::class)->simulateCancellation($payment);
+
+        $this->expectException(RuntimeException::class);
+        app(BillingService::class)->simulateFailure($payment);
+    }
+
+    public function test_http_transition_refusal_is_handled_without_server_error(): void
+    {
+        $payment = $this->startCheckout('pro');
+        app(BillingService::class)->simulateSuccess($payment);
+
+        $this->actingAs($this->user)
+            ->post(route('billing.payment.simulate', $payment), ['outcome' => 'failure'])
+            ->assertRedirect(route('plans.index'));
+
+        $this->assertSame(SandboxPayment::STATUS_SIMULATED_PAID, $payment->refresh()->status);
+    }
+
+    public function test_all_cross_terminal_transitions_are_refused(): void
+    {
+        $service = app(BillingService::class);
+
+        $paid = $this->startCheckout('pro');
+        $service->simulateSuccess($paid);
+        foreach (['failure', 'cancellation'] as $transition) {
+            try {
+                $transition === 'failure'
+                    ? $service->simulateFailure($paid)
+                    : $service->simulateCancellation($paid);
+                $this->fail('A paid payment cannot transition to '.$transition.'.');
+            } catch (RuntimeException) {
+                $this->assertSame(SandboxPayment::STATUS_SIMULATED_PAID, $paid->refresh()->status);
+            }
+        }
+
+        $failed = $this->startCheckout('business');
+        $service->simulateFailure($failed);
+        $this->expectException(RuntimeException::class);
+        $service->simulateCancellation($failed);
+    }
+
+    public function test_unknown_plan_mapping_fails_closed(): void
+    {
+        $plan = new BillingPlan(['code' => 'unmapped', 'price_amount' => 1]);
+
+        $this->expectException(RuntimeException::class);
+        $plan->featureGatePlan();
+    }
+
+    public function test_tampered_attempt_is_refused_before_transition(): void
+    {
+        $payment = $this->startCheckout('pro');
+        $payment->invoice()->update(['simulated' => false]);
+
+        try {
+            app(BillingService::class)->simulateSuccess($payment);
+            $this->fail('A non-simulated invoice must be refused.');
+        } catch (RuntimeException) {
+            $this->assertSame(SandboxPayment::STATUS_PENDING, $payment->refresh()->status);
+            $this->assertSame(SandboxInvoice::STATUS_OPEN, $payment->invoice->status);
+        }
+    }
+
+    public function test_all_payment_and_invoice_invariants_are_checked(): void
+    {
+        $other = User::factory()->create();
+        $tamperingCases = [
+            'payment_simulated',
+            'provider',
+            'ownership',
+            'payment_amount',
+            'payment_currency',
+            'invoice_amount',
+            'invoice_currency',
+        ];
+
+        foreach ($tamperingCases as $case) {
+            $payment = $this->startCheckout('pro');
+
+            match ($case) {
+                'payment_simulated' => $payment->update(['simulated' => false]),
+                'provider' => $payment->update(['provider' => 'unsupported']),
+                'ownership' => $payment->update(['user_id' => $other->id]),
+                'payment_amount' => $payment->update(['amount' => $payment->amount + 1]),
+                'payment_currency' => $payment->update(['currency' => 'USD']),
+                'invoice_amount' => $payment->invoice()->update(['amount' => $payment->amount + 1]),
+                'invoice_currency' => $payment->invoice()->update(['currency' => 'USD']),
+            };
+
+            try {
+                app(BillingService::class)->simulateFailure($payment);
+                $this->fail('Tampering case ['.$case.'] must fail closed.');
+            } catch (RuntimeException) {
+                $this->assertSame(SandboxPayment::STATUS_PENDING, $payment->refresh()->status);
+            }
+        }
+    }
+
+    public function test_inactive_plan_is_refused_before_transition(): void
+    {
+        $payment = $this->startCheckout('pro');
+        $payment->invoice->plan()->update(['active' => false]);
+
+        $this->expectException(RuntimeException::class);
         app(BillingService::class)->simulateSuccess($payment);
     }
 
@@ -367,7 +635,8 @@ class SandboxBillingTest extends TestCase
 
     public function test_billing_page_does_not_expose_secrets(): void
     {
-        $response = $this->actingAs($this->user)->get(route('billing.index'));
+        $payment = $this->startCheckout('pro');
+        $response = $this->actingAs($this->user)->get(route('billing.payment.show', $payment));
         $body = $response->getContent();
         $this->assertIsString($body);
         $this->assertStringNotContainsString('sk_live', $body);
@@ -385,23 +654,52 @@ class SandboxBillingTest extends TestCase
 
     public function test_subscription_metadata_records_sandbox_source(): void
     {
+        Subscription::create([
+            'user_id' => $this->user->id,
+            'plan' => 'FREE',
+            'status' => 'ACTIVE',
+            'metadata' => ['preserved' => 'yes'],
+        ]);
         $payment = $this->startCheckout('pro');
         app(BillingService::class)->simulateSuccess($payment);
+        $payment->refresh();
 
         $this->user->unsetRelation('subscription');
         $meta = $this->user->subscription->metadata;
         $this->assertSame('sandbox', $meta['source']);
         $this->assertTrue($meta['simulated']);
+        $this->assertSame('yes', $meta['preserved']);
+        $this->assertSame($payment->invoice->invoice_number, $meta['invoice_identifier']);
+        $this->assertSame($payment->id, $meta['payment_identifier']);
+        $this->assertSame($payment->provider_reference, $meta['provider_reference']);
+        $this->assertSame('pro', $meta['billing_plan_code']);
     }
 
-    public function test_staging_allowed_when_enabled(): void
+    public function test_subscription_cancellation_clears_paid_and_trial_dates_but_preserves_metadata(): void
     {
-        config(['billing.enabled' => true, 'billing.driver' => 'sandbox']);
-        app()->detectEnvironment(fn () => 'staging');
+        Subscription::create([
+            'user_id' => $this->user->id,
+            'plan' => 'PRO',
+            'status' => 'ACTIVE',
+            'trial_starts_at' => Carbon::now()->subDay(),
+            'trial_ends_at' => Carbon::now()->addDay(),
+            'current_period_starts_at' => Carbon::now()->subDay(),
+            'current_period_ends_at' => Carbon::now()->addMonth(),
+            'metadata' => ['preserved' => 'yes'],
+        ]);
 
-        $this->actingAs($this->user)
-            ->get(route('billing.index'))
-            ->assertOk();
+        app(BillingService::class)->cancelSubscription($this->user);
+        $subscription = $this->user->fresh()->subscription;
+
+        $this->assertSame('FREE', $subscription->plan);
+        $this->assertSame('ACTIVE', $subscription->status);
+        $this->assertNull($subscription->trial_starts_at);
+        $this->assertNull($subscription->trial_ends_at);
+        $this->assertNull($subscription->current_period_starts_at);
+        $this->assertNull($subscription->current_period_ends_at);
+        $this->assertNotNull($subscription->canceled_at);
+        $this->assertSame('yes', $subscription->metadata['preserved']);
+        $this->assertTrue($subscription->metadata['sandbox_cancellation']);
     }
 
     private function startCheckout(string $planCode): SandboxPayment

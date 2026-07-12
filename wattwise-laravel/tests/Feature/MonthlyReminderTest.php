@@ -334,4 +334,19 @@ class MonthlyReminderTest extends TestCase
         $this->assertStringNotContainsString('kWh', $message);
         $this->assertDoesNotMatchRegularExpression('/\d{4,}/', $message === '' ? 'x' : str_replace('2026', '', $message));
     }
+
+    public function test_unsupported_driver_fails_closed(): void
+    {
+        config()->set('whatsapp.driver', 'unsupported');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('WhatsApp driver [unsupported] is not supported.');
+        app(WhatsAppGateway::class);
+    }
+
+    public function test_log_only_gateway_selected(): void
+    {
+        config()->set('whatsapp.driver', 'log');
+        $gateway = app(WhatsAppGateway::class);
+        $this->assertInstanceOf(LogWhatsAppGateway::class, $gateway);
+    }
 }

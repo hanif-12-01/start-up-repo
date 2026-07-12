@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use RuntimeException;
 
 /**
  * @property int $id
@@ -61,7 +62,13 @@ class BillingPlan extends Model
         /** @var array<string, string> $map */
         $map = config('billing.plan_map', []);
 
-        return $map[$this->code] ?? 'FREE';
+        $gatePlan = $map[$this->code] ?? null;
+
+        if (! is_string($gatePlan) || $gatePlan === '') {
+            throw new RuntimeException('Billing plan ['.$this->code.'] has no FeatureGateService mapping.');
+        }
+
+        return $gatePlan;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\ActiveBusinessResolver;
+use App\Services\Billing\BillingAvailability;
 use App\Services\FeatureGateService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -75,9 +76,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'billingEnabled' => config('billing.enabled')
-                && config('billing.driver') === 'sandbox'
-                && ! app()->environment('production'),
+            'billingEnabled' => app(BillingAvailability::class)->enabled(),
         ];
     }
 }

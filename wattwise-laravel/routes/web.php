@@ -56,7 +56,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');
 
     Route::middleware(EnsureBillingEnabled::class)->group(function () {
-        Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
         Route::post('billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
         Route::get('billing/payment/{payment}', [BillingController::class, 'show'])->name('billing.payment.show');
         Route::post('billing/payment/{payment}/simulate', [BillingController::class, 'simulate'])->name('billing.payment.simulate');

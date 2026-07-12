@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -86,5 +87,13 @@ class SandboxInvoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(SandboxPayment::class, 'invoice_id');
+    }
+
+    /**
+     * @return HasOne<SandboxPayment, $this>
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(SandboxPayment::class, 'invoice_id');
     }
 }

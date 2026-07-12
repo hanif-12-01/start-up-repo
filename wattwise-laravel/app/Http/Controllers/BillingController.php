@@ -5,39 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\BillingPlan;
 use App\Models\SandboxPayment;
 use App\Services\Billing\BillingService;
-use App\Services\FeatureGateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class BillingController extends Controller
 {
     public function __construct(
         private readonly BillingService $billingService,
-        private readonly FeatureGateService $featureGateService,
     ) {}
-
-    public function index(Request $request): Response
-    {
-        $user = $request->user();
-        $effectivePlan = $this->featureGateService->getEffectivePlan($user);
-
-        $plans = BillingPlan::where('active', true)
-            ->orderBy('price_amount')
-            ->get()
-            ->map(fn (BillingPlan $plan): array => $this->presentPlan($plan))
-            ->all();
-
-        return Inertia::render('Billing/Index', [
-            'sandbox' => true,
-            'currency' => config('billing.currency', 'IDR'),
-            'effectivePlan' => $effectivePlan,
-            'plans' => $plans,
-        ]);
-    }
 
     public function checkout(Request $request): RedirectResponse
     {
@@ -58,7 +38,7 @@ class BillingController extends Controller
             $this->billingService->cancelSubscription($user);
             Inertia::flash('toast', ['type' => 'success', 'message' => 'Anda kini menggunakan paket Free.']);
 
-            return redirect()->route('billing.index');
+            return redirect()->route('plans.index');
         }
 
         $payment = $this->billingService->startCheckout($user, $plan, $idempotencyKey);
@@ -73,7 +53,7 @@ class BillingController extends Controller
         $invoice = $payment->invoice;
 
         if ($payment->isTerminal()) {
-            return redirect()->route('billing.index');
+            return redirect()->route('plans.index');
         }
 
         return Inertia::render('Billing/Checkout', [
@@ -107,20 +87,23 @@ class BillingController extends Controller
             'outcome' => ['required', 'string', 'in:success,failure,cancelled'],
         ]);
 
-        if ($payment->isTerminal()) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'Pembayaran ini sudah diproses.']);
-
-            return redirect()->route('billing.index');
+        try {
+            match ($validated['outcome']) {
+                'success' => $this->handleSuccess($payment),
+                'failure' => $this->handleFailure($payment),
+                'cancelled' => $this->handleCancellation($payment),
+                default => abort(422),
+            };
+        } catch (RuntimeException) {
+            Log::notice('Refused an illegal sandbox payment transition.', [
+                'payment_id' => $payment->id,
+                'actor_id' => $request->user()->id,
+                'requested_outcome' => $validated['outcome'],
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'Status pembayaran simulasi tidak dapat diubah.']);
         }
 
-        match ($validated['outcome']) {
-            'success' => $this->handleSuccess($payment),
-            'failure' => $this->handleFailure($payment),
-            'cancelled' => $this->handleCancellation($payment),
-            default => abort(422),
-        };
-
-        return redirect()->route('billing.index');
+        return redirect()->route('plans.index');
     }
 
     public function cancel(Request $request): RedirectResponse
@@ -128,7 +111,7 @@ class BillingController extends Controller
         $this->billingService->cancelSubscription($request->user());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Langganan sandbox dibatalkan. Anda kembali ke paket Free.']);
 
-        return redirect()->route('billing.index');
+        return redirect()->route('plans.index');
     }
 
     private function handleSuccess(SandboxPayment $payment): void
@@ -147,22 +130,6 @@ class BillingController extends Controller
     {
         $this->billingService->simulateCancellation($payment);
         Inertia::flash('toast', ['type' => 'info', 'message' => 'Pembayaran dibatalkan. Paket Anda tidak diubah.']);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function presentPlan(BillingPlan $plan): array
-    {
-        return [
-            'code' => $plan->code,
-            'name' => $plan->name,
-            'price_amount' => $plan->price_amount,
-            'currency' => $plan->currency,
-            'interval' => $plan->interval,
-            'features' => $plan->features ?? [],
-            'is_free' => $plan->isFree(),
-        ];
     }
 
     private function authorizePayment(Request $request, SandboxPayment $payment): void

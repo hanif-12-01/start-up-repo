@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['user_id', 'idempotency_key']);
+            $table->unique(['user_id', 'plan_id', 'idempotency_key']);
             $table->index(['user_id', 'status']);
         });
     }

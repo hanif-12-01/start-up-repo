@@ -14,7 +14,7 @@ class UnknownBillingDriverException extends RuntimeException
     public static function for(string $driver): self
     {
         return new self(sprintf(
-            'Unknown billing driver [%s]. Only the simulation-only "sandbox_simulator" driver is supported; refusing to fall back to a real provider.',
+            'Unknown billing driver [%s]. Only the simulation-only "sandbox" driver is supported; refusing to fall back to a real provider.',
             $driver,
         ));
     }

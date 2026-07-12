@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sandbox_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('invoice_id')->constrained('sandbox_invoices')->cascadeOnDelete();
+            $table->foreignId('invoice_id')->unique()->constrained('sandbox_invoices')->cascadeOnDelete();
             // Only ever the simulation driver in this build.
             $table->string('provider')->default('sandbox_simulator');
             // Simulated provider reference, assigned when a simulation runs.

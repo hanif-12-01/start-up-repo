@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -24,6 +25,43 @@ return new class extends Migration
             $table->boolean('active')->default(true);
             $table->timestamps();
         });
+
+        $now = now();
+        DB::table('billing_plans')->insert([
+            [
+                'code' => 'free',
+                'name' => 'Free',
+                'price_amount' => 0,
+                'currency' => 'IDR',
+                'interval' => 'monthly',
+                'features' => json_encode(['basic_access'], JSON_THROW_ON_ERROR),
+                'active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'code' => 'pro',
+                'name' => 'Pro',
+                'price_amount' => 49000,
+                'currency' => 'IDR',
+                'interval' => 'monthly',
+                'features' => json_encode(['pdf_reports', 'reminders', 'advanced_report_history'], JSON_THROW_ON_ERROR),
+                'active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'code' => 'business',
+                'name' => 'Business',
+                'price_amount' => 149000,
+                'currency' => 'IDR',
+                'interval' => 'monthly',
+                'features' => json_encode(['pdf_reports', 'reminders', 'advanced_report_history', 'multi_business'], JSON_THROW_ON_ERROR),
+                'active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ]);
     }
 
     /**
