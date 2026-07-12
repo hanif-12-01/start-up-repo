@@ -13,47 +13,44 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->singleton(ActiveBusinessResolver::class);
 
-        // Provider-neutral WhatsApp gateway. Only the safe, non-delivering
-        // "log" driver exists in this scope; future drivers bind here.
         $this->app->bind(WhatsAppGateway::class, function ($app) {
             return match (config('whatsapp.driver')) {
                 default => $app->make(LogWhatsAppGateway::class),
             };
         });
 
-        // Simulation-only billing provider. Any driver other than the sandbox
-        // simulator FAILS CLOSED — it never falls back to a real provider.
         $this->app->bind(BillingProvider::class, function ($app) {
+            if (! config('billing.enabled')) {
+                throw new RuntimeException('Billing is disabled. Set BILLING_ENABLED=true to use sandbox billing.');
+            }
+
+            if ($app->environment('production')) {
+                throw new RuntimeException('Sandbox billing cannot be used in production.');
+            }
+
             $driver = config('billing.driver');
 
             return match ($driver) {
-                SandboxSimulatorProvider::IDENTIFIER => $app->make(SandboxSimulatorProvider::class),
+                'sandbox' => $app->make(SandboxSimulatorProvider::class),
+                'disabled' => throw new RuntimeException('Billing driver is set to disabled.'),
                 default => throw UnknownBillingDriverException::for((string) $driver),
             };
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
     }
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);

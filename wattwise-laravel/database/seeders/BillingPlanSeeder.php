@@ -7,9 +7,6 @@ use Illuminate\Database\Seeder;
 
 class BillingPlanSeeder extends Seeder
 {
-    /**
-     * Seed the three purchasable sandbox plans. Prices are whole-rupiah (IDR).
-     */
     public function run(): void
     {
         $plans = [
@@ -22,19 +19,19 @@ class BillingPlanSeeder extends Seeder
                 'active' => true,
             ],
             [
-                'code' => BillingPlan::CODE_STARTER,
-                'name' => 'Starter',
+                'code' => BillingPlan::CODE_PRO,
+                'name' => 'Pro',
                 'price_amount' => 49000,
                 'interval' => 'monthly',
-                'features' => ['pdf_reports', 'reminder_foundation_access'],
+                'features' => ['pdf_reports', 'reminders', 'advanced_report_history'],
                 'active' => true,
             ],
             [
-                'code' => BillingPlan::CODE_PRO,
-                'name' => 'Pro',
-                'price_amount' => 99000,
+                'code' => BillingPlan::CODE_BUSINESS,
+                'name' => 'Business',
+                'price_amount' => 149000,
                 'interval' => 'monthly',
-                'features' => ['pdf_reports', 'reminders', 'advanced_report_history'],
+                'features' => ['pdf_reports', 'reminders', 'advanced_report_history', 'multi_business'],
                 'active' => true,
             ],
         ];
@@ -45,5 +42,8 @@ class BillingPlanSeeder extends Seeder
                 $plan + ['currency' => config('billing.currency', 'IDR')],
             );
         }
+
+        // Remove stale Starter plan if it exists from previous seeds.
+        BillingPlan::where('code', 'starter')->delete();
     }
 }

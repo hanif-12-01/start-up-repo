@@ -6,45 +6,52 @@ use App\Contracts\BillingProvider;
 use App\Models\BillingPlan;
 use App\Models\SandboxInvoice;
 use App\Models\SandboxPayment;
+use App\Models\Subscription;
 use App\Models\User;
-use App\Models\UserEntitlement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
-/**
- * Orchestrates the simulation-only sandbox checkout: it creates invoices and
- * pending payments, settles them through the {@see BillingProvider} simulator,
- * and grants entitlements only for a successfully simulated payment.
- */
 class BillingService
 {
     public function __construct(
         private readonly BillingProvider $provider,
     ) {
-        // Hard fail-closed guard. This build is simulation-only; a provider
-        // that is not simulation-only must never be used.
         if (! config('billing.simulation_only', true) || ! $this->provider->isSimulationOnly()) {
             throw new RuntimeException('Billing is configured for real payments, which is not allowed in this build.');
         }
     }
 
     /**
-     * Begin a sandbox checkout for a paid plan: create an open invoice plus a
-     * pending payment. No external provider is contacted.
+     * Start checkout with idempotency: one active pending checkout per user+plan.
      */
-    public function startCheckout(User $user, BillingPlan $plan): SandboxPayment
+    public function startCheckout(User $user, BillingPlan $plan, string $idempotencyKey): SandboxPayment
     {
         if ($plan->isFree()) {
             throw new RuntimeException('The Free plan does not require checkout; use selectFree().');
         }
 
-        return DB::transaction(function () use ($user, $plan): SandboxPayment {
+        return DB::transaction(function () use ($user, $plan, $idempotencyKey): SandboxPayment {
+            $existing = SandboxInvoice::where('idempotency_key', $idempotencyKey)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existing !== null) {
+                $pendingPayment = $existing->payments()
+                    ->where('status', SandboxPayment::STATUS_PENDING)
+                    ->first();
+
+                if ($pendingPayment !== null) {
+                    return $pendingPayment;
+                }
+            }
+
             $invoice = SandboxInvoice::create([
                 'user_id' => $user->id,
                 'plan_id' => $plan->id,
                 'invoice_number' => $this->generateInvoiceNumber(),
+                'idempotency_key' => $idempotencyKey,
                 'amount' => $plan->price_amount,
                 'currency' => $plan->currency,
                 'status' => SandboxInvoice::STATUS_OPEN,
@@ -65,39 +72,68 @@ class BillingService
     }
 
     /**
-     * Simulate a successful payment: mark the payment simulated_paid, the
-     * invoice paid, and activate the user's entitlement for the plan.
+     * Simulate success: mark paid, activate subscription via the canonical
+     * Subscription model. Idempotent: replayed success returns the same result.
      */
     public function simulateSuccess(SandboxPayment $payment): SandboxPayment
     {
-        $this->assertPending($payment);
-
         return DB::transaction(function () use ($payment): SandboxPayment {
+            /** @var SandboxPayment $payment */
+            $payment = SandboxPayment::lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status === SandboxPayment::STATUS_SIMULATED_PAID) {
+                return $payment;
+            }
+
+            if ($payment->status !== SandboxPayment::STATUS_PENDING) {
+                throw new RuntimeException('Cannot succeed a '.$payment->status.' payment.');
+            }
+
+            /** @var SandboxInvoice $invoice */
+            $invoice = SandboxInvoice::lockForUpdate()->findOrFail($payment->invoice_id);
+
+            if ($invoice->user_id !== $payment->user_id) {
+                throw new RuntimeException('Payment/invoice ownership mismatch.');
+            }
+
+            if ($invoice->amount !== $payment->amount || $invoice->currency !== $payment->currency) {
+                throw new RuntimeException('Payment amount/currency mismatch.');
+            }
+
             $this->provider->settle($payment, true);
 
-            $invoice = $payment->invoice()->lockForUpdate()->first();
             $invoice->status = SandboxInvoice::STATUS_PAID;
             $invoice->paid_at = Carbon::now();
             $invoice->save();
 
-            $this->activateEntitlement($payment->user_id, $invoice->plan);
+            $plan = $invoice->plan;
+            $this->activateSubscription($payment->user_id, $plan);
 
             return $payment->refresh();
         });
     }
 
     /**
-     * Simulate a failed payment: mark the payment and invoice failed. The
-     * entitlement is NEVER upgraded by a failed payment.
+     * Simulate failure. Idempotent: replayed failure returns the same result.
      */
     public function simulateFailure(SandboxPayment $payment): SandboxPayment
     {
-        $this->assertPending($payment);
-
         return DB::transaction(function () use ($payment): SandboxPayment {
+            /** @var SandboxPayment $payment */
+            $payment = SandboxPayment::lockForUpdate()->findOrFail($payment->id);
+
+            if ($payment->status === SandboxPayment::STATUS_FAILED) {
+                return $payment;
+            }
+
+            if ($payment->status !== SandboxPayment::STATUS_PENDING) {
+                throw new RuntimeException('Cannot fail a '.$payment->status.' payment.');
+            }
+
             $this->provider->settle($payment, false);
 
-            $invoice = $payment->invoice()->lockForUpdate()->first();
+            /** @var SandboxInvoice $invoice */
+            $invoice = SandboxInvoice::lockForUpdate()->findOrFail($payment->invoice_id);
             $invoice->status = SandboxInvoice::STATUS_FAILED;
             $invoice->save();
 
@@ -106,89 +142,87 @@ class BillingService
     }
 
     /**
-     * Select the Free plan directly (no payment required).
+     * Cancel a pending payment. Never changes the subscription.
      */
-    public function selectFree(User $user): UserEntitlement
+    public function simulateCancellation(SandboxPayment $payment): SandboxPayment
     {
-        $free = BillingPlan::where('code', BillingPlan::CODE_FREE)->first();
+        return DB::transaction(function () use ($payment): SandboxPayment {
+            /** @var SandboxPayment $payment */
+            $payment = SandboxPayment::lockForUpdate()->findOrFail($payment->id);
 
-        return UserEntitlement::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'plan_id' => $free?->id,
-                'status' => UserEntitlement::STATUS_FREE,
-                'source' => UserEntitlement::SOURCE_SANDBOX,
-                'starts_at' => Carbon::now(),
-                'ends_at' => null,
-            ],
-        );
-    }
-
-    /**
-     * Cancel the current entitlement and return the user to Free.
-     */
-    public function cancel(User $user): UserEntitlement
-    {
-        $free = BillingPlan::where('code', BillingPlan::CODE_FREE)->first();
-
-        return UserEntitlement::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'plan_id' => $free?->id,
-                'status' => UserEntitlement::STATUS_CANCELLED,
-                'source' => UserEntitlement::SOURCE_SANDBOX,
-                'ends_at' => Carbon::now(),
-            ],
-        );
-    }
-
-    /**
-     * Resolve the plan the user is effectively entitled to right now. Falls
-     * back to Free when there is no active paid entitlement.
-     */
-    public function currentPlan(User $user): BillingPlan
-    {
-        $entitlement = $user->entitlement;
-
-        if ($entitlement !== null && $entitlement->isActivePaid()) {
-            $plan = $entitlement->plan;
-
-            if ($plan !== null) {
-                return $plan;
+            if ($payment->status === SandboxPayment::STATUS_CANCELLED) {
+                return $payment;
             }
+
+            if ($payment->status !== SandboxPayment::STATUS_PENDING) {
+                throw new RuntimeException('Cannot cancel a '.$payment->status.' payment.');
+            }
+
+            $payment->status = SandboxPayment::STATUS_CANCELLED;
+            $payment->simulated = true;
+            $payment->metadata = array_merge($payment->metadata ?? [], [
+                'simulated' => true,
+                'cancelled_at' => Carbon::now()->toIso8601String(),
+                'outcome' => 'cancelled',
+            ]);
+            $payment->save();
+
+            /** @var SandboxInvoice $invoice */
+            $invoice = SandboxInvoice::lockForUpdate()->findOrFail($payment->invoice_id);
+            $invoice->status = SandboxInvoice::STATUS_CANCELLED;
+            $invoice->save();
+
+            return $payment->refresh();
+        });
+    }
+
+    /**
+     * Cancel the subscription and return to Free.
+     */
+    public function cancelSubscription(User $user): void
+    {
+        $subscription = $user->subscription;
+        if ($subscription === null) {
+            return;
         }
 
-        return BillingPlan::where('code', BillingPlan::CODE_FREE)->firstOrFail();
+        $subscription->update([
+            'plan' => 'FREE',
+            'status' => 'ACTIVE',
+            'canceled_at' => Carbon::now(),
+            'metadata' => array_merge($subscription->metadata ?? [], [
+                'source' => 'sandbox',
+                'sandbox_cancelled_at' => Carbon::now()->toIso8601String(),
+            ]),
+        ]);
     }
 
     /**
-     * Grant an active entitlement for a paid plan. Only ever called from a
-     * successfully simulated payment path.
+     * Activate subscription using the canonical Subscription model (single source of truth).
      */
-    private function activateEntitlement(int $userId, BillingPlan $plan): UserEntitlement
+    private function activateSubscription(int $userId, BillingPlan $plan): void
     {
-        $starts = Carbon::now();
-        $ends = $plan->interval === 'yearly'
-            ? $starts->copy()->addYear()
-            : $starts->copy()->addMonth();
+        $gatePlan = $plan->featureGatePlan();
+        $now = Carbon::now();
+        $periodEnd = $plan->interval === 'yearly'
+            ? $now->copy()->addYear()
+            : $now->copy()->addMonth();
 
-        return UserEntitlement::updateOrCreate(
+        Subscription::updateOrCreate(
             ['user_id' => $userId],
             [
-                'plan_id' => $plan->id,
-                'status' => UserEntitlement::STATUS_ACTIVE,
-                'source' => UserEntitlement::SOURCE_SANDBOX,
-                'starts_at' => $starts,
-                'ends_at' => $ends,
+                'plan' => $gatePlan,
+                'status' => 'ACTIVE',
+                'current_period_starts_at' => $now,
+                'current_period_ends_at' => $periodEnd,
+                'canceled_at' => null,
+                'metadata' => [
+                    'source' => 'sandbox',
+                    'simulated' => true,
+                    'billing_plan_code' => $plan->code,
+                ],
             ],
         );
-    }
-
-    private function assertPending(SandboxPayment $payment): void
-    {
-        if ($payment->status !== SandboxPayment::STATUS_PENDING) {
-            throw new RuntimeException('Only a pending sandbox payment can be simulated.');
-        }
     }
 
     private function generateInvoiceNumber(): string

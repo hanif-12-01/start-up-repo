@@ -8,10 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * A purchasable sandbox billing plan. Prices are whole-rupiah (IDR has no
- * minor unit). These plans are simulation-only: "buying" one never contacts a
- * real payment provider.
- *
  * @property int $id
  * @property string $code
  * @property string $name
@@ -36,9 +32,9 @@ class BillingPlan extends Model
 {
     public const CODE_FREE = 'free';
 
-    public const CODE_STARTER = 'starter';
-
     public const CODE_PRO = 'pro';
+
+    public const CODE_BUSINESS = 'business';
 
     /**
      * @return array<string, string>
@@ -52,12 +48,20 @@ class BillingPlan extends Model
         ];
     }
 
-    /**
-     * Whether this plan is the free tier (no simulated payment required).
-     */
     public function isFree(): bool
     {
         return $this->price_amount === 0 || $this->code === self::CODE_FREE;
+    }
+
+    /**
+     * Map this billing plan code to the canonical FeatureGateService plan identifier.
+     */
+    public function featureGatePlan(): string
+    {
+        /** @var array<string, string> $map */
+        $map = config('billing.plan_map', []);
+
+        return $map[$this->code] ?? 'FREE';
     }
 
     /**

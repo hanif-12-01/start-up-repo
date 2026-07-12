@@ -8,10 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * A simulated payment. It is settled by clicking a button, never by a real
- * payment network. Always marked `simulated = true` and always attributed to
- * the `sandbox_simulator` provider.
- *
  * @property int $id
  * @property int $user_id
  * @property int $invoice_id
@@ -46,6 +42,8 @@ class SandboxPayment extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const STATUS_CANCELLED = 'cancelled';
+
     /**
      * @return array<string, string>
      */
@@ -56,6 +54,11 @@ class SandboxPayment extends Model
             'simulated' => 'boolean',
             'metadata' => 'array',
         ];
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this->status, [self::STATUS_SIMULATED_PAID, self::STATUS_FAILED, self::STATUS_CANCELLED], true);
     }
 
     /**

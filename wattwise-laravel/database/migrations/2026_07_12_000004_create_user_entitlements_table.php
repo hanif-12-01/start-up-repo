@@ -1,35 +1,21 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
+/**
+ * The user_entitlements table was removed during the PR #9 hardening.
+ * Subscription is the single source of truth for plan state.
+ * This migration is intentionally a no-op to avoid renumbering.
+ */
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('user_entitlements', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->nullable()->constrained('billing_plans')->nullOnDelete();
-            // free | active | expired | cancelled
-            $table->string('status')->default('free');
-            // Only entitlements granted by the sandbox flow exist here.
-            $table->string('source')->default('sandbox');
-            $table->timestamp('starts_at')->nullable();
-            $table->timestamp('ends_at')->nullable();
-            $table->timestamps();
-        });
+        // Removed: user_entitlements table is not used.
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('user_entitlements');
+        // No-op.
     }
 };

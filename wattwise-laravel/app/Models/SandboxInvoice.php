@@ -9,13 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * A simulated invoice. Never sent to a customer and never backed by a real
- * payment network. Always marked `simulated = true`.
- *
  * @property int $id
  * @property int $user_id
  * @property int $plan_id
  * @property string $invoice_number
+ * @property string $idempotency_key
  * @property int $amount
  * @property string $currency
  * @property string $status
@@ -31,6 +29,7 @@ use Illuminate\Support\Carbon;
     'user_id',
     'plan_id',
     'invoice_number',
+    'idempotency_key',
     'amount',
     'currency',
     'status',
@@ -49,6 +48,8 @@ class SandboxInvoice extends Model
     public const STATUS_VOID = 'void';
 
     public const STATUS_FAILED = 'failed';
+
+    public const STATUS_CANCELLED = 'cancelled';
 
     /**
      * @return array<string, string>

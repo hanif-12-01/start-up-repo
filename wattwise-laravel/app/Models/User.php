@@ -80,14 +80,4 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasOne(NotificationPreference::class);
     }
-
-    /**
-     * Get the user's current sandbox billing entitlement.
-     *
-     * @return HasOne<UserEntitlement, $this>
-     */
-    public function entitlement(): HasOne
-    {
-        return $this->hasOne(UserEntitlement::class);
-    }
 }

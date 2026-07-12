@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ActiveBusinessResolver;
 use App\Services\FeatureGateService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -51,12 +52,12 @@ class HandleInertiaRequests extends Middleware
                 ? app(FeatureGateService::class)->getEffectivePlan($user)
                 : null,
             'businessContext' => fn () => $user ? [
-                'activeBusinesses' => app(\App\Services\ActiveBusinessResolver::class)->activeBusinesses($request)->map(fn ($b) => [
+                'activeBusinesses' => app(ActiveBusinessResolver::class)->activeBusinesses($request)->map(fn ($b) => [
                     'id' => $b->id,
                     'name' => $b->name,
                     'business_type' => $b->business_type,
                 ])->values()->toArray(),
-                'activeBusiness' => ($active = app(\App\Services\ActiveBusinessResolver::class)->resolve($request)) ? [
+                'activeBusiness' => ($active = app(ActiveBusinessResolver::class)->resolve($request)) ? [
                     'id' => $active->id,
                     'name' => $active->name,
                     'business_type' => $active->business_type,
@@ -74,6 +75,9 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'billingEnabled' => config('billing.enabled')
+                && config('billing.driver') === 'sandbox'
+                && ! app()->environment('production'),
         ];
     }
 }
