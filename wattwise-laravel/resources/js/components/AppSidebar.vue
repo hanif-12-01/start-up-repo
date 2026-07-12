@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, Building2, Zap, Coins, Plug, Sparkles, FileText, CreditCard, Settings, ClipboardList, TrendingUp, AlertTriangle } from '@lucide/vue';
+import { LayoutGrid, Building2, Zap, Coins, Plug, Sparkles, FileText, CreditCard, Settings, ClipboardList, TrendingUp, AlertTriangle, FlaskConical } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import BusinessSwitcher from '@/components/businesses/BusinessSwitcher.vue';
@@ -52,6 +52,7 @@ const laporanItems: NavItem[] = [
 
 const akunItems: NavItem[] = [
     { title: 'Paket & Langganan', href: '/plans', icon: CreditCard },
+    { title: 'Sandbox Billing', href: '/billing', icon: FlaskConical },
     { title: 'Pengaturan', href: '/settings', icon: Settings },
 ];
 </script>

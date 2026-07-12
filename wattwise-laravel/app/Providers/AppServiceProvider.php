@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\BillingProvider;
 use App\Contracts\WhatsAppGateway;
 use App\Services\ActiveBusinessResolver;
+use App\Services\Billing\SandboxSimulatorProvider;
+use App\Services\Billing\UnknownBillingDriverException;
 use App\Services\WhatsApp\LogWhatsAppGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -25,6 +28,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(WhatsAppGateway::class, function ($app) {
             return match (config('whatsapp.driver')) {
                 default => $app->make(LogWhatsAppGateway::class),
+            };
+        });
+
+        // Simulation-only billing provider. Any driver other than the sandbox
+        // simulator FAILS CLOSED — it never falls back to a real provider.
+        $this->app->bind(BillingProvider::class, function ($app) {
+            $driver = config('billing.driver');
+
+            return match ($driver) {
+                SandboxSimulatorProvider::IDENTIFIER => $app->make(SandboxSimulatorProvider::class),
+                default => throw UnknownBillingDriverException::for((string) $driver),
             };
         });
     }

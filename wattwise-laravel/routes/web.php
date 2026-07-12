@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnomalyController;
 use App\Http\Controllers\ApplianceController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessSelectionController;
 use App\Http\Controllers\DashboardController;
@@ -52,6 +53,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reports/{business}/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');
     Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
     Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');
+
+    // Sandbox (simulation-only) billing. No real payment provider is contacted.
+    Route::get('billing', [BillingController::class, 'index'])->name('billing.index');
+    Route::post('billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::get('billing/payment/{payment}', [BillingController::class, 'show'])->name('billing.payment.show');
+    Route::post('billing/payment/{payment}/simulate', [BillingController::class, 'simulate'])->name('billing.payment.simulate');
+    Route::post('billing/cancel', [BillingController::class, 'cancel'])->name('billing.cancel');
 });
 
 require __DIR__.'/settings.php';
