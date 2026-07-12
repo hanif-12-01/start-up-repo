@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\BillingProvider;
 use App\Contracts\WhatsAppGateway;
 use App\Services\ActiveBusinessResolver;
+use App\Services\Billing\BillingAvailability;
+use App\Services\Billing\SandboxSimulatorProvider;
 use App\Services\WhatsApp\LogWhatsAppGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -13,33 +16,31 @@ use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->singleton(ActiveBusinessResolver::class);
 
-        // Provider-neutral WhatsApp gateway. Only the safe, non-delivering
-        // "log" driver exists in this scope; future drivers bind here.
         $this->app->bind(WhatsAppGateway::class, function ($app) {
-            return match (config('whatsapp.driver')) {
-                default => $app->make(LogWhatsAppGateway::class),
-            };
+            $driver = config('whatsapp.driver');
+            if ($driver !== 'log') {
+                throw new \RuntimeException("WhatsApp driver [{$driver}] is not supported.");
+            }
+
+            return $app->make(LogWhatsAppGateway::class);
+        });
+
+        $this->app->bind(BillingProvider::class, function ($app) {
+            $app->make(BillingAvailability::class)->assertEnabled();
+
+            return $app->make(SandboxSimulatorProvider::class);
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
     }
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);

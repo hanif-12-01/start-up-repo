@@ -502,14 +502,24 @@ class PlanGatingRegressionTest extends TestCase
     }
 
     /**
-     * 16. Test forbidden scopes (Stripe, Midtrans, Xendit, PDF generators) are not present in controller files.
+     * 16. Test forbidden scopes (real payment providers, external integrations)
+     * are not present in controller files.
+     *
+     * The sandbox billing feature is simulation-only, so its domain terms
+     * ("checkout", "invoice") are allowed inside BillingController but must not
+     * leak into any other controller. Real payment providers and external
+     * integrations remain banned everywhere — including BillingController.
      */
     public function test_forbidden_scope_check(): void
     {
-        $forbiddenKeywords = [
-            'Stripe', 'Midtrans', 'Xendit', 'checkout', 'invoice',
+        // Never permitted in ANY controller, including the billing controller.
+        $alwaysForbidden = [
+            'Stripe', 'Midtrans', 'Xendit', 'PayPal',
             'webhook', 'OCR', 'IoT', 'LSTM', 'live scraping', 'Gemini', 'OpenAI',
         ];
+
+        // Only legitimate inside the authorized sandbox billing controller.
+        $billingOnlyKeywords = ['checkout', 'invoice'];
 
         $files = glob(app_path('Http/Controllers/**/*.php')) ?: [];
         $files = array_merge($files, glob(app_path('Http/Controllers/*.php')) ?: []);
@@ -522,7 +532,17 @@ class PlanGatingRegressionTest extends TestCase
             if ($content === false) {
                 $this->fail('Unable to read controller: '.basename($file));
             }
-            foreach ($forbiddenKeywords as $word) {
+
+            foreach ($alwaysForbidden as $word) {
+                $this->assertStringNotContainsString($word, $content, "Forbidden word [$word] found in controller: ".basename($file));
+            }
+
+            // Billing domain terms are confined to the billing controller.
+            if (basename($file) === 'BillingController.php') {
+                continue;
+            }
+
+            foreach ($billingOnlyKeywords as $word) {
                 $this->assertStringNotContainsString($word, $content, "Forbidden word [$word] found in controller: ".basename($file));
             }
         }

@@ -22,6 +22,10 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
+        // Sandbox billing plans are safe to seed in every environment: they are
+        // simulation-only and contain no secrets.
+        $this->call(BillingPlanSeeder::class);
+
         // Call demo seeder strictly in dev environment for safety
         if (app()->environment('local', 'testing')) {
             $this->call(WattWiseDemoSeeder::class);
