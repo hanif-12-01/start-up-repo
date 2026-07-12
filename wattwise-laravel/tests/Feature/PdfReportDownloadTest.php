@@ -62,7 +62,12 @@ class PdfReportDownloadTest extends TestCase
             ->assertHeader('Content-Disposition', 'attachment; filename="wattwise-laporan-kos-aman-cabang-2026-06.pdf"')
             ->assertHeader('Cache-Control', 'no-store, private');
 
-        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $content = $response->getContent();
+        if ($content === false) {
+            $this->fail('PDF response returned no content.');
+        }
+
+        $this->assertStringStartsWith('%PDF', $content);
     }
 
     public function test_foreign_business_is_denied(): void
