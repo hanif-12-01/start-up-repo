@@ -40,7 +40,7 @@ Aplikasi MVP dideploy secara otomatis ke lingkungan staging:
 Berikut adalah dokumentasi antarmuka aplikasi WattWise AI MVP yang diambil langsung dari server staging:
 
 ### 1. Landing & Login Experience
-Halaman masuk dengan opsi verifikasi modern (Passkey) dan informasi kredensial demo lokal.
+Halaman masuk untuk akses demo dan penguji private beta.
 ![Login Experience](docs/images/wattwise-login.png)
 
 ### 2. Main Dashboard
@@ -110,7 +110,7 @@ Aplikasi WattWise AI MVP menggunakan teknologi modern, handal, dan berorientasi 
 
 > [!IMPORTANT]
 > **Riset ML Lanjutan (Research Artifacts Only):**
-> Model ML tingkat lanjut seperti LSTM (Long Short-Term Memory), Ridge Regression, dan Tree-Based Ensemble (XGBoost/LightGBM) yang terdapat di direktori `ML/` dan legacy Next.js saat ini merupakan **artefak riset dan benchmark**. Model-model ini disiapkan untuk diintegrasikan pada rilis beta berikutnya setelah pengumpulan data historis pelanggan berjalan selama fase private-beta, guna memastikan akurasi prediksi yang aman.
+> Model ML tingkat lanjut seperti LSTM (Long Short-Term Memory), Ridge Regression, dan Tree-Based Ensemble (XGBoost/LightGBM) yang terdapat di direktori `ML/` dan legacy Next.js saat ini merupakan **artefak riset dan benchmark**. Model-model ini disiapkan sebagai kandidat evaluasi masa depan setelah pengumpulan data historis pelanggan berjalan selama fase private-beta, guna dibandingkan dengan baseline deterministik.
 
 ---
 
