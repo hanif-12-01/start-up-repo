@@ -164,6 +164,7 @@ class DataIsolationRegressionTest extends TestCase
     public function test_trial_creation_applies_only_to_authenticated_user(): void
     {
         $userA = User::factory()->create();
+        Business::create(['user_id' => $userA->id, 'name' => 'Biz A', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
         $userB = User::factory()->create();
 
         $this->actingAs($userA);

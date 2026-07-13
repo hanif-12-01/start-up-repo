@@ -166,7 +166,9 @@ class BusinessControllerTest extends TestCase
 
     public function test_user_can_create_business_below_limit(): void
     {
-        $user = User::factory()->create(); // FREE, no businesses yet
+        $user = User::factory()->create();
+        $this->subscribe($user, 'PRO_TRIAL'); // limit = 3
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         $response = $this->actingAs($user)
             ->post(route('businesses.store'), $this->validPayload());
@@ -184,6 +186,8 @@ class BusinessControllerTest extends TestCase
     public function test_store_creates_both_profiles(): void
     {
         $user = User::factory()->create();
+        $this->subscribe($user, 'PRO_TRIAL');
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         $this->actingAs($user)->post(route('businesses.store'), $this->validPayload());
 
@@ -247,6 +251,7 @@ class BusinessControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $this->subscribe($user, 'ENTERPRISE'); // limit = null
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         for ($i = 1; $i <= 4; $i++) {
             $this->actingAs($user)
@@ -254,7 +259,7 @@ class BusinessControllerTest extends TestCase
                 ->assertSessionHas('success');
         }
 
-        $this->assertSame(4, Business::where('user_id', $user->id)->count());
+        $this->assertSame(5, Business::where('user_id', $user->id)->count());
     }
 
     public function test_limit_cannot_be_bypassed_with_request_data(): void
@@ -277,6 +282,8 @@ class BusinessControllerTest extends TestCase
     public function test_store_rejects_invalid_input(): void
     {
         $user = User::factory()->create();
+        $this->subscribe($user, 'PRO_TRIAL');
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         $this->actingAs($user)
             ->post(route('businesses.store'), $this->validPayload([
@@ -286,12 +293,14 @@ class BusinessControllerTest extends TestCase
             ]))
             ->assertSessionHasErrors(['name', 'business_type', 'power_va']);
 
-        $this->assertSame(0, Business::count());
+        $this->assertSame(1, Business::count());
     }
 
     public function test_store_rejects_occupied_rooms_exceeding_room_count(): void
     {
         $user = User::factory()->create();
+        $this->subscribe($user, 'PRO_TRIAL');
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         $this->actingAs($user)
             ->post(route('businesses.store'), $this->validPayload([
@@ -300,19 +309,21 @@ class BusinessControllerTest extends TestCase
             ]))
             ->assertSessionHasErrors('occupied_room_count');
 
-        $this->assertSame(0, Business::count());
+        $this->assertSame(1, Business::count());
     }
 
     public function test_client_supplied_user_id_is_rejected_safely(): void
     {
         $user = User::factory()->create();
         $other = User::factory()->create();
+        $this->subscribe($user, 'PRO_TRIAL');
+        $this->makeBusiness($user, 'Onboarding Biz');
 
         $this->actingAs($user)
             ->post(route('businesses.store'), $this->validPayload(['user_id' => $other->id]))
             ->assertSessionHasErrors('user_id');
 
-        $this->assertSame(0, Business::count());
+        $this->assertSame(1, Business::count());
     }
 
     // ---------------------------------------------------------------------
@@ -365,6 +376,7 @@ class BusinessControllerTest extends TestCase
         $business = $this->makeBusiness($owner, 'Punya Owner');
 
         $attacker = User::factory()->create();
+        $this->makeBusiness($attacker, 'Attacker Biz');
 
         $this->actingAs($attacker)
             ->put(route('businesses.update', $business), $this->validPayload(['name' => 'Dibajak']))

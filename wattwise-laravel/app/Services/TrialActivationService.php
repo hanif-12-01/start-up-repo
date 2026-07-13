@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class TrialActivationService
 {
@@ -13,38 +14,49 @@ class TrialActivationService
      */
     public function activate(User $user): array
     {
-        $subscription = $user->subscription()->first();
+        return DB::transaction(function () use ($user): array {
+            $user = User::lockForUpdate()->find($user->id);
 
-        if ($subscription && $subscription->trial_ends_at !== null) {
+            $subscription = $user->subscription()->lockForUpdate()->first();
+
+            if ($subscription && $subscription->trial_ends_at !== null) {
+                return [
+                    'success' => false,
+                    'message' => 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.',
+                ];
+            }
+
+            if ($subscription
+                && ! in_array(strtoupper($subscription->plan), ['FREE', 'PRO_TRIAL'])
+                && strtoupper($subscription->status) === 'ACTIVE') {
+                return [
+                    'success' => false,
+                    'message' => 'Anda sudah memiliki langganan berbayar yang aktif.',
+                ];
+            }
+
+            $now = Carbon::now();
+
+            Subscription::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'plan' => 'PRO_TRIAL',
+                    'status' => 'ACTIVE',
+                    'trial_starts_at' => $now,
+                    'trial_ends_at' => $now->copy()->addDays(30),
+                ]
+            );
+
+            if ($user->initial_plan_selected_at === null) {
+                $user->initial_plan_selected_at = now();
+                $user->save();
+            }
+
             return [
-                'success' => false,
-                'message' => 'Anda sudah pernah menggunakan masa uji coba (trial) sebelumnya.',
+                'success' => true,
+                'message' => 'Mulai Pro Trial 30 Hari berhasil diaktifkan! Anda kini memiliki akses penuh fitur Pro.',
             ];
-        }
-
-        if ($subscription
-            && ! in_array(strtoupper($subscription->plan), ['FREE', 'PRO_TRIAL'])
-            && strtoupper($subscription->status) === 'ACTIVE') {
-            return [
-                'success' => false,
-                'message' => 'Anda sudah memiliki langganan berbayar yang aktif.',
-            ];
-        }
-
-        Subscription::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'plan' => 'PRO_TRIAL',
-                'status' => 'ACTIVE',
-                'trial_starts_at' => Carbon::now(),
-                'trial_ends_at' => Carbon::now()->addDays(30),
-            ]
-        );
-
-        return [
-            'success' => true,
-            'message' => 'Mulai Pro Trial 30 Hari berhasil diaktifkan! Anda kini memiliki akses penuh fitur Pro.',
-        ];
+        });
     }
 
     public function isEligible(User $user): bool

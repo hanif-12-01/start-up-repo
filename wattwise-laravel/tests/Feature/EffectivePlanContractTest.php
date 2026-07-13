@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\FeatureGateService;
@@ -268,6 +269,7 @@ class EffectivePlanContractTest extends TestCase
     {
         $user = User::factory()->create();
         $this->subscribe($user, 'PRO');
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($user)
             ->post(route('plans.trial'))
@@ -292,6 +294,7 @@ class EffectivePlanContractTest extends TestCase
     {
         $user = User::factory()->create();
         $this->subscribe($user, 'PRO_TRIAL', ['trial_ends_at' => Carbon::now()->addDays(20)]);
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($user)
             ->get(route('plans.index'))

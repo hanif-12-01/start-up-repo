@@ -2,13 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\JourneyStateResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureJourneyCompleted
 {
-    public function handle(Request $request, Closure $next): Response
+    public function __construct(
+        private readonly JourneyStateResolver $resolver,
+    ) {}
+
+    public function handle(Request $request, Closure $next, string $scope = 'product'): Response
     {
         $user = $request->user();
 
@@ -16,11 +21,22 @@ class EnsureJourneyCompleted
             return $next($request);
         }
 
-        if ($user->businesses()->exists()) {
+        if ($this->resolver->hasBusiness($user)) {
             return $next($request);
         }
 
-        if ($user->initial_plan_selected_at === null) {
+        $planChosen = $this->resolver->hasCompletedInitialPlanChoice($user);
+
+        if ($scope === 'onboarding') {
+            if (! $planChosen) {
+                return redirect()->route('getting-started.plan');
+            }
+
+            return $next($request);
+        }
+
+        // scope = product (default)
+        if (! $planChosen) {
             return redirect()->route('getting-started.plan');
         }
 

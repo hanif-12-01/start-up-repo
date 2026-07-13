@@ -2,24 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\JourneyStateResolver;
 use App\Services\TrialActivationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class GettingStartedController extends Controller
 {
+    public function __construct(
+        private readonly JourneyStateResolver $journeyResolver,
+    ) {}
+
     public function plan(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
 
-        if ($user->businesses()->exists()) {
+        if ($this->journeyResolver->hasBusiness($user)) {
             return redirect()->route('dashboard');
         }
 
-        if ($user->initial_plan_selected_at !== null) {
+        if ($this->journeyResolver->hasCompletedInitialPlanChoice($user)) {
             return redirect()->route('onboarding');
         }
 
@@ -35,7 +39,8 @@ class GettingStartedController extends Controller
         $user = $request->user();
 
         if ($user->initial_plan_selected_at === null) {
-            $user->update(['initial_plan_selected_at' => now()]);
+            $user->initial_plan_selected_at = now();
+            $user->save();
         }
 
         if ($user->businesses()->exists()) {
@@ -49,17 +54,7 @@ class GettingStartedController extends Controller
     {
         $user = $request->user();
 
-        $service = app(TrialActivationService::class);
-
-        $result = DB::transaction(function () use ($user, $service): array {
-            $activation = $service->activate($user);
-
-            if ($activation['success'] && $user->initial_plan_selected_at === null) {
-                $user->update(['initial_plan_selected_at' => now()]);
-            }
-
-            return $activation;
-        });
+        $result = app(TrialActivationService::class)->activate($user);
 
         $type = $result['success'] ? 'success' : 'error';
         Inertia::flash('toast', ['type' => $type, 'message' => $result['message']]);

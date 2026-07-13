@@ -45,6 +45,7 @@ class SandboxBillingTest extends TestCase
 
         $this->seed(BillingPlanSeeder::class);
         $this->user = User::factory()->create();
+        Business::create(['user_id' => $this->user->id, 'name' => 'Billing Test Biz', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
         $this->featureGateService = app(FeatureGateService::class);
     }
 
@@ -606,6 +607,7 @@ class SandboxBillingTest extends TestCase
     {
         $payment = $this->startCheckout('pro');
         $other = User::factory()->create();
+        Business::create(['user_id' => $other->id, 'name' => 'Other Biz', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($other)
             ->get(route('billing.payment.show', $payment))

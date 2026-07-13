@@ -191,12 +191,11 @@ class ReportExportTest extends TestCase
      */
     public function test_no_active_business_is_handled_safely(): void
     {
-        $userWithoutBusiness = User::factory()->create();
+        $userWithoutBusiness = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($userWithoutBusiness);
 
         $response = $this->get(route('reports.export'));
-        $response->assertRedirect(route('reports.index'));
-        $response->assertSessionHas('error', 'Anda belum memiliki usaha aktif.');
+        $response->assertRedirect(route('onboarding'));
     }
 
     /**

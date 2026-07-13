@@ -221,6 +221,7 @@ class ActiveBusinessSelectionTest extends TestCase
     public function test_foreign_business_selection_is_rejected()
     {
         $user = User::factory()->create();
+        Business::create(['user_id' => $user->id, 'name' => 'Own Biz', 'business_type' => 'KOS_PROPERTY', 'status' => Business::STATUS_ACTIVE]);
         $otherUser = User::factory()->create();
 
         $foreignBusiness = Business::create([

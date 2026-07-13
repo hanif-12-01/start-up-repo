@@ -87,6 +87,7 @@ class PlanGatingRegressionTest extends TestCase
     public function test_starting_trial_twice_does_not_create_duplicate_active_trial(): void
     {
         $user = User::factory()->create();
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
         $this->actingAs($user);
 
         // Start first trial
