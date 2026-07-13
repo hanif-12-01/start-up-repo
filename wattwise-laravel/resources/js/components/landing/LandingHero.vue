@@ -14,7 +14,7 @@ const primaryLabel = computed(() => {
         return 'Buka Dashboard';
     }
 
-    return props.demoReady ? 'Coba Demo WattWise' : 'Mulai Gratis';
+    return props.demoReady ? 'Masuk ke Demo WattWise' : 'Mulai Gratis';
 });
 
 const primaryHref = computed(() => {
@@ -86,6 +86,12 @@ const secondaryHref = computed(() => (props.demoReady ? register() : login()));
                         {{ secondaryLabel }}
                     </Link>
                 </div>
+                <p
+                    v-if="demoReady && !authenticated"
+                    class="mt-3 text-sm leading-6 text-slate-600"
+                >
+                    Anda akan diarahkan ke halaman login demo terkontrol.
+                </p>
                 <ul
                     class="mt-7 flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:gap-x-5"
                 >

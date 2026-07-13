@@ -20,7 +20,7 @@ const primaryLabel = computed(() => {
         return 'Buka Dashboard';
     }
 
-    return props.demoReady ? 'Coba Demo WattWise' : 'Mulai Gratis';
+    return props.demoReady ? 'Masuk ke Demo WattWise' : 'Mulai Gratis';
 });
 
 const primaryHref = computed(() => {

@@ -69,9 +69,11 @@ The public page follows this order:
 
 CTA behavior must preserve current authentication behavior:
 
-- guest with demo ready: primary “Coba Demo WattWise” to the existing login route and secondary “Mulai Gratis” to the registration route;
+- guest with demo ready: primary “Masuk ke Demo WattWise” to the existing login route and secondary “Mulai Gratis” to the registration route;
 - guest with demo unavailable: primary “Mulai Gratis” to registration and secondary “Masuk” to login;
 - authenticated user: primary “Buka Dashboard” to the dashboard route.
+
+When demo is ready, the hero states “Anda akan diarahkan ke halaman login demo terkontrol.” The CTA continues to the existing login route; one-click demo authentication and a new `POST /demo/login` route are outside IT-UI-01.
 
 ## 7. GSAP boundaries
 
@@ -144,7 +146,7 @@ Do not invent customer counts, testimonials, partner/customer logos, awards, pre
 
 ## 12. Out-of-scope items
 
-The task does not modify dashboard or authenticated navigation, registration business logic, trial activation, journey middleware, onboarding, electricity/revenue/appliance/prediction/anomaly/recommendation/report/billing/WhatsApp behavior, demo repair, `/up`, `/up/demo`, database schema, Railway variables/environments, production, legacy Next.js, Prisma, ML files, `bengkel/*`, GitHub Actions, or release tags. IT-P0-02 is not started. No third-party design or unlicensed asset is copied. No landing change creates new product capability.
+The task does not modify dashboard or authenticated navigation, registration business logic, trial activation, journey middleware, onboarding, electricity/revenue/appliance/prediction/anomaly/recommendation/report/billing/WhatsApp behavior, demo repair, `/up`, `/up/demo`, database schema, Railway variables/environments, production, legacy Next.js, Prisma, ML files, `bengkel/*`, GitHub Actions, or release tags. IT-P0-02 is not started. One-click demo authentication and `POST /demo/login` are not added. No third-party design or unlicensed asset is copied. No landing change creates new product capability.
 
 ## 13. Testing requirements
 

@@ -120,7 +120,8 @@ class AuthBrandingTest extends TestCase
         $required = [
             'Biaya listrik lebih terkendali.',
             'Keputusan usaha lebih percaya diri.',
-            'Coba Demo WattWise',
+            'Masuk ke Demo WattWise',
+            'Anda akan diarahkan ke halaman login demo terkontrol.',
             'Prediksi dan analisis',
             'Input listrik + bantuan OCR opsional',
             'Mulai memahami biaya listrik usaha Anda.',

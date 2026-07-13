@@ -57,7 +57,7 @@ class LandingPageTest extends TestCase
         $this->assertStringContainsString('login()', $source);
         $this->assertStringContainsString('dashboard()', $source);
         $this->assertStringContainsString('auth.user', $source);
-        $this->assertStringContainsString('Coba Demo WattWise', $source);
+        $this->assertStringContainsString('Masuk ke Demo WattWise', $source);
         $this->assertStringContainsString('Buka Dashboard', $source);
 
         $user = User::factory()->create();
@@ -76,12 +76,16 @@ class LandingPageTest extends TestCase
         $source = $this->landingSource();
 
         $this->assertStringContainsString(
-            "props.demoReady ? 'Coba Demo WattWise' : 'Mulai Gratis'",
+            "props.demoReady ? 'Masuk ke Demo WattWise' : 'Mulai Gratis'",
             $source,
         );
         $this->assertStringContainsString('props.demoReady ? login() : register()', $source);
         $this->assertStringContainsString("props.demoReady ? 'Mulai Gratis' : 'Masuk'", $source);
         $this->assertStringContainsString('props.demoReady ? register() : login()', $source);
+        $this->assertStringContainsString(
+            'Anda akan diarahkan ke halaman login demo terkontrol.',
+            $source,
+        );
     }
 
     public function test_mandatory_transparency_copy_remains_visible(): void
