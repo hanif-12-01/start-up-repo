@@ -30,6 +30,16 @@ class AuthBrandingTest extends TestCase
         return $content;
     }
 
+    private function landingSource(): string
+    {
+        $components = glob(resource_path('js/components/landing/*.vue')) ?: [];
+
+        return $this->source('js/pages/Welcome.vue').implode("\n", array_map(
+            static fn (string $path): string => (string) file_get_contents($path),
+            $components,
+        ));
+    }
+
     public function test_login_screen_shows_wattwise_branding_and_copy(): void
     {
         $combined = $this->source('js/pages/auth/Login.vue')
@@ -82,7 +92,7 @@ class AuthBrandingTest extends TestCase
 
     public function test_welcome_page_is_wattwise_not_laravel_starter(): void
     {
-        $welcome = $this->source('js/pages/Welcome.vue');
+        $welcome = $this->landingSource();
 
         $this->assertStringContainsString('WattWise AI', $welcome);
 
@@ -98,24 +108,22 @@ class AuthBrandingTest extends TestCase
             $this->assertStringNotContainsString(
                 $needle,
                 $welcome,
-                "Welcome page still contains Laravel starter content: [$needle]"
+                "Welcome page still contains default Laravel starter copy: [$needle]"
             );
         }
     }
 
     public function test_welcome_landing_page_contains_required_copy(): void
     {
-        $welcome = $this->source('js/pages/Welcome.vue');
+        $welcome = $this->landingSource();
 
         $required = [
-            'Listrik Lebih Cerdas',
-            'Cash Flow Lebih Terkendali',
-            'Coba Demo Dashboard',
-            'Prediksi pemakaian listrik',
-            'Estimasi tagihan listrik',
-            'Hybrid AI Decision Support',
-            'Demo lokal',
-            'Kos Melati Purwokerto',
+            'Biaya listrik lebih terkendali.',
+            'Keputusan usaha lebih percaya diri.',
+            'Coba Demo WattWise',
+            'Prediksi dan analisis',
+            'Input listrik + bantuan OCR opsional',
+            'Mulai memahami biaya listrik usaha Anda.',
         ];
 
         foreach ($required as $needle) {
@@ -129,7 +137,7 @@ class AuthBrandingTest extends TestCase
 
     public function test_welcome_landing_page_contains_required_disclaimers(): void
     {
-        $welcome = $this->source('js/pages/Welcome.vue');
+        $welcome = $this->landingSource();
 
         $disclaimers = [
             'Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.',
@@ -149,7 +157,7 @@ class AuthBrandingTest extends TestCase
 
     public function test_welcome_landing_page_avoids_forbidden_product_claims(): void
     {
-        $welcome = $this->source('js/pages/Welcome.vue');
+        $welcome = $this->landingSource();
 
         $forbidden = [
             'penyebab pasti',
