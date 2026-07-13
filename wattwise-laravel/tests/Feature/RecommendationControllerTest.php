@@ -105,15 +105,12 @@ class RecommendationControllerTest extends TestCase
     /**
      * Test user with no business shows onboarding empty state.
      */
-    public function test_no_business_shows_onboarding_empty_state(): void
+    public function test_no_business_redirects_to_journey(): void
     {
-        $userWithoutBusiness = User::factory()->create();
+        $userWithoutBusiness = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($userWithoutBusiness);
 
         $response = $this->get(route('recommendations.index'));
-        $response->assertOk();
-
-        $inertiaData = $response->original->getData();
-        $this->assertFalse($inertiaData['page']['props']['hasBusiness']);
+        $response->assertRedirect(route('onboarding'));
     }
 }

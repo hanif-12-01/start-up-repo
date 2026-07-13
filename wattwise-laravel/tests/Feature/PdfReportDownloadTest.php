@@ -73,6 +73,7 @@ class PdfReportDownloadTest extends TestCase
     public function test_foreign_business_is_denied(): void
     {
         $otherUser = User::factory()->create();
+        Business::create(['user_id' => $otherUser->id, 'name' => 'Other Biz', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($otherUser)
             ->get(route('reports.pdf', ['business' => $this->business, 'month' => '2026-06']))

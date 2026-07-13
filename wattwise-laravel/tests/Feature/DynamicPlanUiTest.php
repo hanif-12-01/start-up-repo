@@ -45,6 +45,7 @@ class DynamicPlanUiTest extends TestCase
     public function test_dashboard_shares_free_plan_for_user_without_subscription(): void
     {
         $user = User::factory()->create();
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($user)
             ->get(route('dashboard'))
@@ -58,6 +59,7 @@ class DynamicPlanUiTest extends TestCase
     public function test_dashboard_shares_pro_trial_plan_with_remaining_days(): void
     {
         $user = User::factory()->create();
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
         Subscription::create([
             'user_id' => $user->id,
             'plan' => 'PRO_TRIAL',
@@ -78,6 +80,7 @@ class DynamicPlanUiTest extends TestCase
     public function test_dashboard_shares_paid_plan_label_never_gratis(): void
     {
         $user = User::factory()->create();
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
         Subscription::create([
             'user_id' => $user->id,
             'plan' => 'PRO',
@@ -131,7 +134,7 @@ class DynamicPlanUiTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get(route('dashboard'))
+            ->get(route('getting-started.plan'))
             ->assertInertia(fn ($page) => $page->where('needsOnboarding', true));
     }
 

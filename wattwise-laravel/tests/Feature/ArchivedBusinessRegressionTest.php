@@ -106,6 +106,7 @@ class ArchivedBusinessRegressionTest extends TestCase
         $owner = User::factory()->create();
         $business = $this->makeBusiness($owner);
         $other = User::factory()->create();
+        $this->makeBusiness($other, 'Other Biz');
 
         $this->actingAs($other)
             ->post(route('businesses.archive', $business))
@@ -190,6 +191,7 @@ class ArchivedBusinessRegressionTest extends TestCase
         $owner = User::factory()->create();
         $business = $this->makeBusiness($owner, 'Arsip', Business::STATUS_ARCHIVED);
         $other = User::factory()->create();
+        $this->makeBusiness($other, 'Other Biz');
 
         $this->actingAs($other)
             ->post(route('businesses.restore', $business))

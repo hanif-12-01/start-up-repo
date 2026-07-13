@@ -36,7 +36,7 @@ class OnboardingTest extends TestCase
      */
     public function test_authenticated_users_can_visit_onboarding()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($user);
 
         $response = $this->get(route('onboarding'));
@@ -48,7 +48,7 @@ class OnboardingTest extends TestCase
      */
     public function test_authenticated_users_can_submit_onboarding_successfully()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($user);
 
         $response = $this->post(route('onboarding.store'), [
@@ -94,7 +94,7 @@ class OnboardingTest extends TestCase
      */
     public function test_onboarding_fails_with_validation_errors()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($user);
 
         // Missing required fields
@@ -111,7 +111,7 @@ class OnboardingTest extends TestCase
      */
     public function test_onboarding_fails_when_occupied_rooms_greater_than_total_rooms()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($user);
 
         $response = $this->post(route('onboarding.store'), [

@@ -69,18 +69,13 @@ class ReportControllerTest extends TestCase
     /**
      * Test no business shows NO_BUSINESS report state.
      */
-    public function test_no_business_shows_no_business_report_state(): void
+    public function test_no_business_redirects_to_journey(): void
     {
-        $userWithoutBusiness = User::factory()->create();
+        $userWithoutBusiness = User::factory()->create(['initial_plan_selected_at' => now()]);
         $this->actingAs($userWithoutBusiness);
 
         $response = $this->get(route('reports.index'));
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Reports/Index')
-            ->where('report.data_completeness', 'NO_BUSINESS')
-            ->where('report.business', null)
-        );
+        $response->assertRedirect(route('onboarding'));
     }
 
     /**

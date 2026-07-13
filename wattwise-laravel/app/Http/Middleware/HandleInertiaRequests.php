@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\ActiveBusinessResolver;
 use App\Services\Billing\BillingAvailability;
 use App\Services\FeatureGateService;
+use App\Services\JourneyStateResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -71,6 +72,7 @@ class HandleInertiaRequests extends Middleware
             // business yet). Drives conditional visibility of the Onboarding
             // navigation item — hidden once onboarding is complete.
             'needsOnboarding' => $user ? ! $user->businesses()->exists() : false,
+            'needsInitialPlan' => $user ? ! app(JourneyStateResolver::class)->hasCompletedInitialPlanChoice($user) : false,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

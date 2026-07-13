@@ -302,6 +302,7 @@ class PlanGatingTest extends TestCase
             'email' => 'test@example.com',
             'password' => bcrypt('password'),
         ]);
+        Business::create(['user_id' => $user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $response = $this->actingAs($user)->post('/plans/trial');
 
