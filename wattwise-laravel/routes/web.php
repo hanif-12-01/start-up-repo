@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessSelectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ElectricityEntryController;
+use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PredictionController;
@@ -20,9 +21,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', WelcomeController::class)->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('getting-started/plan', [GettingStartedController::class, 'plan'])->name('getting-started.plan');
+    Route::post('getting-started/choose-free', [GettingStartedController::class, 'chooseFree'])->name('getting-started.choose-free');
+    Route::post('getting-started/choose-trial', [GettingStartedController::class, 'chooseTrial'])->name('getting-started.choose-trial');
+
     Route::get('onboarding', [OnboardingController::class, 'index'])->name('onboarding');
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
+
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('journey');
     Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
     Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');
     Route::post('businesses/select', BusinessSelectionController::class)->name('businesses.select');

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\BillingProvider;
 use App\Contracts\WhatsAppGateway;
+use App\Http\Responses\RegisterResponse;
 use App\Services\ActiveBusinessResolver;
 use App\Services\Billing\BillingAvailability;
 use App\Services\Billing\SandboxSimulatorProvider;
@@ -13,12 +14,15 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->singleton(ActiveBusinessResolver::class);
+
+        $this->app->singleton(RegisterResponseContract::class, RegisterResponse::class);
 
         $this->app->bind(WhatsAppGateway::class, function ($app) {
             $driver = config('whatsapp.driver');

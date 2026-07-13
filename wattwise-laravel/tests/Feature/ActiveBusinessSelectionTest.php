@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Business;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,7 +37,7 @@ class ActiveBusinessSelectionTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $response = $this->get(route('dashboard'));
+        $response = $this->get(route('getting-started.plan'));
         $response->assertOk();
 
         $inertiaData = $response->original->getData();
@@ -424,7 +425,7 @@ class ActiveBusinessSelectionTest extends TestCase
     {
         $user = User::factory()->create();
         // User needs PRO plan to have multiple active businesses
-        \App\Models\Subscription::create([
+        Subscription::create([
             'user_id' => $user->id,
             'plan' => 'PRO',
             'status' => 'ACTIVE',
@@ -460,7 +461,7 @@ class ActiveBusinessSelectionTest extends TestCase
     public function test_creating_business_does_not_replace_valid_selection()
     {
         $user = User::factory()->create();
-        \App\Models\Subscription::create([
+        Subscription::create([
             'user_id' => $user->id,
             'plan' => 'PRO',
             'status' => 'ACTIVE',

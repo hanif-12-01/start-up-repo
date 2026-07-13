@@ -141,6 +141,7 @@ class SandboxBillingTest extends TestCase
     public function test_sidebar_billing_hidden_when_disabled(): void
     {
         config(['billing.enabled' => false]);
+        Business::create(['user_id' => $this->user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($this->user)
             ->get(route('dashboard'))
@@ -150,6 +151,7 @@ class SandboxBillingTest extends TestCase
     public function test_sidebar_billing_visible_when_enabled(): void
     {
         config(['billing.enabled' => true, 'billing.driver' => 'sandbox']);
+        Business::create(['user_id' => $this->user->id, 'name' => 'Test', 'business_type' => 'KOS_PROPERTY', 'status' => 'ACTIVE']);
 
         $this->actingAs($this->user)
             ->get(route('dashboard'))

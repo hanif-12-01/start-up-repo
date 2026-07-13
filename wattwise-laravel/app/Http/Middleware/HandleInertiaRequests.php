@@ -71,6 +71,7 @@ class HandleInertiaRequests extends Middleware
             // business yet). Drives conditional visibility of the Onboarding
             // navigation item — hidden once onboarding is complete.
             'needsOnboarding' => $user ? ! $user->businesses()->exists() : false,
+            'needsInitialPlan' => $user ? $user->initial_plan_selected_at === null && ! $user->businesses()->exists() : false,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
