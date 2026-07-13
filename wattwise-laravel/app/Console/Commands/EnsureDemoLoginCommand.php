@@ -145,6 +145,12 @@ class EnsureDemoLoginCommand extends Command
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
 
+            // 3b. Missing initial plan selection timestamp
+            if ($user->initial_plan_selected_at === null) {
+                $user->initial_plan_selected_at = \Illuminate\Support\Carbon::now();
+                $user->save();
+            }
+
             // 4. Missing or unusable subscription
             /** @var Subscription|null $subscription */
             $subscription = $user->subscription;

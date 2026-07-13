@@ -137,6 +137,27 @@ class EnsureDemoLoginCommandTest extends TestCase
         $this->assertEquals($createdAt->toDateTimeString(), $user->created_at->toDateTimeString());
     }
 
+    public function test_ensure_repairs_missing_initial_plan_selected_at(): void
+    {
+        config(['demo.enabled' => true]);
+        $this->seed(WattWiseDemoSeeder::class);
+
+        $user = User::where('email', DemoAccount::EMAIL)->firstOrFail();
+        $user->initial_plan_selected_at = null;
+        $user->email_verified_at = null; // break something so repair block runs
+        $user->save();
+
+        /** @var PendingCommand $command */
+        $command = $this->artisan('wattwise:ensure-demo-login');
+        $command->expectsOutputToContain('Performing repairs...');
+        $exitCode = $command->run();
+        $this->assertEquals(0, $exitCode);
+
+        $user->refresh();
+        $this->assertNotNull($user->initial_plan_selected_at);
+        $this->assertNotNull($user->email_verified_at);
+    }
+
     public function test_ensure_leaves_non_demo_users_and_businesses_untouched(): void
     {
         config(['demo.enabled' => true]);

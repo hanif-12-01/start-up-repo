@@ -53,6 +53,11 @@ class WattWiseDemoSeeder extends Seeder
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 
+        if (is_null($user->initial_plan_selected_at)) {
+            $user->initial_plan_selected_at = \Illuminate\Support\Carbon::now();
+            $user->save();
+        }
+
         // 2. Create or Update Business
         $business = Business::updateOrCreate(
             [

@@ -16,9 +16,23 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RevenueEntryController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\EnsureBillingEnabled;
+use App\Services\Demo\DemoLoginReadinessService;
+use App\Support\DemoAccount;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', WelcomeController::class)->name('home');
+
+if (DemoAccount::environmentAllowed()) {
+    Route::get('up/demo', function () {
+        $result = app(DemoLoginReadinessService::class)->check();
+
+        return response()->json([
+            'status' => $result->ready ? 'ok' : 'fail',
+            'demo' => $result->ready ? 'ready' : 'not_ready',
+            'reason' => $result->ready ? null : $result->reason->name,
+        ], $result->ready ? 200 : 503);
+    })->name('up.demo');
+}
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('getting-started/plan', [GettingStartedController::class, 'plan'])->name('getting-started.plan');
