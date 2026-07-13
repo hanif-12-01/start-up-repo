@@ -365,6 +365,14 @@ class WattWiseDemoSeederTest extends TestCase
             ->firstOrFail();
     }
 
+    public function test_seeder_sets_initial_plan_selected_at(): void
+    {
+        $this->runSeeder();
+
+        $user = User::where('email', self::DEMO_EMAIL)->firstOrFail();
+        $this->assertNotNull($user->initial_plan_selected_at);
+    }
+
     public function test_database_seeder_does_not_automatically_seed_demo_data_in_production_or_staging(): void
     {
         $this->app->detectEnvironment(fn () => 'production');
