@@ -1,0 +1,84 @@
+{
+    "manifest_version": "1.0",
+    "source_archive_commit": "ed2e7f6dd940f345b1f644c9be90fba8efff32c3",
+    "models": [
+        {
+            "model_key": "deterministic",
+            "display_name": "Deterministic Rule-Based",
+            "version": "1.0",
+            "target": "next_month_usage_kwh",
+            "artifact_path": null,
+            "artifact_sha256": null,
+            "feature_order": null,
+            "minimum_history_months": 1,
+            "execution_mode": "ACTIVE_BASELINE",
+            "benchmark_metrics_historical": null,
+            "reproducibility": "FULLY_REPRODUCIBLE",
+            "enabled": true
+        },
+        {
+            "model_key": "ridge_umkm_v1_1",
+            "display_name": "Ridge Regression UMKM",
+            "version": "Ridge UMKM v1.1",
+            "target": "next_month_usage_kwh",
+            "artifact_path": "resources/ml/ridge-umkm-v1.1.json",
+            "artifact_sha256": "e2416ba03144094df87d94f269eb60fbec92b68f4441e95342c7a47aa3e615a9",
+            "feature_order": [
+                "business_type_encoded",
+                "month",
+                "latest_usage_kwh",
+                "previous_usage_kwh",
+                "avg_3_month_usage_kwh",
+                "avg_6_month_usage_kwh",
+                "trend_1_month",
+                "trend_3_month",
+                "month_sin",
+                "month_cos",
+                "avg_tariff_idr_per_kwh"
+            ],
+            "minimum_history_months": 3,
+            "execution_mode": "SHADOW",
+            "benchmark_metrics_historical": {
+                "mae_usage_kwh": 177.1367,
+                "rmse_usage_kwh": 406.4574,
+                "wmape_usage_percent": 16.3158,
+                "note": "Historical benchmark from training — not runtime evaluation"
+            },
+            "reproducibility": "INFERENCE_ONLY",
+            "enabled": true
+        },
+        {
+            "model_key": "gradient_boosting_umkm_v1",
+            "display_name": "Gradient Boosting UMKM",
+            "version": "Gradient Boosting UMKM v1.0",
+            "target": "next_month_usage_kwh",
+            "artifact_path": "resources/ml/gradient-boosting-umkm-v1.json",
+            "artifact_sha256": "b864713d9c268f2f177f3905de694934758288e2e0a495cec81080d2dfc9d350",
+            "feature_order": [
+                "business_type_encoded",
+                "month",
+                "latest_usage_kwh",
+                "previous_usage_kwh",
+                "avg_3_month_usage_kwh",
+                "avg_6_month_usage_kwh",
+                "trend_1_month",
+                "trend_3_month",
+                "month_sin",
+                "month_cos",
+                "avg_tariff_idr_per_kwh"
+            ],
+            "minimum_history_months": 3,
+            "execution_mode": "SHADOW",
+            "benchmark_metrics_historical": {
+                "mae_usage_kwh": 154.0368,
+                "rmse_usage_kwh": 370.7435,
+                "wmape_usage_percent": 14.1881,
+                "note": "Historical benchmark from training — not runtime evaluation"
+            },
+            "reproducibility": "INFERENCE_ONLY",
+            "enabled": true,
+            "parity_samples_path": "resources/ml/gb-parity-samples.json",
+            "parity_samples_sha256": "3bc22f4d602b421f685bcb28b7b3a6fff20d8c9753dc6693cde7cf7e46f01c1f"
+        }
+    ]
+}
