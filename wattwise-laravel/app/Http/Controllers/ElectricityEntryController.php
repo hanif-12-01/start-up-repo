@@ -8,9 +8,12 @@ use App\Models\ElectricityEntry;
 use App\Services\ActiveBusinessResolver;
 use App\Services\Electricity\ElectricityCalculator;
 use App\Services\FeatureGateService;
+use App\Services\Predictions\MachineLearning\PredictionEvaluationService;
+use App\Services\Predictions\MachineLearning\PredictionShadowOrchestrator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -152,6 +155,70 @@ class ElectricityEntryController extends Controller
             ]
         );
 
+        $this->triggerShadowEvaluation($businessId, $periodMonth, $usageKwh);
+
         return redirect()->back()->with('success', 'Data listrik berhasil disimpan.');
+    }
+
+    private function triggerShadowEvaluation(int $businessId, Carbon $periodMonth, ?float $usageKwh): void
+    {
+        if (! config('prediction.shadow_enabled', false)) {
+            return;
+        }
+
+        try {
+            $business = Business::with(['electricityProfile'])->find($businessId);
+            if (! $business) {
+                return;
+            }
+
+            $entries = $business->electricityEntries()
+                ->orderBy('period_month', 'asc')
+                ->get();
+
+            $history = [];
+            foreach ($entries as $entry) {
+                if ($entry->usage_kwh === null) {
+                    continue;
+                }
+                $history[] = [
+                    'period_month' => Carbon::parse($entry->period_month)->format('Y-m'),
+                    'usage_kwh' => (float) $entry->usage_kwh,
+                ];
+            }
+
+            if (empty($history)) {
+                return;
+            }
+
+            $tariff = $business->electricityProfile?->tariff_per_kwh
+                ? (float) $business->electricityProfile->tariff_per_kwh
+                : null;
+
+            if ($tariff === null) {
+                $latestWithTariff = $entries->whereNotNull('tariff_per_kwh')->last();
+                $tariff = $latestWithTariff ? (float) $latestWithTariff->tariff_per_kwh : null;
+            }
+
+            $lastPeriod = Carbon::parse($entries->last()->period_month);
+            $targetPeriod = $lastPeriod->copy()->addMonth()->format('Y-m');
+
+            $orchestrator = app(PredictionShadowOrchestrator::class);
+            $orchestrator->execute(
+                $businessId,
+                $targetPeriod,
+                $history,
+                $business->business_type ?? 'OTHER',
+                $tariff,
+                'electricity_entry',
+            );
+
+            if ($usageKwh !== null) {
+                $evalService = app(PredictionEvaluationService::class);
+                $evalService->evaluateForActual($businessId, $periodMonth->format('Y-m'), $usageKwh);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Shadow evaluation failed safely', ['error' => $e->getMessage()]);
+        }
     }
 }

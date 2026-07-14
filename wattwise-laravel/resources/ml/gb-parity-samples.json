@@ -1,0 +1,322 @@
+[
+  {
+    "features": {
+      "business_type_encoded": 4.0,
+      "month": 9.0,
+      "latest_usage_kwh": 1199.3,
+      "previous_usage_kwh": 1251.25,
+      "avg_3_month_usage_kwh": 1206.6266666666668,
+      "avg_6_month_usage_kwh": 1209.2,
+      "trend_1_month": -0.0415184811866655,
+      "trend_3_month": -0.0060720244366773,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1183.4056
+  },
+  {
+    "features": {
+      "business_type_encoded": 3.0,
+      "month": 8.0,
+      "latest_usage_kwh": 1224.91,
+      "previous_usage_kwh": 977.29,
+      "avg_3_month_usage_kwh": 1081.8100000000002,
+      "avg_6_month_usage_kwh": 1056.2833333333335,
+      "trend_1_month": 0.2533741238181695,
+      "trend_3_month": 0.1322783101258232,
+      "month_sin": -0.8660254037844385,
+      "month_cos": -0.5000000000000004,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1117.4827
+  },
+  {
+    "features": {
+      "business_type_encoded": 1.0,
+      "month": 9.0,
+      "latest_usage_kwh": 683.34,
+      "previous_usage_kwh": 718.94,
+      "avg_3_month_usage_kwh": 709.57,
+      "avg_6_month_usage_kwh": 684.5916666666667,
+      "trend_1_month": -0.0495173442913547,
+      "trend_3_month": -0.0369660493402194,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 696.1459
+  },
+  {
+    "features": {
+      "business_type_encoded": 4.0,
+      "month": 8.0,
+      "latest_usage_kwh": 1507.32,
+      "previous_usage_kwh": 1368.85,
+      "avg_3_month_usage_kwh": 1469.5333333333335,
+      "avg_6_month_usage_kwh": 1534.0083333333334,
+      "trend_1_month": 0.1011579055326887,
+      "trend_3_month": 0.0257133782217932,
+      "month_sin": -0.8660254037844385,
+      "month_cos": -0.5000000000000004,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1440.1983
+  },
+  {
+    "features": {
+      "business_type_encoded": 2.0,
+      "month": 9.0,
+      "latest_usage_kwh": 361.57,
+      "previous_usage_kwh": 348.24,
+      "avg_3_month_usage_kwh": 349.92,
+      "avg_6_month_usage_kwh": 340.9633333333333,
+      "trend_1_month": 0.0382781978440673,
+      "trend_3_month": 0.0332933232369305,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 356.8223
+  },
+  {
+    "features": {
+      "business_type_encoded": 6.0,
+      "month": 11.0,
+      "latest_usage_kwh": 2799.6382,
+      "previous_usage_kwh": 0.1488,
+      "avg_3_month_usage_kwh": 933.3103333333332,
+      "avg_6_month_usage_kwh": 466.7287666666666,
+      "trend_1_month": 18812.50856797258,
+      "trend_3_month": 1.9996862565575408,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 3810.2699
+  },
+  {
+    "features": {
+      "business_type_encoded": 3.0,
+      "month": 11.0,
+      "latest_usage_kwh": 919.04,
+      "previous_usage_kwh": 1022.54,
+      "avg_3_month_usage_kwh": 994.0,
+      "avg_6_month_usage_kwh": 956.265,
+      "trend_1_month": -0.1012185332483958,
+      "trend_3_month": -0.0754124740904178,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 932.4561
+  },
+  {
+    "features": {
+      "business_type_encoded": 4.0,
+      "month": 10.0,
+      "latest_usage_kwh": 1239.01,
+      "previous_usage_kwh": 1334.65,
+      "avg_3_month_usage_kwh": 1303.39,
+      "avg_6_month_usage_kwh": 1278.185,
+      "trend_1_month": -0.0716592359670383,
+      "trend_3_month": -0.0493942714813351,
+      "month_sin": -0.8660254037844386,
+      "month_cos": 0.5000000000000001,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1285.3965
+  },
+  {
+    "features": {
+      "business_type_encoded": 1.0,
+      "month": 11.0,
+      "latest_usage_kwh": 377.41,
+      "previous_usage_kwh": 392.01,
+      "avg_3_month_usage_kwh": 397.0366666666667,
+      "avg_6_month_usage_kwh": 411.66833333333335,
+      "trend_1_month": -0.0372439469083964,
+      "trend_3_month": -0.0494328806886127,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 396.59
+  },
+  {
+    "features": {
+      "business_type_encoded": 2.0,
+      "month": 11.0,
+      "latest_usage_kwh": 518.13,
+      "previous_usage_kwh": 542.53,
+      "avg_3_month_usage_kwh": 535.77,
+      "avg_6_month_usage_kwh": 517.7916666666666,
+      "trend_1_month": -0.0449744706288228,
+      "trend_3_month": -0.032924575229584,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 498.1951
+  },
+  {
+    "features": {
+      "business_type_encoded": 2.0,
+      "month": 11.0,
+      "latest_usage_kwh": 370.23,
+      "previous_usage_kwh": 392.14,
+      "avg_3_month_usage_kwh": 371.25,
+      "avg_6_month_usage_kwh": 365.66,
+      "trend_1_month": -0.0558729011099886,
+      "trend_3_month": -0.0027474746734686,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 376.9469
+  },
+  {
+    "features": {
+      "business_type_encoded": 0.0,
+      "month": 9.0,
+      "latest_usage_kwh": 811.72,
+      "previous_usage_kwh": 957.66,
+      "avg_3_month_usage_kwh": 887.5533333333333,
+      "avg_6_month_usage_kwh": 879.2433333333333,
+      "trend_1_month": -0.1523922879477863,
+      "trend_3_month": -0.0854408739519028,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 864.3613
+  },
+  {
+    "features": {
+      "business_type_encoded": 2.0,
+      "month": 8.0,
+      "latest_usage_kwh": 509.14,
+      "previous_usage_kwh": 507.38,
+      "avg_3_month_usage_kwh": 519.68,
+      "avg_6_month_usage_kwh": 526.6216666666666,
+      "trend_1_month": 0.0034688004361858,
+      "trend_3_month": -0.0202817114323869,
+      "month_sin": -0.8660254037844385,
+      "month_cos": -0.5000000000000004,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 509.9595
+  },
+  {
+    "features": {
+      "business_type_encoded": 0.0,
+      "month": 8.0,
+      "latest_usage_kwh": 896.55,
+      "previous_usage_kwh": 862.57,
+      "avg_3_month_usage_kwh": 859.4266666666666,
+      "avg_6_month_usage_kwh": 871.2566666666667,
+      "trend_1_month": 0.0393939038061384,
+      "trend_3_month": 0.0431954631398203,
+      "month_sin": -0.8660254037844385,
+      "month_cos": -0.5000000000000004,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 884.6956
+  },
+  {
+    "features": {
+      "business_type_encoded": 3.0,
+      "month": 9.0,
+      "latest_usage_kwh": 1338.19,
+      "previous_usage_kwh": 1218.47,
+      "avg_3_month_usage_kwh": 1234.15,
+      "avg_6_month_usage_kwh": 1186.736666666667,
+      "trend_1_month": 0.0982543673766743,
+      "trend_3_month": 0.0843009351837222,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1238.6759
+  },
+  {
+    "features": {
+      "business_type_encoded": 0.0,
+      "month": 11.0,
+      "latest_usage_kwh": 777.15,
+      "previous_usage_kwh": 853.38,
+      "avg_3_month_usage_kwh": 829.8366666666666,
+      "avg_6_month_usage_kwh": 823.945,
+      "trend_1_month": -0.0893271451249485,
+      "trend_3_month": -0.0634904049774002,
+      "month_sin": -0.5000000000000004,
+      "month_cos": 0.8660254037844384,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 821.5903
+  },
+  {
+    "features": {
+      "business_type_encoded": 3.0,
+      "month": 10.0,
+      "latest_usage_kwh": 875.52,
+      "previous_usage_kwh": 941.63,
+      "avg_3_month_usage_kwh": 927.0633333333334,
+      "avg_6_month_usage_kwh": 915.9133333333334,
+      "trend_1_month": -0.0702080427534377,
+      "trend_3_month": -0.0555985021994344,
+      "month_sin": -0.8660254037844386,
+      "month_cos": 0.5000000000000001,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 910.3638
+  },
+  {
+    "features": {
+      "business_type_encoded": 3.0,
+      "month": 8.0,
+      "latest_usage_kwh": 958.6,
+      "previous_usage_kwh": 1007.24,
+      "avg_3_month_usage_kwh": 965.6,
+      "avg_6_month_usage_kwh": 929.1083333333336,
+      "trend_1_month": -0.0482903771862676,
+      "trend_3_month": -0.0072493785496128,
+      "month_sin": -0.8660254037844385,
+      "month_cos": -0.5000000000000004,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 963.9248
+  },
+  {
+    "features": {
+      "business_type_encoded": 6.0,
+      "month": 9.0,
+      "latest_usage_kwh": 2411.0,
+      "previous_usage_kwh": 3075.72,
+      "avg_3_month_usage_kwh": 2802.24,
+      "avg_6_month_usage_kwh": 2291.0866666666666,
+      "trend_1_month": -0.2161185016317528,
+      "trend_3_month": -0.1396168774279972,
+      "month_sin": -1.0,
+      "month_cos": -1.8369701987210292e-16,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 2073.1972
+  },
+  {
+    "features": {
+      "business_type_encoded": 4.0,
+      "month": 10.0,
+      "latest_usage_kwh": 1249.4,
+      "previous_usage_kwh": 1404.18,
+      "avg_3_month_usage_kwh": 1376.3966666666668,
+      "avg_6_month_usage_kwh": 1355.0333333333335,
+      "trend_1_month": -0.1102280326580065,
+      "trend_3_month": -0.0922674900481632,
+      "month_sin": -0.8660254037844386,
+      "month_cos": 0.5000000000000001,
+      "avg_tariff_idr_per_kwh": 1444.7
+    },
+    "python_pred": 1338.8339
+  }
+]
