@@ -48,7 +48,7 @@ const problems = [
 <template>
     <section
         aria-label="Kepercayaan produk"
-        class="border-y border-slate-900/10 bg-[#102a2d] text-white"
+        class="border-y border-slate-900/10 bg-[#0F172A] text-white"
     >
         <ul
             class="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-white/10 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-5 lg:divide-x lg:divide-y-0 lg:px-8"
@@ -83,7 +83,7 @@ const problems = [
                         Masalah sehari-hari
                     </p>
                     <h2
-                        class="mt-4 text-4xl leading-tight font-semibold tracking-[-0.045em] text-[#102a2d] sm:text-5xl"
+                        class="mt-4 text-4xl leading-tight font-semibold tracking-[-0.045em] text-[#0F172A] sm:text-5xl"
                     >
                         Biaya berjalan terus. Konteksnya sering tertinggal.
                     </h2>
@@ -108,7 +108,7 @@ const problems = [
                             aria-hidden="true"
                         />
                         <h3
-                            class="mt-8 text-xl leading-snug font-semibold tracking-[-0.025em] text-[#102a2d]"
+                            class="mt-8 text-xl leading-snug font-semibold tracking-[-0.025em] text-[#0F172A]"
                         >
                             {{ problem.title }}
                         </h3>

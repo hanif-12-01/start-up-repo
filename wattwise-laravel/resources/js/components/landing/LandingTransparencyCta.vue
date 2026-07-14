@@ -69,7 +69,7 @@ const plans = [
 </script>
 
 <template>
-    <section id="transparansi" class="bg-[#102a2d] py-20 text-white sm:py-28">
+    <section id="transparansi" class="bg-[#0F172A] py-20 text-white sm:py-28">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div
                 data-reveal-group
@@ -107,7 +107,7 @@ const plans = [
                         class="grid gap-4 border-b border-white/10 p-6 last:border-b-0 sm:grid-cols-[auto_1fr] sm:p-7"
                     >
                         <span
-                            class="grid h-9 w-9 place-items-center rounded-full bg-emerald-300 text-sm font-bold text-[#102a2d]"
+                            class="grid h-9 w-9 place-items-center rounded-full bg-emerald-300 text-sm font-bold text-[#0F172A]"
                             aria-hidden="true"
                             >0{{ index + 1 }}</span
                         >
@@ -134,7 +134,7 @@ const plans = [
                     </p>
                 </div>
                 <h2
-                    class="mt-5 text-4xl font-semibold tracking-[-0.05em] text-[#102a2d] sm:text-5xl"
+                    class="mt-5 text-4xl font-semibold tracking-[-0.05em] text-[#0F172A] sm:text-5xl"
                 >
                     Kenali alurnya melalui Free atau Pro Trial.
                 </h2>
@@ -157,7 +157,7 @@ const plans = [
                         {{ plan.name }}
                     </p>
                     <h3
-                        class="mt-4 text-2xl leading-snug font-semibold tracking-[-0.03em] text-[#102a2d]"
+                        class="mt-4 text-2xl leading-snug font-semibold tracking-[-0.03em] text-[#0F172A]"
                     >
                         {{ plan.summary }}
                     </h3>
@@ -220,7 +220,7 @@ const plans = [
                 >
                     <Link
                         :href="primaryHref"
-                        class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#102a2d] px-7 py-3 text-sm font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-slate-950 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+                        class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#0F172A] px-7 py-3 text-sm font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-slate-950 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
                     >
                         {{ primaryLabel }}
                         <ArrowRight class="h-4 w-4" aria-hidden="true" />

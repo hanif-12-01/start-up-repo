@@ -21,9 +21,9 @@ defineProps<{
                         class="flex flex-col items-center gap-2 font-medium"
                     >
                         <div
-                            class="mb-1 flex h-11 w-11 items-center justify-center rounded-xl bg-green-600 text-white shadow-sm"
+                            class="mb-1 flex h-11 w-11 items-center justify-center rounded-xl bg-[#0F172A] text-white shadow-sm"
                         >
-                            <AppLogoIcon class="size-6 fill-current text-white" />
+                            <AppLogoIcon class="size-6" />
                         </div>
                         <span class="text-lg font-semibold tracking-tight"
                             >WattWise AI</span

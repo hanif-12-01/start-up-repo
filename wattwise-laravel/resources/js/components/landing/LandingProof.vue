@@ -55,7 +55,7 @@ const proofItems = [
                         Bukti produk
                     </p>
                     <h2
-                        class="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[#102a2d] sm:text-5xl"
+                        class="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[#0F172A] sm:text-5xl"
                     >
                         Lihat produknya. Baca batasannya.
                     </h2>
@@ -92,7 +92,7 @@ const proofItems = [
                             {{ item.capability }}
                         </p>
                         <h3
-                            class="mt-3 text-2xl leading-snug font-semibold tracking-[-0.03em] text-[#102a2d]"
+                            class="mt-3 text-2xl leading-snug font-semibold tracking-[-0.03em] text-[#0F172A]"
                         >
                             {{ item.outcome }}
                         </h3>

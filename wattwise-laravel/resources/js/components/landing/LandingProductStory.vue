@@ -49,7 +49,7 @@ const stages = [
 <template>
     <section
         id="cara-kerja"
-        class="overflow-hidden bg-[#102a2d] py-20 text-white sm:py-28"
+        class="overflow-hidden bg-[#0F172A] py-20 text-white sm:py-28"
     >
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div data-reveal-group class="max-w-3xl">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Zap } from '@lucide/vue';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { login, register } from '@/routes';
 
 defineProps<{
@@ -28,13 +28,13 @@ const footerLinks = [
                     aria-label="Kembali ke bagian produk WattWise AI"
                 >
                     <span
-                        class="grid h-9 w-9 place-items-center rounded-full bg-[#102a2d] text-emerald-300"
+                        class="grid h-9 w-9 place-items-center rounded-full bg-[#0F172A] text-white"
                         aria-hidden="true"
                     >
-                        <Zap class="h-4 w-4 fill-current" />
+                        <AppLogoIcon class="h-4.5 w-4.5" />
                     </span>
                     <span
-                        class="font-semibold tracking-[-0.02em] text-[#102a2d]"
+                        class="font-semibold tracking-[-0.02em] text-[#0F172A]"
                         >WattWise AI</span
                     >
                 </a>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ArrowUpRight, Menu, X, Zap } from '@lucide/vue';
+import { ArrowUpRight, Menu, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { dashboard, login, register } from '@/routes';
 
 const props = defineProps<{
@@ -61,13 +62,13 @@ function handleEscape(event: KeyboardEvent) {
                 @click="closeMenu"
             >
                 <span
-                    class="grid h-10 w-10 place-items-center rounded-full bg-[#102a2d] text-emerald-300 transition-transform group-hover:-rotate-6"
+                    class="grid h-10 w-10 place-items-center rounded-full bg-[#0F172A] text-white transition-transform group-hover:-rotate-6"
                     aria-hidden="true"
                 >
-                    <Zap class="h-5 w-5 fill-current" />
+                    <AppLogoIcon class="h-5 w-5" />
                 </span>
                 <span
-                    class="text-lg font-semibold tracking-[-0.03em] text-[#102a2d]"
+                    class="text-lg font-semibold tracking-[-0.03em] text-[#0F172A]"
                     >WattWise AI</span
                 >
             </Link>
@@ -90,13 +91,13 @@ function handleEscape(event: KeyboardEvent) {
                 <Link
                     v-if="!authenticated"
                     :href="login()"
-                    class="rounded-lg px-3 py-2 text-sm font-semibold text-[#102a2d] transition-colors hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0F172A] transition-colors hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                 >
                     Masuk
                 </Link>
                 <Link
                     :href="primaryHref"
-                    class="inline-flex items-center gap-2 rounded-full bg-[#102a2d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    class="inline-flex items-center gap-2 rounded-full bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                 >
                     {{ primaryLabel }}
                     <ArrowUpRight class="h-4 w-4" aria-hidden="true" />
@@ -105,7 +106,7 @@ function handleEscape(event: KeyboardEvent) {
 
             <button
                 type="button"
-                class="grid h-11 w-11 place-items-center rounded-full border border-slate-900/15 text-[#102a2d] transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 lg:hidden"
+                class="grid h-11 w-11 place-items-center rounded-full border border-slate-900/15 text-[#0F172A] transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 lg:hidden"
                 :aria-expanded="menuOpen"
                 aria-controls="landing-mobile-menu"
                 :aria-label="menuOpen ? 'Tutup menu' : 'Buka menu'"
@@ -138,16 +139,16 @@ function handleEscape(event: KeyboardEvent) {
                     <Link
                         v-if="!authenticated"
                         :href="login()"
-                        class="rounded-full border border-slate-900/15 px-5 py-3 text-center text-sm font-semibold text-[#102a2d] focus-visible:outline-2 focus-visible:outline-emerald-600"
+                        class="rounded-full border border-slate-900/15 px-5 py-3 text-center text-sm font-semibold text-[#0F172A] focus-visible:outline-2 focus-visible:outline-emerald-600"
                         @click="closeMenu"
                     >
                         Masuk
-                    </Link>
-                    <Link
-                        :href="primaryHref"
-                        class="rounded-full bg-[#102a2d] px-5 py-3 text-center text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                        @click="closeMenu"
-                    >
+                      </Link>
+                      <Link
+                          :href="primaryHref"
+                          class="rounded-full bg-[#0F172A] px-5 py-3 text-center text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                          @click="closeMenu"
+                      >
                         {{ primaryLabel }}
                     </Link>
                 </div>

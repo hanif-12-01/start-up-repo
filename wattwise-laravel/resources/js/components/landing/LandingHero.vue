@@ -52,7 +52,7 @@ const secondaryHref = computed(() => (props.demoReady ? register() : login()));
                 </p>
                 <h1
                     data-hero-title
-                    class="max-w-3xl text-[clamp(2.75rem,6.2vw,5.85rem)] leading-[0.96] font-semibold tracking-[-0.065em] text-[#102a2d]"
+                    class="max-w-3xl text-[clamp(2.75rem,6.2vw,5.85rem)] leading-[0.96] font-semibold tracking-[-0.065em] text-[#0F172A]"
                 >
                     Biaya listrik lebih terkendali.
                     <span class="mt-2 block text-emerald-700"
@@ -81,7 +81,7 @@ const secondaryHref = computed(() => (props.demoReady ? register() : login()));
                     <Link
                         v-if="!authenticated"
                         :href="secondaryHref"
-                        class="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-900/20 bg-white/60 px-6 py-3 text-sm font-bold text-[#102a2d] transition duration-200 hover:border-emerald-700 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-700"
+                        class="inline-flex min-h-12 items-center justify-center rounded-full border border-slate-900/20 bg-white/60 px-6 py-3 text-sm font-bold text-[#0F172A] transition duration-200 hover:border-emerald-700 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-emerald-700"
                     >
                         {{ secondaryLabel }}
                     </Link>
@@ -135,7 +135,7 @@ const secondaryHref = computed(() => (props.demoReady ? register() : login()));
                     <figcaption
                         class="flex items-center justify-between gap-3 px-2 pt-3 pb-1 text-xs text-slate-600 sm:px-3 sm:text-sm"
                     >
-                        <span class="font-semibold text-[#102a2d]"
+                        <span class="font-semibold text-[#0F172A]"
                             >Dashboard WattWise aktual</span
                         >
                         <span>Data demo terkontrol</span>

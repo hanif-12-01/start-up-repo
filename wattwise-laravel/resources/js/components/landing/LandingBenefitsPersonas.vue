@@ -76,7 +76,7 @@ const personas = [
                     Manfaat
                 </p>
                 <h2
-                    class="mt-4 text-4xl leading-tight font-semibold tracking-[-0.05em] text-[#102a2d] sm:text-6xl"
+                    class="mt-4 text-4xl leading-tight font-semibold tracking-[-0.05em] text-[#0F172A] sm:text-6xl"
                 >
                     Bukan lebih banyak grafik. Lebih banyak konteks untuk
                     bertindak.
@@ -97,7 +97,7 @@ const personas = [
                         aria-hidden="true"
                     />
                     <h3
-                        class="mt-10 text-xl leading-snug font-semibold tracking-[-0.025em] text-[#102a2d]"
+                        class="mt-10 text-xl leading-snug font-semibold tracking-[-0.025em] text-[#0F172A]"
                     >
                         {{ benefit.title }}
                     </h3>
@@ -126,7 +126,7 @@ const personas = [
                         Untuk siapa
                     </p>
                     <h2
-                        class="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[#102a2d] sm:text-5xl"
+                        class="mt-4 text-4xl font-semibold tracking-[-0.05em] text-[#0F172A] sm:text-5xl"
                     >
                         Tiga konteks usaha. Satu kebutuhan: biaya yang lebih
                         mudah dipahami.
@@ -154,13 +154,13 @@ const personas = [
                         aria-hidden="true"
                     />
                     <h3
-                        class="mt-8 text-2xl font-semibold tracking-[-0.03em] text-[#102a2d]"
+                        class="mt-8 text-2xl font-semibold tracking-[-0.03em] text-[#0F172A]"
                     >
                         {{ persona.title }}
                     </h3>
                     <dl class="mt-7 space-y-5 text-sm leading-6">
                         <div>
-                            <dt class="font-bold text-[#102a2d]">
+                            <dt class="font-bold text-[#0F172A]">
                                 Masalah utama
                             </dt>
                             <dd class="mt-1 text-slate-600">
@@ -168,7 +168,7 @@ const personas = [
                             </dd>
                         </div>
                         <div>
-                            <dt class="font-bold text-[#102a2d]">
+                            <dt class="font-bold text-[#0F172A]">
                                 Alur WattWise
                             </dt>
                             <dd class="mt-1 text-slate-600">
@@ -176,7 +176,7 @@ const personas = [
                             </dd>
                         </div>
                         <div>
-                            <dt class="font-bold text-[#102a2d]">
+                            <dt class="font-bold text-[#0F172A]">
                                 Hasil praktis
                             </dt>
                             <dd class="mt-1 text-slate-600">
