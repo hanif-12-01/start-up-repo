@@ -12,6 +12,7 @@ final class InputFingerprintGenerator
         array $historyPairs,
         float $tariffPerKwh,
         string $businessType,
+        string $manifestFingerprint,
     ): string {
         usort($historyPairs, fn (array $a, array $b) => $a['period'] <=> $b['period']);
 
@@ -26,7 +27,7 @@ final class InputFingerprintGenerator
             'h:'.implode(',', $historySegments),
             "tariff:{$tariffPerKwh}",
             "type:{$businessType}",
-            'mv:1.0',
+            "manifest:{$manifestFingerprint}",
         ]);
 
         return hash('sha256', $canonical);

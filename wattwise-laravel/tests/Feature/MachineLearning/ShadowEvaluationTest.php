@@ -9,8 +9,12 @@ use App\Models\PredictionRun;
 use App\Models\User;
 use App\Services\Predictions\MachineLearning\AdaptiveModelRouter;
 use App\Services\Predictions\MachineLearning\InputFingerprintGenerator;
+use App\Services\Predictions\MachineLearning\ModelEligibility;
 use App\Services\Predictions\MachineLearning\ModelPerformanceEvaluator;
+use App\Services\Predictions\MachineLearning\ModelPredictionResult;
+use App\Services\Predictions\MachineLearning\ModelRegistry;
 use App\Services\Predictions\MachineLearning\PredictionEvaluationService;
+use App\Services\Predictions\MachineLearning\PredictionModelInterface;
 use App\Services\Predictions\MachineLearning\PredictionShadowOrchestrator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -316,12 +320,12 @@ class ShadowEvaluationTest extends TestCase
         $fp1 = InputFingerprintGenerator::generate(
             1, '2025-11',
             [['period' => '2025-06', 'usage' => 500], ['period' => '2025-07', 'usage' => 550]],
-            1444.7, 'FNB'
+            1444.7, 'FNB', 'dummy-manifest'
         );
         $fp2 = InputFingerprintGenerator::generate(
             1, '2025-11',
             [['period' => '2025-06', 'usage' => 500], ['period' => '2025-07', 'usage' => 550]],
-            1444.7, 'FNB'
+            1444.7, 'FNB', 'dummy-manifest'
         );
         $this->assertSame($fp1, $fp2);
     }
@@ -329,11 +333,179 @@ class ShadowEvaluationTest extends TestCase
     public function test_fingerprint_changes_with_input(): void
     {
         $fp1 = InputFingerprintGenerator::generate(
-            1, '2025-11', [['period' => '2025-06', 'usage' => 500]], 1444.7, 'FNB'
+            1, '2025-11', [['period' => '2025-06', 'usage' => 500]], 1444.7, 'FNB', 'dummy-manifest'
         );
         $fp2 = InputFingerprintGenerator::generate(
-            1, '2025-11', [['period' => '2025-06', 'usage' => 999]], 1444.7, 'FNB'
+            1, '2025-11', [['period' => '2025-06', 'usage' => 999]], 1444.7, 'FNB', 'dummy-manifest'
         );
         $this->assertNotSame($fp1, $fp2);
+    }
+
+    // --- Metrics Regression Test ---
+    public function test_skipped_rows_from_other_businesses_do_not_satisfy_router_evidence_or_affect_failure_rate(): void
+    {
+        config([
+            'prediction.shadow_enabled' => true,
+            'prediction.ridge_enabled' => true,
+            'prediction.adaptive_router_enabled' => true,
+            'prediction.router_min_evaluations' => 2,
+            'prediction.router_min_businesses' => 2,
+        ]);
+
+        $b1 = $this->createBusinessWithHistory(5, 'FNB');
+        $b2 = $this->createBusinessWithHistory(5, 'LAUNDRY');
+
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+        $evalService = app(PredictionEvaluationService::class);
+
+        $orchestrator->execute($b1->id, '2025-11', $this->history(), 'FNB', 1444.7);
+        $evalService->evaluateForActual($b1->id, '2025-11', 700.0);
+
+        $orchestrator->execute($b2->id, '2025-11', $this->history(), 'LAUNDRY', null);
+
+        $evaluator = app(ModelPerformanceEvaluator::class);
+        $metrics = $evaluator->evaluate('ridge_umkm_v1_1');
+
+        $this->assertSame(1, $metrics['distinct_businesses']);
+
+        $router = app(AdaptiveModelRouter::class);
+        $recommendation = $router->recommend('FNB');
+        $this->assertSame('INSUFFICIENT_EVIDENCE', $recommendation['recommendation_status']);
+    }
+
+    // --- Idempotency & Backfill Tests ---
+    public function test_unchanged_input_is_idempotent(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $this->assertSame($run1->id, $run2->id);
+    }
+
+    public function test_previously_missing_model_result_is_backfilled(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => false, 'prediction.gradient_boosting_enabled' => false]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+        $ridgeResult1 = $run1->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertSame('SKIPPED', $ridgeResult1->status);
+
+        config(['prediction.ridge_enabled' => true]);
+
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $this->assertSame($run1->id, $run2->id);
+        $ridgeResult2 = $run2->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertSame('SUCCESS', $ridgeResult2->status);
+    }
+
+    public function test_manifest_checksum_change_does_not_reuse_stale_model_output(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $ridgeMock = new MockRidgeRegressionPredictor;
+
+        $registry = app(ModelRegistry::class);
+        $registry->register($ridgeMock);
+
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $this->assertNotSame($run1->id, $run2->id);
+    }
+
+    // --- Target Period Consistency Test ---
+    public function test_target_period_consistency_with_null_usage_observation(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $b = $this->createBusinessWithHistory(4, 'FNB');
+
+        ElectricityEntry::create([
+            'business_id' => $b->id,
+            'period_month' => '2025-10-01',
+            'usage_kwh' => null,
+            'bill_amount_idr' => 100000.0,
+            'tariff_per_kwh' => 1444.7,
+        ]);
+
+        $entries = $b->electricityEntries()->orderBy('period_month', 'asc')->get();
+        $history = [];
+        foreach ($entries as $entry) {
+            if ($entry->usage_kwh === null) {
+                continue;
+            }
+            $history[] = [
+                'period_month' => Carbon::parse($entry->period_month)->format('Y-m'),
+                'usage_kwh' => (float) $entry->usage_kwh,
+            ];
+        }
+
+        $lastHistoryEntry = end($history);
+        $lastPeriod = Carbon::parse($lastHistoryEntry['period_month'].'-01');
+        $targetPeriod = $lastPeriod->copy()->addMonth()->format('Y-m');
+
+        $this->assertSame('2025-10', $targetPeriod);
+
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+        $run = $orchestrator->execute($b->id, $targetPeriod, $history, 'FNB', 1444.7);
+
+        $this->assertNotNull($run);
+        $this->assertSame('2025-10', $run->target_period);
+        $this->assertTrue($run->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first()->status === 'SUCCESS');
+    }
+}
+
+class MockRidgeRegressionPredictor implements PredictionModelInterface
+{
+    public function key(): string
+    {
+        return 'ridge_umkm_v1_1';
+    }
+
+    public function version(): string
+    {
+        return 'Ridge UMKM v1.2-mock';
+    }
+
+    public function minimumHistoryMonths(): int
+    {
+        return 3;
+    }
+
+    public function requiredFeatureOrder(): array
+    {
+        return [];
+    }
+
+    public function artifactChecksum(): ?string
+    {
+        return 'mock-checksum-123456';
+    }
+
+    public function checkEligibility(array $history, string $businessType, ?float $tariffPerKwh, array $flags): ModelEligibility
+    {
+        return ModelEligibility::eligible();
+    }
+
+    public function predict(array $history, string $businessType, float $tariffPerKwh): ModelPredictionResult
+    {
+        return ModelPredictionResult::success(
+            'ridge_umkm_v1_1',
+            'Ridge UMKM v1.2-mock',
+            500.0,
+            500.0 * $tariffPerKwh,
+            [],
+            'mock-checksum-123456',
+            0.1
+        );
     }
 }

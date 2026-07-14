@@ -200,7 +200,8 @@ class ElectricityEntryController extends Controller
                 $tariff = $latestWithTariff ? (float) $latestWithTariff->tariff_per_kwh : null;
             }
 
-            $lastPeriod = Carbon::parse($entries->last()->period_month);
+            $lastHistoryEntry = end($history);
+            $lastPeriod = Carbon::parse($lastHistoryEntry['period_month'].'-01');
             $targetPeriod = $lastPeriod->copy()->addMonth()->format('Y-m');
 
             $orchestrator = app(PredictionShadowOrchestrator::class);

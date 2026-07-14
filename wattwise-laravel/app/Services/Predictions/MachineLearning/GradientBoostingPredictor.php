@@ -55,6 +55,11 @@ final class GradientBoostingPredictor implements PredictionModelInterface
 
     public function checkEligibility(array $history, string $businessType, ?float $tariffPerKwh, array $flags): ModelEligibility
     {
+        $continuity = ModelEligibilityResolver::validateHistoryContinuity($history);
+        if (! $continuity->eligible) {
+            return $continuity;
+        }
+
         if (count($history) < $this->minimumHistoryMonths()) {
             return ModelEligibility::ineligible('INSUFFICIENT_HISTORY', 'Gradient Boosting requires at least 3 months of history.');
         }
@@ -82,18 +87,11 @@ final class GradientBoostingPredictor implements PredictionModelInterface
         $start = hrtime(true);
 
         try {
-            $artifact = $this->loadArtifact();
             $builder = new TabularFeatureBuilder;
             $features = $builder->build($history, $businessType, $tariffPerKwh);
 
             $featureVector = array_values($features);
-
-            $prediction = $artifact['init_prediction'];
-            $learningRate = $artifact['learning_rate'];
-
-            foreach ($artifact['trees'] as $tree) {
-                $prediction += $learningRate * $this->traverseTree($tree, $featureVector);
-            }
+            $prediction = $this->predictFeatureVector($featureVector);
 
             $prediction = max(0.0, $prediction);
             $bill = $prediction * $tariffPerKwh;
@@ -121,11 +119,31 @@ final class GradientBoostingPredictor implements PredictionModelInterface
         }
     }
 
+    public function predictFeatureVector(array $featureVector): float
+    {
+        $artifact = $this->loadArtifact();
+        $prediction = $artifact['init_prediction'];
+        $learningRate = $artifact['learning_rate'];
+
+        foreach ($artifact['trees'] as $tree) {
+            $prediction += $learningRate * $this->traverseTree($tree, $featureVector);
+        }
+
+        return $prediction;
+    }
+
     private function traverseTree(array $tree, array $featureVector): float
     {
         $node = 0;
+        $steps = 0;
+        $maxSteps = count($tree['features']);
 
         while (true) {
+            if ($steps > $maxSteps) {
+                throw new InvalidArgumentException("Exceeded maximum tree traversal steps ({$maxSteps}). Cycle or malformed tree structure suspected.");
+            }
+            $steps++;
+
             $featureIndex = $tree['features'][$node];
 
             // Leaf node: feature == -2 or no children
@@ -141,13 +159,21 @@ final class GradientBoostingPredictor implements PredictionModelInterface
         }
     }
 
+    private string $artifactPath = self::ARTIFACT_PATH;
+
+    public function setArtifactPath(string $path): void
+    {
+        $this->artifactPath = $path;
+        $this->artifact = null;
+    }
+
     private function loadArtifact(): array
     {
         if ($this->artifact !== null) {
             return $this->artifact;
         }
 
-        $path = base_path(self::ARTIFACT_PATH);
+        $path = base_path($this->artifactPath);
         $raw = file_get_contents($path);
         if ($raw === false) {
             throw new InvalidArgumentException('Cannot read Gradient Boosting artifact file.');
@@ -160,17 +186,43 @@ final class GradientBoostingPredictor implements PredictionModelInterface
 
         $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
 
-        if (! isset($data['init_prediction']) || ! is_finite($data['init_prediction'])) {
+        $this->validateArtifactData($data);
+
+        $this->artifact = $data;
+
+        return $data;
+    }
+
+    public function validateArtifactData(array $data): void
+    {
+        if (! isset($data['init_prediction']) || ! is_finite((float) $data['init_prediction'])) {
             throw new InvalidArgumentException('Artifact missing or invalid init_prediction.');
         }
-        if (! isset($data['learning_rate']) || ! is_finite($data['learning_rate'])) {
+        if (! isset($data['learning_rate']) || ! is_finite((float) $data['learning_rate'])) {
             throw new InvalidArgumentException('Artifact missing or invalid learning_rate.');
         }
-        if (! isset($data['feature_order']) || count($data['feature_order']) !== self::EXPECTED_FEATURE_COUNT) {
-            throw new InvalidArgumentException('Artifact feature_order invalid or wrong count.');
+        if (! isset($data['n_estimators']) || $data['n_estimators'] !== 200) {
+            throw new InvalidArgumentException('Artifact n_estimators mismatch or missing.');
         }
-        if (! isset($data['trees']) || ! is_array($data['trees'])) {
-            throw new InvalidArgumentException('Artifact missing trees array.');
+        if (! isset($data['trees']) || ! is_array($data['trees']) || count($data['trees']) !== 200) {
+            throw new InvalidArgumentException('Artifact tree count mismatch.');
+        }
+        if (! isset($data['feature_order']) || ! is_array($data['feature_order'])) {
+            throw new InvalidArgumentException('Artifact feature_order invalid or missing.');
+        }
+        if ($data['feature_order'] !== $this->requiredFeatureOrder()) {
+            throw new InvalidArgumentException('Artifact feature_order mismatch.');
+        }
+
+        $seenFeatures = [];
+        foreach ($data['feature_order'] as $f) {
+            if (! is_string($f) || trim($f) === '') {
+                throw new InvalidArgumentException('Feature name in feature_order must be a non-empty string.');
+            }
+            if (isset($seenFeatures[$f])) {
+                throw new InvalidArgumentException('Duplicate feature name in feature_order.');
+            }
+            $seenFeatures[$f] = true;
         }
 
         $requiredTreeKeys = ['children_left', 'children_right', 'features', 'thresholds', 'values'];
@@ -182,15 +234,62 @@ final class GradientBoostingPredictor implements PredictionModelInterface
             }
 
             $nodeCount = count($tree['features']);
+            if ($nodeCount <= 0) {
+                throw new InvalidArgumentException("Tree {$ti} must have node count greater than zero.");
+            }
+
             foreach ($requiredTreeKeys as $k) {
                 if (count($tree[$k]) !== $nodeCount) {
                     throw new InvalidArgumentException("Tree {$ti} has mismatched array lengths.");
                 }
             }
+
+            $visited = [];
+            $inPath = [];
+            $dfs = function (int $node) use (&$dfs, &$visited, &$inPath, $tree, $nodeCount, $ti) {
+                if ($node < 0 || $node >= $nodeCount) {
+                    throw new InvalidArgumentException("Tree {$ti} has invalid node index: {$node}");
+                }
+                if (isset($inPath[$node])) {
+                    throw new InvalidArgumentException("Tree {$ti} has cycle at node {$node}.");
+                }
+                if (isset($visited[$node])) {
+                    throw new InvalidArgumentException("Tree {$ti} has duplicate parent reference to node {$node}.");
+                }
+                $visited[$node] = true;
+
+                $featureIndex = $tree['features'][$node];
+                if ($featureIndex === -2) {
+                    if ($tree['children_left'][$node] !== -1 || $tree['children_right'][$node] !== -1) {
+                        throw new InvalidArgumentException("Tree {$ti} leaf node {$node} must not have children.");
+                    }
+                    if (! is_finite((float) $tree['values'][$node])) {
+                        throw new InvalidArgumentException("Tree {$ti} leaf node {$node} has non-finite value.");
+                    }
+                } else {
+                    if ($featureIndex < 0 || $featureIndex > 10) {
+                        throw new InvalidArgumentException("Tree {$ti} internal node {$node} has invalid feature index: {$featureIndex}");
+                    }
+                    $left = $tree['children_left'][$node];
+                    $right = $tree['children_right'][$node];
+                    if ($left === -1 || $right === -1 || $left === $node || $right === $node) {
+                        throw new InvalidArgumentException("Tree {$ti} internal node {$node} must have two valid children.");
+                    }
+                    if (! is_finite((float) $tree['thresholds'][$node])) {
+                        throw new InvalidArgumentException("Tree {$ti} internal node {$node} has non-finite threshold.");
+                    }
+
+                    $inPath[$node] = true;
+                    $dfs($left);
+                    $dfs($right);
+                    unset($inPath[$node]);
+                }
+            };
+            $dfs(0);
+
+            if (count($visited) !== $nodeCount) {
+                throw new InvalidArgumentException("Tree {$ti} contains unreachable nodes.");
+            }
         }
-
-        $this->artifact = $data;
-
-        return $data;
     }
 }

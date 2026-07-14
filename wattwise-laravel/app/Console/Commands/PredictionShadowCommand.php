@@ -81,8 +81,9 @@ class PredictionShadowCommand extends Command
                     $tariff = $latestWithTariff ? (float) $latestWithTariff->tariff_per_kwh : null;
                 }
 
+                $lastHistoryEntry = end($history);
                 $period = $this->option('period')
-                    ?? Carbon::parse($entries->last()->period_month)->addMonth()->format('Y-m');
+                    ?? Carbon::parse($lastHistoryEntry['period_month'].'-01')->addMonth()->format('Y-m');
 
                 $businessType = $business->business_type ?? 'OTHER';
 

@@ -144,4 +144,49 @@ class RidgeRegressionPredictorTest extends TestCase
         $this->assertGreaterThan(0, $expected);
         $this->assertIsFloat($expected);
     }
+
+    public function test_validate_corrupted_intercept(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact missing or invalid intercept.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/ridge-umkm-v1.1.json')), true);
+        $data['intercept'] = INF;
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_wrong_feature_order_count(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact feature_order invalid or missing.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/ridge-umkm-v1.1.json')), true);
+        unset($data['feature_order']);
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_wrong_feature_order_mismatch(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact feature_order mismatch.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/ridge-umkm-v1.1.json')), true);
+        $data['feature_order'][0] = 'invalid_feature_name';
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_wrong_coefficients_count(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact coefficients invalid or wrong count.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/ridge-umkm-v1.1.json')), true);
+        array_pop($data['coefficients']);
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_non_finite_coefficient(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact contains non-finite coefficient.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/ridge-umkm-v1.1.json')), true);
+        $data['coefficients'][0] = INF;
+        $this->predictor->validateArtifactData($data);
+    }
 }

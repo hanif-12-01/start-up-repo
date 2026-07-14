@@ -55,6 +55,11 @@ final class RidgeRegressionPredictor implements PredictionModelInterface
 
     public function checkEligibility(array $history, string $businessType, ?float $tariffPerKwh, array $flags): ModelEligibility
     {
+        $continuity = ModelEligibilityResolver::validateHistoryContinuity($history);
+        if (! $continuity->eligible) {
+            return $continuity;
+        }
+
         if (count($history) < $this->minimumHistoryMonths()) {
             return ModelEligibility::ineligible('INSUFFICIENT_HISTORY', 'Ridge requires at least 3 months of history.');
         }
@@ -122,13 +127,21 @@ final class RidgeRegressionPredictor implements PredictionModelInterface
         }
     }
 
+    private string $artifactPath = self::ARTIFACT_PATH;
+
+    public function setArtifactPath(string $path): void
+    {
+        $this->artifactPath = $path;
+        $this->artifact = null;
+    }
+
     private function loadArtifact(): array
     {
         if ($this->artifact !== null) {
             return $this->artifact;
         }
 
-        $path = base_path(self::ARTIFACT_PATH);
+        $path = base_path($this->artifactPath);
         $raw = file_get_contents($path);
         if ($raw === false) {
             throw new InvalidArgumentException('Cannot read Ridge artifact file.');
@@ -141,24 +154,43 @@ final class RidgeRegressionPredictor implements PredictionModelInterface
 
         $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
 
-        if (! isset($data['intercept']) || ! is_finite($data['intercept'])) {
+        $this->validateArtifactData($data);
+
+        $this->artifact = $data;
+
+        return $data;
+    }
+
+    public function validateArtifactData(array $data): void
+    {
+        if (! isset($data['intercept']) || ! is_finite((float) $data['intercept'])) {
             throw new InvalidArgumentException('Artifact missing or invalid intercept.');
         }
         if (! isset($data['coefficients']) || ! is_array($data['coefficients']) || count($data['coefficients']) !== self::EXPECTED_FEATURE_COUNT) {
             throw new InvalidArgumentException('Artifact coefficients invalid or wrong count.');
         }
-        if (! isset($data['feature_order']) || ! is_array($data['feature_order']) || count($data['feature_order']) !== self::EXPECTED_FEATURE_COUNT) {
-            throw new InvalidArgumentException('Artifact feature_order invalid or wrong count.');
+        if (! isset($data['feature_order']) || ! is_array($data['feature_order'])) {
+            throw new InvalidArgumentException('Artifact feature_order invalid or missing.');
+        }
+        if ($data['feature_order'] !== $this->requiredFeatureOrder()) {
+            throw new InvalidArgumentException('Artifact feature_order mismatch.');
+        }
+
+        $seenFeatures = [];
+        foreach ($data['feature_order'] as $f) {
+            if (! is_string($f) || trim($f) === '') {
+                throw new InvalidArgumentException('Feature name in feature_order must be a non-empty string.');
+            }
+            if (isset($seenFeatures[$f])) {
+                throw new InvalidArgumentException('Duplicate feature name in feature_order.');
+            }
+            $seenFeatures[$f] = true;
         }
 
         foreach ($data['coefficients'] as $c) {
-            if (! is_finite($c)) {
+            if (! is_finite((float) $c)) {
                 throw new InvalidArgumentException('Artifact contains non-finite coefficient.');
             }
         }
-
-        $this->artifact = $data;
-
-        return $data;
     }
 }

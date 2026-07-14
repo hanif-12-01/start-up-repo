@@ -104,4 +104,91 @@ class ModelEligibilityResolverTest extends TestCase
         $this->assertFalse($e->eligible);
         $this->assertSame('UNSUPPORTED_BUSINESS_TYPE', $e->skipReason);
     }
+
+    public function test_consecutive_months_jan_feb_mar_eligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2026-01', 'usage_kwh' => 500.0],
+            ['period_month' => '2026-02', 'usage_kwh' => 550.0],
+            ['period_month' => '2026-03', 'usage_kwh' => 600.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertTrue($e->eligible);
+    }
+
+    public function test_consecutive_months_year_boundary_eligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2025-11', 'usage_kwh' => 500.0],
+            ['period_month' => '2025-12', 'usage_kwh' => 550.0],
+            ['period_month' => '2026-01', 'usage_kwh' => 600.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertTrue($e->eligible);
+    }
+
+    public function test_consecutive_months_gaps_ineligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2026-01', 'usage_kwh' => 500.0],
+            ['period_month' => '2026-03', 'usage_kwh' => 550.0],
+            ['period_month' => '2026-04', 'usage_kwh' => 600.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertFalse($e->eligible);
+        $this->assertSame('HISTORY_HAS_GAPS', $e->skipReason);
+    }
+
+    public function test_consecutive_months_duplicate_period_ineligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2026-01', 'usage_kwh' => 500.0],
+            ['period_month' => '2026-01', 'usage_kwh' => 550.0],
+            ['period_month' => '2026-02', 'usage_kwh' => 600.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertFalse($e->eligible);
+        $this->assertSame('DUPLICATE_PERIOD', $e->skipReason);
+    }
+
+    public function test_consecutive_months_reversed_history_ineligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2026-02', 'usage_kwh' => 500.0],
+            ['period_month' => '2026-01', 'usage_kwh' => 550.0],
+            ['period_month' => '2026-03', 'usage_kwh' => 600.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertFalse($e->eligible);
+        $this->assertSame('CHRONOLOGICAL_ORDER_FAILURE', $e->skipReason);
+    }
+
+    public function test_consecutive_months_gaps_outside_latest_calculation_window_ineligible(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $ridge = new RidgeRegressionPredictor;
+        $history = [
+            ['period_month' => '2025-01', 'usage_kwh' => 400.0],
+            ['period_month' => '2025-03', 'usage_kwh' => 450.0],
+            ['period_month' => '2025-04', 'usage_kwh' => 500.0],
+            ['period_month' => '2025-05', 'usage_kwh' => 550.0],
+            ['period_month' => '2025-06', 'usage_kwh' => 600.0],
+            ['period_month' => '2025-07', 'usage_kwh' => 650.0],
+            ['period_month' => '2025-08', 'usage_kwh' => 700.0],
+            ['period_month' => '2025-09', 'usage_kwh' => 750.0],
+        ];
+        $e = $this->resolver->resolve($ridge, $history, 'FNB', 1444.7);
+        $this->assertFalse($e->eligible);
+        $this->assertSame('HISTORY_HAS_GAPS', $e->skipReason);
+    }
 }

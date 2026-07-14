@@ -39,12 +39,22 @@ final class PredictionShadowOrchestrator
             $history,
         );
 
+        $models = $this->registry->all();
+        usort($models, fn ($a, $b) => strcmp($a->key(), $b->key()));
+
+        $parts = ['manifest_version:1.0'];
+        foreach ($models as $model) {
+            $parts[] = "model:{$model->key()}:{$model->version()}:".($model->artifactChecksum() ?? 'null');
+        }
+        $manifestFingerprint = hash('sha256', implode('|', $parts));
+
         $fingerprint = InputFingerprintGenerator::generate(
             $businessId,
             $targetPeriod,
             $historyPairs,
             $tariffPerKwh ?? 0.0,
             $businessType,
+            $manifestFingerprint,
         );
 
         $existingRun = PredictionRun::where('business_id', $businessId)
@@ -53,6 +63,34 @@ final class PredictionShadowOrchestrator
             ->first();
 
         if ($existingRun !== null) {
+            foreach ($this->registry->all() as $model) {
+                $existingResult = PredictionModelResult::where('prediction_run_id', $existingRun->id)
+                    ->where('model_key', $model->key())
+                    ->where('model_version', $model->version())
+                    ->first();
+
+                $isCompleted = $existingResult !== null && $existingResult->status === 'SUCCESS';
+
+                if (! $isCompleted) {
+                    try {
+                        $this->executeModel($existingRun, $model, $history, $businessType, $tariffPerKwh);
+                    } catch (\Throwable $e) {
+                        Log::warning("Shadow model {$model->key()} failed during backfill", [
+                            'run_id' => $existingRun->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        $this->persistResult($existingRun, ModelPredictionResult::failed(
+                            $model->key(),
+                            $model->version(),
+                            'UNCAUGHT_EXCEPTION',
+                            'Model execution failed safely during backfill.',
+                            0.0,
+                        ));
+                    }
+                }
+            }
+
             return $existingRun;
         }
 

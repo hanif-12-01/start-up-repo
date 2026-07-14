@@ -44,24 +44,18 @@ class GradientBoostingPredictorTest extends TestCase
     public function test_parity_against_archived_samples(): void
     {
         $samples = json_decode(file_get_contents(base_path('resources/ml/gb-parity-samples.json')), true);
-        $artifact = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
 
         foreach ($samples as $i => $sample) {
             $featureValues = array_values($sample['features']);
 
-            $prediction = $artifact['init_prediction'];
-            $lr = $artifact['learning_rate'];
-            foreach ($artifact['trees'] as $tree) {
-                $prediction += $lr * $this->traverseTree($tree, $featureValues);
-            }
-            $prediction = max(0.0, round($prediction, 4));
+            $prediction = $this->predictor->predictFeatureVector($featureValues);
             $expected = $sample['python_pred'];
 
             $this->assertEqualsWithDelta(
                 $expected,
                 $prediction,
                 0.01,
-                "Parity sample {$i}: expected {$expected}, got {$prediction}",
+                "Parity sample fixture ID {$i}: expected {$expected}, got {$prediction}",
             );
         }
     }
@@ -89,19 +83,50 @@ class GradientBoostingPredictorTest extends TestCase
         $this->assertTrue($e->eligible);
     }
 
-    private function traverseTree(array $tree, array $featureVector): float
+    public function test_validate_gb_missing_init_prediction(): void
     {
-        $node = 0;
-        while (true) {
-            $featureIndex = $tree['features'][$node];
-            if ($featureIndex === -2 || $tree['children_left'][$node] === -1) {
-                return $tree['values'][$node];
-            }
-            if ($featureVector[$featureIndex] <= $tree['thresholds'][$node]) {
-                $node = $tree['children_left'][$node];
-            } else {
-                $node = $tree['children_right'][$node];
-            }
-        }
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact missing or invalid init_prediction.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
+        $data['init_prediction'] = INF;
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_gb_mismatched_tree_count(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Artifact tree count mismatch.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
+        array_pop($data['trees']);
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_gb_cycle_detected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('has cycle at node');
+        $data = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
+        $data['trees'][0]['children_left'][1] = 0;
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_gb_leaf_has_children(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not have children.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
+        $data['trees'][0]['features'][3] = -2;
+        $data['trees'][0]['children_left'][3] = 1;
+        $this->predictor->validateArtifactData($data);
+    }
+
+    public function test_validate_gb_internal_node_missing_children(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must have two valid children.');
+        $data = json_decode(file_get_contents(base_path('resources/ml/gradient-boosting-umkm-v1.json')), true);
+        $data['trees'][0]['features'][0] = 3;
+        $data['trees'][0]['children_left'][0] = -1;
+        $this->predictor->validateArtifactData($data);
     }
 }
