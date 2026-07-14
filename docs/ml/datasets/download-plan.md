@@ -19,12 +19,19 @@ Before any acquisition, add a local ignore/backup exclusion at the cache root. D
 
 ## Approval and integrity gates
 
-1. Re-open the canonical record and licence on retrieval day; save the URL, version, licence text, timestamp, and published checksum in `manifests`.
+1. Re-open the canonical record and licence on retrieval day; save the URL, version, licence text, timestamp, and published checksum in `manifests`. If official licence fields conflict, classify the source `LEGAL_REVIEW_REQUIRED` and stop acquisition.
 2. For any dataset whose compressed archive or extracted footprint exceeds 2 GB, stop for explicit approval after metadata inspection. Prefer publisher splits, per-entity files, APIs, or range-limited samples.
 3. Download only from the canonical publisher/archive. A Kaggle mirror is not canonical.
 4. Verify checksum before extraction. Extract into a new version directory; never overwrite an earlier version.
 5. Scan headers and a small, representative sample before bulk parsing. Never upload restricted data to an online service.
 6. Produce source-level quality and phase counts locally, then export aggregate audit CSVs only.
+
+
+## GoiEner legal acquisition gate
+
+The canonical [Zenodo Description](https://zenodo.org/records/7362094) states `License: CC-BY-SA`. The canonical [DataCite DOI metadata](https://api.datacite.org/dois/10.5281/zenodo.7362094) states `data.attributes.rightsList[0] = Creative Commons Attribution 4.0 International`. These official statements conflict. `commercial_use_permission` and `redistribution_permission` are `PENDING_CLARIFICATION`.
+
+Do not retrieve `metadata.csv`, a processed split, the raw archive, or use any GoiEner content for production-intended training until an archive LICENSE, corrected DataCite/Zenodo metadata, or written publisher confirmation establishes the governing licence. Legal clearance precedes the existing greater-than-2-GB approval gate.
 
 ## Primary-source sequence
 
@@ -35,7 +42,7 @@ Before any acquisition, add a local ignore/backup exclusion at the cache root. D
 | 3 | London Smart Meter | London Datastore 168-file split archive | 758.86 MB | about 10 GB | Extracted size exceeds 2 GB: approval required. Prefer the 168-file package, stream one file at a time, aggregate to monthly immediately, and delete only under an approved cache-retention policy. Also fetch the 239.63 kB tariff file. |
 | 4 | HEAPO | Zenodo v1, DOI `10.5281/zenodo.15056919` | 458.3 MB | 5.26 GB | Extracted size exceeds 2 GB: approval required. Inspect archive listing first. Prefer publisher monthly CSVs plus metadata; do not extract 15-minute files unless reconciliation is required. |
 | 5 | REFIT cleaned | University of Strathclyde `CLEAN_REFIT_081116.7z` | 490 MB | estimated 8-12 GB | Extracted size likely exceeds 2 GB: approval required. Inspect 7z listing and readme first; process one home at a time with timestamp-delta integration. Do not fetch linked restricted interviews. |
-| 6 | GoiEner processed | Zenodo DOI `10.5281/zenodo.7362094` | raw 2.0 GB; split processed files 0.51-0.79 GB | 4.01-15.1 GB per component | Do not fetch the 8.0 GB original archive. Approval required because each component expands beyond 2 GB. Begin with `metadata.csv` (5.6 MB), then one processed period archive; stream per-customer CSVs and retain the `imputed` flag. |
+| BLOCKED | GoiEner processed | Zenodo DOI `10.5281/zenodo.7362094` | raw 2.0 GB; split processed files 0.51-0.79 GB | 4.01-15.1 GB per component | **Do not download.** Zenodo Description says `CC-BY-SA` while DataCite `rightsList[0]` says `CC BY 4.0`. Acquisition and production-intended training remain blocked until the archive LICENSE, corrected metadata, or publisher confirms the governing licence; size approval is still required afterward. |
 
 The sequence is operational, not ranking order: it deliberately validates small/manageable converters before the largest source.
 

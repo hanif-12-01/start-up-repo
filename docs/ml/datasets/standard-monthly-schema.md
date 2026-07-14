@@ -41,7 +41,7 @@ One row represents one source-scoped entity and one calendar month. The logical 
 | 27 | `consecutive_month_index` | integer | yes | One-based index within the current consecutive usable-month run. |
 | 28 | `unit_conversion_method` | string | yes | Named conversion rule and source field. |
 | 29 | `quality_flag` | string | yes | `PASS`, `PARTIAL`, `IMPUTED`, `STRUCTURAL_ZERO`, `OUTLIER`, or `EXCLUDE`. |
-| 30 | `license_classification` | string | yes | Catalog legal gate copied into every materialized source partition. |
+| 30 | `license_classification` | string | yes | Catalog legal gate copied into every materialized source partition; `LEGAL_REVIEW_REQUIRED` blocks acquisition and materialization. |
 
 Unavailable metadata is `null`. Values must not be filled from stereotypes, category averages, or another source and represented as observed truth.
 
@@ -57,7 +57,7 @@ Unavailable metadata is `null`. Values must not be filled from stereotypes, cate
 
 Source-specific rules selected in IT-ML-02A:
 
-- GoiEner: hourly interval energy is already kWh; sum non-imputed valid hours. Preserve the published `imputed` flag and fixed-local-time/DST convention.
+- GoiEner: hourly interval energy is already kWh; sum non-imputed valid hours. Preserve the published `imputed` flag and fixed-local-time/DST convention. Do not acquire or materialize it until the CC-BY-SA versus CC BY 4.0 conflict is resolved.
 - Building Data Genome 2: hourly energy columns are `kWh_sum`; sum electricity only. Use the v1.0 corrected raw/cleaned files, not the Kaggle unit variants.
 - London: each half-hour value is interval kWh; sum it directly. Join the tariff schedule by effective timestamp before monthly aggregation.
 - HEAPO: prefer the publisher-provided monthly difference of cumulative kWh. Independently reconcile against summed 15-minute kWh where coverage permits; meter streams for heat pump and other load must be summed once, not double-counted with total.
@@ -83,16 +83,18 @@ Consecutive history breaks on an excluded month. Structural pre-connection zeros
 
 ## Phase and rolling-origin reproduction
 
-For a consecutive run containing `m` usable monthly values, each target month is assigned the number of earlier months available at that origin. It contributes once to exactly one phase:
+For a consecutive run containing `m` usable monthly target values, usage-backed origins are counted separately from profile-only history-0 eligibility:
 
 ```text
-PHASE_INITIAL  = min(m, 3)                       # histories 0, 1, 2
+history_0 = 1 only when personalized profile features are verified available before the target
+history_1 = 1 if m >= 2 else 0
+history_2 = 1 if m >= 3 else 0
 PHASE_MIDDLE   = max(min(m - 3, 3), 0)          # histories 3, 4, 5
 PHASE_ADVANCED = max(min(m - 6, 7), 0)          # histories 6..12
 PHASE_LONG     = max(m - 13, 0)                 # histories 13+
 ```
 
-The history-0 example is eligible for a cold-start evaluation only when features available before the target month exist. It is never a personalized time-series forecast. The target month and any later observation are excluded from inputs. Splits are temporal rolling-origin splits; random row splitting is prohibited.
+`PHASE_INITIAL = history_0 + history_1 + history_2` only when each term's eligibility status is known; otherwise report the numeric subtotal plus `UNKNOWN` history-0. A global intercept, population mean, calendar-only prior, or source mean with no profile and no usage history is not personalized cold-start model-selection evidence. The target month and any later observation are excluded from inputs. Splits are temporal rolling-origin splits; random row splitting is prohibited.
 
 ## Leakage controls
 
