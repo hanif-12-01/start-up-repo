@@ -161,6 +161,9 @@ final class RidgeRegressionPredictor implements PredictionModelInterface
         return $data;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function validateArtifactData(array $data): void
     {
         if (! isset($data['intercept']) || ! is_finite((float) $data['intercept'])) {

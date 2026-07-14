@@ -119,8 +119,24 @@ final class GradientBoostingPredictor implements PredictionModelInterface
         }
     }
 
+    /**
+     * @param array<int, mixed> $featureVector
+     */
     public function predictFeatureVector(array $featureVector): float
     {
+        if (count($featureVector) !== self::EXPECTED_FEATURE_COUNT) {
+            throw new InvalidArgumentException('Feature vector must contain exactly ' . self::EXPECTED_FEATURE_COUNT . ' features.');
+        }
+
+        foreach ($featureVector as $val) {
+            if (! is_int($val) && ! is_float($val)) {
+                throw new InvalidArgumentException('Each feature entry must be numeric (int or float).');
+            }
+            if (! is_finite($val)) {
+                throw new InvalidArgumentException('Each feature entry must be a finite number.');
+            }
+        }
+
         $artifact = $this->loadArtifact();
         $prediction = $artifact['init_prediction'];
         $learningRate = $artifact['learning_rate'];
@@ -193,6 +209,9 @@ final class GradientBoostingPredictor implements PredictionModelInterface
         return $data;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function validateArtifactData(array $data): void
     {
         if (! isset($data['init_prediction']) || ! is_finite((float) $data['init_prediction'])) {

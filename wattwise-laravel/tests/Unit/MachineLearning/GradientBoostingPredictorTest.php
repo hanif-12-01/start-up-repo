@@ -129,4 +129,54 @@ class GradientBoostingPredictorTest extends TestCase
         $data['trees'][0]['children_left'][0] = -1;
         $this->predictor->validateArtifactData($data);
     }
+
+    public function test_predict_feature_vector_rejects_10_features(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Feature vector must contain exactly 11 features.');
+        $this->predictor->predictFeatureVector(array_fill(0, 10, 1.0));
+    }
+
+    public function test_predict_feature_vector_rejects_12_features(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Feature vector must contain exactly 11 features.');
+        $this->predictor->predictFeatureVector(array_fill(0, 12, 1.0));
+    }
+
+    public function test_predict_feature_vector_rejects_string(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Each feature entry must be numeric (int or float).');
+        $vector = array_fill(0, 11, 1.0);
+        $vector[0] = '123';
+        $this->predictor->predictFeatureVector($vector);
+    }
+
+    public function test_predict_feature_vector_rejects_nan(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Each feature entry must be a finite number.');
+        $vector = array_fill(0, 11, 1.0);
+        $vector[0] = NAN;
+        $this->predictor->predictFeatureVector($vector);
+    }
+
+    public function test_predict_feature_vector_rejects_inf(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Each feature entry must be a finite number.');
+        $vector = array_fill(0, 11, 1.0);
+        $vector[0] = INF;
+        $this->predictor->predictFeatureVector($vector);
+    }
+
+    public function test_predict_feature_vector_rejects_neg_inf(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Each feature entry must be a finite number.');
+        $vector = array_fill(0, 11, 1.0);
+        $vector[0] = -INF;
+        $this->predictor->predictFeatureVector($vector);
+    }
 }

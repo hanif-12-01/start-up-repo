@@ -5,6 +5,7 @@ namespace Tests\Feature\MachineLearning;
 use App\Models\Business;
 use App\Models\ElectricityEntry;
 use App\Models\PredictionEvaluation;
+use App\Models\PredictionModelResult;
 use App\Models\PredictionRun;
 use App\Models\User;
 use App\Services\Predictions\MachineLearning\AdaptiveModelRouter;
@@ -388,21 +389,23 @@ class ShadowEvaluationTest extends TestCase
 
     public function test_previously_missing_model_result_is_backfilled(): void
     {
-        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => false, 'prediction.gradient_boosting_enabled' => false]);
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true, 'prediction.gradient_boosting_enabled' => true]);
         $b = $this->createBusinessWithHistory(5, 'FNB');
         $orchestrator = app(PredictionShadowOrchestrator::class);
 
         $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
-        $ridgeResult1 = $run1->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
-        $this->assertSame('SKIPPED', $ridgeResult1->status);
+        $this->assertTrue($run1->modelResults()->where('model_key', 'ridge_umkm_v1_1')->exists());
+        $this->assertTrue($run1->modelResults()->where('model_key', 'gradient_boosting_umkm_v1')->exists());
 
-        config(['prediction.ridge_enabled' => true]);
+        $run1->modelResults()->where('model_key', 'ridge_umkm_v1_1')->delete();
+        $this->assertFalse($run1->modelResults()->where('model_key', 'ridge_umkm_v1_1')->exists());
 
         $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
 
         $this->assertSame($run1->id, $run2->id);
-        $ridgeResult2 = $run2->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
-        $this->assertSame('SUCCESS', $ridgeResult2->status);
+        $ridgeResult = $run2->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertNotNull($ridgeResult);
+        $this->assertSame('SUCCESS', $ridgeResult->status);
     }
 
     public function test_manifest_checksum_change_does_not_reuse_stale_model_output(): void
@@ -461,6 +464,101 @@ class ShadowEvaluationTest extends TestCase
         $this->assertNotNull($run);
         $this->assertSame('2025-10', $run->target_period);
         $this->assertTrue($run->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first()->status === 'SUCCESS');
+    }
+
+    public function test_existing_skipped_remains_skipped_after_ridge_activation(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => false]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+        $result = $run->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertSame('SKIPPED', $result->status);
+
+        config(['prediction.ridge_enabled' => true]);
+
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+        $this->assertNotSame($run->id, $run2->id);
+
+        $oldResult = PredictionModelResult::find($result->id);
+        $this->assertSame('SKIPPED', $oldResult->status);
+
+        $newResult = $run2->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertSame('SUCCESS', $newResult->status);
+    }
+
+    public function test_existing_failed_remains_failed_after_retry(): void
+    {
+        config(['prediction.shadow_enabled' => true, 'prediction.ridge_enabled' => true]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $result = $run->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $result->status = 'FAILED';
+        $result->failure_code = 'MOCK_ERROR';
+        $result->save();
+
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $this->assertSame($run->id, $run2->id);
+
+        $freshResult = $run2->modelResults()->where('model_key', 'ridge_umkm_v1_1')->first();
+        $this->assertSame('FAILED', $freshResult->status);
+        $this->assertSame('MOCK_ERROR', $freshResult->failure_code);
+    }
+
+    public function test_changed_manifest_version_creates_a_new_run(): void
+    {
+        config(['prediction.shadow_enabled' => true]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $manifestPath = base_path('resources/ml/model-manifest.json');
+        $backupPath = base_path('resources/ml/model-manifest.json.bak');
+        copy($manifestPath, $backupPath);
+
+        try {
+            $manifestData = json_decode(file_get_contents($manifestPath), true);
+            $manifestData['manifest_version'] = '2.0';
+            file_put_contents($manifestPath, json_encode($manifestData, JSON_PRETTY_PRINT));
+
+            $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+            $this->assertNotSame($run1->id, $run2->id);
+        } finally {
+            if (file_exists($backupPath)) {
+                copy($backupPath, $manifestPath);
+                unlink($backupPath);
+            }
+        }
+    }
+
+    public function test_historical_metrics_remain_intact(): void
+    {
+        config([
+            'prediction.shadow_enabled' => true,
+            'prediction.ridge_enabled' => false,
+        ]);
+        $b = $this->createBusinessWithHistory(5, 'FNB');
+        $orchestrator = app(PredictionShadowOrchestrator::class);
+
+        $run1 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        config(['prediction.ridge_enabled' => true]);
+
+        $run2 = $orchestrator->execute($b->id, '2025-11', $this->history(), 'FNB', 1444.7);
+
+        $evaluator = app(ModelPerformanceEvaluator::class);
+        $metrics = $evaluator->evaluate('ridge_umkm_v1_1');
+
+        $this->assertSame(1, $metrics['skipped_count']);
+        $this->assertSame(2, $metrics['attempt_count']);
+        $this->assertEqualsWithDelta(0.5, $metrics['skip_rate'], 0.001);
     }
 }
 

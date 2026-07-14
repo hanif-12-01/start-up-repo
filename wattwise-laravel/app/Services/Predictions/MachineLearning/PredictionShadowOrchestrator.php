@@ -39,14 +39,42 @@ final class PredictionShadowOrchestrator
             $history,
         );
 
+        $manifestPath = base_path('resources/ml/model-manifest.json');
+        if (! file_exists($manifestPath)) {
+            throw new \RuntimeException('Model manifest file does not exist.');
+        }
+        $manifestRaw = file_get_contents($manifestPath);
+        if ($manifestRaw === false) {
+            throw new \RuntimeException('Cannot read model manifest file.');
+        }
+        $manifestData = json_decode($manifestRaw, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($manifestData)) {
+            throw new \RuntimeException('Invalid model manifest JSON.');
+        }
+
+        $manifestVersion = (string) ($manifestData['manifest_version'] ?? 'unknown');
+        $manifestContentHash = hash('sha256', $manifestRaw);
+
         $models = $this->registry->all();
         usort($models, fn ($a, $b) => strcmp($a->key(), $b->key()));
 
-        $parts = ['manifest_version:1.0'];
+        $modelParts = [];
         foreach ($models as $model) {
-            $parts[] = "model:{$model->key()}:{$model->version()}:".($model->artifactChecksum() ?? 'null');
+            $modelParts[] = "model:{$model->key()}:{$model->version()}:".($model->artifactChecksum() ?? 'null');
         }
-        $manifestFingerprint = hash('sha256', implode('|', $parts));
+        $modelsString = implode('|', $modelParts);
+
+        $policyParts = [
+            "manifest_version:{$manifestVersion}",
+            "manifest_hash:{$manifestContentHash}",
+            "models:{$modelsString}",
+            'shadow_enabled:1',
+            'ridge_enabled:'.(config('prediction.ridge_enabled', false) ? '1' : '0'),
+            'gradient_boosting_enabled:'.(config('prediction.gradient_boosting_enabled', false) ? '1' : '0'),
+            'adaptive_router_enabled:'.(config('prediction.adaptive_router_enabled', false) ? '1' : '0'),
+            'router_mode:'.(config('prediction.router_mode') ?? 'null'),
+        ];
+        $manifestFingerprint = hash('sha256', implode('|', $policyParts));
 
         $fingerprint = InputFingerprintGenerator::generate(
             $businessId,
@@ -69,9 +97,7 @@ final class PredictionShadowOrchestrator
                     ->where('model_version', $model->version())
                     ->first();
 
-                $isCompleted = $existingResult !== null && $existingResult->status === 'SUCCESS';
-
-                if (! $isCompleted) {
+                if ($existingResult === null) {
                     try {
                         $this->executeModel($existingRun, $model, $history, $businessType, $tariffPerKwh);
                     } catch (\Throwable $e) {
@@ -173,24 +199,29 @@ final class PredictionShadowOrchestrator
         ModelPredictionResult $result,
         string $executionMode = 'SHADOW',
     ): void {
-        PredictionModelResult::updateOrCreate(
-            [
-                'prediction_run_id' => $run->id,
-                'model_key' => $result->modelKey,
-                'model_version' => $result->modelVersion,
-            ],
-            [
-                'execution_mode' => $executionMode,
-                'status' => $result->status,
-                'predicted_usage_kwh' => $result->predictedUsageKwh,
-                'predicted_bill_idr' => $result->predictedBillIdr,
-                'feature_snapshot' => $result->featureSnapshot,
-                'artifact_sha256' => $result->artifactSha256,
-                'duration_ms' => $result->executionDurationMs,
-                'skip_reason' => $result->skipReason,
-                'failure_code' => $result->failureCode,
-                'generated_at' => now(),
-            ],
-        );
+        $exists = PredictionModelResult::where('prediction_run_id', $run->id)
+            ->where('model_key', $result->modelKey)
+            ->where('model_version', $result->modelVersion)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        PredictionModelResult::create([
+            'prediction_run_id' => $run->id,
+            'model_key' => $result->modelKey,
+            'model_version' => $result->modelVersion,
+            'execution_mode' => $executionMode,
+            'status' => $result->status,
+            'predicted_usage_kwh' => $result->predictedUsageKwh,
+            'predicted_bill_idr' => $result->predictedBillIdr,
+            'feature_snapshot' => $result->featureSnapshot,
+            'artifact_sha256' => $result->artifactSha256,
+            'duration_ms' => $result->executionDurationMs,
+            'skip_reason' => $result->skipReason,
+            'failure_code' => $result->failureCode,
+            'generated_at' => now(),
+        ]);
     }
 }
