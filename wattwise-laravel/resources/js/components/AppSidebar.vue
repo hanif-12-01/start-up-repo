@@ -39,41 +39,39 @@ const berandaItems: NavItem[] = [
 ];
 
 const onboardingItems: NavItem[] = [
-    { title: 'Onboarding', href: '/onboarding', icon: ClipboardList },
+    { title: 'Mulai di Sini', href: '/onboarding', icon: ClipboardList },
 ];
 
-const catatDataItems: NavItem[] = [
-    { title: 'Data Listrik', href: '/electricity', icon: Zap },
-    { title: 'Pendapatan & Listrik', href: '/revenue', icon: Coins },
-];
-
-const analisisItems: NavItem[] = [
-    { title: 'Prediksi & Estimasi', href: '/predictions', icon: TrendingUp },
-    { title: 'Deteksi Anomali', href: '/anomalies', icon: AlertTriangle },
-    { title: 'Rekomendasi Hemat', href: '/recommendations', icon: Sparkles },
-];
-
-const propertiItems: NavItem[] = [
-    { title: 'Usaha / Properti', href: '/businesses', icon: Building2 },
+const catatUsahaItems: NavItem[] = [
+    { title: 'Pemakaian Listrik', href: '/electricity', icon: Zap },
+    { title: 'Pendapatan Usaha', href: '/revenue', icon: Coins },
     { title: 'Peralatan', href: '/appliances', icon: Plug },
 ];
 
-const laporanItems: NavItem[] = [
+const pantauItems: NavItem[] = [
+    { title: 'Prediksi Biaya', href: '/predictions', icon: TrendingUp },
+    { title: 'Peringatan Pemakaian', href: '/anomalies', icon: AlertTriangle },
+    { title: 'Saran Penghematan', href: '/recommendations', icon: Sparkles },
     { title: 'Laporan', href: '/reports', icon: FileText },
 ];
 
-const akunItems: NavItem[] = [
+const kelolaItems: NavItem[] = [
+    { title: 'Usaha & Properti', href: '/businesses', icon: Building2 },
     { title: 'Paket & Langganan', href: '/plans', icon: CreditCard },
     { title: 'Pengaturan', href: '/settings', icon: Settings },
 ];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+    <Sidebar collapsible="icon" variant="inset" class="app-navigation">
+        <SidebarHeader class="gap-3 border-b border-white/8 p-3 pb-4">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
+                    <SidebarMenuButton
+                        size="lg"
+                        as-child
+                        class="h-14 hover:bg-white/5"
+                    >
                         <Link :href="dashboard()">
                             <AppLogo />
                         </Link>
@@ -83,17 +81,15 @@ const akunItems: NavItem[] = [
             <BusinessSwitcher />
         </SidebarHeader>
 
-        <SidebarContent>
-            <NavGroup :items="berandaItems" />
+        <SidebarContent class="gap-1 px-1 py-3">
+            <NavGroup label="Ringkasan" :items="berandaItems" />
             <NavGroup v-if="needsOnboarding" :items="onboardingItems" />
-            <NavGroup label="Catat Data" :items="catatDataItems" />
-            <NavGroup label="Analisis" :items="analisisItems" />
-            <NavGroup label="Properti & Peralatan" :items="propertiItems" />
-            <NavGroup :items="laporanItems" />
-            <NavGroup label="Akun" :items="akunItems" />
+            <NavGroup label="Catat Usaha" :items="catatUsahaItems" />
+            <NavGroup label="Pantau & Hemat" :items="pantauItems" />
+            <NavGroup label="Kelola" :items="kelolaItems" />
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter class="border-t border-white/8 p-3">
             <NavUser />
         </SidebarFooter>
     </Sidebar>

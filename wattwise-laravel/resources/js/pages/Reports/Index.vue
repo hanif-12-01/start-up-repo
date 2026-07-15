@@ -402,14 +402,14 @@ const handlePdfExport = async () => {
 </script>
 
 <template>
-    <Head title="Laporan Bulanan" />
+    <Head title="Laporan" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
         <!-- Title Header with Business Switcher -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
             <div class="flex flex-col gap-2">
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <FileText class="h-8 w-8 text-primary" /> Laporan Bulanan
+                    <FileText class="h-8 w-8 text-primary" /> Laporan
                 </h1>
                 <p class="text-muted-foreground text-sm">
                     Ringkasan listrik, pendapatan, peralatan, dan rekomendasi berdasarkan data yang Anda input.

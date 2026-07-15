@@ -153,7 +153,7 @@ class PredictionControllerTest extends TestCase
             ->get(route('predictions.index', ['business_id' => $business->id, 'generated' => 1]))
             ->assertInertia(fn ($page) => $page
                 ->where('prediction.has_prediction', true)
-                ->where('prediction.method_label', 'Hybrid AI Decision Support')
+                ->where('prediction.method_label', 'Analisis Tren & Rata-Rata Bergerak')
                 ->where('prediction.data_requirements.needs_more_data', false)
             );
     }

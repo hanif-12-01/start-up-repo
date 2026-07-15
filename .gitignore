@@ -40,6 +40,7 @@ credentials.json
 **/*.md
 !docs/product/meter-ocr-manual-qa.md
 !docs/product/pdf-reports-manual-qa.md
+!wattwise-laravel/docs/ui/IT-UI-02_authenticated-app-shell.md
 
 # vercel
 .vercel

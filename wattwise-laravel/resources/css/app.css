@@ -61,10 +61,10 @@
     --color-sidebar-ring: var(--sidebar-ring);
 
     /* Brand custom color mappings to align utility classes */
-    --color-emerald-500: #10B981;
-    --color-emerald-600: #10B981;
-    --color-teal-500: #0D9488;
-    --color-teal-600: #0D9488;
+    --color-emerald-500: #10b981;
+    --color-emerald-600: #10b981;
+    --color-teal-500: #0d9488;
+    --color-teal-600: #0d9488;
 }
 
 /*
@@ -96,7 +96,7 @@
 }
 
 :root {
-    --background: hsl(0 0% 100%);
+    --background: hsl(44 41% 95%); /* Warm cream, matching the landing page */
     --foreground: hsl(222.2 47.4% 11.2%); /* Dark Navy #0F172A */
     --card: hsl(0 0% 100%);
     --card-foreground: hsl(222.2 47.4% 11.2%);
@@ -104,24 +104,24 @@
     --popover-foreground: hsl(222.2 47.4% 11.2%);
     --primary: hsl(159.8 84.1% 39.4%); /* Emerald #10B981 */
     --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(210 40% 96.1%);
+    --secondary: hsl(42 36% 92%);
     --secondary-foreground: hsl(222.2 47.4% 11.2%);
-    --muted: hsl(210 40% 96.1%);
+    --muted: hsl(42 30% 92%);
     --muted-foreground: hsl(215.4 16.3% 46.9%); /* Slate Gray #64748B */
-    --accent: hsl(210 40% 96.1%);
+    --accent: hsl(42 36% 92%);
     --accent-foreground: hsl(222.2 47.4% 11.2%);
     --destructive: hsl(0 84.2% 60.2%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(214.3 31.8% 91.4%);
-    --input: hsl(214.3 31.8% 91.4%);
+    --border: hsl(38 22% 84%);
+    --input: hsl(38 22% 84%);
     --ring: hsl(159.8 84.1% 39.4%); /* Emerald #10B981 */
     --chart-1: hsl(159.8 84.1% 39.4%); /* Emerald #10B981 */
     --chart-2: hsl(174.9 83.9% 36.1%); /* Teal #0D9488 */
     --chart-3: hsl(215.4 16.3% 46.9%); /* Slate Gray #64748B */
     --chart-4: hsl(222.2 47.4% 11.2%); /* Dark Navy #0F172A */
     --chart-5: hsl(222.2 47.4% 20%);
-    --radius: 0.5rem;
-    
+    --radius: 0.75rem;
+
     /* Sidebar matching mockup */
     --sidebar-background: hsl(222.2 47.4% 11.2%); /* Dark Navy #0F172A */
     --sidebar-foreground: hsl(210 40% 98%);
@@ -132,42 +132,62 @@
     --sidebar-border: hsl(222.2 47.4% 18%);
     --sidebar-ring: hsl(159.8 84.1% 39.4%);
     --sidebar: hsl(222.2 47.4% 11.2%);
+
+    /* Semantic surface tokens for light mode */
+    --surface-elevated: hsl(0 0% 100%);
+    --surface-muted: hsl(42 30% 94%);
+    --border-strong: hsl(38 22% 72%);
+    --brand-soft: hsl(159.8 84.1% 39.4% / 0.1);
+    --success: hsl(159.8 84.1% 39.4%);
+    --warning: hsl(45 93% 47%);
+    --danger: hsl(0 84.2% 60.2%);
+    --info: hsl(213 94% 52%);
 }
 
 .dark {
-    --background: hsl(222.2 47.4% 6%); /* Premium Dark Navy */
+    --background: hsl(222.2 47.4% 7%); /* Dark navy base — not pure black */
     --foreground: hsl(210 40% 98%);
-    --card: hsl(222.2 47.4% 8%);
+    --card: hsl(222.2 47.4% 10%); /* Elevated surface — visible lift from bg */
     --card-foreground: hsl(210 40% 98%);
-    --popover: hsl(222.2 47.4% 8%);
+    --popover: hsl(222.2 47.4% 10%);
     --popover-foreground: hsl(210 40% 98%);
     --primary: hsl(159.8 84.1% 39.4%); /* Emerald #10B981 */
     --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(222.2 47.4% 12%);
+    --secondary: hsl(222.2 47.4% 14%);
     --secondary-foreground: hsl(210 40% 98%);
-    --muted: hsl(222.2 47.4% 12%);
+    --muted: hsl(222.2 47.4% 14%);
     --muted-foreground: hsl(215.4 16.3% 65%);
-    --accent: hsl(222.2 47.4% 12%);
+    --accent: hsl(222.2 47.4% 14%);
     --accent-foreground: hsl(210 40% 98%);
     --destructive: hsl(0 84% 60%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(222.2 47.4% 16%);
-    --input: hsl(222.2 47.4% 16%);
+    --border: hsl(222.2 47.4% 18%); /* Stronger border for visible structure */
+    --input: hsl(222.2 47.4% 18%);
     --ring: hsl(159.8 84.1% 39.4%);
     --chart-1: hsl(159.8 84.1% 39.4%);
     --chart-2: hsl(174.9 83.9% 36.1%);
     --chart-3: hsl(215.4 16.3% 46.9%);
     --chart-4: hsl(222.2 47.4% 20%);
     --chart-5: hsl(222.2 47.4% 30%);
-    --sidebar-background: hsl(222.2 47.4% 6%);
+    --sidebar-background: hsl(222.2 47.4% 5%); /* Darker than content bg */
     --sidebar-foreground: hsl(210 40% 98%);
     --sidebar-primary: hsl(159.8 84.1% 39.4%);
     --sidebar-primary-foreground: hsl(0 0% 100%);
     --sidebar-accent: hsl(222.2 47.4% 12%);
     --sidebar-accent-foreground: hsl(210 40% 98%);
-    --sidebar-border: hsl(222.2 47.4% 12%);
+    --sidebar-border: hsl(222.2 47.4% 14%);
     --sidebar-ring: hsl(159.8 84.1% 39.4%);
-    --sidebar: hsl(222.2 47.4% 6%);
+    --sidebar: hsl(222.2 47.4% 5%);
+
+    /* Semantic surface tokens for dark mode */
+    --surface-elevated: hsl(222.2 47.4% 12%);
+    --surface-muted: hsl(222.2 47.4% 9%);
+    --border-strong: hsl(222.2 47.4% 22%);
+    --brand-soft: hsl(159.8 84.1% 39.4% / 0.12);
+    --success: hsl(159.8 84.1% 39.4%);
+    --warning: hsl(45 93% 47%);
+    --danger: hsl(0 84% 60%);
+    --info: hsl(213 94% 52%);
 }
 
 @layer base {
@@ -181,9 +201,10 @@
 
 /* Smooth SVG gauge transition styles */
 .gauge-path {
-    transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                stroke 0.5s ease;
+    transition:
+        stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+        stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+        stroke 0.5s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -199,9 +220,22 @@
         linear-gradient(to right, var(--background) 30%, transparent),
         linear-gradient(to left, var(--background) 30%, transparent) 100% 0,
         /* Edge shadows (visible when scrolled) */
-        radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.08), transparent),
-        radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.08), transparent) 100% 0;
+        radial-gradient(
+                farthest-side at 0 50%,
+                rgba(0, 0, 0, 0.08),
+                transparent
+            ),
+        radial-gradient(
+                farthest-side at 100% 50%,
+                rgba(0, 0, 0, 0.08),
+                transparent
+            )
+            100% 0;
     background-repeat: no-repeat;
-    background-size: 30px 100%, 30px 100%, 8px 100%, 8px 100%;
+    background-size:
+        30px 100%,
+        30px 100%,
+        8px 100%,
+        8px 100%;
     background-attachment: local, local, scroll, scroll;
 }

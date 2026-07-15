@@ -24,7 +24,7 @@ use Carbon\Carbon;
 class PredictionService
 {
     // User-facing method labels (chosen deterministically by history depth).
-    public const METHOD_HYBRID = 'Hybrid AI Decision Support';       // 3+ months
+    public const METHOD_HYBRID = 'Analisis Tren & Rata-Rata Bergerak'; // 3+ months
     public const METHOD_PATTERN = 'Analisis Berbasis Pola Pemakaian'; // 2 months
     public const METHOD_ADAPTIVE = 'Model Estimasi Adaptif';          // 1 month
 
