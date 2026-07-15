@@ -25,7 +25,7 @@ class ReportExportService
 
         // 2. Title & Positioning
         $writeRow(['WattWise AI - Laporan Bulanan']);
-        $writeRow(['Penyedia Dokumen', 'Hybrid AI Decision Support']);
+        $writeRow(['Penyedia Dokumen', 'Analisis Tren & Rata-Rata Bergerak']);
         $writeRow(['Tanggal Ekspor', Carbon::now()->toDateTimeString()]);
         $writeRow([]);
 

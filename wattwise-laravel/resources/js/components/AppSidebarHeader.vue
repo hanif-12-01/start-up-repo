@@ -15,13 +15,15 @@ withDefaults(
 
 <template>
     <header
-        class="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4"
+        class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl transition-[width,height] ease-linear md:px-6 dark:border-white/10 dark:bg-background/80"
+        role="banner"
     >
-        <div class="flex items-center gap-2">
-            <SidebarTrigger class="-ml-1" />
-            <template v-if="breadcrumbs && breadcrumbs.length > 0">
-                <Breadcrumbs :breadcrumbs="breadcrumbs" />
-            </template>
-        </div>
+        <SidebarTrigger
+            class="-ml-1 rounded-lg border border-border bg-background shadow-sm hover:bg-primary/5 hover:text-primary dark:border-white/10 dark:bg-card"
+            aria-label="Buka atau tutup menu"
+        />
+        <template v-if="breadcrumbs && breadcrumbs.length > 0">
+            <Breadcrumbs :breadcrumbs="breadcrumbs" />
+        </template>
     </header>
 </template>

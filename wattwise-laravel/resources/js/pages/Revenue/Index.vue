@@ -40,7 +40,7 @@ defineOptions({
                 href: '/dashboard',
             },
             {
-                title: 'Catat Pendapatan',
+                title: 'Pendapatan Usaha',
                 href: '/revenue',
             },
         ],
@@ -148,7 +148,7 @@ const historyCount = computed(() => {
 </script>
 
 <template>
-    <Head title="Catat Pendapatan" />
+    <Head title="Pendapatan Usaha" />
 
     <div class="flex flex-1 flex-col gap-8 p-6 max-w-6xl mx-auto w-full">
         <!-- Header -->
@@ -160,7 +160,7 @@ const historyCount = computed(() => {
                 </Link>
                 <div class="flex flex-wrap items-center gap-3">
                     <h1 class="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-                        <Coins class="h-8 w-8 text-emerald-500" /> Catat Pendapatan
+                        <Coins class="h-8 w-8 text-emerald-500" /> Pendapatan Usaha
                     </h1>
                 </div>
                 <p class="text-muted-foreground text-sm sm:text-base max-w-2xl leading-relaxed">

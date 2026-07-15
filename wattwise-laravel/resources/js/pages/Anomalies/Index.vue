@@ -52,7 +52,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Beranda', href: '/dashboard' },
-            { title: 'Analisis Anomali', href: '/anomalies' },
+            { title: 'Peringatan Pemakaian', href: '/anomalies' },
         ],
     },
 });
@@ -190,14 +190,14 @@ const filteredHistory = computed(() => {
 </script>
 
 <template>
-    <Head title="Analisis Anomali" />
+    <Head title="Peringatan Pemakaian" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
         <!-- Header & Top Filter Panel -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
             <div class="flex flex-col gap-1">
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <ShieldAlert class="h-8 w-8 text-primary animate-pulse" /> Analisis Anomali
+                    <ShieldAlert class="h-8 w-8 text-primary animate-pulse" /> Peringatan Pemakaian
                 </h1>
                 <p class="text-muted-foreground text-sm max-w-xl">
                     Deteksi penyimpangan dan lonjakan pemakaian listrik secara otomatis dan deterministik dibanding rata-rata historis usaha Anda.

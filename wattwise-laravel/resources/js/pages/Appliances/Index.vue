@@ -234,7 +234,7 @@ return null;
 </script>
 
 <template>
-    <Head title="Peralatan Listrik" />
+    <Head title="Peralatan" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
         <!-- Header -->
@@ -245,7 +245,7 @@ return null;
                     Kembali ke Beranda
                 </Link>
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <Plug class="h-8 w-8 text-blue-500" /> Peralatan Listrik
+                    <Plug class="h-8 w-8 text-blue-500" /> Peralatan
                 </h1>
                 <p class="text-muted-foreground text-base">
                     Catat alat yang memakai listrik agar WattWise bisa membantu memperkirakan kontribusi biaya.

@@ -53,7 +53,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Beranda', href: '/dashboard' },
-            { title: 'Prediksi & Estimasi', href: '/predictions' },
+            { title: 'Prediksi Biaya', href: '/predictions' },
         ],
     },
 });
@@ -118,17 +118,17 @@ return 'text-muted-foreground';
 </script>
 
 <template>
-    <Head title="Prediksi & Estimasi" />
+    <Head title="Prediksi Biaya" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
         <!-- Header + business switcher -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
             <div class="flex flex-col gap-2">
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <TrendingUp class="h-8 w-8 text-primary" /> Prediksi & Estimasi
+                    <TrendingUp class="h-8 w-8 text-primary" /> Prediksi Biaya
                 </h1>
                 <p class="text-muted-foreground text-sm max-w-2xl">
-                    Prediksi pemakaian listrik dan estimasi tagihan listrik bulan depan berdasarkan pola data yang Anda input.
+                    Perkiraan pemakaian listrik dan estimasi tagihan bulan depan berdasarkan pola data yang Anda catat.
                 </p>
             </div>
 
@@ -301,7 +301,10 @@ return 'text-muted-foreground';
                             Perlu Verifikasi Manual
                         </span>
                     </div>
-                    <p class="text-xs text-muted-foreground leading-relaxed">{{ prediction.confidence_reason }}</p>
+                    <p class="text-xs text-muted-foreground leading-relaxed">
+                        Perkiraan dibuat dari pola pemakaian terbaru dan arah perubahan beberapa bulan terakhir.
+                    </p>
+                    <p v-if="prediction.confidence_reason" class="text-xs text-muted-foreground leading-relaxed">{{ prediction.confidence_reason }}</p>
                 </div>
 
                 <!-- Chart -->

@@ -37,7 +37,7 @@ defineOptions({
                 href: '/dashboard',
             },
             {
-                title: 'Rekomendasi',
+                title: 'Saran Penghematan',
                 href: '/recommendations',
             },
         ],
@@ -85,14 +85,14 @@ return '';
 </script>
 
 <template>
-    <Head title="Rekomendasi Hemat Listrik" />
+    <Head title="Saran Penghematan" />
 
     <div class="flex flex-1 flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex flex-col gap-2">
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <Sparkles class="h-8 w-8 text-primary" /> Rekomendasi Hemat
+                    <Sparkles class="h-8 w-8 text-primary" /> Saran Penghematan
                 </h1>
                 <p class="text-muted-foreground text-base">
                     Rekomendasi ini dibuat dari data listrik, pendapatan, dan peralatan yang Anda input.

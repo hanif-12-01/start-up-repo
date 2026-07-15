@@ -69,7 +69,7 @@ defineOptions({
                 href: '/dashboard',
             },
             {
-                title: 'Catat Listrik',
+                title: 'Pemakaian Listrik',
                 href: '/electricity',
             },
         ],
@@ -468,7 +468,7 @@ const historyCount = computed(() => {
 </script>
 
 <template>
-    <Head title="Catat Data Listrik" />
+    <Head title="Pemakaian Listrik" />
 
     <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-6">
         <!-- Header -->
@@ -487,7 +487,7 @@ const historyCount = computed(() => {
                     <h1
                         class="flex items-center gap-2 text-3xl font-extrabold tracking-tight text-foreground"
                     >
-                        <Zap class="h-8 w-8 text-emerald-500" /> Catat Listrik
+                        <Zap class="h-8 w-8 text-emerald-500" /> Pemakaian Listrik
                     </h1>
                     <span
                         class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 ring-1 ring-emerald-500/20 ring-inset dark:text-emerald-400"

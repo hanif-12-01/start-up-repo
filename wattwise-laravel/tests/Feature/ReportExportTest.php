@@ -81,7 +81,7 @@ class ReportExportTest extends TestCase
         // Check terminology & disclaimers
         $this->assertStringContainsString('Prediksi pemakaian listrik (kWh)', $content);
         $this->assertStringContainsString('Estimasi tagihan listrik (Rupiah)', $content);
-        $this->assertStringContainsString('Hybrid AI Decision Support', $content);
+        $this->assertStringContainsString('Analisis Tren & Rata-Rata Bergerak', $content);
         $this->assertStringContainsString('Prediksi dan estimasi WattWise AI bersifat perkiraan berdasarkan data yang dimasukkan pengguna dan bukan tagihan resmi PLN.', $content);
     }
 
@@ -544,7 +544,7 @@ class ReportExportTest extends TestCase
         // Required concepts
         $this->assertStringContainsString('Prediksi pemakaian listrik', $content);
         $this->assertStringContainsString('Estimasi tagihan listrik', $content);
-        $this->assertStringContainsString('Hybrid AI Decision Support', $content);
+        $this->assertStringContainsString('Analisis Tren & Rata-Rata Bergerak', $content);
 
         // Database IDs or internal sensitive fields check
         $this->assertStringNotContainsString('password', $content);

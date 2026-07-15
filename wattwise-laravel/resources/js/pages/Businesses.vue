@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, ArrowLeft, Archive, RotateCcw, AlertTriangle, CheckCircle2, Info, MapPin, Zap, Plus, Edit } from '@lucide/vue';
+import { Building2, Archive, RotateCcw, AlertTriangle, CheckCircle2, Info, MapPin, Zap, Plus, Edit } from '@lucide/vue';
 import { ref, computed } from 'vue';
 import BusinessFormDialog from '@/components/businesses/BusinessFormDialog.vue';
 import type {BusinessRow} from '@/types';
@@ -16,14 +16,8 @@ const props = defineProps<{
 defineOptions({
     layout: {
         breadcrumbs: [
-            {
-                title: 'Beranda',
-                href: '/dashboard',
-            },
-            {
-                title: 'Usaha & Properti',
-                href: '/businesses',
-            },
+            { title: 'Beranda', href: '/dashboard' },
+            { title: 'Usaha & Properti', href: '/businesses' },
         ],
     },
 });
@@ -160,15 +154,11 @@ const closeFormDialog = () => {
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex flex-col gap-2">
-                <Link href="/dashboard" class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">
-                    <ArrowLeft class="h-4 w-4" />
-                    Kembali ke Beranda
-                </Link>
                 <h1 class="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                     <Building2 class="h-8 w-8 text-primary" /> Usaha & Properti
                 </h1>
                 <p class="text-muted-foreground text-base">
-                    Kelola profil usaha, informasi operasional, dan data kelistrikan setiap lokasi.
+                    Kelola informasi usaha, lokasi, dan pengaturan listrik dalam satu tempat.
                 </p>
             </div>
             <div class="flex items-center gap-3 shrink-0">
@@ -265,7 +255,7 @@ const closeFormDialog = () => {
                 </div>
                 <p class="text-base font-semibold text-foreground">Belum ada usaha aktif.</p>
                 <p class="text-sm text-muted-foreground max-w-md">
-                    Pulihkan salah satu usaha yang diarsipkan agar fitur operasional WattWise AI dapat digunakan kembali.
+                    Pulihkan salah satu usaha yang diarsipkan agar WattWise dapat menampilkan ringkasan dan saran penghematan.
                 </p>
             </div>
 

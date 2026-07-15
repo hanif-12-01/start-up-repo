@@ -23,10 +23,10 @@ class NavigationRegressionTest extends TestCase
 
         // Grouped section labels
         $expectedGroups = [
-            'Catat Data',
-            'Analisis',
-            'Properti & Peralatan',
-            'Akun',
+            'Ringkasan',
+            'Catat Usaha',
+            'Pantau & Hemat',
+            'Kelola',
         ];
 
         foreach ($expectedGroups as $group) {
@@ -40,17 +40,17 @@ class NavigationRegressionTest extends TestCase
         // Item titles present in the new structure
         $expectedTitles = [
             'Beranda',
-            'Data Listrik',
-            'Pendapatan & Listrik',
-            'Prediksi & Estimasi',
-            'Deteksi Anomali',
-            'Rekomendasi Hemat',
-            'Usaha / Properti',
+            'Pemakaian Listrik',
+            'Pendapatan Usaha',
             'Peralatan',
+            'Prediksi Biaya',
+            'Peringatan Pemakaian',
+            'Saran Penghematan',
             'Laporan',
+            'Usaha & Properti',
             'Paket & Langganan',
             'Pengaturan',
-            'Onboarding',
+            'Mulai di Sini',
         ];
 
         foreach ($expectedTitles as $title) {
@@ -96,7 +96,7 @@ class NavigationRegressionTest extends TestCase
         $this->assertStringContainsString(
             '/anomalies',
             $content,
-            "Sidebar is missing expected navigation path target: /anomalies"
+            'Sidebar is missing expected navigation path target: /anomalies'
         );
     }
 
@@ -163,5 +163,41 @@ class NavigationRegressionTest extends TestCase
                 "Sidebar contains outdated Next.js nested path: $forbidden"
             );
         }
+    }
+
+    /**
+     * Test WattWise branding is present, not Laravel default.
+     */
+    public function test_sidebar_uses_wattwise_branding(): void
+    {
+        $content = $this->sidebarContent();
+
+        $this->assertStringContainsString(
+            'AppLogo',
+            $content,
+            'Sidebar should render the WattWise brand logo component.'
+        );
+
+        $this->assertStringNotContainsString(
+            'Laravel',
+            $content,
+            'Sidebar should not reference Laravel branding.'
+        );
+    }
+
+    /**
+     * Test the favicon is WattWise, not Laravel default.
+     */
+    public function test_favicon_is_wattwise(): void
+    {
+        $bladePath = resource_path('views/app.blade.php');
+        $this->assertFileExists($bladePath);
+        $blade = (string) file_get_contents($bladePath);
+
+        $this->assertStringContainsString('/favicon.svg', $blade);
+        $this->assertStringContainsString('/favicon.ico', $blade);
+
+        // Ensure WattWise fallback instead of Laravel
+        $this->assertStringNotContainsString("'Laravel'", $blade);
     }
 }
