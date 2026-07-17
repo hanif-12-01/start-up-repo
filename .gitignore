@@ -41,6 +41,9 @@ credentials.json
 !docs/product/meter-ocr-manual-qa.md
 !docs/product/pdf-reports-manual-qa.md
 !wattwise-laravel/docs/ui/IT-UI-02_authenticated-app-shell.md
+!docs/ml/*.md
+!docs/ml/**/*.md
+!ml/benchmark/README.md
 
 # vercel
 .vercel
@@ -50,6 +53,8 @@ ML/RAW/
 ML/data/
 **/data/
 *.csv
+!docs/ml/benchmarks/*.csv
+!docs/ml/datasets/*.csv
 
 # typescript
 *.tsbuildinfo
@@ -62,3 +67,21 @@ test-outputs/
 
 # local test model folder
 Test model/
+
+# WattWise research benchmark local state and large artifacts
+/ml/benchmark/.venv/
+/ml/benchmark/.pytest_cache/
+/ml/benchmark/.ruff_cache/
+/ml/benchmark/.mypy_cache/
+/ml/benchmark/.coverage
+/ml/benchmark/**/__pycache__/
+/ml/benchmark/**/*.parquet
+/ml/benchmark/**/checkpoints/
+/ml/benchmark/**/benchmark-runs/
+/ml/benchmark/**/artifacts/
+/ml/benchmark/**/*.ckpt
+/ml/benchmark/**/*.pkl
+/ml/benchmark/**/*.joblib
+/ml/benchmark/**/*.cbm
+/ml/benchmark/**/*.txt.partial
+/ml/benchmark/**/*.zip.partial

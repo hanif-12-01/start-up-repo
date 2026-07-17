@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wattwise-benchmark"
+version = "0.1.0"
+description = "Leakage-safe UCI and BDG2 monthly forecasting benchmark"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "catboost==1.2.8",
+  "lightgbm==4.6.0",
+  "pytorch-forecasting==1.8.0",
+  "numpy==2.3.2",
+  "pandas==2.3.1",
+  "psutil==7.2.2",
+  "pyarrow==20.0.0",
+  "scikit-learn==1.7.1",
+  "torch==2.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy==1.17.0",
+  "pandas-stubs==2.3.0.250703",
+  "pytest==8.4.1",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.4",
+]
+
+[project.scripts]
+wattwise-benchmark = "wattwise_benchmark.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --disable-warnings"
+testpaths = ["tests"]
+markers = ["slow: integration tests that train neural models"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["wattwise_benchmark"]
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+  "catboost.*",
+  "joblib.*",
+  "lightgbm.*",
+  "lightning.*",
+  "psutil.*",
+  "pytorch_forecasting.*",
+]
+ignore_missing_imports = true
