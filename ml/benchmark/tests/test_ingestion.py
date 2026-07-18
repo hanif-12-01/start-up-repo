@@ -3,6 +3,11 @@
 import pandas as pd
 import pytest
 
+from wattwise_benchmark.acquisition.bdg2_provenance import BDG2_PROVENANCE_STATUS
+from wattwise_benchmark.ingestion.bdg2 import (
+    BDG2_LICENSE_CLASSIFICATION,
+    excluded_entity_accounting,
+)
 from wattwise_benchmark.ingestion.common import (
     add_consecutive_month_index,
     validate_monthly,
@@ -95,3 +100,40 @@ def test_consecutive_month_index_gap_resets() -> None:
     panel = pd.DataFrame(rows)
     result = add_consecutive_month_index(panel)
     assert list(result["consecutive_month_index"]) == [1, 2, 1]
+
+
+def test_bdg2_fully_excluded_entity_accounting_reconciles_reason() -> None:
+    panel = pd.DataFrame(
+        {
+            "entity_id": ["excluded", "excluded", "retained", "retained"],
+            "period_month": pd.to_datetime(
+                ["2016-01-01", "2016-02-01", "2016-01-01", "2016-02-01"]
+            ),
+        }
+    )
+    incomplete = pd.Series([True, True, True, False])
+    negative = pd.Series([False, False, False, False])
+    invalid = pd.Series([False, False, False, False])
+    excluded = incomplete | negative | invalid
+    result = excluded_entity_accounting(
+        panel,
+        excluded,
+        incomplete,
+        negative,
+        invalid,
+        completeness_threshold=0.90,
+    )
+    assert result == [
+        {
+            "entity_id": "excluded",
+            "exclusion_reason": "NO_MONTH_AT_OR_ABOVE_0.900000_COMPLETENESS_THRESHOLD",
+            "source_months": 2,
+            "incomplete_months": 2,
+            "negative_months": 0,
+            "invalid_usage_months": 0,
+        }
+    ]
+
+
+def test_bdg2_license_classification_requires_review() -> None:
+    assert BDG2_LICENSE_CLASSIFICATION == BDG2_PROVENANCE_STATUS

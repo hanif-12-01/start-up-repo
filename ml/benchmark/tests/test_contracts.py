@@ -2,7 +2,13 @@
 
 import pytest
 
-from wattwise_benchmark.contracts import ProductPhase, initial_subgroup, product_phase
+from wattwise_benchmark.contracts import (
+    ProductPhase,
+    ReportingPhase,
+    initial_subgroup,
+    product_phase,
+    reporting_phase,
+)
 
 
 @pytest.mark.parametrize(
@@ -26,6 +32,28 @@ def test_phase_boundaries(months: int, expected: ProductPhase) -> None:
 def test_phase_negative_raises() -> None:
     with pytest.raises(ValueError):
         product_phase(-1)
+
+
+@pytest.mark.parametrize(
+    "months,expected",
+    [
+        (0, ReportingPhase.H00),
+        (1, ReportingPhase.H01_02),
+        (2, ReportingPhase.H01_02),
+        (3, ReportingPhase.H03_05),
+        (5, ReportingPhase.H03_05),
+        (6, ReportingPhase.H06_12),
+        (12, ReportingPhase.H06_12),
+        (13, ReportingPhase.H13_PLUS),
+    ],
+)
+def test_reporting_phase_separates_h00(months: int, expected: ReportingPhase) -> None:
+    assert reporting_phase(months) == expected
+
+
+def test_reporting_phase_negative_raises() -> None:
+    with pytest.raises(ValueError):
+        reporting_phase(-1)
 
 
 @pytest.mark.parametrize(

@@ -12,10 +12,8 @@ import numpy as np
 import pandas as pd
 
 from wattwise_benchmark.config import BenchmarkConfig, sha256_file
-from wattwise_benchmark.evaluation.metrics import (
-    aggregate_metrics,
-    paired_mae_intervals,
-)
+from wattwise_benchmark.contracts import reporting_phase
+from wattwise_benchmark.evaluation.metrics import aggregate_metrics
 from wattwise_benchmark.features import build_examples, feature_manifest_fingerprint
 from wattwise_benchmark.models.base import (
     eligibility_reason,
@@ -28,13 +26,13 @@ from wattwise_benchmark.models.deterministic import deterministic_forecast
 from wattwise_benchmark.models.lightgbm_model import LightGBMAdapter
 from wattwise_benchmark.models.sklearn_models import SklearnAdapter
 from wattwise_benchmark.pipeline import load_normalized
+from wattwise_benchmark.reporting import write_reporting_outputs
 from wattwise_benchmark.runtime import (
     PeakMemoryMonitor,
     hardware_summary,
     source_tree_fingerprint,
     utc_now_iso,
 )
-from wattwise_benchmark.selection import build_selection_outputs
 from wattwise_benchmark.splits import (
     assign_seen_entity_track,
     assign_unseen_entity_track,
@@ -172,6 +170,7 @@ def _result_record(
         "history_values": row["history_values"],
         "history_month_count": int(row["history_month_count"]),
         "product_phase": row["product_phase"],
+        "reporting_phase": reporting_phase(int(row["history_month_count"])).value,
         "initial_subgroup": row["initial_subgroup"],
         "example_variant": row["example_variant"],
         "track": row["track"],
@@ -348,94 +347,6 @@ def _run_adapter(
     return pd.DataFrame(rows)
 
 
-def _write_leaderboards(
-    metrics: pd.DataFrame,
-    predictions: pd.DataFrame,
-    run_dir: Path,
-) -> dict[str, str]:
-    outputs: dict[str, str] = {}
-    overall = (
-        metrics.groupby("model_key")
-        .apply(lambda g: pd.Series(summarize_group_agg(g)), include_groups=False)  # type: ignore[call-overload]
-        .sort_values("wmape")
-        .reset_index()
-    )
-    path = run_dir / "model-leaderboard.csv"
-    overall.to_csv(path, index=False)
-    outputs["model_leaderboard"] = str(path)
-
-    phase_rows: list[dict[str, Any]] = []
-    for (model, phase), group in metrics.groupby(["model_key", "product_phase"], dropna=False):
-        row = summarize_group_agg(group)
-        row["model_key"] = model
-        row["product_phase"] = phase
-        phase_rows.append(row)
-    phase_df = (
-        pd.DataFrame(phase_rows).sort_values(["product_phase", "wmape"]).reset_index(drop=True)
-    )
-    path = run_dir / "phase-leaderboard.csv"
-    phase_df.to_csv(path, index=False)
-    outputs["phase_leaderboard"] = str(path)
-
-    return outputs
-
-
-def summarize_group_agg(group: pd.DataFrame) -> dict[str, Any]:
-    return {
-        "evaluation_count": int(group["evaluation_count"].sum()),
-        "eligible_count": int(group["eligible_count"].sum()),
-        "failed_count": int(group["failed_count"].sum()),
-        "failure_rate": (
-            float(group["failed_count"].sum() / group["eligible_count"].sum())
-            if group["eligible_count"].sum() > 0
-            else float("nan")
-        ),
-        "mae": float(group.loc[group["mae"].notna(), "mae"].mean())
-        if group["mae"].notna().any()
-        else float("nan"),
-        "rmse": float(group.loc[group["rmse"].notna(), "rmse"].mean())
-        if group["rmse"].notna().any()
-        else float("nan"),
-        "wmape": float(group.loc[group["wmape"].notna(), "wmape"].mean())
-        if group["wmape"].notna().any()
-        else float("nan"),
-        "smape": float(group.loc[group["smape"].notna(), "smape"].mean())
-        if group["smape"].notna().any()
-        else float("nan"),
-        "median_absolute_error": float(
-            group.loc[group["median_absolute_error"].notna(), "median_absolute_error"].mean()
-        )
-        if group["median_absolute_error"].notna().any()
-        else float("nan"),
-        "training_duration_seconds": float(group["training_duration_seconds"].max()),
-        "inference_latency_ms_mean": float(group["inference_latency_ms_mean"].mean()),
-        "peak_memory_mb": float(group["peak_memory_mb"].max()),
-        "artifact_size_bytes": int(group["artifact_size_bytes"].max()),
-    }
-
-
-def _build_eligibility_matrix(predictions: pd.DataFrame) -> pd.DataFrame:
-    rows: list[dict[str, Any]] = []
-    for model_key in MODEL_KEYS:
-        model_data = predictions.loc[predictions["model_key"].eq(model_key)]
-        for phase in ("H00_02", "H03_05", "H06_12", "H13_PLUS"):
-            phase_data = model_data.loc[model_data["product_phase"].eq(phase)]
-            eligible = phase_data.loc[phase_data["eligible"]]
-            rows.append(
-                {
-                    "model_key": model_key,
-                    "product_phase": phase,
-                    "total_examples": len(phase_data),
-                    "eligible_examples": len(eligible),
-                    "skipped_examples": int(phase_data["status"].eq("SKIPPED").sum()),
-                    "success_examples": int(phase_data["status"].eq("SUCCESS").sum()),
-                    "failed_examples": int(phase_data["status"].eq("FAILED").sum()),
-                    "eligibility_rate": len(eligible) / len(phase_data) if len(phase_data) else 0.0,
-                }
-            )
-    return pd.DataFrame(rows)
-
-
 def run_benchmark(
     data_root: Path,
     repo_root: Path,
@@ -554,19 +465,17 @@ def run_benchmark(
     metrics_path = run_dir / "metrics.parquet"
     metrics.to_parquet(metrics_path, index=False, compression="zstd")
 
-    paired = paired_mae_intervals(predictions)
-    paired_path = run_dir / "paired-comparisons.csv"
-    paired.to_csv(paired_path, index=False)
+    report_outputs, selection = write_reporting_outputs(metrics, predictions, run_dir)
+    paired = pd.read_csv(report_outputs["paired_comparisons"])
+    eligibility = pd.read_csv(report_outputs["model_eligibility"])
+    leaderboards = {
+        "model_leaderboard": report_outputs["model_leaderboard"],
+        "phase_leaderboard": report_outputs["phase_leaderboard"],
+    }
 
-    eligibility = _build_eligibility_matrix(predictions)
-    eligibility_path = run_dir / "model-eligibility.csv"
-    eligibility.to_csv(eligibility_path, index=False)
-
-    leaderboards = _write_leaderboards(metrics, predictions, run_dir)
-
-    selection = build_selection_outputs(metrics, predictions, run_dir)
-
-    dep_lock = sha256_file(package_root.parent.parent / "pyproject.toml")
+    package_directory = package_root.parent.parent
+    dep_lock = sha256_file(package_directory / "requirements.lock")
+    pyproject_checksum = sha256_file(package_directory / "pyproject.toml")
     config_checksum = config.fingerprint()
     norm_manifest = normalized["manifest"]
     source_sha = source_tree_fingerprint(package_root)
@@ -581,6 +490,7 @@ def run_benchmark(
         "utc_end": utc_now_iso(),
         "python_version": sys.version,
         "dependency_lock_checksum": dep_lock,
+        "pyproject_checksum": pyproject_checksum,
         "hardware": hw,
         "random_seeds": list(config.model_seeds),
         "dataset_checksums": {
@@ -610,8 +520,15 @@ def run_benchmark(
         "output_checksums": {
             "predictions": sha256_file(predictions_path),
             "metrics": sha256_file(metrics_path),
+            **{
+                key: sha256_file(Path(path)) for key, path in sorted(report_outputs.items())
+            },
         },
         "phase_champions": selection.get("phase_champions", {}),
+        "common_cohort_champions": selection.get("common_cohort_champions", {}),
+        "product_routing_recommendations": selection.get(
+            "product_routing_recommendations", {}
+        ),
         "top_four": [item["model_key"] for item in selection.get("top_four_portfolio", [])],
     }
 

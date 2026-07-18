@@ -12,6 +12,14 @@ class ProductPhase(StrEnum):
     H13_PLUS = "H13_PLUS"
 
 
+class ReportingPhase(StrEnum):
+    H00 = "H00"
+    H01_02 = "H01_02"
+    H03_05 = "H03_05"
+    H06_12 = "H06_12"
+    H13_PLUS = "H13_PLUS"
+
+
 def product_phase(history_month_count: int) -> ProductPhase:
     if history_month_count < 0:
         raise ValueError("history_month_count cannot be negative")
@@ -22,6 +30,20 @@ def product_phase(history_month_count: int) -> ProductPhase:
     if history_month_count <= 12:
         return ProductPhase.H06_12
     return ProductPhase.H13_PLUS
+
+
+def reporting_phase(history_month_count: int) -> ReportingPhase:
+    if history_month_count < 0:
+        raise ValueError("history_month_count cannot be negative")
+    if history_month_count == 0:
+        return ReportingPhase.H00
+    if history_month_count <= 2:
+        return ReportingPhase.H01_02
+    if history_month_count <= 5:
+        return ReportingPhase.H03_05
+    if history_month_count <= 12:
+        return ReportingPhase.H06_12
+    return ReportingPhase.H13_PLUS
 
 
 def initial_subgroup(history_month_count: int) -> str | None:

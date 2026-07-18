@@ -6,13 +6,57 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from wattwise_benchmark.acquisition.bdg2_provenance import BDG2_PROVENANCE_STATUS
 from wattwise_benchmark.ingestion.common import add_consecutive_month_index, validate_monthly
+
+BDG2_LICENSE_CLASSIFICATION = BDG2_PROVENANCE_STATUS
 
 
 def _expected_local_hours(month: pd.Timestamp, timezone: str) -> int:
     start = month.tz_localize(timezone)
     end = (month + pd.offsets.MonthBegin(1)).tz_localize(timezone)
     return len(pd.date_range(start, end, freq="h", inclusive="left"))
+
+
+def excluded_entity_accounting(
+    panel: pd.DataFrame,
+    excluded: pd.Series,
+    incomplete: pd.Series,
+    negative_month: pd.Series,
+    invalid_usage: pd.Series,
+    completeness_threshold: float,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for entity_id, entity in panel.groupby("entity_id", sort=True):
+        indexes = entity.index
+        if bool((~excluded.loc[indexes]).any()):
+            continue
+        source_months = len(indexes)
+        incomplete_months = int(incomplete.loc[indexes].sum())
+        negative_months = int(negative_month.loc[indexes].sum())
+        invalid_usage_months = int(invalid_usage.loc[indexes].sum())
+        if incomplete_months == source_months:
+            reason = (
+                "NO_MONTH_AT_OR_ABOVE_"
+                f"{completeness_threshold:.6f}_COMPLETENESS_THRESHOLD"
+            )
+        elif negative_months == source_months:
+            reason = "ALL_MONTHS_CONTAIN_NEGATIVE_OBSERVATIONS"
+        elif invalid_usage_months == source_months:
+            reason = "ALL_MONTHS_HAVE_INVALID_AGGREGATED_USAGE"
+        else:
+            reason = "NO_MONTH_PASSES_COMBINED_MONTHLY_QUALITY_GATES"
+        rows.append(
+            {
+                "entity_id": str(entity_id),
+                "exclusion_reason": reason,
+                "source_months": source_months,
+                "incomplete_months": incomplete_months,
+                "negative_months": negative_months,
+                "invalid_usage_months": invalid_usage_months,
+            }
+        )
+    return rows
 
 
 def normalize_bdg2(
@@ -116,6 +160,14 @@ def normalize_bdg2(
     negative_month = panel["negative_observation_count"] > 0
     invalid_usage = ~np.isfinite(panel["usage_kwh"]) | (panel["usage_kwh"] < 0)
     excluded = incomplete | negative_month | invalid_usage
+    excluded_entities = excluded_entity_accounting(
+        panel,
+        excluded,
+        incomplete,
+        negative_month,
+        invalid_usage,
+        completeness_threshold,
+    )
     excluded_incomplete = int(incomplete.sum())
     excluded_negative = int((negative_month & ~incomplete).sum())
     panel = panel.loc[~excluded].copy()
@@ -131,7 +183,7 @@ def normalize_bdg2(
     )
     panel["unit_conversion_method"] = "bdg2_hourly_kwh_sum_monthly_sum"
     panel["quality_flag"] = "PASS"
-    panel["license_classification"] = "CC BY 4.0"
+    panel["license_classification"] = BDG2_LICENSE_CLASSIFICATION
     panel = panel.drop(
         columns=[
             "building_id",
@@ -176,6 +228,15 @@ def normalize_bdg2(
         "completeness_threshold": completeness_threshold,
         "excluded_incomplete_months": excluded_incomplete,
         "excluded_negative_months": excluded_negative,
+        "excluded_entity_count": len(excluded_entities),
+        "excluded_entities": excluded_entities,
+        "entity_count_reconciliation": {
+            "raw_entities": int(numeric.shape[1]),
+            "normalized_entities": int(panel["entity_id"].nunique()),
+            "fully_excluded_entities": len(excluded_entities),
+            "reconciles": int(numeric.shape[1])
+            == int(panel["entity_id"].nunique()) + len(excluded_entities),
+        },
         "normalized_months": len(panel),
         "metadata_rows": len(metadata),
         "metadata_coverage": metadata_coverage,
