@@ -40,7 +40,15 @@ class WattWiseDemoSeeder extends Seeder
         $user = $this->seedDemoUser();
         $this->seedSubscription($user);
 
-        foreach (DemoAccount::ML_SCENARIOS as $scenarioKey => $scenario) {
+        // Preserve the original primary business as the first-created record.
+        // Existing demo-readiness tests intentionally use businesses()->first().
+        $scenarioKeys = array_merge(
+            ['h06_12'],
+            array_values(array_diff(array_keys(DemoAccount::ML_SCENARIOS), ['h06_12'])),
+        );
+
+        foreach ($scenarioKeys as $scenarioKey) {
+            $scenario = DemoAccount::ML_SCENARIOS[$scenarioKey];
             $business = $this->seedScenarioBusiness($user, $scenario);
             $this->seedScenarioProfiles($business, $scenario);
             $this->seedElectricityEntries(
