@@ -40,12 +40,16 @@ class WattWiseDemoSeeder extends Seeder
         $user = $this->seedDemoUser();
         $this->seedSubscription($user);
 
-        // Preserve the original primary business as the first-created record.
-        // Existing demo-readiness tests intentionally use businesses()->first().
-        $scenarioKeys = array_merge(
-            ['h06_12'],
-            array_values(array_diff(array_keys(DemoAccount::ML_SCENARIOS), ['h06_12'])),
-        );
+        // Preserve the original single-business demo unless the dedicated ML
+        // validation flag is enabled. This keeps existing smoke-test behaviour
+        // stable while allowing one account to expand into five phase cases.
+        $scenarioKeys = ['h06_12'];
+        if (DemoAccount::mlValidationEnabled()) {
+            $scenarioKeys = array_merge(
+                ['h06_12'],
+                array_values(array_diff(array_keys(DemoAccount::ML_SCENARIOS), ['h06_12'])),
+            );
+        }
 
         foreach ($scenarioKeys as $scenarioKey) {
             $scenario = DemoAccount::ML_SCENARIOS[$scenarioKey];
@@ -106,7 +110,9 @@ class WattWiseDemoSeeder extends Seeder
                 'metadata' => [
                     'source' => 'demo_seed',
                     'note' => 'Local/staging deterministic demo data only',
-                    'ml_validation_scenarios' => array_keys(DemoAccount::ML_SCENARIOS),
+                    'ml_validation_scenarios' => DemoAccount::mlValidationEnabled()
+                        ? array_keys(DemoAccount::ML_SCENARIOS)
+                        : ['h06_12'],
                 ],
             ]
         );
