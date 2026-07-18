@@ -37,7 +37,33 @@ class WattWiseDemoSeeder extends Seeder
             throw new \RuntimeException('Refusing to run demo seeder in unsafe environment: '.app()->environment());
         }
 
-        // 1. Create or Update Demo User
+        $user = $this->seedDemoUser();
+        $this->seedSubscription($user);
+
+        foreach (DemoAccount::ML_SCENARIOS as $scenarioKey => $scenario) {
+            $business = $this->seedScenarioBusiness($user, $scenario);
+            $this->seedScenarioProfiles($business, $scenario);
+            $this->seedElectricityEntries(
+                $business,
+                $this->computeDemoMonths((int) $scenario['history_months']),
+                $scenarioKey,
+                $scenario,
+            );
+
+            if ($scenario['business_name'] === DemoAccount::BUSINESS_NAME) {
+                $this->seedRevenueEntries($business, $this->computeDemoMonths(6));
+                $this->seedAppliances($business);
+            } else {
+                // Keep the four validation-only businesses intentionally small.
+                // Their purpose is history-phase and model-routing validation.
+                RevenueEntry::where('business_id', $business->id)->delete();
+                Appliance::where('business_id', $business->id)->delete();
+            }
+        }
+    }
+
+    private function seedDemoUser(): User
+    {
         $user = User::updateOrCreate(
             ['email' => DemoAccount::EMAIL],
             [
@@ -46,59 +72,20 @@ class WattWiseDemoSeeder extends Seeder
             ]
         );
 
-        // Ensure the demo account is fully login-ready: mark the email as
-        // verified so login still works if email verification is enforced
-        // later. email_verified_at is not mass-assignable, so set it directly.
         if (is_null($user->email_verified_at)) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 
         if (is_null($user->initial_plan_selected_at)) {
-            $user->initial_plan_selected_at = \Illuminate\Support\Carbon::now();
+            $user->initial_plan_selected_at = now();
             $user->save();
         }
 
-        // 2. Create or Update Business
-        $business = Business::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'name' => DemoAccount::BUSINESS_NAME,
-            ],
-            [
-                'business_type' => 'KOS_PROPERTY',
-                'city' => 'Purwokerto',
-                'province' => 'Jawa Tengah',
-                'status' => 'ACTIVE',
-                'onboarding_completed_at' => now(),
-            ]
-        );
+        return $user;
+    }
 
-        // 3. Create or Update Business Profile
-        BusinessProfile::updateOrCreate(
-            ['business_id' => $business->id],
-            [
-                'room_count' => 20,
-                'occupied_room_count' => 16,
-                'employee_count' => 2,
-                'operating_days_per_month' => 30,
-            ]
-        );
-
-        // 4. Create or Update Electricity Profile
-        ElectricityProfile::updateOrCreate(
-            ['business_id' => $business->id],
-            [
-                'customer_type' => 'Bisnis/Rumah Tangga',
-                'power_va' => 2200,
-                'tariff_per_kwh' => 1444.70,
-                'payment_method' => 'Pascabayar',
-            ]
-        );
-
-        // 5. Create or Update Subscription (PRO_TRIAL for demo)
-        //    This allows the demo to showcase 6 months of data without
-        //    hitting FREE plan limits (max 3 entries).
-        //    This is local/demo seed data only — not a real paid subscription.
+    private function seedSubscription(User $user): void
+    {
         Subscription::updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -108,43 +95,75 @@ class WattWiseDemoSeeder extends Seeder
                 'trial_ends_at' => now()->addDays(30),
                 'current_period_starts_at' => now(),
                 'current_period_ends_at' => now()->addDays(30),
-                'metadata' => ['source' => 'demo_seed', 'note' => 'Local demo data only'],
+                'metadata' => [
+                    'source' => 'demo_seed',
+                    'note' => 'Local/staging deterministic demo data only',
+                    'ml_validation_scenarios' => array_keys(DemoAccount::ML_SCENARIOS),
+                ],
+            ]
+        );
+    }
+
+    /** @param array<string, mixed> $scenario */
+    private function seedScenarioBusiness(User $user, array $scenario): Business
+    {
+        return Business::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'name' => $scenario['business_name'],
+            ],
+            [
+                'business_type' => $scenario['business_type'],
+                'city' => $scenario['city'],
+                'province' => $scenario['province'],
+                'status' => Business::STATUS_ACTIVE,
+                'onboarding_completed_at' => now(),
+            ]
+        );
+    }
+
+    /** @param array<string, mixed> $scenario */
+    private function seedScenarioProfiles(Business $business, array $scenario): void
+    {
+        $isKos = $scenario['business_type'] === 'KOS_PROPERTY';
+
+        BusinessProfile::updateOrCreate(
+            ['business_id' => $business->id],
+            [
+                'room_count' => $isKos ? 20 : 0,
+                'occupied_room_count' => $isKos ? 16 : 0,
+                'employee_count' => $isKos ? 2 : 4,
+                'operating_days_per_month' => 30,
+                'notes' => 'Skenario validasi ML '.$scenario['expected_phase'],
             ]
         );
 
-        // 6. Compute 6 demo months ending at the current month.
-        //    This ensures the dashboard always has data for "this month".
-        //    The newest month is now()->startOfMonth(); the 5 preceding
-        //    months are consecutive before it.
-        $demoMonths = $this->computeDemoMonths();
-
-        // 7. Seed Electricity Entries (6 months, deterministic)
-        //    Tariff: Rp 1.444,70/kWh (matching electricity profile)
-        //    bill_amount_idr = usage_kwh × tariff_per_kwh (rounded)
-        //    meter_start/meter_end simulate cumulative meter readings
-        $this->seedElectricityEntries($business, $demoMonths);
-
-        // 8. Seed Revenue Entries (6 months, deterministic)
-        $this->seedRevenueEntries($business, $demoMonths);
-
-        // 9. Seed Appliances (10 items, KOS_PROPERTY template values)
-        $this->seedAppliances($business);
+        ElectricityProfile::updateOrCreate(
+            ['business_id' => $business->id],
+            [
+                'customer_type' => 'Bisnis/Rumah Tangga',
+                'power_va' => $isKos ? 2200 : 3500,
+                'tariff_per_kwh' => 1444.70,
+                'payment_method' => 'Pascabayar',
+            ]
+        );
     }
 
     /**
-     * Compute 6 consecutive demo months ending at the current month.
-     *
-     * Returns an array of 6 Carbon dates (first day of each month),
-     * ordered oldest to newest. The newest is now()->startOfMonth().
+     * Compute consecutive demo months ending at the current month.
      *
      * @return Carbon[]
      */
-    private function computeDemoMonths(): array
+    private function computeDemoMonths(int $count): array
     {
+        if ($count <= 0) {
+            return [];
+        }
+
         $current = now()->startOfMonth();
         $months = [];
 
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = $count - 1; $i >= 0; $i--) {
             $months[] = Carbon::instance($current->copy()->subMonths($i));
         }
 
@@ -152,55 +171,50 @@ class WattWiseDemoSeeder extends Seeder
     }
 
     /**
-     * Seed 6 months of deterministic electricity entries.
+     * Seed deterministic monthly electricity entries for a validation scenario.
      *
-     * Months are dynamic (ending at current month) so the dashboard
-     * always has meaningful data. Values are deterministic per position.
-     *
-     * @param  Carbon[]  $months
+     * @param Carbon[] $months
+     * @param array<string, mixed> $scenario
      */
-    private function seedElectricityEntries(Business $business, array $months): void
-    {
-        // Delete existing electricity entries for this demo business only.
-        // This ensures idempotency: re-running the seeder replaces
-        // demo entries without duplicating them.
-        // Scoped strictly to $business->id — never touches other businesses.
+    private function seedElectricityEntries(
+        Business $business,
+        array $months,
+        string $scenarioKey,
+        array $scenario,
+    ): void {
         ElectricityEntry::where('business_id', $business->id)->delete();
 
+        if ($months === []) {
+            return;
+        }
+
         $tariff = 1444.70;
+        $meterBase = 40000.0 + (abs(crc32($business->name)) % 10000);
+        $baseUsage = (float) $scenario['base_usage_kwh'];
+        $monthlyTrend = (float) $scenario['monthly_trend_kwh'];
+        $seasonalOffsets = [0.0, 18.0, 35.0, 22.0, -8.0, -24.0, -15.0, 6.0, 31.0, 46.0, 24.0, -4.0];
+        $cumulativeKwh = 0.0;
 
-        // Cumulative meter base — arbitrary starting value
-        $meterBase = 45200.00;
-
-        // Deterministic values ordered oldest to newest
-        $patterns = [
-            // [usage_kwh, notes]
-            [780, 'Pemakaian rendah awal periode'],
-            [820, 'Pemakaian normal'],
-            [860, 'Pemakaian meningkat'],
-            [910, 'Pemakaian tinggi musiman'],
-            [940, 'Puncak pemakaian'],
-            [875, 'Pemakaian menurun kembali'],
-        ];
-
-        $cumulativeKwh = 0;
-
-        foreach ($months as $i => $month) {
-            [$usageKwh, $notes] = $patterns[$i];
-            $meterStart = $meterBase + $cumulativeKwh;
-            $meterEnd = $meterStart + $usageKwh;
-            $billAmount = round($usageKwh * $tariff, 2);
+        foreach ($months as $index => $month) {
+            $seasonal = $seasonalOffsets[((int) $month->format('n')) - 1];
+            $usageKwh = max(0.0, round($baseUsage + ($index * $monthlyTrend) + $seasonal, 2));
+            $meterStart = round($meterBase + $cumulativeKwh, 2);
+            $meterEnd = round($meterStart + $usageKwh, 2);
 
             ElectricityEntry::create([
                 'business_id' => $business->id,
                 'period_month' => $month->format('Y-m-d'),
                 'usage_kwh' => $usageKwh,
-                'bill_amount_idr' => $billAmount,
+                'bill_amount_idr' => round($usageKwh * $tariff, 2),
                 'meter_start' => $meterStart,
                 'meter_end' => $meterEnd,
                 'tariff_per_kwh' => $tariff,
                 'payment_method' => 'Pascabayar',
-                'notes' => $notes,
+                'notes' => sprintf(
+                    'Data sintetis demo %s (%s), bukan tagihan resmi PLN.',
+                    $scenario['expected_phase'],
+                    $scenarioKey,
+                ),
             ]);
 
             $cumulativeKwh += $usageKwh;
@@ -208,22 +222,15 @@ class WattWiseDemoSeeder extends Seeder
     }
 
     /**
-     * Seed 6 months of deterministic revenue entries.
+     * Seed six months of deterministic revenue data for the primary demo business.
      *
-     * Revenue = occupied_rooms × sewa_per_kamar (Rp 800.000/kamar).
-     * Variation reflects seasonal occupancy changes.
-     *
-     * @param  Carbon[]  $months
+     * @param Carbon[] $months
      */
     private function seedRevenueEntries(Business $business, array $months): void
     {
-        // Delete existing revenue entries for this demo business only.
-        // Same idempotency strategy as electricity entries and appliances.
         RevenueEntry::where('business_id', $business->id)->delete();
 
-        // Deterministic values ordered oldest to newest
         $patterns = [
-            // [revenue_amount_idr, notes]
             [10400000, '13 kamar terisi'],
             [11200000, '14 kamar terisi'],
             [12000000, '15 kamar terisi'],
@@ -232,8 +239,9 @@ class WattWiseDemoSeeder extends Seeder
             [12800000, '16 kamar terisi'],
         ];
 
-        foreach ($months as $i => $month) {
-            [$revenueAmount, $notes] = $patterns[$i];
+        foreach ($months as $index => $month) {
+            [$revenueAmount, $notes] = $patterns[$index];
+
             RevenueEntry::create([
                 'business_id' => $business->id,
                 'period_month' => $month->format('Y-m-d'),
@@ -244,25 +252,11 @@ class WattWiseDemoSeeder extends Seeder
         }
     }
 
-    /**
-     * Seed 10 realistic KOS_PROPERTY appliances.
-     *
-     * Values match ApplianceTemplates::kosProperty() defaults.
-     * Uses delete-and-recreate strategy scoped only to the demo business
-     * to ensure idempotency without needing unique appliance keys.
-     *
-     * "Daya alat bisa berbeda tergantung merk, seri, usia alat, dan cara pemakaian."
-     */
     private function seedAppliances(Business $business): void
     {
-        // Delete existing appliances for this demo business only.
-        // This ensures idempotency: re-running the seeder replaces
-        // demo appliances without duplicating them.
-        // Scoped strictly to $business->id — never touches other businesses.
         Appliance::where('business_id', $business->id)->delete();
 
         $appliances = [
-            // [name, category, watt, qty, hours_per_day, days_per_month, notes]
             ['AC kamar', 'Pendingin', 450, 1, 8, 30, 'Tergantung ukuran ruangan dan mode pemakaian'],
             ['Kipas angin', 'Pendingin', 50, 1, 10, 30, 'Konsumsi rendah, sering menyala lama'],
             ['Lampu kamar', 'Penerangan', 12, 1, 10, 30, 'LED atau bohlam biasa berbeda daya'],
@@ -275,13 +269,13 @@ class WattWiseDemoSeeder extends Seeder
             ['Mesin cuci bersama', 'Laundry', 400, 1, 3, 15, 'Pemakaian bersama, tidak setiap hari'],
         ];
 
-        foreach ($appliances as [$name, $category, $watt, $qty, $hours, $days, $notes]) {
+        foreach ($appliances as [$name, $category, $watt, $quantity, $hours, $days, $notes]) {
             Appliance::create([
                 'business_id' => $business->id,
                 'name' => $name,
                 'category' => $category,
                 'watt' => $watt,
-                'quantity' => $qty,
+                'quantity' => $quantity,
                 'hours_per_day' => $hours,
                 'days_per_month' => $days,
                 'source' => 'TEMPLATE',
