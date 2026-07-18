@@ -15,6 +15,16 @@ class DemoMlValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'demo.enabled' => true,
+            'demo.ml_validation_enabled' => true,
+        ]);
+    }
+
     public function test_demo_seeder_creates_one_account_with_five_history_phase_cases(): void
     {
         $this->seed(WattWiseDemoSeeder::class);
@@ -42,10 +52,6 @@ class DemoMlValidationTest extends TestCase
 
     public function test_demo_user_can_open_ml_validation_page_when_enabled(): void
     {
-        config([
-            'demo.enabled' => true,
-            'demo.ml_validation_enabled' => true,
-        ]);
         $this->seed(WattWiseDemoSeeder::class);
 
         $user = User::where('email', DemoAccount::EMAIL)->firstOrFail();
@@ -64,10 +70,7 @@ class DemoMlValidationTest extends TestCase
 
     public function test_ml_validation_page_is_hidden_when_feature_flag_is_disabled(): void
     {
-        config([
-            'demo.enabled' => true,
-            'demo.ml_validation_enabled' => false,
-        ]);
+        config(['demo.ml_validation_enabled' => false]);
         $this->seed(WattWiseDemoSeeder::class);
 
         $user = User::where('email', DemoAccount::EMAIL)->firstOrFail();
@@ -80,8 +83,6 @@ class DemoMlValidationTest extends TestCase
     public function test_shadow_validation_runs_four_non_empty_cases_and_exposes_missing_new_models(): void
     {
         config([
-            'demo.enabled' => true,
-            'demo.ml_validation_enabled' => true,
             'prediction.shadow_enabled' => true,
             'prediction.ridge_enabled' => true,
             'prediction.gradient_boosting_enabled' => true,
