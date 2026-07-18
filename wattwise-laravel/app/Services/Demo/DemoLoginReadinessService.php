@@ -32,6 +32,10 @@ class DemoLoginReadinessService
                 return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::UnverifiedEmail);
             }
 
+            if ($user->initial_plan_selected_at === null) {
+                return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::MissingInitialPlanSelection);
+            }
+
             if (! Hash::check(DemoAccount::PASSWORD, $user->password)) {
                 return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::InvalidPassword);
             }
@@ -41,8 +45,8 @@ class DemoLoginReadinessService
             }
 
             return $this->checkData($user);
-        } catch (\Throwable $e) {
-            return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::FeatureDisabled);
+        } catch (\Throwable) {
+            return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::DatabaseUnavailable);
         }
     }
 
@@ -98,11 +102,40 @@ class DemoLoginReadinessService
 
     private function checkBaseline(User $user, Business $business): DemoLoginReadinessResult
     {
-        $ready = $business->businessProfile()->exists()
-            && $business->electricityProfile()->exists()
-            && $business->electricityEntries()->count() >= DemoAccount::MIN_ELECTRICITY_ENTRIES
-            && $business->revenueEntries()->count() >= DemoAccount::MIN_REVENUE_ENTRIES
-            && $business->appliances()->count() >= DemoAccount::MIN_APPLIANCES;
+        $businessProfileReady = $business->businessProfile()
+            ->whereNotNull('room_count')
+            ->whereNotNull('occupied_room_count')
+            ->whereNotNull('employee_count')
+            ->whereNotNull('operating_days_per_month')
+            ->exists();
+        $electricityProfileReady = $business->electricityProfile()
+            ->whereNotNull('customer_type')
+            ->whereNotNull('power_va')
+            ->whereNotNull('tariff_per_kwh')
+            ->whereNotNull('payment_method')
+            ->exists();
+        $electricityBaselineReady = $business->electricityEntries()
+            ->whereNotNull('usage_kwh')
+            ->whereNotNull('bill_amount_idr')
+            ->whereNotNull('meter_start')
+            ->whereNotNull('meter_end')
+            ->whereNotNull('tariff_per_kwh')
+            ->count() >= DemoAccount::MIN_ELECTRICITY_ENTRIES;
+        $revenueBaselineReady = $business->revenueEntries()
+            ->whereNotNull('revenue_amount_idr')
+            ->count() >= DemoAccount::MIN_REVENUE_ENTRIES;
+        $applianceBaselineReady = $business->appliances()
+            ->whereNotNull('name')
+            ->whereNotNull('watt')
+            ->whereNotNull('hours_per_day')
+            ->whereNotNull('days_per_month')
+            ->count() >= DemoAccount::MIN_APPLIANCES;
+
+        $ready = $businessProfileReady
+            && $electricityProfileReady
+            && $electricityBaselineReady
+            && $revenueBaselineReady
+            && $applianceBaselineReady;
 
         if (! $ready) {
             return DemoLoginReadinessResult::failed(DemoLoginReadinessReason::MissingBaseline);
