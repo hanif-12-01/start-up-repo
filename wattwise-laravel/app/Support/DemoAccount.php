@@ -74,7 +74,7 @@ final class DemoAccount
             'business_type' => 'KOS_PROPERTY',
             'city' => 'Purwokerto',
             'province' => 'Jawa Tengah',
-            'history_months' => 12,
+            'history_months' => 6,
             'expected_phase' => 'H06_12',
             'expected_model_key' => 'nbeats',
             'expected_model_label' => 'N-BEATS',
