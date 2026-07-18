@@ -62,10 +62,10 @@ PREDICTION_ADAPTIVE_ROUTER_ENABLED=false
 The config-as-code pre-deploy sequence is:
 
 ```bash
-php artisan optimize:clear && php artisan migrate --force && php artisan wattwise:railway-release-guard && php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan optimize:clear --except=cache && php artisan migrate --force && php artisan wattwise:railway-release-guard && php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
-The release guard runs after migrations and before caches are built. Any non-zero result aborts the deployment. There is no custom start command in `railway.json`, and demo data is never provisioned during the build.
+The pre-migration clear skips `cache:clear` because a brand-new database does not have the cache table until migrations finish. The release guard then runs after migrations and before caches are built; its database-backed provisioning lock is therefore available. Any non-zero result aborts the deployment. There is no custom start command in `railway.json`, and demo data is never provisioned during the build.
 
 ## Release behavior
 

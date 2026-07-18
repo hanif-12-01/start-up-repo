@@ -120,10 +120,11 @@ composer install --no-dev --optimize-autoloader && npm ci && npm run build
 ### Pre-Deploy / Start Command (Railway Release Step)
 Run the following commands right before starting the web server container:
 ```bash
-php artisan optimize:clear && php artisan migrate --force && php artisan wattwise:railway-release-guard && php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan optimize:clear --except=cache && php artisan migrate --force && php artisan wattwise:railway-release-guard && php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
 > [!NOTE]
+> * The pre-migration clear intentionally skips `cache:clear` until migrations have created the database cache table.
 > * If the build script fails due to file path issues, confirm that the service root directory is set to `wattwise-laravel`.
 > * If CSS, JS, or images fail to render, verify that the `npm run build` command ran inside `wattwise-laravel` and generated files in `public/build/manifest.json`.
 
