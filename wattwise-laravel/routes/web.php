@@ -6,6 +6,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessSelectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoMlValidationController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\OnboardingController;
@@ -70,6 +71,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('predictions', [PredictionController::class, 'index'])->name('predictions.index');
         Route::post('predictions/generate', [PredictionController::class, 'generate'])->name('predictions.generate');
+
+        if (DemoAccount::environmentAllowed()) {
+            Route::get('internal/ml-validation', [DemoMlValidationController::class, 'index'])
+                ->name('demo.ml-validation');
+            Route::post('internal/ml-validation/run', [DemoMlValidationController::class, 'run'])
+                ->name('demo.ml-validation.run');
+        }
 
         Route::get('anomalies', [AnomalyController::class, 'index'])->name('anomalies.index');
 
