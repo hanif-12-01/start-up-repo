@@ -1,11 +1,14 @@
 # WattWise AI — Staging Deployment Plan
 
+> [!IMPORTANT]
+> The authoritative fail-closed Railway contract is documented in [railway-demo-readiness-contract.md](./railway-demo-readiness-contract.md). It supersedes direct seeding and container-local SQLite instructions.
+
 ## 1. Release Context
 * **App:** WattWise AI
 * **Active app path:** `wattwise-laravel`
 * **Release reference:** `v0.2-rc1`
 * **Hosting target:** Railway
-* **Database target:** Supabase PostgreSQL
+* **Database target:** persistent PostgreSQL attached to the isolated Railway staging environment
 * **GitHub source:** `main` branch
 * **Old Next.js status:** legacy/reference only (archived/inactive)
 
@@ -14,7 +17,7 @@
 ## 2. Staging Architecture
 * **Web Tier:** Railway App Service hosting the Laravel + Inertia.js + Vue.js application.
 * **Asset Building:** Vite assets are built during the deployment pipeline step on Railway (`npm run build`).
-* **Database Tier:** Supabase PostgreSQL database instances are used to store application data.
+* **Database Tier:** Persistent PostgreSQL attached to staging. Container-local SQLite is forbidden on Railway staging/production.
 * **Configuration:** All application environments and secrets are managed via Railway's dashboard environment variables.
 * **Queues & Cache:** 
   * The queue system runs in `sync` mode (`QUEUE_CONNECTION=sync`) for MVP staging. No separate Redis or background queue worker is required.
@@ -42,7 +45,7 @@ npm run build
 ### Expected Results:
 * Git working tree must be clean (no uncommitted files or unstaged changes).
 * Git tag `v0.2-rc1` must be present.
-* PHPUnit test suite must pass completely: **213 tests passed, 0 failures**.
+* PHPUnit test suite must pass completely with the actual test count reported by the current run.
 * Vite build (`npm run build`) must complete without compilation errors.
 
 ---
@@ -78,12 +81,13 @@ Provide the following environment variable keys in the Railway console. **Do not
 | Key | Value/Note |
 | :--- | :--- |
 | `APP_NAME` | `WattWise AI` |
-| `APP_ENV` | `staging` (or `production` depending on staging convention) |
+| `APP_ENV` | `staging` |
 | `APP_KEY` | *Generate securely* (e.g., `base64:...` via `php artisan key:generate --show`) |
 | `APP_DEBUG` | `false` (Must be false on staging to secure error outputs) |
 | `APP_URL` | *Must exactly match the generated Railway public URL (with https)* |
 | `LOG_CHANNEL` | `stderr` |
 | `DB_CONNECTION` | `pgsql` |
+| `DB_URL` or `DATABASE_URL` | *Persistent PostgreSQL service reference; never a committed URL* |
 | `DB_HOST` | *Supabase host address* |
 | `DB_PORT` | `5432` *(Direct)* or `6543` *(Session Pooler)* |
 | `DB_DATABASE` | `postgres` (or your custom database name) |
@@ -95,6 +99,7 @@ Provide the following environment variable keys in the Railway console. **Do not
 | `QUEUE_CONNECTION`| `sync` |
 | `VITE_APP_NAME` | `WattWise AI` |
 | `DEMO_LOGIN_ENABLED`| `true` (Set to true only in staging to show demo login credentials and allow diagnostics) |
+| `DEMO_ML_VALIDATION_ENABLED`| `true` for the isolated staging/demo environment |
 
 > [!IMPORTANT]
 > * `APP_URL` must exactly match the Railway public domain name.
@@ -115,7 +120,7 @@ composer install --no-dev --optimize-autoloader && npm ci && npm run build
 ### Pre-Deploy / Start Command (Railway Release Step)
 Run the following commands right before starting the web server container:
 ```bash
-php artisan migrate --force && php artisan wattwise:ensure-demo-login && php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan optimize:clear && php artisan migrate --force && php artisan wattwise:railway-release-guard && php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
 > [!NOTE]
@@ -137,10 +142,10 @@ To prepare the database with demonstrative staging data:
    ```bash
    php artisan migrate --force
    ```
-4. **Seed Demo Data:**
-   Run the specific seeder to populate the Kos Melati Purwokerto profile (6-month history, 10 sample appliances, active trial state):
+4. **Provision and Verify Demo Data:**
+   Run the authoritative release guard. It safely repairs only the demo account and required scenarios:
    ```bash
-   php artisan db:seed --class=WattWiseDemoSeeder
+   php artisan wattwise:railway-release-guard
    ```
 5. **Diagnose Demo Login:**
    Run the utility script to ensure that the seeded demo account is properly functioning:
@@ -158,17 +163,21 @@ To prepare the database with demonstrative staging data:
 
 ### 8.1 Railway Release Contract and Safeguards
 
-The release command pipeline executes `php artisan wattwise:ensure-demo-login` during deployment (prior to config/route caching).
+The release command pipeline executes `php artisan wattwise:railway-release-guard` after migrations and before config/route caching.
 
 #### Staging Environment Config:
 - `APP_ENV=staging`
 - `APP_DEBUG=false`
 - `DEMO_LOGIN_ENABLED=true`
+- `DEMO_ML_VALIDATION_ENABLED=true`
+- `DB_CONNECTION=pgsql`
 
 #### Production Environment Config:
 - `APP_ENV=production`
 - `APP_DEBUG=false`
 - `DEMO_LOGIN_ENABLED=false`
+- `DEMO_ML_VALIDATION_ENABLED=false`
+- `DB_CONNECTION=pgsql`
 
 #### Release/Deploy Guarantees:
 - **No-op Safety:** The `ensure-demo-login` command is a safe no-op when `DEMO_LOGIN_ENABLED=false` (e.g., in production).
@@ -230,7 +239,7 @@ Open the newly deployed staging URL and walk through these routes sequentially:
 
 ### 6. Demo Account Unable to Log In
 * **Causes:** Database was not seeded or demo data got corrupted.
-* **Fixes:** Run `php artisan db:seed --class=WattWiseDemoSeeder` followed by `php artisan wattwise:diagnose-demo-login` with the `--fix` flag if needed.
+* **Fixes:** Run `php artisan wattwise:diagnose-demo-login --fix`, then rerun `php artisan wattwise:railway-release-guard`. Do not rely on direct seeding into ephemeral SQLite.
 
 ---
 
