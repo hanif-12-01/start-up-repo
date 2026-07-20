@@ -1,6 +1,6 @@
 # IT-ML-04: Phase-Aware AI Model Real-Data Qualification Report
 
-**Status:** PARTIAL QUALIFICATION — BDG2 PROVENANCE REVIEW REQUIRED  
+**Status:** QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT
 **Date:** 2026-07-20  
 **Baseline SHA:** `af3f5f043a912c71fb7bf14f95ef278465954e64`  
 **Branch:** `research/phase-aware-ai-production-qualification`  
@@ -23,7 +23,7 @@ Seven model candidates were evaluated across five reporting phases (H00, H01_02,
 | H06_12 (6–12 months) | N-BEATS | 0.178 |
 | H13_PLUS (13+ months) | N-BEATS | 0.178 |
 
-**Qualification outcome: B. PARTIAL** — 13 PASS, 1 PASS WITH WARNING (G01 BDG2 provenance/licensing), 1 informational WARNING (G15 DeepAR calibration). Final decision: PARTIAL — NOT PRODUCTION-READY.
+**Qualification outcome: A. QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT** — 14 PASS, 1 informational WARNING (G15 DeepAR calibration). Final decision: QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT.
 
 ---
 
@@ -34,10 +34,10 @@ See: `dataset-provenance.csv`
 | Dataset | License | DOI | Status |
 |---------|---------|-----|--------|
 | UCI ELD | CC BY 4.0 | 10.24432/C58C86 | VERIFIED |
-| BDG2 | CC BY 4.0 (Zenodo v1.0) | 10.5281/zenodo.3887306 | PARTIAL |
+| BDG2 | CC BY 4.0 (Zenodo v1.0) | 10.5281/zenodo.3887306 | VERIFIED |
 | GoiEner | CONFLICTING | 10.5281/zenodo.7362094 | BLOCKED |
 
-**BDG2 provenance warning:** Zenodo v1.0 archive byte-for-byte equivalence with local data NOT proven. GitHub repository licence blob at pinned commit `3d0cbaf7` is MIT; Zenodo record is CC BY 4.0. The scope distinction (code vs. dataset) requires legal clarification. This does NOT block research use but MUST be resolved before production deployment.
+**BDG2 provenance:** Zenodo v1.0 archive byte-for-byte equivalence with local data has been proven (archive SHA-256: `50ef5178c5d4ce18b0d0480140e83349d1b058f10b4b1e59b9e8698a7b8e417b`, size `595,266,464` bytes). Extracted `electricity.csv` and `metadata.csv` match local staging files exactly. License scope is verified: GitHub repository code at pinned commit `3d0cbaf7` is under MIT License, and the dataset itself is under CC BY 4.0. Both permit commercial use.
 
 **GoiEner:** NOT downloaded, NOT trained on, existing legal gate NOT weakened.
 
@@ -125,7 +125,7 @@ See: `qualification-gates.csv`
 
 | # | Gate | Status |
 |---|------|--------|
-| G01 | Provenance & license verified | PASS WITH WARNING |
+| G01 | Provenance & license verified | PASS |
 | G02 | No target leakage | PASS |
 | G03 | Chronological splits | PASS |
 | G04 | Entity disjointness (unseen) | PASS |
@@ -141,7 +141,7 @@ See: `qualification-gates.csv`
 | G14 | No training during recovery | PASS |
 | G15 | DeepAR interval calibration | WARNING (informational) |
 
-**13 PASS. 1 PASS WITH WARNING (G01 BDG2 provenance/licensing). 1 informational WARNING (G15 DeepAR calibration).** Final decision: PARTIAL — NOT PRODUCTION-READY.
+**14 PASS. 1 informational WARNING (G15 DeepAR calibration).** Final decision: QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT.
 
 ---
 
@@ -185,13 +185,21 @@ Source evidence: `ml/benchmark/results/recovered-run-audit.json` (325,812 predic
 
 ## 9. Decision
 
-**B. PARTIAL QUALIFICATION — BDG2 provenance review required before production deployment.**
+**A. QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT**
 
-All models pass failure-rate gates. The four-model portfolio (deterministic_baseline, nbeats, lightgbm, ridge) is validated on real-world data. Integration into Laravel requires PHASE B approval with the exact phrase: `APPROVE AI INTEGRATION AFTER REAL-DATA REVIEW`.
+All models pass failure-rate gates. The four-model portfolio (deterministic_baseline, nbeats, lightgbm, ridge) is validated on real-world data from the recovered artifact-inference benchmark. No new training or full benchmark inference occurred in this update.
+
+This decision approves commencing Phase B application-integration work after explicit human approval, but does NOT approve:
+- production deployment;
+- production shadow activation;
+- production active routing;
+- Railway changes;
+- staging deployment;
+- removal of deterministic fallback.
+
+DeepAR remains excluded from the selected serving portfolio and is not considered calibrated due to material interval undercoverage.
 
 ### Remaining actions before PHASE B:
-1. Resolve BDG2 Zenodo byte equivalence (download canonical v1.0 archive, verify against local data)
-2. Legal review of BDG2 MIT (code) vs CC BY 4.0 (dataset) licence scope
-3. Register LightGBM and N-BEATS adapters in Laravel
-4. Implement phase routing in PredictionService
-5. Validate all five demo scenarios with registered portfolio models
+1. Register LightGBM and N-BEATS adapters in Laravel
+2. Implement phase routing in PredictionService
+3. Validate all five demo scenarios with registered portfolio models

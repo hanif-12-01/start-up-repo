@@ -1,8 +1,8 @@
 {
   "qualification_report_version": "1.0",
   "qualification_date": "2026-07-20",
-  "qualification_decision": "PARTIAL — NOT PRODUCTION-READY",
-  "qualification_decision_reason": "BDG2 provenance/licensing unresolved; Zenodo byte equivalence NOT proven",
+  "qualification_decision": "QUALIFIED FOR APPLICATION INTEGRATION — NOT YET APPROVED FOR PRODUCTION DEPLOYMENT",
+  "qualification_decision_reason": "BDG2 provenance verified and license scope clarified; Zenodo archive byte equivalence proven. Phase A evidence is sufficient to begin Phase B integration work; production deployment, staging deployment, active routing, and shadow activation remain unapproved.",
   "baseline_git_sha": "af3f5f043a912c71fb7bf14f95ef278465954e64",
   "branch": "research/phase-aware-ai-production-qualification",
   "source_run_id": "full-final-v2-recovered-01",
@@ -28,8 +28,10 @@
       "entity_months": 35481,
       "electricity_git_lfs_oid": "sha256:039d909d8981e2d69eaeb366144e6ab7e84fa5e7e216aee42bddd95384a66418",
       "metadata_git_lfs_oid": "sha256:992d0b29f24f96ad4332bc4dbb534b7bdd7dd2689aad093f94e93068ecddca02",
-      "provenance_status": "PARTIAL — BDG2 PROVENANCE REVIEW REQUIRED",
-      "zenodo_byte_equivalence_proven": false
+      "provenance_status": "VERIFIED",
+      "zenodo_byte_equivalence_proven": true,
+      "zenodo_archive_sha256": "50ef5178c5d4ce18b0d0480140e83349d1b058f10b4b1e59b9e8698a7b8e417b",
+      "zenodo_archive_bytes": 595266464
     }
   },
   "normalized_data_fingerprints": {

@@ -31,7 +31,87 @@ cd ml/benchmark
 - **Result:** 16 deliverable files created
 - **Note:** No `normalize`, `benchmark`, `recover-inference`, or `refresh-recovery-reports` commands were executed
 
+### A4. BDG2 Zenodo Archive Verification
+
+**Actually Executed:**
+Executed through a temporary local verification script that was intentionally not committed. The reproducible procedure below is equivalent, not the literal local command.
+* **Execution Purpose:** Download canonical Zenodo v1.0 archive and verify byte-for-byte equivalence of extracted inputs against local staging files.
+* **Execution Result:** Downloaded successfully.
+  * Canonical Zenodo Record: `10.5281/zenodo.3887306` (version 1.0)
+  * Archive Filename: `building-data-genome-project-2-v1.0.zip` (served as `buds-lab-building-data-genome-project-2-v1.0.zip`)
+  * Downloaded Byte Size: `595,266,464` bytes
+  * Archive SHA-256: `50ef5178c5d4ce18b0d0480140e83349d1b058f10b4b1e59b9e8698a7b8e417b` (MD5: `44393dc4cf61e84dec105e955368c890`)
+  * Extracted File Names & Matching Local Hashes:
+    * `electricity.csv` (Size: `174,239,039` bytes, SHA-256: `039d909d8981e2d69eaeb366144e6ab7e84fa5e7e216aee42bddd95384a66418`) matches local staging `electricity.csv` exactly.
+    * `metadata.csv` (Size: `272,024` bytes, SHA-256: `992d0b29f24f96ad4332bc4dbb534b7bdd7dd2689aad093f94e93068ecddca02`) matches local staging `metadata.csv` exactly.
+
+**Reproducible Equivalent Procedure:**
+This procedure uses Python to download the canonical ZIP from Zenodo, verify its checksum, extract the target files, and verify them.
+
+```python
+import urllib.request
+import hashlib
+import zipfile
+from pathlib import Path
+
+# Config
+DATA_ROOT = Path("<DATA_ROOT>") # Path to datasets root folder
+target_zip = DATA_ROOT / "raw" / "bdg2" / "1.0" / "buds-lab-building-data-genome-project-2-v1.0.zip"
+url = "https://zenodo.org/records/3887306/files/buds-lab/building-data-genome-project-2-v1.0.zip?download=1"
+
+# Download canonical archive
+target_zip.parent.mkdir(parents=True, exist_ok=True)
+print(f"Downloading {url}...")
+urllib.request.urlretrieve(url, target_zip)
+
+# Check archive hash
+archive_sha = hashlib.sha256(target_zip.read_bytes()).hexdigest()
+assert archive_sha == "50ef5178c5d4ce18b0d0480140e83349d1b058f10b4b1e59b9e8698a7b8e417b"
+print("Zenodo Archive SHA-256 is verified!")
+
+# Expected hashes
+EXPECTED_ELECTRICITY_SHA = "039d909d8981e2d69eaeb366144e6ab7e84fa5e7e216aee42bddd95384a66418"
+EXPECTED_METADATA_SHA = "992d0b29f24f96ad4332bc4dbb534b7bdd7dd2689aad093f94e93068ecddca02"
+
+# Extract and verify byte-equivalence
+with zipfile.ZipFile(target_zip) as zf:
+    # Extract electricity.csv
+    elec_entry = "buds-lab-building-data-genome-project-2-3d0cbaf/data/meters/raw/electricity.csv"
+    with zf.open(elec_entry) as src:
+        elec_bytes = src.read()
+    elec_sha = hashlib.sha256(elec_bytes).hexdigest()
+
+    # Extract metadata.csv
+    meta_entry = "buds-lab-building-data-genome-project-2-3d0cbaf/data/metadata/metadata.csv"
+    with zf.open(meta_entry) as src:
+        meta_bytes = src.read()
+    meta_sha = hashlib.sha256(meta_bytes).hexdigest()
+
+# Load local staging files
+local_elec = DATA_ROOT / "staging" / "bdg2" / "electricity.csv"
+local_meta = DATA_ROOT / "staging" / "bdg2" / "metadata.csv"
+
+local_elec_bytes = local_elec.read_bytes()
+local_meta_bytes = local_meta.read_bytes()
+
+local_elec_sha = hashlib.sha256(local_elec_bytes).hexdigest()
+local_meta_sha = hashlib.sha256(local_meta_bytes).hexdigest()
+
+# Assertions for electricity
+assert elec_sha == EXPECTED_ELECTRICITY_SHA
+assert local_elec_sha == elec_sha
+assert local_elec_bytes == elec_bytes
+
+# Assertions for metadata
+assert meta_sha == EXPECTED_METADATA_SHA
+assert local_meta_sha == meta_sha
+assert local_meta_bytes == meta_bytes
+
+print("Byte-equivalence of extracted inputs verified against local staging files!")
+```
+
 ---
+
 
 ## B. Commands From the Original Recovered Benchmark Run (2026-07-17 to 2026-07-18)
 

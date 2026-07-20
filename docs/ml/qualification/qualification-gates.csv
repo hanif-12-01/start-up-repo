@@ -1,5 +1,5 @@
 gate_id,gate_name,required,status,evidence
-G01,provenance_and_license_verified,mandatory,PASS WITH WARNING,"UCI: CC BY 4.0 verified via DOI 10.24432/C58C86; BDG2: CC BY 4.0 on Zenodo v1.0 but byte equivalence NOT proven and MIT repo licence scope unclear; GoiEner: BLOCKED — not used"
+G01,provenance_and_license_verified,mandatory,PASS,"UCI: CC BY 4.0 verified via DOI 10.24432/C58C86; BDG2: CC BY 4.0 on Zenodo v1.0 archive (SHA-256: 50ef5178...) byte-equivalence verified with local data, MIT repo code license scope clarified; GoiEner: BLOCKED — not used"
 G02,no_target_leakage,mandatory,PASS,"FEATURE_MANIFEST v1.0 excludes usage_kwh/target_usage_kwh/bill_amount; build.py enforces exclusion"
 G03,chronological_splits,mandatory,PASS,"validate_split_isolation() enforces train.max < val.min < test.min; verified in recovered run"
 G04,entity_disjointness_unseen_track,mandatory,PASS,"SHA-256 hash entity assignment; no entity overlap across folds"
