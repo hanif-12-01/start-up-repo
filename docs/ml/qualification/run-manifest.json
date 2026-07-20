@@ -1,0 +1,142 @@
+{
+  "qualification_report_version": "1.0",
+  "qualification_date": "2026-07-20",
+  "qualification_decision": "PARTIAL — NOT PRODUCTION-READY",
+  "qualification_decision_reason": "BDG2 provenance/licensing unresolved; Zenodo byte equivalence NOT proven",
+  "baseline_git_sha": "af3f5f043a912c71fb7bf14f95ef278465954e64",
+  "branch": "research/phase-aware-ai-production-qualification",
+  "source_run_id": "full-final-v2-recovered-01",
+  "source_run_date_utc": "2026-07-18T05:29:33Z",
+  "recovery_type": "INFERENCE_FROM_EXISTING_ARTIFACTS",
+  "training_operation_invoked": false,
+  "stage": "full",
+  "datasets": {
+    "uci_eld": {
+      "doi": "10.24432/C58C86",
+      "license": "CC-BY-4.0",
+      "publisher": "UCI Machine Learning Repository",
+      "entities": 370,
+      "entity_months": 14698,
+      "archive_sha256": "f6c4d0e0df12ecdb9ea008dd6eef3518adb52c559d04a9bac2e1b81dcfc8d4e1",
+      "provenance_status": "VERIFIED"
+    },
+    "bdg2": {
+      "doi": "10.5281/zenodo.3887306",
+      "license": "CC-BY-4.0 (Zenodo v1.0)",
+      "publisher": "Zenodo (buds-lab)",
+      "entities": 1574,
+      "entity_months": 35481,
+      "electricity_git_lfs_oid": "sha256:039d909d8981e2d69eaeb366144e6ab7e84fa5e7e216aee42bddd95384a66418",
+      "metadata_git_lfs_oid": "sha256:992d0b29f24f96ad4332bc4dbb534b7bdd7dd2689aad093f94e93068ecddca02",
+      "provenance_status": "PARTIAL — BDG2 PROVENANCE REVIEW REQUIRED",
+      "zenodo_byte_equivalence_proven": false
+    }
+  },
+  "normalized_data_fingerprints": {
+    "uci_eld": "795772fa37a66e76e111daa640cda308b2e4dabcd029b1e733d6a4030f6eab67",
+    "bdg2": "1129fe64ff324e5a217c90f2195e56b67e67d87c294229578d5c99de861ca1cf",
+    "combined": "9c4a13d30f5019780bcbcde2742a75bfbff0fde3e23ff9813c0d36034cd32cae",
+    "combined_fingerprint": "335c79e97a0c649b3d523a7e21efe5539e9fd737c2c7e72148483d33ce12a08e"
+  },
+  "split_counts": {
+    "seen_train": 54099,
+    "seen_validation": 14169,
+    "seen_test": 14898,
+    "unseen_train": 37727,
+    "unseen_validation": 2144,
+    "unseen_test": 2250
+  },
+  "configuration_checksum": "43d58dc5e6a785618cbe86beb63c86010254e338435027d2ef335a8f7485d5a5",
+  "feature_manifest_fingerprint": "5a7f36a8c9096f2025bd1d9357b379c5b9aa719780d49782d8599db6b6a68dc1",
+  "evaluation_example_fingerprint": "0c1041b0eea53771bba1da772ff76b10a63a0d8aadab23c78ae547e6d6a9078a",
+  "training_source_fingerprint": "004795e2eeac44e5f57d0c6d6fe4d9b1ca97037a39ba6a10699b876f0aff7ec7",
+  "recovery_inference_source_fingerprint": "547c3dc5f6ee5069bc1512a39edf2d8c900e920cf83f0b94f9bb3f89c7383702",
+  "reporting_source_fingerprint": "eaa872400a57a5d91927126b9e8ec38f1a74c1533ce729c26a3e1fdbeaa1c05a",
+  "pyproject_checksum": "7e596a742717b9275a38a6ca7802c1353ed1f9b294e6c86cf84a2dbb61c92593",
+  "output_checksums": {
+    "predictions": "9192dbb623b7403ee26c21b297264048faf79986db21b1d88ebbb61b0f3bf116",
+    "metrics": "ba348a80e8e4cc2309e03ac6a52b97f86445c81d5d01a1abde15101b35debe9b",
+    "paired_comparisons": "1f4b47a8c79ef2a4c76234f4f1d436506a4c58be8fd4070a1d4563077651e307",
+    "model_eligibility": "9d3ef78aeca86d959847f0051c10a923d9ab64fd7c81c877c1b1154fec23c4d1",
+    "model_leaderboard": "2954f91e5cb5b9445a9cc2a01c09059edde52d3079b0cad1aaf3d3c167f5c1e0",
+    "phase_leaderboard": "7e4af04a990d13a92f2564097ecb1db4afb2cfb00a8961d634ccfe4211e7ef36",
+    "top_four_recommendation": "0171e0f6429b7a0eded9283833eb5ebfe89cba48dbe61e4b59d8289d0607f3ea"
+  },
+  "seeds": [17, 29, 43],
+  "tracks": ["seen_entity", "unseen_entity"],
+  "reporting_phases": ["H00", "H01_02", "H03_05", "H06_12", "H13_PLUS"],
+  "product_phases": ["H00_02", "H03_05", "H06_12", "H13_PLUS"],
+  "models_evaluated": [
+    "deterministic_baseline",
+    "ridge",
+    "gradient_boosting",
+    "catboost",
+    "lightgbm",
+    "nbeats",
+    "deepar"
+  ],
+  "total_predictions": 325812,
+  "total_successful": 273039,
+  "total_skipped": 52773,
+  "total_failed": 0,
+  "phase_champions": {
+    "H00": "lightgbm",
+    "H01_02": "deterministic_baseline",
+    "H03_05": "lightgbm",
+    "H06_12": "nbeats",
+    "H13_PLUS": "nbeats"
+  },
+  "product_routing_recommendations": {
+    "H00": "lightgbm",
+    "H01_02": "deterministic_baseline",
+    "H03_05": "lightgbm",
+    "H06_12": "nbeats",
+    "H13_PLUS": "nbeats"
+  },
+  "top_four_portfolio": [
+    "deterministic_baseline",
+    "nbeats",
+    "lightgbm",
+    "ridge"
+  ],
+  "artifact_checksums": {
+    "seen_entity/ridge/17.joblib": "8dab6738794d6710cecd34c90f5e844a585f1006ad3ac3d8ae3e59cd40cdd666",
+    "seen_entity/ridge/29.joblib": "5d5f40fcc0ba94fb8bebeb8f7d4872a10017d029f660493e810ebe26ec4fa896",
+    "seen_entity/ridge/43.joblib": "05c7ea46e371f3594e6693e0a6397d63fea28646224c4415403cd7e1d6d5255f",
+    "seen_entity/gradient_boosting/17.joblib": "4597823f8e59b02da3f169dc31e80ab4b490c21bccdf345e9f95462cc3979f68",
+    "seen_entity/gradient_boosting/29.joblib": "b1b07f8ee2ebea3105b2dde88122f1a869a6e52134e7332642f1201bad7359cf",
+    "seen_entity/gradient_boosting/43.joblib": "9f011a4d4bf19209a8408d395cd8826cc4149a9c442314b0937d991aa060c320",
+    "seen_entity/catboost/17.cbm": "70c284fe22a145e11d2bcadc3e8ff8ac2e4ba15a5c475ca9c06711a855f89e6c",
+    "seen_entity/catboost/29.cbm": "e3c50925f5c5a6595845fbf7da6612ca97f3d39b1a8f4a7bd19dcde401d45b40",
+    "seen_entity/catboost/43.cbm": "0f7481d359b6a7593014af699aa81bbd1812d40f300cc7502ae79ff5679dc1db",
+    "seen_entity/lightgbm/17.joblib": "5c4aa7c744f6c5c4d995eec907df7ddb4777d372d45a3bb51f3e8b12b96112fe",
+    "seen_entity/lightgbm/29.joblib": "082b1fb07442c74546f20be6898f1657b4910a97a762b75da8093e609fbe46dd",
+    "seen_entity/lightgbm/43.joblib": "49ab7fe57b61c1bbeb792b0f72b44aac736f1b35d3fcc43ed96555c04157abef",
+    "seen_entity/nbeats/17.ckpt": "007cd849d3dbb44fdf7ab977608461797cba446c88d810029230c87b0899298b",
+    "seen_entity/nbeats/29.ckpt": "f8737a0767c26b03703c22bbd4fdb75f895f0dcbfd899e92f0b433a7846f5d70",
+    "seen_entity/nbeats/43.ckpt": "52b4d018dc5da2838418a3328ee74d3ae05c757c58ce15518a05bce17761c0e4",
+    "seen_entity/deepar/17.ckpt": "cc5e3acebe9236b7eb8562661938f8b4937c5f24144d6c710a7e09391cf12738",
+    "seen_entity/deepar/29.ckpt": "981c25c682ac09b8e15efc29b8b5ec8dd8f87d150c811f7b4c0b56ea3ac256de",
+    "seen_entity/deepar/43.ckpt": "0bbab5d11301b7a2877591104351ebe0b3ff5d14104ba19595e594dbb3696c06",
+    "unseen_entity/ridge/17.joblib": "40317284365445326e4d41cd036100e8af033f3ffe0e6d8fbdc7d5de42838eb4",
+    "unseen_entity/ridge/29.joblib": "c7d0942d9b19c034b791911f40ef07eaab6064027309ccc2c40a9d3d140893e0",
+    "unseen_entity/ridge/43.joblib": "a526a10ad44b64ea3ff20ffa71f759c9d3162ffa0530daee6393d15777d8e2a1",
+    "unseen_entity/gradient_boosting/17.joblib": "96939bf6f92241b791d7cf95f7ee2b687f9d018b0b17360404c7737e23bf4cbc",
+    "unseen_entity/gradient_boosting/29.joblib": "6e3f12f2551dc7bf21a1ead0741629bcfa7af9c97c4b3ceced66e36cc8e2ea20",
+    "unseen_entity/gradient_boosting/43.joblib": "3f48c663d5c23db69f799087371c013e02e90518ce6dcfc561db93b1cc90a88d",
+    "unseen_entity/catboost/17.cbm": "f9b0819f63eeadc4f24f26cf46e3849167f35b3c8029f8db4abd790071353f3c",
+    "unseen_entity/catboost/29.cbm": "9819905e596d456c32d3ba84daf3e772c2b60dab9140fa5491b6289dcc92a745",
+    "unseen_entity/catboost/43.cbm": "30b428280178fb5039d515a9d6d5f35b78aca94198428fe62ae5e77b843443d0",
+    "unseen_entity/lightgbm/17.joblib": "5fc584b045791362c44ab48819e57b7214a468e827bee9f364d2ae885eedee7b",
+    "unseen_entity/lightgbm/29.joblib": "ae94f25e4092a20e8f00d01bf0ecb1acec3323437597d373a0f94e842ef89b5f",
+    "unseen_entity/lightgbm/43.joblib": "e1a2cc53f1f97bd2ee9f59e67a6f94f94e424e8f4d3dc3f5ba8d66c88c5a98fd"
+  },
+  "unresolved_gates": [
+    {
+      "gate_id": "G01",
+      "gate_name": "provenance_and_license_verified",
+      "status": "PASS WITH WARNING",
+      "detail": "BDG2 Zenodo v1.0 byte equivalence NOT proven; MIT repo vs CC BY 4.0 dataset scope unclear"
+    }
+  ]
+}

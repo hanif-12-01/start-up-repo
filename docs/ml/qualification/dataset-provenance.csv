@@ -1,0 +1,4 @@
+dataset_id,canonical_name,doi,publisher,version,license_spdx,license_verified,archive_sha256,provenance_status,notes
+uci_eld,UCI ElectricityLoadDiagrams20112014,10.24432/C58C86,UCI Machine Learning Repository,1.0,CC-BY-4.0,true,f6c4d0e0df12ecdb9ea008dd6eef3518adb52c559d04a9bac2e1b81dcfc8d4e1,VERIFIED,370 entities; 15-min kW; 2011-2014; no static metadata
+bdg2,Building Data Genome Project 2,10.5281/zenodo.3887306,Zenodo (buds-lab),1.0,CC-BY-4.0,true,N/A,PARTIAL — BDG2 PROVENANCE REVIEW REQUIRED,"1578 entities; hourly kWh; 2016-2017; Zenodo v1.0=CC BY 4.0; GitHub master=MIT; byte equivalence NOT proven; repository-code vs dataset-licence scope needs legal clarification"
+goiener,GoiEner Smart Meters,10.5281/zenodo.7362094,Zenodo,N/A,CONFLICTING,false,N/A,BLOCKED — LEGAL_REVIEW_REQUIRED,"Zenodo says CC-BY-SA; DataCite says CC BY 4.0; NOT downloaded; NOT trained on; existing legal gate NOT weakened"

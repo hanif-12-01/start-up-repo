@@ -1,0 +1,18 @@
+audit_item,value,status,notes
+run_id,full-final-v2-recovered-01,VERIFIED,Artifact-only recovery; no training performed
+recovery_type,INFERENCE_FROM_EXISTING_ARTIFACTS,VERIFIED,All .fit() calls blocked by prohibit_training() context manager
+baseline_sha,af3f5f043a912c71fb7bf14f95ef278465954e64,VERIFIED,origin/main at qualification start
+git_head_at_recovery,6d3a549679bbe359ae6e45420e4aa9e1e3cc4358,VERIFIED,Git HEAD during inference recovery
+configuration_checksum,43d58dc5e6a785618cbe86beb63c86010254e338435027d2ef335a8f7485d5a5,VERIFIED,BenchmarkConfig fingerprint
+normalized_data_fingerprint,335c79e97a0c649b3d523a7e21efe5539e9fd737c2c7e72148483d33ce12a08e,VERIFIED,Combined UCI+BDG2 panel
+evaluation_example_fingerprint,0c1041b0eea53771bba1da772ff76b10a63a0d8aadab23c78ae547e6d6a9078a,VERIFIED,Feature-engineered examples
+feature_manifest_fingerprint,5a7f36a8c9096f2025bd1d9357b379c5b9aa719780d49782d8599db6b6a68dc1,VERIFIED,46-feature manifest v1.0
+training_source_fingerprint,004795e2eeac44e5f57d0c6d6fe4d9b1ca97037a39ba6a10699b876f0aff7ec7,VERIFIED,Source code fingerprint at training time
+recovery_inference_fingerprint,547c3dc5f6ee5069bc1512a39edf2d8c900e920cf83f0b94f9bb3f89c7383702,VERIFIED,Source code fingerprint at recovery time
+predictions_sha256,9192dbb623b7403ee26c21b297264048faf79986db21b1d88ebbb61b0f3bf116,VERIFIED,325812 rows; 4376808 bytes
+metrics_sha256,ba348a80e8e4cc2309e03ac6a52b97f86445c81d5d01a1abde15101b35debe9b,VERIFIED,46470 bytes
+artifacts_verified,36/36,VERIFIED,6 models x 2 tracks x 3 seeds; all checksums match
+random_seeds,"17, 29, 43",VERIFIED,Three independent seeds per model per track
+python_version,3.13.5,VERIFIED,MSC v.1943 64-bit AMD64
+report_refresh_type,REPORTING_ONLY_FROM_IMMUTABLE_PREDICTIONS,VERIFIED,No training/fit/optimizer invoked during report refresh
+selection_counts_reconciled,true,VERIFIED,CSV and JSON leaderboard selection counts match

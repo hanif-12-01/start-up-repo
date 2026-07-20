@@ -1,0 +1,16 @@
+gate_id,gate_name,status,evidence
+DQ-01,entity_month_unique,PASS,0 duplicate entity-months across combined panel
+DQ-02,unit_conversion_documented,PASS,"UCI: 15-min kW / 4 = kWh; BDG2: hourly kWh sum"
+DQ-03,dataset_identity_verified,PASS,Archive SHA-256 verified for UCI; Git LFS OID verified for BDG2
+DQ-04,license_verified,PASS,"UCI: CC BY 4.0 confirmed; BDG2: CC BY 4.0 on Zenodo v1.0 (GitHub MIT scope unclear)"
+DQ-05,target_leakage_detected,PASS (no leakage),"FEATURE_MANIFEST excludes usage_kwh, target_usage_kwh, bill_amount; rolling-origin temporal splits enforce train.max < validation.min < test.min"
+DQ-06,negative_normalized_values,PASS,0 negative values in both UCI and BDG2 normalized panels
+DQ-07,non_finite_normalized_values,PASS,0 non-finite values in normalized panels
+DQ-08,completeness_threshold,PASS,0.90 threshold applied; UCI mean 0.9999; BDG2 mean 0.9974
+DQ-09,chronological_split_integrity,PASS,validate_split_isolation() enforces strict temporal ordering across train/val/test
+DQ-10,entity_disjointness_unseen,PASS,"Unseen track uses SHA-256 hash entity assignment; no entity appears in multiple folds"
+DQ-11,uci_pre_connection_excluded,PASS,3385 pre-connection months excluded; 0 never-connected entities
+DQ-12,bdg2_excluded_entities,PASS,"4 entities excluded: Bobcat_education_Barbra, Bobcat_education_Seth, Eagle_lodging_Garland, Rat_public_Ulysses (all below completeness threshold)"
+DQ-13,combined_entity_count,PASS,"1944 entities (370 UCI + 1574 BDG2); reconciled: 1578 raw - 4 excluded = 1574"
+DQ-14,combined_entity_months,PASS,"50179 entity-months (14698 UCI + 35481 BDG2)"
+DQ-15,feature_leakage_exclusion,PASS,"build.py FEATURE_MANIFEST excludes all target columns; features use only pre-target history"

@@ -1,0 +1,8 @@
+composite_rank,model_key,composite_score,micro_wmape,macro_cell_wmape,common_cohort_wmape,common_cohort_obs,coverage_phases,failure_rate,gate_status,eligible_phases,selection_count,stability_score,readiness_score
+1,deterministic_baseline,0.9057,0.2202,0.1739,0.2269,8268,4/5,0.0%,PASS,"H01_02,H03_05,H06_12,H13_PLUS",1,1.000,1.00
+2,ridge,0.8575,0.3761,0.3620,0.2391,8268,5/5,0.0%,PASS,"H00,H01_02,H03_05,H06_12,H13_PLUS",1,1.000,1.00
+3,gradient_boosting,0.7858,0.4033,0.4820,0.2838,8268,5/5,0.0%,PASS,"H00,H01_02,H03_05,H06_12,H13_PLUS",0,0.999,1.00
+4,nbeats,0.7805,0.1773,0.1489,0.1777,8268,2/5,0.0%,PASS,"H06_12,H13_PLUS",1,0.952,0.50
+5,lightgbm,0.7357,0.3294,0.2038,0.2799,8268,5/5,0.0%,PASS,"H00,H01_02,H03_05,H06_12,H13_PLUS",1,0.994,0.50
+6,deepar,0.7226,0.2289,0.1781,0.2317,8268,2/5,0.0%,PASS,"H06_12,H13_PLUS",0,0.997,0.50
+7,catboost,0.3889,0.6393,0.9861,0.5180,8268,5/5,0.0%,PASS,"H00,H01_02,H03_05,H06_12,H13_PLUS",0,0.991,0.50
