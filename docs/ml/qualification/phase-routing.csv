@@ -1,0 +1,6 @@
+reporting_phase,history_months,phase_champion,product_routing,common_cohort_obs,champion_wmape,baseline_wmape,champion_vs_baseline,laravel_registered,integration_status
+H00,0,lightgbm,lightgbm,6859,N/A (baseline ineligible),N/A (baseline ineligible),N/A — baseline has no H00 predictions,false,PORTFOLIO_MODEL_NOT_REGISTERED
+H01_02,1-2,deterministic_baseline,deterministic_baseline,373,0.2269,0.2269,IS_BASELINE,true,READY
+H03_05,3-5,lightgbm,lightgbm,414,N/A (lightgbm < baseline on common cohort),N/A,LIGHTGBM_LOWER,false,PORTFOLIO_MODEL_NOT_REGISTERED
+H06_12,6-12,nbeats,nbeats,697,N/A (nbeats lowest on common cohort),N/A,NBEATS_LOWER,false,PORTFOLIO_MODEL_NOT_REGISTERED
+H13_PLUS,13+,nbeats,nbeats,8803,N/A (nbeats lowest on common cohort),N/A,NBEATS_LOWER,false,PORTFOLIO_MODEL_NOT_REGISTERED

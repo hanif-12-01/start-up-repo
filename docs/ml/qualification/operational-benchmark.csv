@@ -1,0 +1,14 @@
+model_key,track,inference_latency_ms,p95_latency_ms,peak_memory_mb,artifact_size_bytes,artifact_count,model_load_status,success_count,skip_count,failure_count,evidence_source,notes
+deterministic_baseline,all_tracks,0.079,NOT_MEASURED,0.0,0,0,STATELESS,10287,6861,0,full-final-v2-recovered-01,No artifact; rule-based stateless computation
+ridge,seen_entity,0.005,NOT_MEASURED,973.0,9114,6,LOADED_FROM_ARTIFACT,44691,3,0,full-final-v2-recovered-01,Median latency from recovered run; peak memory includes full process
+ridge,unseen_entity,0.005,NOT_MEASURED,973.0,9114,6,LOADED_FROM_ARTIFACT,6747,3,0,full-final-v2-recovered-01,Same artifact loaded for unseen track
+gradient_boosting,seen_entity,0.006,NOT_MEASURED,975.5,91421,6,LOADED_FROM_ARTIFACT,44691,3,0,full-final-v2-recovered-01,4-config ensemble; validation-selected
+gradient_boosting,unseen_entity,0.006,NOT_MEASURED,975.5,143981,6,LOADED_FROM_ARTIFACT,6747,3,0,full-final-v2-recovered-01,Unseen track uses separate artifacts
+catboost,seen_entity,0.005,NOT_MEASURED,977.7,253256,6,LOADED_FROM_ARTIFACT,44691,3,0,full-final-v2-recovered-01,Native CatBoost format
+catboost,unseen_entity,0.005,NOT_MEASURED,977.7,19240,6,LOADED_FROM_ARTIFACT,6747,3,0,full-final-v2-recovered-01,Smaller unseen track artifacts
+lightgbm,seen_entity,0.012,NOT_MEASURED,981.9,1333904,6,LOADED_FROM_ARTIFACT,44691,3,0,full-final-v2-recovered-01,deterministic=True; L1 objective
+lightgbm,unseen_entity,0.012,NOT_MEASURED,981.9,583697,6,LOADED_FROM_ARTIFACT,6747,3,0,full-final-v2-recovered-01,Unseen track smaller training set
+nbeats,seen_entity,4.405,NOT_MEASURED,1036.6,6835831,6,LOADED_FROM_CHECKPOINT,24804,18576,0,full-final-v2-recovered-01,MAE loss; 6-month context; high latency vs sklearn
+nbeats,unseen_entity,4.405,NOT_MEASURED,1036.6,6835831,6,LOADED_FROM_CHECKPOINT,3696,4368,0,full-final-v2-recovered-01,Same checkpoint format
+deepar,seen_entity,1.880,NOT_MEASURED,1055.0,6842605,6,LOADED_FROM_CHECKPOINT,24804,18576,0,full-final-v2-recovered-01,NormalDistributionLoss; 6-12 month encoder
+deepar,unseen_entity,1.880,NOT_MEASURED,1055.0,6842605,6,LOADED_FROM_CHECKPOINT,3696,4368,0,full-final-v2-recovered-01,Same checkpoint format
