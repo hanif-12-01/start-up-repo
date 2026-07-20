@@ -6,6 +6,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\BusinessSelectionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoHealthController;
 use App\Http\Controllers\DemoMlValidationController;
 use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\GettingStartedController;
@@ -13,27 +14,17 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\ReleaseHealthController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RevenueEntryController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\EnsureBillingEnabled;
-use App\Services\Demo\DemoLoginReadinessService;
-use App\Support\DemoAccount;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', WelcomeController::class)->name('home');
 
-if (DemoAccount::environmentAllowed()) {
-    Route::get('up/demo', function () {
-        $result = app(DemoLoginReadinessService::class)->check();
-
-        return response()->json([
-            'status' => $result->ready ? 'ok' : 'fail',
-            'demo' => $result->ready ? 'ready' : 'not_ready',
-            'reason' => $result->ready ? null : $result->reason->name,
-        ], $result->ready ? 200 : 503);
-    })->name('up.demo');
-}
+Route::get('up/demo', DemoHealthController::class)->name('up.demo');
+Route::get('up/release', ReleaseHealthController::class)->name('up.release');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('getting-started/plan', [GettingStartedController::class, 'plan'])->name('getting-started.plan');
@@ -72,12 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('predictions', [PredictionController::class, 'index'])->name('predictions.index');
         Route::post('predictions/generate', [PredictionController::class, 'generate'])->name('predictions.generate');
 
-        if (DemoAccount::environmentAllowed()) {
-            Route::get('internal/ml-validation', [DemoMlValidationController::class, 'index'])
-                ->name('demo.ml-validation');
-            Route::post('internal/ml-validation/run', [DemoMlValidationController::class, 'run'])
-                ->name('demo.ml-validation.run');
-        }
+        Route::get('internal/ml-validation', [DemoMlValidationController::class, 'index'])
+            ->name('demo.ml-validation');
+        Route::post('internal/ml-validation/run', [DemoMlValidationController::class, 'run'])
+            ->name('demo.ml-validation.run');
 
         Route::get('anomalies', [AnomalyController::class, 'index'])->name('anomalies.index');
 

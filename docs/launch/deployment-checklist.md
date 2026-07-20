@@ -2,6 +2,8 @@
 
 Dokumen ini berisi panduan teknis deployment aplikasi WattWise AI (Laravel Rewrite Version) ke lingkungan staging maupun produksi, serta checklist kesiapan variabel lingkungan (.env).
 
+Kontrak Railway fail-closed yang berlaku ada di [railway-demo-readiness-contract.md](./railway-demo-readiness-contract.md). Gunakan lingkungan staging/demo yang terpisah dan PostgreSQL persisten; SQLite di Railway staging/production tidak diperbolehkan.
+
 ---
 
 ## 1. Catatan Struktur Repositori
@@ -20,7 +22,7 @@ Sebelum melakukan deployment, harap pahami batasan dan parameter rilis MVP berik
 * **Pemisahan Server Vite**: Peringatan keras bahwa Vite dev server (`npm run dev`, biasanya berjalan di port 5173) **bukanlah aplikasi utama**. Port tersebut hanya digunakan oleh HMR (Hot Module Replacement) untuk aset frontend. Akses utama aplikasi selalu melalui port `http://localhost:8000`.
 * **Kredensial Login Demo**: `demo@wattwise.local` dengan kata sandi `password`.
 * **Perintah Diagnostik Demo**: Jalankan `php artisan wattwise:diagnose-demo-login` untuk memvalidasi atau memperbaiki (dengan flag `--fix`) fungsionalitas akun demo lokal.
-* **Status Pengujian**: Seluruh test suite otomatis saat ini lulus dengan total **213 passed** dan **0 failures**.
+* **Status Pengujian**: Seluruh test suite wajib lulus; catat jumlah aktual dari run terbaru dan jangan mengandalkan angka lama di dokumentasi.
 * **Persyaratan Build Aset**: Perintah `npm run build` **wajib** dijalankan sebelum deployment ke produksi untuk menghasilkan manifest aset statis.
 * **Batasan & Non-Goals MVP**:
   - **Bukan Aplikasi Resmi PLN**: WattWise AI bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan tidak memiliki integrasi API resmi dengan PLN.
@@ -91,10 +93,12 @@ Verifikasi bahwa file `.env` di server produksi dikonfigurasi dengan nilai-nilai
 | `APP_DEBUG` | `false` (Wajib diset false demi keamanan) | [ ] |
 | `APP_KEY` | Kunci unik, buat menggunakan `php artisan key:generate` | [ ] |
 | `APP_URL` | Domain HTTPS resmi (misalnya `https://wattwise.ai`) | [ ] |
-| `DATABASE_URL` | String koneksi utama Supabase PostgreSQL | [ ] |
+| `DB_URL` atau `DATABASE_URL` | Referensi PostgreSQL persisten; `DB_URL` diprioritaskan | [ ] |
 | `DIRECT_URL` | String koneksi langsung (direct connection) jika menggunakan pgBouncer | [ ] |
 | `DB_CONNECTION` | `pgsql` | [ ] |
 | `DB_SSLMODE` | `require` (Wajib untuk koneksi aman ke Supabase) | [ ] |
+| `DEMO_LOGIN_ENABLED` | `false` di produksi; `true` hanya di staging/demo terisolasi | [ ] |
+| `DEMO_ML_VALIDATION_ENABLED` | `false` di produksi; `true` hanya di staging/demo terisolasi | [ ] |
 | `SESSION_DRIVER` | `database` atau `redis` (jangan gunakan driver `file` di hosting serverless) | [ ] |
 | `CACHE_STORE` | `database` atau `redis` | [ ] |
 | `QUEUE_CONNECTION` | `database` atau `redis` | [ ] |
@@ -111,6 +115,9 @@ Sebelum melakukan perilisan resmi, pastikan poin keamanan berikut terpenuhi:
 - [ ] Akun demo `demo@wattwise.local` dengan password `password` **tidak boleh digunakan sebagai kredensial admin produksi**.
 - `WattWiseDemoSeeder` terlindungi: Pastikan data demo tidak di-seed secara tidak sengaja ke database produksi. Seeder utama `DatabaseSeeder` sudah memiliki pengaman lingkungan (`app()->environment('local', 'testing')`), tetapi pastikan Anda tidak menjalankan `php artisan db:seed --class=WattWiseDemoSeeder` di database produksi yang aktif.
 - [ ] SSL PostgreSQL diaktifkan dengan benar (`DB_SSLMODE=require`) untuk mencegah sniffing data transaksi.
+- [ ] Railway Root Directory adalah `wattwise-laravel`; bila perlu, config path adalah `/wattwise-laravel/railway.json`.
+- [ ] `GET /up/release` mengembalikan HTTP 200 sebelum staging dipromosikan atau digunakan untuk demo.
+- [ ] `php artisan wattwise:railway-release-guard` lulus di shell service dan environment staging yang sama dengan deployment publik.
 
 ---
 

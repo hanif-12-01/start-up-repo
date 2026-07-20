@@ -1,5 +1,12 @@
 <?php
 
+use App\Support\DatabaseConfiguration;
+
+$databaseConnection = DatabaseConfiguration::defaultConnection(
+    env('DB_CONNECTION'),
+    DatabaseConfiguration::resolvedUrl(env('DB_URL'), env('DATABASE_URL')),
+);
+
 return [
 
     /*
@@ -103,7 +110,7 @@ return [
     */
 
     'batching' => [
-        'database' => env('DB_CONNECTION', 'sqlite'),
+        'database' => $databaseConnection,
         'table' => 'job_batches',
     ],
 
@@ -122,7 +129,7 @@ return [
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
-        'database' => env('DB_CONNECTION', 'sqlite'),
+        'database' => $databaseConnection,
         'table' => 'failed_jobs',
     ],
 
