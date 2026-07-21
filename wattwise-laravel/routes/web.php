@@ -13,6 +13,7 @@ use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\PredictionHealthController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\ReleaseHealthController;
 use App\Http\Controllers\ReportController;
@@ -25,6 +26,7 @@ Route::get('/', WelcomeController::class)->name('home');
 
 Route::get('up/demo', DemoHealthController::class)->name('up.demo');
 Route::get('up/release', ReleaseHealthController::class)->name('up.release');
+Route::get('up/prediction', PredictionHealthController::class)->name('up.prediction');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('getting-started/plan', [GettingStartedController::class, 'plan'])->name('getting-started.plan');

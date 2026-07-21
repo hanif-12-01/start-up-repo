@@ -11,6 +11,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'business_id',
+    'request_id',
+    'source_entry_id',
+    'reporting_phase',
+    'selected_model',
+    'selected_model_version',
+    'prediction_mode',
+    'phase_status',
+    'prediction_output_kwh',
+    'deterministic_fallback_kwh',
+    'eligibility_status',
+    'fallback_reason',
+    'inference_latency_ms',
+    'artifact_identifier',
+    'artifact_sha256',
+    'error_category',
+    'inference_warnings',
     'target_period',
     'input_fingerprint',
     'trigger_source',
@@ -27,6 +43,10 @@ class PredictionRun extends Model
         return [
             'generated_at' => 'datetime',
             'tariff_snapshot' => 'decimal:2',
+            'prediction_output_kwh' => 'decimal:4',
+            'deterministic_fallback_kwh' => 'decimal:4',
+            'inference_latency_ms' => 'decimal:3',
+            'inference_warnings' => 'array',
         ];
     }
 
