@@ -142,3 +142,39 @@ def build_examples(panel: pd.DataFrame) -> pd.DataFrame:
     return result.sort_values(
         ["dataset_source", "entity_id", "target_period", "example_variant"]
     ).reset_index(drop=True)
+
+
+def build_inference_example(
+    *,
+    entity_id: str,
+    target_period: str,
+    history: list[float],
+    contextual_features: dict[str, Any],
+) -> pd.DataFrame:
+    """Build one serving row through the validated benchmark feature semantics."""
+    target = pd.Timestamp(f"{target_period}-01")
+    record = _history_features(history, target)
+    stable = f"serving|{entity_id}|{target.date()}|usage_history"
+    record.update(
+        {
+            "example_id": hashlib.sha256(stable.encode()).hexdigest(),
+            "dataset_source": contextual_features["dataset_source"],
+            "entity_id": entity_id,
+            "target_period": target,
+            # Required by the benchmark sequence-frame shape. In predict mode
+            # this decoder target is never an input to the forecast.
+            "target_usage_kwh": 0.0,
+            "history_values": history,
+            "history_month_count": len(history),
+            "product_phase": str(product_phase(len(history))),
+            "initial_subgroup": initial_subgroup(len(history)),
+            "example_variant": "usage_history",
+            "profile_eligible": bool(contextual_features["profile_eligible"]),
+            "building_primary_use": contextual_features["building_primary_use"],
+            "business_type": contextual_features["business_type"],
+            "building_area": contextual_features["building_area"],
+            "site": contextual_features["site"],
+            "timezone": contextual_features["timezone"],
+        }
+    )
+    return pd.DataFrame([record])
