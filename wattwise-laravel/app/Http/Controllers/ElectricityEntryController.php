@@ -3,17 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreElectricityEntryRequest;
+use App\Jobs\RunPhaseAwarePredictionJob;
 use App\Models\Business;
 use App\Models\ElectricityEntry;
 use App\Services\ActiveBusinessResolver;
 use App\Services\Electricity\ElectricityCalculator;
 use App\Services\FeatureGateService;
-use App\Services\Predictions\MachineLearning\PredictionEvaluationService;
-use App\Services\Predictions\MachineLearning\PredictionShadowOrchestrator;
+use App\Services\Predictions\PhaseAware\PredictionModePolicy;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -139,7 +138,7 @@ class ElectricityEntryController extends Controller
         }
 
         // Upsert by business_id + period_month
-        ElectricityEntry::updateOrCreate(
+        $entry = ElectricityEntry::updateOrCreate(
             [
                 'business_id' => $businessId,
                 'period_month' => $periodMonth,
@@ -155,71 +154,25 @@ class ElectricityEntryController extends Controller
             ]
         );
 
-        $this->triggerShadowEvaluation($businessId, $periodMonth, $usageKwh);
+        $this->dispatchPhaseAwarePrediction($entry);
 
         return redirect()->back()->with('success', 'Data listrik berhasil disimpan.');
     }
 
-    private function triggerShadowEvaluation(int $businessId, Carbon $periodMonth, ?float $usageKwh): void
+    private function dispatchPhaseAwarePrediction(ElectricityEntry $entry): void
     {
-        if (! config('prediction.shadow_enabled', false)) {
+        $state = app(PredictionModePolicy::class)->resolve();
+        if (! $state->shouldDispatch()) {
             return;
         }
 
         try {
-            $business = Business::with(['electricityProfile'])->find($businessId);
-            if (! $business) {
-                return;
-            }
-
-            $entries = $business->electricityEntries()
-                ->orderBy('period_month', 'asc')
-                ->get();
-
-            $history = [];
-            foreach ($entries as $entry) {
-                if ($entry->usage_kwh === null) {
-                    continue;
-                }
-                $history[] = [
-                    'period_month' => Carbon::parse($entry->period_month)->format('Y-m'),
-                    'usage_kwh' => (float) $entry->usage_kwh,
-                ];
-            }
-
-            if (empty($history)) {
-                return;
-            }
-
-            $tariff = $business->electricityProfile?->tariff_per_kwh
-                ? (float) $business->electricityProfile->tariff_per_kwh
-                : null;
-
-            if ($tariff === null) {
-                $latestWithTariff = $entries->whereNotNull('tariff_per_kwh')->last();
-                $tariff = $latestWithTariff ? (float) $latestWithTariff->tariff_per_kwh : null;
-            }
-
-            $lastHistoryEntry = end($history);
-            $lastPeriod = Carbon::parse($lastHistoryEntry['period_month'].'-01');
-            $targetPeriod = $lastPeriod->copy()->addMonth()->format('Y-m');
-
-            $orchestrator = app(PredictionShadowOrchestrator::class);
-            $orchestrator->execute(
-                $businessId,
-                $targetPeriod,
-                $history,
-                $business->business_type ?? 'OTHER',
-                $tariff,
-                'electricity_entry',
-            );
-
-            if ($usageKwh !== null) {
-                $evalService = app(PredictionEvaluationService::class);
-                $evalService->evaluateForActual($businessId, $periodMonth->format('Y-m'), $usageKwh);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Shadow evaluation failed safely', ['error' => $e->getMessage()]);
+            RunPhaseAwarePredictionJob::dispatch($entry->id)
+                ->onConnection((string) config('prediction.queue_connection', 'database'))
+                ->onQueue((string) config('prediction.queue', 'predictions'))
+                ->afterCommit();
+        } catch (\Throwable) {
+            // Prediction dispatch must never invalidate the saved electricity entry.
         }
     }
 }

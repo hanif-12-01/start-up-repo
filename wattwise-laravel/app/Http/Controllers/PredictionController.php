@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GeneratePredictionRequest;
 use App\Services\FeatureGateService;
+use App\Services\Predictions\PhaseAware\PhaseAwarePredictionPresenter;
 use App\Services\Predictions\PredictionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class PredictionController extends Controller
     public function __construct(
         private readonly PredictionService $predictionService,
         private readonly FeatureGateService $featureGateService,
+        private readonly PhaseAwarePredictionPresenter $phaseAwarePresenter,
     ) {}
 
     /**
@@ -32,6 +34,10 @@ class PredictionController extends Controller
             // Detailed analysis is plan-gated; the summary is always available.
             $isDetailedUnlocked = $this->featureGateService->can($user, 'prediction.detailed', $activeBusiness);
             $prediction = $this->predictionService->predictForBusiness($activeBusiness, $isDetailedUnlocked);
+            $prediction = $this->phaseAwarePresenter->apply(
+                $prediction,
+                $activeBusiness,
+            );
         }
 
         return Inertia::render('Predictions/Index', [

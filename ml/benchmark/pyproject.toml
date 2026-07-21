@@ -31,6 +31,7 @@ dev = [
 
 [project.scripts]
 wattwise-benchmark = "wattwise_benchmark.cli:main"
+wattwise-serving = "wattwise_serving.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

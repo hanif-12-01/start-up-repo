@@ -39,6 +39,14 @@ interface Prediction {
         needs_more_data: boolean;
         message: string;
     };
+    experimental_prediction?: {
+        available: boolean;
+        selected_model: string | null;
+        reporting_phase: string | null;
+        predicted_usage_kwh: number | null;
+        deterministic_fallback_kwh: number | null;
+        fallback_reason: string | null;
+    };
 }
 
 const props = defineProps<{
@@ -238,6 +246,36 @@ return 'text-muted-foreground';
                 >
                     <Info class="h-4 w-4 shrink-0 mt-0.5 text-blue-600" />
                     <span>Tarif per kWh belum tersedia sehingga estimasi tagihan listrik dalam Rupiah tidak ditampilkan. Lengkapi tarif pada data listrik Anda.</span>
+                </div>
+
+                <div
+                    v-if="prediction.experimental_prediction"
+                    class="rounded-xl border border-violet-300 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/20 p-5 flex flex-col gap-3"
+                >
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-violet-700 dark:text-violet-300">
+                            Prediksi AI Eksperimental
+                        </span>
+                        <span
+                            v-if="prediction.experimental_prediction.selected_model"
+                            class="text-[10px] rounded-full border border-violet-200 px-2 py-0.5 text-violet-700 dark:border-violet-800 dark:text-violet-300"
+                        >
+                            {{ prediction.experimental_prediction.selected_model }} · {{ prediction.experimental_prediction.reporting_phase }}
+                        </span>
+                    </div>
+                    <p v-if="prediction.experimental_prediction.available" class="text-2xl font-extrabold text-foreground">
+                        {{ formatKWh(prediction.experimental_prediction.predicted_usage_kwh) }}
+                    </p>
+                    <p v-else class="text-sm text-muted-foreground">
+                        Model AI tidak tersedia untuk input ini. Estimasi deterministik tetap digunakan:
+                        {{ formatKWh(prediction.experimental_prediction.deterministic_fallback_kwh) }}.
+                    </p>
+                    <p v-if="prediction.experimental_prediction.fallback_reason" class="text-xs text-muted-foreground">
+                        Alasan fallback: {{ prediction.experimental_prediction.fallback_reason }}
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Hasil ini bersifat eksperimental, bukan kepastian, dan tidak menggantikan verifikasi manual.
+                    </p>
                 </div>
 
                 <!-- Summary cards (always visible, even for FREE) -->
