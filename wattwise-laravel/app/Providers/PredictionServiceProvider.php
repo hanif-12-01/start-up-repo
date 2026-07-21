@@ -13,6 +13,10 @@ use App\Services\Predictions\MachineLearning\ModelRegistry;
 use App\Services\Predictions\MachineLearning\PredictionEvaluationService;
 use App\Services\Predictions\MachineLearning\PredictionShadowOrchestrator;
 use App\Services\Predictions\MachineLearning\RidgeRegressionPredictor;
+use App\Services\Predictions\PhaseAware\HttpPredictionInferenceGateway;
+use App\Services\Predictions\PhaseAware\NullPredictionInferenceGateway;
+use App\Services\Predictions\PhaseAware\PredictionInferenceGateway;
+use App\Services\Predictions\PhaseAware\PredictionModePolicy;
 use App\Services\Predictions\PredictionService;
 use Illuminate\Support\ServiceProvider;
 
@@ -47,6 +51,24 @@ class PredictionServiceProvider extends ServiceProvider
             return new AdaptiveModelRouter(
                 $app->make(ModelPerformanceEvaluator::class),
                 $app->make(ModelRegistry::class)
+            );
+        });
+
+        $this->app->singleton(PredictionModePolicy::class);
+        $this->app->singleton(PredictionInferenceGateway::class, function ($app) {
+            $state = $app->make(PredictionModePolicy::class)->resolve();
+            if (! $state->shouldDispatch()) {
+                return new NullPredictionInferenceGateway($state->blockReason ?? 'ML_DISABLED');
+            }
+
+            $endpoint = trim((string) config('prediction.ml_endpoint', ''));
+            if ($endpoint === '') {
+                return new NullPredictionInferenceGateway('ENDPOINT_MISSING');
+            }
+
+            return new HttpPredictionInferenceGateway(
+                $endpoint,
+                max(1, (int) config('prediction.ml_timeout_ms', 1500)),
             );
         });
     }
