@@ -11,7 +11,7 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().optional().default(''),
   BETTER_AUTH_URL: z.string().url().optional().default('http://localhost:3000'),
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default('http://localhost:3000'),
-  
+
   // Feature Flags
   DIAGNOSTICS_ENABLED: booleanFlag,
   ACTION_PLANS_ENABLED: booleanFlag,

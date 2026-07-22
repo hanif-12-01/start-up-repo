@@ -9,7 +9,7 @@ export default function HomePage() {
       <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-50 tracking-tight leading-tight mb-4">
         WattWise AI
       </h1>
-      
+
       <p className="text-xl sm:text-2xl font-medium text-emerald-400 mb-6">
         Listrik Lebih Cerdas, Cash Flow Lebih Terkendali.
       </p>
