@@ -39,7 +39,8 @@ export class HealthCheckService {
   }
 
   public static async getDatabaseHealth(): Promise<{ result: DatabaseHealthResult; httpStatus: number }> {
-    const isConfigured = Boolean(env.DATABASE_URL && env.DATABASE_URL.length > 0);
+    const activeDbUrl = process.env.DATABASE_URL !== undefined ? process.env.DATABASE_URL : env.DATABASE_URL;
+    const isConfigured = Boolean(activeDbUrl && activeDbUrl.length > 0);
 
     if (!isConfigured) {
       return {
