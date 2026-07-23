@@ -40,7 +40,7 @@ export default function RegisterPage() {
         setError(res.error.message || 'Pendaftaran gagal. Silakan coba lagi.');
         setLoading(false);
       } else {
-        router.push('/setup');
+        router.push('/plan');
       }
     } catch {
       setError('Terjadi kesalahan pada sistem. Silakan coba lagi.');

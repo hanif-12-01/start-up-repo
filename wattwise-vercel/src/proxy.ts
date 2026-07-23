@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const PROTECTED_PREFIXES = ['/setup', '/plan', '/onboarding', '/businesses'];
 
-  const hasSessionCookie =
+function hasSessionCookie(request: NextRequest): boolean {
+  return (
     request.cookies.has('wattwise.session_token') ||
     request.cookies.has('better-auth.session_token') ||
     request.cookies.has('__Secure-wattwise.session_token') ||
-    request.cookies.has('__Secure-better-auth.session_token');
+    request.cookies.has('__Secure-better-auth.session_token')
+  );
+}
 
-  if (pathname.startsWith('/setup') && !hasSessionCookie) {
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const hasCookie = hasSessionCookie(request);
+
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+
+  if (isProtected && !hasCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if ((pathname === '/login' || pathname === '/register') && hasSessionCookie) {
+  if ((pathname === '/login' || pathname === '/register') && hasCookie) {
     return NextResponse.redirect(new URL('/setup', request.url));
   }
 
@@ -22,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/setup/:path*', '/login', '/register'],
+  matcher: ['/setup/:path*', '/plan/:path*', '/onboarding/:path*', '/businesses/:path*', '/login', '/register'],
 };

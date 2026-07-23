@@ -67,8 +67,10 @@ async function main() {
     }
 
     let command = rawCmd;
-    if (process.platform === 'win32' && !existingDbUrl) {
-      command = `npm.cmd exec vitest -- run tests/integration`;
+    if (process.platform === 'win32') {
+      command = `npm.cmd exec vitest -- run tests/integration --no-file-parallelism`;
+    } else {
+      command = `${rawCmd} --no-file-parallelism`;
     }
 
     console.log(`▶ Executing: ${command}`);

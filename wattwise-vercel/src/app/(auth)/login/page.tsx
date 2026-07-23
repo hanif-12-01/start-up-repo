@@ -33,7 +33,7 @@ export default function LoginPage() {
         setError('Email atau kata sandi tidak cocok.');
         setLoading(false);
       } else {
-        router.push('/setup');
+        router.push('/plan');
       }
     } catch {
       setError('Terjadi kesalahan pada sistem. Silakan coba lagi.');

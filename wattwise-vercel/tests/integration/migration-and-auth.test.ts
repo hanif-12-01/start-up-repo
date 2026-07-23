@@ -13,7 +13,15 @@ describe('Database Migration & Auth Integration Tests', () => {
     pool = new Pool({
       connectionString: dbUrl,
       connectionTimeoutMillis: 5000,
+      max: 1,
     });
+    // Clean slate — drop all tables so migration applies cleanly
+    await pool.query('DROP TABLE IF EXISTS "business" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "user_plan" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "verification" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "account" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "session" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "user" CASCADE');
   });
 
   afterAll(async () => {
@@ -58,8 +66,8 @@ describe('Database Migration & Auth Integration Tests', () => {
         `INSERT INTO "user" (id, name, email, email_verified) VALUES ($1, $2, $3, false)`,
         [userId2, 'Synthetic User 2', email]
       );
-    } catch (err: any) {
-      duplicateError = err;
+    } catch (err: unknown) {
+      duplicateError = err instanceof Error ? err : new Error(String(err));
     }
 
     expect(duplicateError).not.toBeNull();
