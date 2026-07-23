@@ -56,7 +56,7 @@ describe('Tenant Ownership Policy Foundation', () => {
 describe('Database Health Check Unit Mapping', () => {
   it('returns unconfigured status when DATABASE_URL is empty', async () => {
     const prevEnv = process.env.DATABASE_URL;
-    delete process.env.DATABASE_URL;
+    process.env.DATABASE_URL = '';
 
     const { result, httpStatus } = await HealthCheckService.getDatabaseHealth();
     expect(httpStatus).toBe(200);
