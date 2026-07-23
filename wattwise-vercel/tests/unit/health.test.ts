@@ -11,8 +11,8 @@ describe('HealthCheckService', () => {
     expect(health).not.toHaveProperty('secret');
   });
 
-  it('should return database health status safely', () => {
-    const dbHealth = HealthCheckService.getDatabaseHealth();
+  it('should return database health status safely', async () => {
+    const { result: dbHealth } = await HealthCheckService.getDatabaseHealth();
     expect(dbHealth.provider).toBe('neon-postgresql');
     expect(dbHealth).toHaveProperty('status');
     expect(dbHealth).not.toHaveProperty('connectionString');
