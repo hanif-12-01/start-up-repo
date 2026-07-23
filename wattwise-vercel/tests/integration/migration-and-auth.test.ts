@@ -30,8 +30,8 @@ describe('Database Migration & Auth Integration Tests', () => {
     await pool.query(migrationSql);
 
     const tablesRes = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
+      SELECT table_name
+      FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
     `);
     const tableNames = tablesRes.rows.map((r) => r.table_name);
@@ -124,8 +124,8 @@ describe('Database Migration & Auth Integration Tests', () => {
     await pool.query(rollbackSql);
 
     const tablesRes = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
+      SELECT table_name
+      FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
     `);
     const tableNames = tablesRes.rows.map((r) => r.table_name);
@@ -144,8 +144,8 @@ describe('Database Migration & Auth Integration Tests', () => {
     await pool.query(migrationSql);
 
     const tablesRes = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
+      SELECT table_name
+      FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
     `);
     const tableNames = tablesRes.rows.map((r) => r.table_name);
