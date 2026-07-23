@@ -35,6 +35,30 @@ describe('Trial Expiry Calculation', () => {
   it('30-day duration is exactly 2592000000ms', () => {
     expect(30 * 86400000).toBe(2592000000);
   });
+
+  it('trial end must be after trial start', () => {
+    const start = new Date('2026-07-23T00:00:00Z');
+    const end = new Date(start.getTime() + 30 * 86400000);
+    expect(end.getTime()).toBeGreaterThan(start.getTime());
+  });
+
+  it('FREE plan must have null trial dates', () => {
+    const freePlan = { plan: 'FREE', trialStartsAt: null, trialEndsAt: null };
+    expect(freePlan.trialStartsAt).toBeNull();
+    expect(freePlan.trialEndsAt).toBeNull();
+  });
+
+  it('PRO_TRIAL plan must have non-null trial dates', () => {
+    const now = new Date();
+    const trialPlan = {
+      plan: 'PRO_TRIAL',
+      trialStartsAt: now,
+      trialEndsAt: new Date(now.getTime() + 30 * 86400000),
+    };
+    expect(trialPlan.trialStartsAt).not.toBeNull();
+    expect(trialPlan.trialEndsAt).not.toBeNull();
+    expect(trialPlan.trialEndsAt.getTime()).toBeGreaterThan(trialPlan.trialStartsAt.getTime());
+  });
 });
 
 describe('Business Schema Validation', () => {

@@ -18,14 +18,12 @@ describe('Journey & Business Migration Integration Tests', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, connectionTimeoutMillis: 5000, max: 1 });
-    // Clean slate
     await pool.query('DROP TABLE IF EXISTS "business" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "user_plan" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "verification" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "account" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "session" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "user" CASCADE');
-    // Apply both migrations in order
     await pool.query(readMigration('0000_auth_schema.sql'));
     await pool.query(readMigration('0001_journey_business.sql'));
   });
@@ -65,6 +63,9 @@ describe('Journey & Business Migration Integration Tests', () => {
     expect(names).toContain('user_plan_user_id_unique');
     expect(names).toContain('user_plan_idempotency_key_unique');
     expect(names).toContain('user_plan_plan_check');
+    expect(names).toContain('user_plan_free_no_trial_check');
+    expect(names).toContain('user_plan_trial_dates_required_check');
+    expect(names).toContain('user_plan_trial_end_after_start_check');
     expect(names).toContain('user_plan_user_id_fk');
   });
 
@@ -79,6 +80,15 @@ describe('Journey & Business Migration Integration Tests', () => {
     expect(names).toContain('business_segment_check');
     expect(names).toContain('business_electrical_system_check');
     expect(names).toContain('business_user_id_fk');
+  });
+
+  it('verifies is_active column is boolean', async () => {
+    const res = await pool.query(`
+      SELECT data_type, column_default FROM information_schema.columns
+      WHERE table_name = 'business' AND column_name = 'is_active';
+    `);
+    expect(res.rows[0].data_type).toBe('boolean');
+    expect(res.rows[0].column_default).toBe('true');
   });
 
   it('verifies business_user_id_idx index', async () => {
@@ -99,6 +109,13 @@ describe('Journey & Business Migration Integration Tests', () => {
     `);
     expect(after.rows.length).toBe(0);
 
+    // Auth tables must survive journey rollback
+    const auth = await pool.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'user';
+    `);
+    expect(auth.rows.length).toBe(1);
+
     await pool.query(readMigration('0001_journey_business.sql'));
     const reapplied = await pool.query(`
       SELECT table_name FROM information_schema.tables
@@ -107,11 +124,11 @@ describe('Journey & Business Migration Integration Tests', () => {
     expect(reapplied.rows.length).toBe(2);
   });
 
-  // --- One trial per user ---
+  // --- One plan per user ---
 
   it('enforces one plan per user (unique user_id)', async () => {
     await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-    await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p1', 'u1', 'PRO_TRIAL', 'k1')`);
+    await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p1', 'u1', 'FREE', 'k1')`);
 
     let err: Error | null = null;
     try {
@@ -130,7 +147,7 @@ describe('Journey & Business Migration Integration Tests', () => {
 
     let err: Error | null = null;
     try {
-      await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p2', 'u2', 'PRO_TRIAL', 'same_key')`);
+      await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p2', 'u2', 'FREE', 'same_key')`);
     } catch (e: unknown) {
       err = e instanceof Error ? e : new Error(String(e));
     }
@@ -147,6 +164,66 @@ describe('Journey & Business Migration Integration Tests', () => {
       err = e instanceof Error ? e : new Error(String(e));
     }
     expect(err).not.toBeNull();
+  });
+
+  // --- Trial date constraints ---
+
+  it('rejects FREE plan with trial dates set', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+
+    let err: Error | null = null;
+    try {
+      await pool.query(
+        `INSERT INTO "user_plan" (id, user_id, plan, trial_starts_at, trial_ends_at, idempotency_key)
+         VALUES ('p1', 'u1', 'FREE', NOW(), NOW() + INTERVAL '30 days', 'k1')`
+      );
+    } catch (e: unknown) {
+      err = e instanceof Error ? e : new Error(String(e));
+    }
+    expect(err).not.toBeNull();
+    expect(err?.message).toContain('user_plan_free_no_trial_check');
+  });
+
+  it('rejects PRO_TRIAL without trial dates', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+
+    let err: Error | null = null;
+    try {
+      await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p1', 'u1', 'PRO_TRIAL', 'k1')`);
+    } catch (e: unknown) {
+      err = e instanceof Error ? e : new Error(String(e));
+    }
+    expect(err).not.toBeNull();
+    expect(err?.message).toContain('user_plan_trial_dates_required_check');
+  });
+
+  it('rejects trial_ends_at <= trial_starts_at', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+
+    let err: Error | null = null;
+    try {
+      await pool.query(
+        `INSERT INTO "user_plan" (id, user_id, plan, trial_starts_at, trial_ends_at, idempotency_key)
+         VALUES ('p1', 'u1', 'PRO_TRIAL', '2026-08-01', '2026-07-01', 'k1')`
+      );
+    } catch (e: unknown) {
+      err = e instanceof Error ? e : new Error(String(e));
+    }
+    expect(err).not.toBeNull();
+    expect(err?.message).toContain('user_plan_trial_end_after_start_check');
+  });
+
+  it('accepts PRO_TRIAL with valid trial dates', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+    await pool.query(
+      `INSERT INTO "user_plan" (id, user_id, plan, trial_starts_at, trial_ends_at, idempotency_key)
+       VALUES ('p1', 'u1', 'PRO_TRIAL', NOW(), NOW() + INTERVAL '30 days', 'k1')`
+    );
+
+    const res = await pool.query(`SELECT plan, trial_starts_at, trial_ends_at FROM "user_plan" WHERE id = 'p1'`);
+    expect(res.rows[0].plan).toBe('PRO_TRIAL');
+    expect(res.rows[0].trial_starts_at).not.toBeNull();
+    expect(res.rows[0].trial_ends_at).not.toBeNull();
   });
 
   // --- Business constraints ---
@@ -203,6 +280,7 @@ describe('Journey & Business Migration Integration Tests', () => {
     expect(res.rows.length).toBe(1);
     expect(res.rows[0].user_id).toBe('u1');
     expect(res.rows[0].room_count).toBe(10);
+    expect(res.rows[0].is_active).toBe(true);
   });
 
   it('FK to user rejects orphan business', async () => {
@@ -235,10 +313,21 @@ describe('Journey & Business Migration Integration Tests', () => {
   it('allows NULL room_count', async () => {
     await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
     await pool.query(
-      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Kos', 'KOS_PROPERTY', 'KOS', 'PATUNGAN')`
+      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'FnB Place', 'FNB', 'FNB', 'ALL_IN')`
     );
 
     const res = await pool.query(`SELECT room_count FROM "business" WHERE id = 'b1'`);
     expect(res.rows[0].room_count).toBeNull();
+  });
+
+  it('allows non-KOS business with any electrical system', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+    await pool.query(
+      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Laundry', 'LAUNDRY', 'LAUNDRY', 'SUB_METER')`
+    );
+
+    const res = await pool.query(`SELECT business_type, segment, electrical_system FROM "business" WHERE id = 'b1'`);
+    expect(res.rows[0].business_type).toBe('LAUNDRY');
+    expect(res.rows[0].electrical_system).toBe('SUB_METER');
   });
 });

@@ -22,12 +22,27 @@ const SEGMENTS = [
 ];
 
 const ELECTRICAL_SYSTEMS = [
-  { value: 'ALL_IN', label: 'Listrik Ditanggung Pemilik (All-In)' },
-  { value: 'TOKEN_PER_KAMAR', label: 'Token per Kamar' },
-  { value: 'SUB_METER', label: 'Sub-Meter / kWh Meter per Kamar' },
-  { value: 'PATUNGAN', label: 'Patungan' },
-  { value: 'CAMPURAN', label: 'Campuran' },
-];
+  {
+    value: 'ALL_IN',
+    label: 'Listrik Ditanggung Pemilik',
+  },
+  {
+    value: 'TOKEN_PER_KAMAR',
+    label: 'Token per Kamar / Unit',
+  },
+  {
+    value: 'SUB_METER',
+    label: 'Sub-Meter per Kamar / Unit',
+  },
+  {
+    value: 'PATUNGAN',
+    label: 'Biaya Listrik Patungan',
+  },
+  {
+    value: 'CAMPURAN',
+    label: 'Sistem Campuran',
+  },
+] as const;
 
 const inputClass =
   'w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';

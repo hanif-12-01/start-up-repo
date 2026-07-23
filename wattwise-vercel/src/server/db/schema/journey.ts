@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, check, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, boolean, check, unique } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { user } from './auth';
 
@@ -26,6 +26,18 @@ export const userPlan = pgTable(
     unique('user_plan_user_id_unique').on(t.userId),
     unique('user_plan_idempotency_key_unique').on(t.idempotencyKey),
     check('user_plan_plan_check', sql`${t.plan} IN ('FREE', 'PRO_TRIAL')`),
+    check(
+      'user_plan_free_no_trial_check',
+      sql`${t.plan} != 'FREE' OR (${t.trialStartsAt} IS NULL AND ${t.trialEndsAt} IS NULL)`
+    ),
+    check(
+      'user_plan_trial_dates_required_check',
+      sql`${t.plan} != 'PRO_TRIAL' OR (${t.trialStartsAt} IS NOT NULL AND ${t.trialEndsAt} IS NOT NULL)`
+    ),
+    check(
+      'user_plan_trial_end_after_start_check',
+      sql`${t.trialStartsAt} IS NULL OR ${t.trialEndsAt} > ${t.trialStartsAt}`
+    ),
   ]
 );
 
@@ -53,7 +65,7 @@ export const business = pgTable(
     segment: text('segment').notNull(),
     electricalSystem: text('electrical_system').notNull(),
     roomCount: integer('room_count'),
-    isActive: text('is_active').notNull().default('true'),
+    isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

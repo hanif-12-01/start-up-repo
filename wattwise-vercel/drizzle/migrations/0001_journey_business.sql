@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS "user_plan" (
   CONSTRAINT "user_plan_user_id_unique" UNIQUE ("user_id"),
   CONSTRAINT "user_plan_idempotency_key_unique" UNIQUE ("idempotency_key"),
   CONSTRAINT "user_plan_plan_check" CHECK ("plan" IN ('FREE', 'PRO_TRIAL')),
+  CONSTRAINT "user_plan_free_no_trial_check"
+    CHECK ("plan" != 'FREE' OR ("trial_starts_at" IS NULL AND "trial_ends_at" IS NULL)),
+  CONSTRAINT "user_plan_trial_dates_required_check"
+    CHECK ("plan" != 'PRO_TRIAL' OR ("trial_starts_at" IS NOT NULL AND "trial_ends_at" IS NOT NULL)),
+  CONSTRAINT "user_plan_trial_end_after_start_check"
+    CHECK ("trial_starts_at" IS NULL OR "trial_ends_at" > "trial_starts_at"),
   CONSTRAINT "user_plan_user_id_fk" FOREIGN KEY ("user_id")
     REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action
 );
@@ -27,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "business" (
   "segment" text NOT NULL,
   "electrical_system" text NOT NULL,
   "room_count" integer,
-  "is_active" text DEFAULT 'true' NOT NULL,
+  "is_active" boolean DEFAULT true NOT NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 
