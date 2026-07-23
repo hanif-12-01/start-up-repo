@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-const booleanFlag = z.preprocess(
-  (val) => val === 'true' || val === true,
-  z.boolean()
-).default(false);
+const booleanFlag = z
+  .preprocess((val) => val === 'true' || val === true, z.boolean())
+  .default(false);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -24,11 +23,20 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+export function sanitizeEnvError(error: z.ZodError): string {
+  // Format error safely without logging secret string contents
+  const issueSummaries = error.issues.map(
+    (issue) => `${issue.path.join('.')}: ${issue.message}`
+  );
+  return `Invalid environment configuration:\n - ${issueSummaries.join('\n - ')}`;
+}
+
 export function parseEnv(input: Record<string, string | undefined>): Env {
   const result = envSchema.safeParse(input);
   if (!result.success) {
-    console.error('❌ Invalid environment variables configuration:', result.error.format());
-    throw new Error('Invalid environment variables configuration');
+    const safeErrorMessage = sanitizeEnvError(result.error);
+    console.error('❌ Environment validation failed');
+    throw new Error(safeErrorMessage);
   }
   return result.data;
 }

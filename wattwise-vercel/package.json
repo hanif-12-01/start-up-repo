@@ -2,6 +2,7 @@
   "name": "wattwise-vercel",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "engines": {
     "node": "24.x"
   },
@@ -17,10 +18,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run tests/unit",
+    "test:integration": "node scripts/run-with-postgres.js vitest run tests/integration"
   },
   "dependencies": {
+    "better-auth": "1.6.24",
+    "drizzle-orm": "0.45.2",
     "next": "16.2.11",
+    "pg": "8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"
@@ -28,8 +33,10 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",

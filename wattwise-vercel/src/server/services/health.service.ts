@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { getPool } from '@/server/db/client';
 
 export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'error';
@@ -13,6 +14,7 @@ export interface DatabaseHealthResult {
   timestamp: string;
   provider: 'neon-postgresql';
   configured: boolean;
+  message?: string;
 }
 
 export interface ReleaseInfoResult {
@@ -36,14 +38,45 @@ export class HealthCheckService {
     };
   }
 
-  public static getDatabaseHealth(): DatabaseHealthResult {
+  public static async getDatabaseHealth(): Promise<{ result: DatabaseHealthResult; httpStatus: number }> {
     const isConfigured = Boolean(env.DATABASE_URL && env.DATABASE_URL.length > 0);
-    return {
-      status: isConfigured ? 'ok' : 'unconfigured',
-      timestamp: new Date().toISOString(),
-      provider: 'neon-postgresql',
-      configured: isConfigured,
-    };
+
+    if (!isConfigured) {
+      return {
+        result: {
+          status: 'unconfigured',
+          timestamp: new Date().toISOString(),
+          provider: 'neon-postgresql',
+          configured: false,
+        },
+        httpStatus: 200,
+      };
+    }
+
+    try {
+      const pool = getPool();
+      await pool.query('SELECT 1;');
+      return {
+        result: {
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          provider: 'neon-postgresql',
+          configured: true,
+        },
+        httpStatus: 200,
+      };
+    } catch {
+      return {
+        result: {
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          provider: 'neon-postgresql',
+          configured: true,
+          message: 'Database connection failed',
+        },
+        httpStatus: 503,
+      };
+    }
   }
 
   public static getReleaseInfo(): ReleaseInfoResult {
