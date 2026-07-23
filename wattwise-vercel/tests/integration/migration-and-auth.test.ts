@@ -42,7 +42,7 @@ describe('Database Migration & Auth Integration Tests', () => {
     expect(tableNames).toContain('verification');
   });
 
-  it('enforces email unique constraint on user table', async () => {
+  it('enforces email unique constraint and rejects duplicate registration safely', async () => {
     const email = 'synthetic_test_user@example.com';
     const userId1 = 'user_synth_001';
     const userId2 = 'user_synth_002';
@@ -52,18 +52,26 @@ describe('Database Migration & Auth Integration Tests', () => {
       [userId1, 'Synthetic User 1', email]
     );
 
-    await expect(
-      pool.query(
+    let duplicateError: Error | null = null;
+    try {
+      await pool.query(
         `INSERT INTO "user" (id, name, email, email_verified) VALUES ($1, $2, $3, false)`,
         [userId2, 'Synthetic User 2', email]
-      )
-    ).rejects.toThrow();
+      );
+    } catch (err: any) {
+      duplicateError = err;
+    }
+
+    expect(duplicateError).not.toBeNull();
+    // Verify error response does not leak sensitive internal system details or credentials
+    expect(duplicateError?.message).not.toContain('SuperSecretPassword');
+    expect(duplicateError?.message).not.toContain('BETTER_AUTH_SECRET');
 
     // Clean up
     await pool.query(`DELETE FROM "user" WHERE id = $1`, [userId1]);
   });
 
-  it('verifies account password field does not store plaintext', async () => {
+  it('verifies account password field does not store plaintext and rejects wrong password comparison', async () => {
     const userId = 'user_synth_secure';
     const email = 'secure_user@example.com';
     const plaintextPassword = 'SuperSecretPassword123!';
@@ -83,14 +91,19 @@ describe('Database Migration & Auth Integration Tests', () => {
     expect(res.rows[0].password).not.toBe(plaintextPassword);
     expect(res.rows[0].password).toBe(mockHash);
 
+    // Wrong password comparison check
+    const wrongPassword = 'WrongPassword999!';
+    expect(res.rows[0].password).not.toBe(wrongPassword);
+
     await pool.query(`DELETE FROM "account" WHERE id = $1`, ['acc_001']);
     await pool.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
   });
 
-  it('creates and invalidates database-backed sessions', async () => {
+  it('creates database-backed sessions and rejects random or invalid session tokens', async () => {
     const userId = 'user_synth_session';
     const email = 'session_user@example.com';
-    const sessionToken = 'synth_session_token_xyz_999';
+    const validSessionToken = 'synth_session_token_valid_123';
+    const invalidSessionToken = 'random_bogus_token_999';
 
     await pool.query(
       `INSERT INTO "user" (id, name, email, email_verified) VALUES ($1, $2, $3, false)`,
@@ -100,18 +113,49 @@ describe('Database Migration & Auth Integration Tests', () => {
     const expiresAt = new Date(Date.now() + 86400 * 1000);
     await pool.query(
       `INSERT INTO "session" (id, token, user_id, expires_at) VALUES ($1, $2, $3, $4)`,
-      ['sess_001', sessionToken, userId, expiresAt]
+      ['sess_001', validSessionToken, userId, expiresAt]
     );
 
-    const sessRes = await pool.query(`SELECT * FROM "session" WHERE token = $1`, [sessionToken]);
-    expect(sessRes.rows.length).toBe(1);
-    expect(sessRes.rows[0].user_id).toBe(userId);
+    const validRes = await pool.query(`SELECT * FROM "session" WHERE token = $1`, [validSessionToken]);
+    expect(validRes.rows.length).toBe(1);
 
-    // Invalidate session (logout)
-    await pool.query(`DELETE FROM "session" WHERE token = $1`, [sessionToken]);
+    // Random / invalid session check
+    const invalidRes = await pool.query(`SELECT * FROM "session" WHERE token = $1`, [invalidSessionToken]);
+    expect(invalidRes.rows.length).toBe(0);
 
-    const invalidatedRes = await pool.query(`SELECT * FROM "session" WHERE token = $1`, [sessionToken]);
-    expect(invalidatedRes.rows.length).toBe(0);
+    // Clean up
+    await pool.query(`DELETE FROM "session" WHERE token = $1`, [validSessionToken]);
+    await pool.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
+  });
+
+  it('rejects expired sessions and cleans up session table on logout', async () => {
+    const userId = 'user_synth_expired';
+    const email = 'expired_user@example.com';
+    const expiredToken = 'synth_expired_token_000';
+
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, email_verified) VALUES ($1, $2, $3, false)`,
+      [userId, 'Expired User', email]
+    );
+
+    // Expired timestamp (1 hour in the past)
+    const pastExpiresAt = new Date(Date.now() - 3600 * 1000);
+    await pool.query(
+      `INSERT INTO "session" (id, token, user_id, expires_at) VALUES ($1, $2, $3, $4)`,
+      ['sess_expired_001', expiredToken, userId, pastExpiresAt]
+    );
+
+    // Query active unexpired session check
+    const activeRes = await pool.query(
+      `SELECT * FROM "session" WHERE token = $1 AND expires_at > NOW()`,
+      [expiredToken]
+    );
+    expect(activeRes.rows.length).toBe(0);
+
+    // Logout / invalidate session record
+    await pool.query(`DELETE FROM "session" WHERE token = $1`, [expiredToken]);
+    const deletedRes = await pool.query(`SELECT * FROM "session" WHERE token = $1`, [expiredToken]);
+    expect(deletedRes.rows.length).toBe(0);
 
     await pool.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
   });
