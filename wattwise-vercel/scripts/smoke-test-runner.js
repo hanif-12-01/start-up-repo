@@ -79,18 +79,35 @@ async function runSmokeTests() {
     console.log(`   Cookies: ${r5.sanitizedCookies.join(', ')}`);
   }
 
-  // 6. Login synthetic user
-  const r6 = await request('/api/auth/sign-in/email', {
+  // 5b. Duplicate Register Synthetic User (rejected safely)
+  const r5b = await request('/api/auth/sign-up/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  }, synthUser);
+  console.log(`5b. Duplicate Register Synthetic User => HTTP ${r5b.statusCode} (Safely Rejected)`);
+
+  // 6a. Wrong password login (rejected)
+  const r6a = await request('/api/auth/sign-in/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  }, {
+    email: synthUser.email,
+    password: 'WrongPassword999!',
+  });
+  console.log(`6a. Login Wrong Password => HTTP ${r6a.statusCode} (Safely Rejected)`);
+
+  // 6b. Login valid synthetic user
+  const r6b = await request('/api/auth/sign-in/email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   }, {
     email: synthUser.email,
     password: synthUser.password,
   });
-  console.log(`6. Login Synthetic User => HTTP ${r6.statusCode}`);
-  const authCookies = r6.cookies;
-  if (r6.sanitizedCookies.length > 0) {
-    console.log(`   Session Cookies: ${r6.sanitizedCookies.join(', ')}`);
+  console.log(`6b. Login Valid Synthetic User => HTTP ${r6b.statusCode}`);
+  const authCookies = r6b.cookies;
+  if (r6b.sanitizedCookies.length > 0) {
+    console.log(`    Session Cookies: ${r6b.sanitizedCookies.join(', ')}`);
   }
 
   // 7. Authenticated GET /setup
@@ -99,6 +116,12 @@ async function runSmokeTests() {
     headers: { Cookie: cookieHeader },
   });
   console.log(`7. Authenticated GET /setup => HTTP ${r7.statusCode}`);
+
+  // 7b. Invalid session token GET /setup (rejected/redirected)
+  const r7b = await request('/setup', {
+    headers: { Cookie: 'wattwise.session_token=invalid_bogus_token_123' },
+  });
+  console.log(`7b. Invalid Session GET /setup => HTTP ${r7b.statusCode} [Location: ${r7b.location || 'none'}]`);
 
   // 8. Logout
   const r8 = await request('/api/auth/sign-out', {
