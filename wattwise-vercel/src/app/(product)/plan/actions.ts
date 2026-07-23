@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { requireUserId } from '@/server/auth/session';
-import { selectPlan, resolveJourneyStep, getJourneyRedirect } from '@/server/services/journey.service';
+import { selectPlan, resolveJourneyStep, getJourneyRedirect, PlanTransitionForbiddenError } from '@/server/services/journey.service';
 import { selectPlanSchema } from '@/server/validation/journey';
 
 export async function selectPlanAction(_prev: unknown, formData: FormData) {
@@ -16,7 +16,15 @@ export async function selectPlanAction(_prev: unknown, formData: FormData) {
     return { error: 'Pilihan paket tidak valid.' };
   }
 
-  const result = await selectPlan(userId, parsed.data.plan);
+  let result;
+  try {
+    result = await selectPlan(userId, parsed.data.plan);
+  } catch (err) {
+    if (err instanceof PlanTransitionForbiddenError) {
+      return { error: 'Perubahan paket tidak diizinkan.' };
+    }
+    throw err;
+  }
 
   if (result.alreadyExists) {
     const step = await resolveJourneyStep(userId);

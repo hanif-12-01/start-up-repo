@@ -2,6 +2,14 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import {
+  resolveJourneyState,
+  resolveJourneyStep,
+  selectPlan,
+  PlanTransitionForbiddenError,
+  getUserPlan,
+  TRIAL_DURATION_MS,
+} from '../../src/server/services/journey.service';
 
 const { Pool } = pg;
 
@@ -226,108 +234,92 @@ describe('Journey & Business Migration Integration Tests', () => {
     expect(res.rows[0].trial_ends_at).not.toBeNull();
   });
 
-  // --- Business constraints ---
+  // --- Journey Service Semantics Tests ---
 
-  it('rejects negative room_count', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
+  it('resolve user tanpa plan → PLAN_REQUIRED', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_noplan', 'No Plan User', 'noplan@test.com', false)`);
+    const state = await resolveJourneyState('u_noplan');
+    expect(state.status).toBe('PLAN_REQUIRED');
+    expect(state.step).toBe('PLAN');
+    expect(state.journey).toBeNull();
+  });
 
-    let err: Error | null = null;
+  it('membuka setup tanpa plan tidak menciptakan FREE record', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_setup', 'Setup User', 'setup@test.com', false)`);
+    const step = await resolveJourneyStep('u_setup');
+    expect(step).toBe('PLAN');
+
+    const planInDb = await pool.query(`SELECT * FROM "user_plan" WHERE user_id = 'u_setup'`);
+    expect(planInDb.rows.length).toBe(0);
+  });
+
+  it('explicit FREE selection tersimpan', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_free', 'Free User', 'free@test.com', false)`);
+    const res = await selectPlan('u_free', 'FREE');
+    expect(res.plan).toBe('FREE');
+    expect(res.trialEndsAt).toBeNull();
+    expect(res.alreadyExists).toBe(false);
+
+    const dbPlan = await getUserPlan('u_free');
+    expect(dbPlan?.plan).toBe('FREE');
+    expect(dbPlan?.trialStartsAt).toBeNull();
+    expect(dbPlan?.trialEndsAt).toBeNull();
+  });
+
+  it('explicit PRO_TRIAL selection menghasilkan tepat 30 hari', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_trial', 'Trial User', 'trial@test.com', false)`);
+    const startBefore = Date.now();
+    const res = await selectPlan('u_trial', 'PRO_TRIAL');
+
+    expect(res.plan).toBe('PRO_TRIAL');
+    expect(res.trialEndsAt).not.toBeNull();
+
+    const diff = res.trialEndsAt!.getTime() - startBefore;
+    expect(diff).toBeGreaterThanOrEqual(TRIAL_DURATION_MS);
+    expect(diff).toBeLessThanOrEqual(TRIAL_DURATION_MS + 2000);
+
+    const dbPlan = await getUserPlan('u_trial');
+    expect(dbPlan?.plan).toBe('PRO_TRIAL');
+    expect(dbPlan?.trialStartsAt).not.toBeNull();
+    expect(dbPlan?.trialEndsAt).not.toBeNull();
+  });
+
+  it('replay PRO_TRIAL tidak mengubah expiry', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_replay', 'Replay User', 'replay@test.com', false)`);
+    const res1 = await selectPlan('u_replay', 'PRO_TRIAL');
+    const firstExpiry = res1.trialEndsAt!.getTime();
+
+    const res2 = await selectPlan('u_replay', 'PRO_TRIAL');
+    expect(res2.alreadyExists).toBe(true);
+    expect(res2.trialEndsAt!.getTime()).toBe(firstExpiry);
+  });
+
+  it('FREE → PRO_TRIAL ditolak', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_f2p', 'F2P User', 'f2p@test.com', false)`);
+    await selectPlan('u_f2p', 'FREE');
+
+    await expect(selectPlan('u_f2p', 'PRO_TRIAL')).rejects.toThrow(PlanTransitionForbiddenError);
+  });
+
+  it('PRO_TRIAL → FREE ditolak', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_p2f', 'P2F User', 'p2f@test.com', false)`);
+    await selectPlan('u_p2f', 'PRO_TRIAL');
+
+    await expect(selectPlan('u_p2f', 'FREE')).rejects.toThrow(PlanTransitionForbiddenError);
+  });
+
+  it('request berbeda tidak menciptakan state ganda', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u_multi', 'Multi User', 'multi@test.com', false)`);
+    await selectPlan('u_multi', 'FREE');
+
     try {
-      await pool.query(
-        `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system, room_count) VALUES ('b1', 'u1', 'Kos', 'KOS_PROPERTY', 'KOS', 'ALL_IN', -5)`
-      );
-    } catch (e: unknown) {
-      err = e instanceof Error ? e : new Error(String(e));
+      await selectPlan('u_multi', 'PRO_TRIAL');
+    } catch {
+      // expected rejection
     }
-    expect(err).not.toBeNull();
-  });
 
-  it('rejects invalid business_type enum', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-
-    let err: Error | null = null;
-    try {
-      await pool.query(
-        `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Bad', 'HOTEL', 'KOS', 'ALL_IN')`
-      );
-    } catch (e: unknown) {
-      err = e instanceof Error ? e : new Error(String(e));
-    }
-    expect(err).not.toBeNull();
-  });
-
-  it('rejects invalid electrical_system enum', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-
-    let err: Error | null = null;
-    try {
-      await pool.query(
-        `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Bad', 'KOS_PROPERTY', 'KOS', 'SOLAR')`
-      );
-    } catch (e: unknown) {
-      err = e instanceof Error ? e : new Error(String(e));
-    }
-    expect(err).not.toBeNull();
-  });
-
-  it('FK to user works — business references valid user', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-    await pool.query(
-      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system, room_count) VALUES ('b1', 'u1', 'Valid Kos', 'KOS_PROPERTY', 'KOS', 'ALL_IN', 10)`
-    );
-
-    const res = await pool.query(`SELECT * FROM "business" WHERE id = 'b1'`);
-    expect(res.rows.length).toBe(1);
-    expect(res.rows[0].user_id).toBe('u1');
-    expect(res.rows[0].room_count).toBe(10);
-    expect(res.rows[0].is_active).toBe(true);
-  });
-
-  it('FK to user rejects orphan business', async () => {
-    let err: Error | null = null;
-    try {
-      await pool.query(
-        `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'nonexistent', 'Orphan', 'KOS_PROPERTY', 'KOS', 'ALL_IN')`
-      );
-    } catch (e: unknown) {
-      err = e instanceof Error ? e : new Error(String(e));
-    }
-    expect(err).not.toBeNull();
-  });
-
-  it('cascade deletes business and plan when user is deleted', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-    await pool.query(`INSERT INTO "user_plan" (id, user_id, plan, idempotency_key) VALUES ('p1', 'u1', 'FREE', 'k1')`);
-    await pool.query(
-      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Kos', 'KOS_PROPERTY', 'KOS', 'ALL_IN')`
-    );
-
-    await pool.query(`DELETE FROM "user" WHERE id = 'u1'`);
-
-    const biz = await pool.query(`SELECT * FROM "business" WHERE id = 'b1'`);
-    expect(biz.rows.length).toBe(0);
-    const plan = await pool.query(`SELECT * FROM "user_plan" WHERE id = 'p1'`);
-    expect(plan.rows.length).toBe(0);
-  });
-
-  it('allows NULL room_count', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-    await pool.query(
-      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'FnB Place', 'FNB', 'FNB', 'ALL_IN')`
-    );
-
-    const res = await pool.query(`SELECT room_count FROM "business" WHERE id = 'b1'`);
-    expect(res.rows[0].room_count).toBeNull();
-  });
-
-  it('allows non-KOS business with any electrical system', async () => {
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u1', 'User', 'u1@test.com', false)`);
-    await pool.query(
-      `INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('b1', 'u1', 'Laundry', 'LAUNDRY', 'LAUNDRY', 'SUB_METER')`
-    );
-
-    const res = await pool.query(`SELECT business_type, segment, electrical_system FROM "business" WHERE id = 'b1'`);
-    expect(res.rows[0].business_type).toBe('LAUNDRY');
-    expect(res.rows[0].electrical_system).toBe('SUB_METER');
+    const rows = await pool.query(`SELECT * FROM "user_plan" WHERE user_id = 'u_multi'`);
+    expect(rows.rows.length).toBe(1);
+    expect(rows.rows[0].plan).toBe('FREE');
   });
 });

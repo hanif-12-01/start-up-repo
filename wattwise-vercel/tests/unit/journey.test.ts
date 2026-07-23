@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { PLAN_TYPES, BUSINESS_TYPES, ELECTRICAL_SYSTEMS, BUSINESS_SEGMENTS } from '../../src/server/db/schema/journey';
 import { selectPlanSchema, createBusinessSchema } from '../../src/server/validation/journey';
-import { JOURNEY_ROUTES } from '../../src/server/services/journey.service';
+import {
+  JOURNEY_ROUTES,
+  TRIAL_DURATION_DAYS,
+  TRIAL_DURATION_MS,
+  PlanTransitionForbiddenError,
+} from '../../src/server/services/journey.service';
 
 describe('Plan Validation', () => {
   it('accepts FREE plan', () => {
@@ -25,20 +30,25 @@ describe('Plan Validation', () => {
   });
 });
 
-describe('Trial Expiry Calculation', () => {
-  it('calculates 30 days from now', () => {
-    const now = new Date('2026-07-23T00:00:00Z');
-    const trialEnd = new Date(now.getTime() + 30 * 86400000);
-    expect(trialEnd.toISOString()).toBe('2026-08-22T00:00:00.000Z');
+describe('Trial Expiry Calculation & Constants', () => {
+  it('defines TRIAL_DURATION_DAYS as exactly 30', () => {
+    expect(TRIAL_DURATION_DAYS).toBe(30);
   });
 
-  it('30-day duration is exactly 2592000000ms', () => {
-    expect(30 * 86400000).toBe(2592000000);
+  it('defines TRIAL_DURATION_MS as exactly 2592000000ms', () => {
+    expect(TRIAL_DURATION_MS).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(TRIAL_DURATION_MS).toBe(2592000000);
+  });
+
+  it('calculates 30 days from now', () => {
+    const now = new Date('2026-07-23T00:00:00Z');
+    const trialEnd = new Date(now.getTime() + TRIAL_DURATION_MS);
+    expect(trialEnd.toISOString()).toBe('2026-08-22T00:00:00.000Z');
   });
 
   it('trial end must be after trial start', () => {
     const start = new Date('2026-07-23T00:00:00Z');
-    const end = new Date(start.getTime() + 30 * 86400000);
+    const end = new Date(start.getTime() + TRIAL_DURATION_MS);
     expect(end.getTime()).toBeGreaterThan(start.getTime());
   });
 
@@ -53,11 +63,17 @@ describe('Trial Expiry Calculation', () => {
     const trialPlan = {
       plan: 'PRO_TRIAL',
       trialStartsAt: now,
-      trialEndsAt: new Date(now.getTime() + 30 * 86400000),
+      trialEndsAt: new Date(now.getTime() + TRIAL_DURATION_MS),
     };
     expect(trialPlan.trialStartsAt).not.toBeNull();
     expect(trialPlan.trialEndsAt).not.toBeNull();
     expect(trialPlan.trialEndsAt.getTime()).toBeGreaterThan(trialPlan.trialStartsAt.getTime());
+  });
+
+  it('PlanTransitionForbiddenError error class structure', () => {
+    const err = new PlanTransitionForbiddenError();
+    expect(err.name).toBe('PlanTransitionForbiddenError');
+    expect(err.message).toContain('Plan switching or conversion is forbidden');
   });
 });
 

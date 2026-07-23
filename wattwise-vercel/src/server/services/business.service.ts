@@ -1,7 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import { business } from '@/server/db/schema/journey';
-import { assertResourceOwner } from '@/server/policies/tenant';
 
 export interface CreateBusinessInput {
   name: string;
@@ -32,14 +31,18 @@ export async function createBusiness(userId: string, input: CreateBusinessInput)
 }
 
 export async function getBusinessesByUser(userId: string) {
+  if (!userId) return [];
   const db = getDb();
   return db.select().from(business).where(eq(business.userId, userId));
 }
 
 export async function getBusinessById(sessionUserId: string, businessId: string) {
+  if (!sessionUserId || !businessId) return null;
   const db = getDb();
-  const rows = await db.select().from(business).where(eq(business.id, businessId)).limit(1);
-  if (!rows.length) return null;
-  assertResourceOwner(sessionUserId, rows[0].userId);
-  return rows[0];
+  const rows = await db
+    .select()
+    .from(business)
+    .where(and(eq(business.id, businessId), eq(business.userId, sessionUserId)))
+    .limit(1);
+  return rows[0] ?? null;
 }
