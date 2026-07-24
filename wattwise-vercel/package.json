@@ -22,8 +22,10 @@
     "test:integration": "node scripts/run-with-postgres.js vitest run tests/integration"
   },
   "dependencies": {
+    "@gsap/react": "2.1.2",
     "better-auth": "1.6.24",
     "drizzle-orm": "0.45.2",
+    "gsap": "3.15.0",
     "next": "16.2.11",
     "pg": "8.22.0",
     "react": "19.2.4",
