@@ -20,7 +20,6 @@ export function usePrefersReducedMotion(): boolean {
       setReducedMotion(event.matches);
     };
 
-    setReducedMotion(mediaQuery.matches);
     mediaQuery.addEventListener('change', handleChange);
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
