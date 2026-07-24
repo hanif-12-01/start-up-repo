@@ -9,7 +9,7 @@ export default function HomePage() {
     <PageReveal className="flex-1 flex flex-col justify-center items-center px-4 py-16 max-w-4xl mx-auto text-center">
       <Reveal direction="down" delay={0.05}>
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
           WattWise AI — Energy Motion Foundation
         </div>
       </Reveal>
