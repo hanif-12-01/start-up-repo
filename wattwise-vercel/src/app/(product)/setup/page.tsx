@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getOptionalSession } from '@/server/auth/session';
 import { resolveJourneyStep, getJourneyRedirect, getUserPlan } from '@/server/services/journey.service';
@@ -82,12 +83,18 @@ export default async function SetupPage() {
         </Reveal>
 
         <Reveal direction="up" delay={0.25}>
-          <section className="bg-amber-950/40 border border-amber-800/80 rounded-xl p-6 space-y-3">
-            <h2 className="text-lg font-semibold text-amber-300">Langkah Berikutnya</h2>
-            <p className="text-sm text-amber-200/90 leading-relaxed">
-              Fitur input tagihan listrik akan tersedia pada fase berikutnya (IT-DIAG-01B).
-              Setelah tagihan dimasukkan, WattWise dapat membantu menganalisis perubahan biaya dan mempersempit bagian yang perlu diperiksa.
+          <section className="space-y-4 rounded-xl border border-emerald-800/80 bg-emerald-950/30 p-6">
+            <h2 className="text-lg font-semibold text-emerald-300">Mulai dari tagihan listrik Anda</h2>
+            <p className="text-sm leading-relaxed text-emerald-100/80">
+              Masukkan total tagihan dan periodenya. kWh, tarif, dan catatan dapat ditambahkan bila tersedia.
+              Setelah ada dua periode terpisah, WattWise membandingkan biaya harian tanpa mengklaim penyebabnya.
             </p>
+            <Link
+              href="/bills/new"
+              className="inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+            >
+              Masukkan Tagihan Pertama
+            </Link>
           </section>
         </Reveal>
       </PageReveal>
