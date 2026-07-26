@@ -1,0 +1,91 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "status": 200,
+      "finalPath": "/"
+    },
+    {
+      "route": "/register",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/login",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/plan",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/onboarding",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/businesses/new",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/setup",
+      "status": 200,
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/bills/new",
+      "status": 200,
+      "finalPath": "/bills/new"
+    },
+    {
+      "route": "/bills",
+      "status": 200,
+      "finalPath": "/bills"
+    },
+    {
+      "route": "/diagnostics/67d3d516-3d6f-4c38-895c-06500ad56a4b",
+      "status": 404,
+      "finalPath": "/diagnostics/67d3d516-3d6f-4c38-895c-06500ad56a4b"
+    }
+  ],
+  "viewports": {
+    "360x800": {
+      "width": 360,
+      "height": 800,
+      "scrollWidth": 360,
+      "scrollHeight": 3463,
+      "bodyTextLength": 1924
+    },
+    "768x1024": {
+      "width": 768,
+      "height": 1024,
+      "scrollWidth": 753,
+      "scrollHeight": 2772,
+      "bodyTextLength": 1924
+    },
+    "1280x800": {
+      "width": 1280,
+      "height": 800,
+      "scrollWidth": 1265,
+      "scrollHeight": 2726,
+      "bodyTextLength": 1924
+    }
+  },
+  "pendingProtection": true,
+  "reducedMotion": true,
+  "keyboardFocus": true,
+  "nativeScroll": true,
+  "resume": true,
+  "completion": true,
+  "immutable": true,
+  "dataQualityNoCta": true,
+  "crossTenant404": true,
+  "consoleIssueCount": 0,
+  "http5xxCount": 0,
+  "exactAnswerLabels": true,
+  "finalScreenshotConsoleIssueCount": 0,
+  "finalScreenshotHttp5xxCount": 0
+}
