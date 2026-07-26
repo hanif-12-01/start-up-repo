@@ -73,7 +73,12 @@ async function main() {
     const command = `"${process.execPath}" "${vitestPath}" run tests/integration --no-file-parallelism`;
 
     console.log(`▶ Executing: ${command}`);
-    const env = { ...process.env, DATABASE_URL: activeDbUrl };
+    const env = {
+      ...process.env,
+      DATABASE_URL: activeDbUrl,
+      DIAGNOSTICS_ENABLED: 'true',
+      SEGMENT_TEMPLATES_ENABLED: 'true',
+    };
 
     execSync(command, { env, stdio: 'inherit', shell: true });
     console.log('✅ Integration test command executed successfully.');
