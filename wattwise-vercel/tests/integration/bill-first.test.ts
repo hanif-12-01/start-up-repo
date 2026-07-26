@@ -56,6 +56,8 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, connectionTimeoutMillis: 5000, max: 4 });
+    await pool.query('DROP TABLE IF EXISTS "inspection_item" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "inspection_plan" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_candidate" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_answer" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_session" CASCADE');
@@ -70,6 +72,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
   });
 
   afterAll(async () => {
+    await pool.query(readRollbackMigration('0005_guided_inspections_rollback.sql'));
     await pool.query(readRollbackMigration('0004_diagnostic_candidates_rollback.sql'));
     await pool.query(readRollbackMigration('0003_diagnostic_questionnaire_rollback.sql'));
     await pool.query(readRollbackMigration('0002_bill_first_rollback.sql'));
@@ -93,7 +96,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
     await pool.query('DELETE FROM "user"');
   });
 
-  it('discovers through 0004 and proves the newest migration up-down-up', async () => {
+  it('discovers through 0005 and proves the newest migration up-down-up', async () => {
     const discovered = listForwardMigrationNames();
     expect(discovered).toEqual([
       '0000_auth_schema.sql',
@@ -101,18 +104,19 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
       '0002_bill_first.sql',
       '0003_diagnostic_questionnaire.sql',
       '0004_diagnostic_candidates.sql',
+      '0005_guided_inspections.sql',
     ]);
 
-    const firstUp = await pool.query(`SELECT to_regclass('public.diagnostic_candidate') AS table_name`);
-    expect(firstUp.rows[0].table_name).toBe('diagnostic_candidate');
+    const firstUp = await pool.query(`SELECT to_regclass('public.inspection_plan') AS table_name`);
+    expect(firstUp.rows[0].table_name).toBe('inspection_plan');
 
-    await pool.query(readRollbackMigration('0004_diagnostic_candidates_rollback.sql'));
-    const down = await pool.query(`SELECT to_regclass('public.diagnostic_candidate') AS table_name`);
+    await pool.query(readRollbackMigration('0005_guided_inspections_rollback.sql'));
+    const down = await pool.query(`SELECT to_regclass('public.inspection_plan') AS table_name`);
     expect(down.rows[0].table_name).toBeNull();
 
-    await pool.query(readForwardMigration('0004_diagnostic_candidates.sql'));
-    const secondUp = await pool.query(`SELECT to_regclass('public.diagnostic_candidate') AS table_name`);
-    expect(secondUp.rows[0].table_name).toBe('diagnostic_candidate');
+    await pool.query(readForwardMigration('0005_guided_inspections.sql'));
+    const secondUp = await pool.query(`SELECT to_regclass('public.inspection_plan') AS table_name`);
+    expect(secondUp.rows[0].table_name).toBe('inspection_plan');
   });
 
   it('verifies bigint/numeric columns, constraints, foreign key, and index', async () => {

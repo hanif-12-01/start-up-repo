@@ -331,7 +331,10 @@ export async function getDiagnosticCandidateResults(
   if (!diagnosticsEnabled()) throw new DiagnosticsUnavailableError();
   const session = await findDiagnosticSessionForUser(userId, sessionId);
   if (!session) return null;
-  if (session.status !== 'ANALYZED') {
+  if (
+    session.status !== 'ANALYZED' &&
+    session.status !== 'INSPECTION_IN_PROGRESS'
+  ) {
     throw new DiagnosticCandidateGenerationNotReadyError();
   }
   const candidates = await findDiagnosticCandidatesForUser(

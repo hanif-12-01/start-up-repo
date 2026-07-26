@@ -8,7 +8,10 @@ import {
   DiagnosticsUnavailableError,
   getDiagnosticCandidateResults,
 } from '@/server/services/diagnostic.service';
+import { INSPECTION_ANSWER_LABELS } from '@/server/services/inspection-presentation';
+import { getCandidateInspectionAvailability } from '@/server/services/inspection.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { StartInspectionForm } from './StartInspectionForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +60,15 @@ export default async function DiagnosticResultsPage({
   if (!view) notFound();
 
   const { session, candidates } = view;
+  const availability = await getCandidateInspectionAvailability(
+    userId,
+    sessionId,
+    candidates
+  );
+  if (!availability) notFound();
+  const inspectionByCandidate = new Map(
+    availability.map((item) => [item.candidateId, item])
+  );
 
   return (
     <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
@@ -149,6 +161,51 @@ export default async function DiagnosticResultsPage({
                         </ul>
                       </section>
                     )}
+
+                    {candidate.candidateType === 'DATA_QUALITY' ? (
+                      <section className="mt-5 rounded-lg border border-amber-800/70 bg-amber-950/30 p-4">
+                        <h3 className="text-sm font-semibold text-amber-200">
+                          Tidak memerlukan pemeriksaan fisik
+                        </h3>
+                        <p className="mt-2 text-sm leading-relaxed text-amber-100/70">
+                          Lengkapi informasi yang tersedia bila memungkinkan. Jangan
+                          melakukan pemeriksaan perangkat atau instalasi untuk kandidat ini.
+                        </p>
+                      </section>
+                    ) : (() => {
+                        const inspection = inspectionByCandidate.get(candidate.id);
+                        if (!inspection?.inspectable) {
+                          return (
+                            <p className="mt-5 text-sm text-slate-500">
+                              Panduan observasi aman belum tersedia untuk bagian ini.
+                            </p>
+                          );
+                        }
+                        if (inspection.planId) {
+                          const path = `/diagnostics/${encodeURIComponent(
+                            sessionId
+                          )}/inspections/${encodeURIComponent(inspection.planId)}`;
+                          return (
+                            <div className="mt-5">
+                              <Link
+                                href={path}
+                                className="inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                              >
+                                {inspection.planStatus === 'COMPLETED'
+                                  ? 'Lihat hasil pemeriksaan'
+                                  : 'Lanjutkan pemeriksaan'}
+                              </Link>
+                              {inspection.resultCode && (
+                                <p className="mt-2 text-xs text-slate-400">
+                                  Hasil tercatat:{' '}
+                                  {INSPECTION_ANSWER_LABELS[inspection.resultCode]}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return <StartInspectionForm candidateId={candidate.id} />;
+                      })()}
                   </article>
                 </Reveal>
               </li>

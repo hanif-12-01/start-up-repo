@@ -85,6 +85,8 @@ describe('IT-DIAG-02 PostgreSQL integration', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, connectionTimeoutMillis: 5000, max: 8 });
+    await pool.query('DROP TABLE IF EXISTS "inspection_item" CASCADE');
+    await pool.query('DROP TABLE IF EXISTS "inspection_plan" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_candidate" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_answer" CASCADE');
     await pool.query('DROP TABLE IF EXISTS "diagnostic_session" CASCADE');
@@ -99,6 +101,7 @@ describe('IT-DIAG-02 PostgreSQL integration', () => {
   });
 
   afterAll(async () => {
+    await pool.query(readRollbackMigration('0005_guided_inspections_rollback.sql'));
     await pool.query(readRollbackMigration('0004_diagnostic_candidates_rollback.sql'));
     await pool.query(readRollbackMigration('0003_diagnostic_questionnaire_rollback.sql'));
     await pool.query(readRollbackMigration('0002_bill_first_rollback.sql'));

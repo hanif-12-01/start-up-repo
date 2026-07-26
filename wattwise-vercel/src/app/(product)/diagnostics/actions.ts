@@ -16,10 +16,24 @@ import {
   generateCandidatesForDiagnosticSession,
   startDiagnosticSession,
 } from '@/server/services/diagnostic.service';
+import {
+  InspectionAnswerNotAllowedError,
+  InspectionCompletionNotReadyError,
+  InspectionImmutableError,
+  InspectionItemMismatchError,
+  InspectionNotEligibleError,
+  InspectionNotFoundError,
+  answerInspectionItem,
+  completeInspection,
+  startInspection,
+} from '@/server/services/inspection.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import {
   answerDiagnosticSchema,
+  answerInspectionItemSchema,
+  completeInspectionSchema,
   generateDiagnosticCandidatesSchema,
+  startInspectionSchema,
   startDiagnosticSchema,
 } from '@/server/validation/diagnostics';
 
@@ -41,7 +55,13 @@ function safeDiagnosticMessage(error: unknown) {
     error instanceof DiagnosticQuestionMismatchError ||
     error instanceof DiagnosticAnswerImmutableError ||
     error instanceof DiagnosticSessionNotCollectingError ||
-    error instanceof DiagnosticCandidateGenerationNotReadyError
+    error instanceof DiagnosticCandidateGenerationNotReadyError ||
+    error instanceof InspectionNotFoundError ||
+    error instanceof InspectionNotEligibleError ||
+    error instanceof InspectionImmutableError ||
+    error instanceof InspectionItemMismatchError ||
+    error instanceof InspectionAnswerNotAllowedError ||
+    error instanceof InspectionCompletionNotReadyError
   ) {
     return error.message;
   }
@@ -111,4 +131,83 @@ export async function generateDiagnosticCandidatesAction(
   const resultPath = `/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/results`;
   revalidatePath(resultPath);
   redirect(resultPath);
+}
+
+export async function startInspectionAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = startInspectionSchema.safeParse({
+    candidateId: formData.get('candidateId'),
+  });
+  if (!parsed.success) return { error: 'Kandidat pemeriksaan tidak valid.' };
+
+  let destination: string;
+  try {
+    const view = await startInspection(userId, parsed.data.candidateId);
+    destination = `/diagnostics/${encodeURIComponent(
+      view.plan.diagnosticSessionId
+    )}/inspections/${encodeURIComponent(view.plan.id)}`;
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  revalidatePath('/diagnostics');
+  redirect(destination);
+}
+
+export async function answerInspectionItemAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = answerInspectionItemSchema.safeParse({
+    sessionId: formData.get('sessionId'),
+    planId: formData.get('planId'),
+    itemId: formData.get('itemId'),
+    answerCode: formData.get('answerCode'),
+    note: formData.get('note'),
+  });
+  if (!parsed.success) return { error: 'Hasil atau catatan pemeriksaan tidak valid.' };
+
+  try {
+    await answerInspectionItem(userId, {
+      ...parsed.data,
+      note: parsed.data.note || null,
+    });
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const path = `/diagnostics/${encodeURIComponent(
+    parsed.data.sessionId
+  )}/inspections/${encodeURIComponent(parsed.data.planId)}`;
+  revalidatePath(path);
+  redirect(path);
+}
+
+export async function completeInspectionAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = completeInspectionSchema.safeParse({
+    sessionId: formData.get('sessionId'),
+    planId: formData.get('planId'),
+  });
+  if (!parsed.success) return { error: 'Rencana pemeriksaan tidak valid.' };
+
+  try {
+    await completeInspection(userId, parsed.data);
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const path = `/diagnostics/${encodeURIComponent(
+    parsed.data.sessionId
+  )}/inspections/${encodeURIComponent(parsed.data.planId)}`;
+  revalidatePath(path);
+  revalidatePath(`/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/results`);
+  redirect(path);
 }
