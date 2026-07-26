@@ -19,5 +19,14 @@ export const answerDiagnosticSchema = z
   })
   .strict();
 
+export const generateDiagnosticCandidatesSchema = z
+  .object({
+    sessionId: resourceId,
+  })
+  .strict();
+
 export type StartDiagnosticInput = z.infer<typeof startDiagnosticSchema>;
 export type AnswerDiagnosticInput = z.infer<typeof answerDiagnosticSchema>;
+export type GenerateDiagnosticCandidatesInput = z.infer<
+  typeof generateDiagnosticCandidatesSchema
+>;

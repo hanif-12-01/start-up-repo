@@ -6,17 +6,20 @@ import { requireUserId } from '@/server/auth/session';
 import {
   DiagnosticAnswerImmutableError,
   DiagnosticBillNotFoundError,
+  DiagnosticCandidateGenerationNotReadyError,
   DiagnosticComparisonRequiredError,
   DiagnosticQuestionMismatchError,
   DiagnosticSessionNotCollectingError,
   DiagnosticSessionNotFoundError,
   DiagnosticsUnavailableError,
   answerDiagnosticQuestion,
+  generateCandidatesForDiagnosticSession,
   startDiagnosticSession,
 } from '@/server/services/diagnostic.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import {
   answerDiagnosticSchema,
+  generateDiagnosticCandidatesSchema,
   startDiagnosticSchema,
 } from '@/server/validation/diagnostics';
 
@@ -37,7 +40,8 @@ function safeDiagnosticMessage(error: unknown) {
     error instanceof DiagnosticSessionNotFoundError ||
     error instanceof DiagnosticQuestionMismatchError ||
     error instanceof DiagnosticAnswerImmutableError ||
-    error instanceof DiagnosticSessionNotCollectingError
+    error instanceof DiagnosticSessionNotCollectingError ||
+    error instanceof DiagnosticCandidateGenerationNotReadyError
   ) {
     return error.message;
   }
@@ -86,4 +90,25 @@ export async function answerDiagnosticAction(
   }
   revalidatePath(`/diagnostics/${parsed.data.sessionId}`);
   redirect(`/diagnostics/${encodeURIComponent(parsed.data.sessionId)}`);
+}
+
+export async function generateDiagnosticCandidatesAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = generateDiagnosticCandidatesSchema.safeParse({
+    sessionId: formData.get('sessionId'),
+  });
+  if (!parsed.success) return { error: 'Sesi pemeriksaan tidak valid.' };
+
+  try {
+    await generateCandidatesForDiagnosticSession(userId, parsed.data.sessionId);
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const resultPath = `/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/results`;
+  revalidatePath(resultPath);
+  redirect(resultPath);
 }

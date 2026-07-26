@@ -9,6 +9,7 @@ import {
 } from '@/server/services/diagnostic.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { AnswerForm } from './AnswerForm';
+import { GenerateCandidatesForm } from './GenerateCandidatesForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,15 +112,10 @@ export default async function DiagnosticSessionPage({
               </p>
               <h2 className="mt-2 text-2xl font-semibold">Questionnaire selesai</h2>
               <p className="mt-3 text-sm leading-relaxed text-emerald-100/80">
-                Jawaban Anda sudah tersimpan. WattWise belum menetapkan penyebab, kandidat, atau
-                rekomendasi pada tahap ini.
+                Jawaban Anda sudah tersimpan. WattWise dapat menyusun maksimal tiga bagian
+                prioritas berdasarkan jawaban dan data tagihan yang tersedia.
               </p>
-              <Link
-                href="/bills"
-                className="mt-5 inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500"
-              >
-                Kembali ke Tagihan
-              </Link>
+              <GenerateCandidatesForm sessionId={session.id} />
             </section>
           </Reveal>
         ) : (
