@@ -1,0 +1,149 @@
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { PageReveal } from '@/components/motion/PageReveal';
+import { Reveal } from '@/components/motion/Reveal';
+import { getOptionalSession } from '@/server/auth/session';
+import {
+  DiagnosticsUnavailableError,
+  getDiagnosticQuestionnaire,
+} from '@/server/services/diagnostic.service';
+import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { AnswerForm } from './AnswerForm';
+
+export const dynamic = 'force-dynamic';
+
+const rupiah = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  maximumFractionDigits: 0,
+});
+
+function formatDate(value: string) {
+  return new Date(`${value}T00:00:00.000Z`).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function periodLabel(bill: { periodStart: string; periodEnd: string }) {
+  return `${formatDate(bill.periodStart)} - ${formatDate(bill.periodEnd)}`;
+}
+
+export default async function DiagnosticSessionPage({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}) {
+  const sessionResult = await getOptionalSession();
+  if (!sessionResult?.user) redirect('/login');
+  const userId = sessionResult.user.id;
+  const step = await resolveJourneyStep(userId);
+  if (step !== 'COMPLETE') redirect(getJourneyRedirect(step));
+
+  const { sessionId } = await params;
+  let view;
+  try {
+    view = await getDiagnosticQuestionnaire(userId, sessionId);
+  } catch (error) {
+    if (error instanceof DiagnosticsUnavailableError) {
+      return (
+        <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
+          <section className="mx-auto max-w-2xl rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
+            <h1 className="text-xl font-semibold text-amber-300">Pemeriksaan belum tersedia</h1>
+            <p className="mt-2 text-sm text-amber-100/80">{error.message}</p>
+            <Link href="/bills" className="mt-5 inline-block text-sm font-semibold text-cyan-300">
+              Kembali ke tagihan
+            </Link>
+          </section>
+        </main>
+      );
+    }
+    throw error;
+  }
+  if (!view) notFound();
+
+  const { session, nextQuestion } = view;
+
+  return (
+    <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
+      <PageReveal className="mx-auto max-w-3xl space-y-6">
+        <Reveal direction="down">
+          <header className="border-b border-slate-800 pb-5">
+            <Link href="/bills" className="text-sm font-semibold text-cyan-300 hover:text-cyan-200">
+              ← Kembali ke tagihan
+            </Link>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+              Cek kenaikan · Kos
+            </p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">Kumpulkan konteks periode</h1>
+            <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              Jawaban Anda membantu menyusun konteks. Tahap ini belum menetapkan penyebab atau diagnosis.
+            </p>
+          </header>
+        </Reveal>
+
+        <Reveal direction="up">
+          <section className="grid gap-4 rounded-xl border border-slate-700 bg-slate-800 p-5 sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Periode yang diperiksa</p>
+              <p className="mt-2 font-semibold">{periodLabel(session.currentBill)}</p>
+              <p className="mt-1 text-sm text-emerald-300">
+                {rupiah.format(session.currentBill.totalAmountRupiah)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Periode pembanding</p>
+              <p className="mt-2 font-semibold">{periodLabel(session.comparisonBill)}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {rupiah.format(session.comparisonBill.totalAmountRupiah)}
+              </p>
+            </div>
+          </section>
+        </Reveal>
+
+        {view.completed ? (
+          <Reveal direction="up">
+            <section className="rounded-xl border border-emerald-700 bg-emerald-950/30 p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+                Konteks tersimpan
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold">Questionnaire selesai</h2>
+              <p className="mt-3 text-sm leading-relaxed text-emerald-100/80">
+                Jawaban Anda sudah tersimpan. WattWise belum menetapkan penyebab, kandidat, atau
+                rekomendasi pada tahap ini.
+              </p>
+              <Link
+                href="/bills"
+                className="mt-5 inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500"
+              >
+                Kembali ke Tagihan
+              </Link>
+            </section>
+          </Reveal>
+        ) : (
+          nextQuestion && (
+            <Reveal direction="up">
+              <section className="rounded-xl border border-cyan-800/70 bg-cyan-950/20 p-6">
+                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+                  {view.answeredCount + 1} dari maksimal {view.maximumQuestionCount} pertanyaan
+                </p>
+                <h2 className="mt-3 text-xl font-semibold leading-relaxed">{nextQuestion.prompt}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  {nextQuestion.helpText}
+                </p>
+                <AnswerForm
+                  key={`${nextQuestion.code}:${nextQuestion.version}`}
+                  sessionId={session.id}
+                  questionCode={nextQuestion.code}
+                  questionVersion={nextQuestion.version}
+                />
+              </section>
+            </Reveal>
+          )
+        )}
+      </PageReveal>
+    </main>
+  );
+}

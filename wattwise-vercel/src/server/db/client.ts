@@ -13,19 +13,10 @@ declare global {
 export function getPool(): pg.Pool {
   const dbUrl = env.DATABASE_URL || 'postgresql://build_noop:build_noop@127.0.0.1:5432/build_noop';
 
-  if (process.env.NODE_ENV === 'production') {
-    return new Pool({
-      connectionString: dbUrl,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-  }
-
   if (!globalThis.__dbPool) {
     globalThis.__dbPool = new Pool({
       connectionString: dbUrl,
-      max: 5,
+      max: process.env.NODE_ENV === 'production' ? 10 : 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
@@ -34,11 +25,6 @@ export function getPool(): pg.Pool {
 }
 
 export function getDb(): NodePgDatabase<typeof schema> {
-  if (process.env.NODE_ENV === 'production') {
-    const pool = getPool();
-    return drizzle(pool, { schema });
-  }
-
   if (!globalThis.__dbInstance) {
     const pool = getPool();
     globalThis.__dbInstance = drizzle(pool, { schema });

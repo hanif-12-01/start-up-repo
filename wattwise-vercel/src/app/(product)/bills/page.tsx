@@ -6,7 +6,9 @@ import { Reveal } from '@/components/motion/Reveal';
 import { getOptionalSession } from '@/server/auth/session';
 import type { BillRecord } from '@/server/repositories/bill.repository';
 import { getBillOverview } from '@/server/services/bill.service';
+import { getDiagnosticEntryState } from '@/server/services/diagnostic.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +67,9 @@ export default async function BillsPage() {
   if (step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
   const { bills, current, previous, comparison } = await getBillOverview(userId);
+  const diagnosticEntry = current
+    ? await getDiagnosticEntryState(userId, current.id)
+    : null;
 
   return (
     <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
@@ -141,7 +146,9 @@ export default async function BillsPage() {
             <section className="rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
               <h2 className="font-semibold text-amber-300">Satu periode sudah tersimpan</h2>
               <p className="mt-2 text-sm leading-relaxed text-amber-100/80">
-                Tambahkan periode berikutnya yang tidak bertumpang tindih agar perbandingan biaya harian tersedia.
+                Tambahkan periode berikutnya yang tidak bertumpang tindih agar perbandingan biaya
+                harian tersedia. Anda memerlukan satu periode pembanding sebelum dapat memilih Cek
+                Kenaikan.
               </p>
             </section>
           </Reveal>
@@ -213,6 +220,28 @@ export default async function BillsPage() {
                 </div>
               </div>
               <p className="text-xs text-slate-500">Periode pembanding: {periodLabel(previous)}</p>
+              {diagnosticEntry?.kind === 'READY' && (
+                <div className="border-t border-cyan-900/70 pt-1">
+                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300">
+                    Jawab questionnaire singkat untuk menyimpan konteks perubahan pada periode terbaru.
+                    Tahap ini tidak menetapkan diagnosis.
+                  </p>
+                  <StartDiagnosticButton
+                    electricityBillId={current.id}
+                    resumable={diagnosticEntry.sessionId !== null}
+                  />
+                </div>
+              )}
+              {diagnosticEntry?.kind === 'UNSUPPORTED_SEGMENT' && (
+                <p className="border-t border-cyan-900/70 pt-4 text-sm text-amber-300">
+                  {diagnosticEntry.message}
+                </p>
+              )}
+              {diagnosticEntry?.kind === 'DISABLED' && (
+                <p className="border-t border-cyan-900/70 pt-4 text-sm text-slate-400">
+                  {diagnosticEntry.message}
+                </p>
+              )}
             </section>
           </Reveal>
         )}
