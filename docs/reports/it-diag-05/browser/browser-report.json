@@ -1,0 +1,87 @@
+{
+  "node": "v24.14.0",
+  "browser": "Chrome/150.0.7871.187",
+  "routes": [
+    {
+      "route": "/",
+      "finalPath": "/"
+    },
+    {
+      "route": "/register",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/login",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/plan",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/onboarding",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/businesses/new",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/setup",
+      "finalPath": "/setup"
+    },
+    {
+      "route": "/bills/new",
+      "finalPath": "/bills/new"
+    },
+    {
+      "route": "/bills",
+      "finalPath": "/bills"
+    }
+  ],
+  "viewports": {
+    "360x800": {
+      "width": 360,
+      "height": 800,
+      "scrollWidth": 360,
+      "scrollHeight": 2102,
+      "overflowX": "visible",
+      "bodyTextLength": 1219
+    },
+    "768x1024": {
+      "width": 768,
+      "height": 1024,
+      "scrollWidth": 768,
+      "scrollHeight": 1533,
+      "overflowX": "visible",
+      "bodyTextLength": 1219
+    },
+    "1280x800": {
+      "width": 1280,
+      "height": 800,
+      "scrollWidth": 1280,
+      "scrollHeight": 1510,
+      "overflowX": "visible",
+      "bodyTextLength": 1219
+    }
+  },
+  "optionCounts": {
+    "found": 2,
+    "needsHelp": 1,
+    "unknown": 1,
+    "notFound": 0
+  },
+  "plannedDateValidation": true,
+  "pendingProtection": true,
+  "resume": true,
+  "terminalImmutability": true,
+  "baselineDisplay": true,
+  "reviewTarget": true,
+  "reducedMotion": true,
+  "keyboardFocus": true,
+  "nativeScroll": true,
+  "crossTenant404": true,
+  "consoleIssueCount": 0,
+  "http5xxCount": 0,
+  "diagnosticSessionStatus": "INSPECTION_IN_PROGRESS"
+}
