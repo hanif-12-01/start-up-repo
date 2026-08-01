@@ -1,0 +1,64 @@
+{
+  "task": "IT-DIAG-06",
+  "generatedAt": "2026-08-01T15:05:19.760Z",
+  "runtime": {
+    "node": "v24.14.0",
+    "browser": "150.0.7871.187",
+    "database": "PostgreSQL 16 disposable Docker container",
+    "migrations": [
+      "0000_auth_schema.sql",
+      "0001_journey_business.sql",
+      "0002_bill_first.sql",
+      "0003_diagnostic_questionnaire.sql",
+      "0004_diagnostic_candidates.sql",
+      "0005_guided_inspections.sql",
+      "0006_energy_action_plans.sql",
+      "0007_action_outcome_evaluations.sql"
+    ]
+  },
+  "route": "/diagnostics/browser-session-a/actions/browser-action-a/outcome",
+  "viewports": [
+    "360x800",
+    "768x900",
+    "1280x900"
+  ],
+  "checks": {
+    "syntheticRegistrationAndJourney": true,
+    "waitingStateWithoutOutcomeRow": true,
+    "addBillLink": true,
+    "sameDayPeriodExcluded": true,
+    "earliestEligibleBillSelected": true,
+    "pendingButtonProtected": true,
+    "immutableSnapshotsAfterSourceMutation": true,
+    "allOverallLabelsRendered": [
+      "Ada sinyal perbaikan",
+      "Belum ada perubahan berarti",
+      "Ada sinyal kenaikan",
+      "Hasil perubahan campuran",
+      "Belum dapat disimpulkan"
+    ],
+    "allDataQualityLabelsRendered": [
+      "Data biaya dan pemakaian tersedia",
+      "Data biaya dan tarif tersedia",
+      "Evaluasi berdasarkan biaya saja"
+    ],
+    "closureBlockedByActiveAction": true,
+    "explicitClosureAndClosedReadOnlyState": true,
+    "crossTenantOutcomeRoute404": true
+  },
+  "databaseEvidence": {
+    "outcomeId": "092fa40c-02fe-4ece-96b9-abf5455674af",
+    "baselineBillId": "browser-bill-baseline",
+    "followUpBillId": "browser-follow-eligible",
+    "ruleVersion": "OUTCOME_EVALUATION_RULE_V1",
+    "similarityBandBps": 500,
+    "evaluatedAt": "2026-08-01T15:03:11.343Z",
+    "sessionClosedAt": "2026-08-01T15:05:14.566Z"
+  },
+  "screenshots": [
+    "outcome-360.png",
+    "outcome-768.png",
+    "outcome-1280.png",
+    "outcome-closed-1280.png"
+  ]
+}
