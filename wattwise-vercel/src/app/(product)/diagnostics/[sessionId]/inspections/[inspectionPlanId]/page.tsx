@@ -10,6 +10,7 @@ import {
 } from '@/server/services/inspection-presentation';
 import { getInspectionPlan } from '@/server/services/inspection.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { env } from '@/config/env';
 import { CompleteInspectionForm } from './CompleteInspectionForm';
 import { InspectionItemForm } from './InspectionItemForm';
 
@@ -32,6 +33,9 @@ export default async function GuidedInspectionPage({
 
   const { plan, definition, answeredCount, totalCount, completed } = view;
   const resultsPath = `/diagnostics/${encodeURIComponent(sessionId)}/results`;
+  const actionsPath = `/diagnostics/${encodeURIComponent(
+    sessionId
+  )}/inspections/${encodeURIComponent(plan.id)}/actions`;
 
   return (
     <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
@@ -102,6 +106,46 @@ export default async function GuidedInspectionPage({
               <p className="mt-3 text-sm leading-relaxed text-slate-400">
                 {definition.completionCopy}
               </p>
+              {env.ACTION_PLANS_ENABLED && plan.resultCode === 'FOUND' && (
+                <Link
+                  href={actionsPath}
+                  className="mt-5 inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                >
+                  Buat Rencana Hemat
+                </Link>
+              )}
+              {env.ACTION_PLANS_ENABLED && plan.resultCode === 'NEEDS_HELP' && (
+                <Link
+                  href={actionsPath}
+                  className="mt-5 inline-flex rounded-md bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 focus:outline-2 focus:outline-offset-2 focus:outline-amber-300"
+                >
+                  Buat Rencana Minta Bantuan
+                </Link>
+              )}
+              {env.ACTION_PLANS_ENABLED && plan.resultCode === 'UNKNOWN' && (
+                <Link
+                  href={actionsPath}
+                  className="mt-5 inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                >
+                  Buat Rencana Lengkapi Informasi
+                </Link>
+              )}
+              {plan.resultCode === 'NOT_FOUND' && (
+                <div className="mt-5 rounded-lg border border-slate-700 bg-slate-900/50 p-4">
+                  <p className="text-sm text-slate-200">
+                    Tanda yang diperiksa belum ditemukan.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Pertimbangkan untuk memeriksa kandidat lain sebelum membuat Rencana Hemat.
+                  </p>
+                  <Link
+                    href={resultsPath}
+                    className="mt-4 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                  >
+                    Periksa Kandidat Lain
+                  </Link>
+                </div>
+              )}
             </section>
           </Reveal>
         ) : (

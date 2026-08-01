@@ -27,14 +27,28 @@ import {
   completeInspection,
   startInspection,
 } from '@/server/services/inspection.service';
+import {
+  ActionPlanDateError,
+  ActionPlanNotEligibleError,
+  ActionPlanNotFoundError,
+  ActionPlanSelectionError,
+  ActionPlanTransitionError,
+  ActionPlansUnavailableError,
+  cancelActionPlan,
+  completeActionPlan,
+  createActionPlan,
+  startActionPlan,
+} from '@/server/services/action-plan.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import {
   answerDiagnosticSchema,
   answerInspectionItemSchema,
   completeInspectionSchema,
+  createActionPlanSchema,
   generateDiagnosticCandidatesSchema,
   startInspectionSchema,
   startDiagnosticSchema,
+  transitionActionPlanSchema,
 } from '@/server/validation/diagnostics';
 
 export interface DiagnosticActionState {
@@ -62,10 +76,22 @@ function safeDiagnosticMessage(error: unknown) {
     error instanceof InspectionItemMismatchError ||
     error instanceof InspectionAnswerNotAllowedError ||
     error instanceof InspectionCompletionNotReadyError
+    || error instanceof ActionPlansUnavailableError
+    || error instanceof ActionPlanNotFoundError
+    || error instanceof ActionPlanNotEligibleError
+    || error instanceof ActionPlanSelectionError
+    || error instanceof ActionPlanDateError
+    || error instanceof ActionPlanTransitionError
   ) {
     return error.message;
   }
   return 'Pemeriksaan belum dapat diperbarui. Silakan coba lagi.';
+}
+
+function strictFormData(formData: FormData): Record<string, FormDataEntryValue> {
+  return Object.fromEntries(
+    [...formData.entries()].filter(([key]) => !key.startsWith('$ACTION_'))
+  );
 }
 
 export async function startDiagnosticAction(
@@ -210,4 +236,77 @@ export async function completeInspectionAction(
   revalidatePath(path);
   revalidatePath(`/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/results`);
   redirect(path);
+}
+
+export async function createActionPlanAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = createActionPlanSchema.safeParse(strictFormData(formData));
+  if (!parsed.success) return { error: 'Pilihan tindakan, tanggal, atau catatan tidak valid.' };
+
+  let actionPlanId: string;
+  try {
+    const plan = await createActionPlan(userId, {
+      sessionId: parsed.data.sessionId,
+      inspectionPlanId: parsed.data.inspectionPlanId,
+      selectedActionCode: parsed.data.selectedActionCode,
+      plannedStartDate: parsed.data.plannedStartDate,
+      userNote: parsed.data.userNote?.trim() || null,
+    });
+    actionPlanId = plan.id;
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const detailPath = `/diagnostics/${encodeURIComponent(
+    parsed.data.sessionId
+  )}/actions/${encodeURIComponent(actionPlanId)}`;
+  revalidatePath(detailPath);
+  revalidatePath(
+    `/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/inspections/${encodeURIComponent(parsed.data.inspectionPlanId)}`
+  );
+  redirect(detailPath);
+}
+
+async function transitionAction(
+  formData: FormData,
+  transition: typeof startActionPlan
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = transitionActionPlanSchema.safeParse(strictFormData(formData));
+  if (!parsed.success) return { error: 'Rencana Hemat tidak valid.' };
+  try {
+    await transition(userId, parsed.data);
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const detailPath = `/diagnostics/${encodeURIComponent(
+    parsed.data.sessionId
+  )}/actions/${encodeURIComponent(parsed.data.actionPlanId)}`;
+  revalidatePath(detailPath);
+  redirect(detailPath);
+}
+
+export async function startActionPlanAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+) {
+  return transitionAction(formData, startActionPlan);
+}
+
+export async function completeActionPlanAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+) {
+  return transitionAction(formData, completeActionPlan);
+}
+
+export async function cancelActionPlanAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+) {
+  return transitionAction(formData, cancelActionPlan);
 }

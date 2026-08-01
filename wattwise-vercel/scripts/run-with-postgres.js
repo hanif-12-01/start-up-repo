@@ -77,6 +77,7 @@ async function main() {
       ...process.env,
       DATABASE_URL: activeDbUrl,
       DIAGNOSTICS_ENABLED: 'true',
+      ACTION_PLANS_ENABLED: 'true',
       SEGMENT_TEMPLATES_ENABLED: 'true',
     };
 

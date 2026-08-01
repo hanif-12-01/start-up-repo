@@ -49,6 +49,31 @@ export const completeInspectionSchema = z
   })
   .strict();
 
+const dateOnlyIso = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  });
+
+export const createActionPlanSchema = z
+  .object({
+    sessionId: resourceId,
+    inspectionPlanId: resourceId,
+    selectedActionCode: z.string().trim().min(1).max(128),
+    plannedStartDate: dateOnlyIso,
+    userNote: z.string().trim().max(1000).optional(),
+  })
+  .strict();
+
+export const transitionActionPlanSchema = z
+  .object({
+    sessionId: resourceId,
+    actionPlanId: resourceId,
+  })
+  .strict();
+
 export type StartDiagnosticInput = z.infer<typeof startDiagnosticSchema>;
 export type AnswerDiagnosticInput = z.infer<typeof answerDiagnosticSchema>;
 export type GenerateDiagnosticCandidatesInput = z.infer<
@@ -59,3 +84,5 @@ export type AnswerInspectionItemInput = z.infer<
   typeof answerInspectionItemSchema
 >;
 export type CompleteInspectionInput = z.infer<typeof completeInspectionSchema>;
+export type CreateActionPlanInput = z.infer<typeof createActionPlanSchema>;
+export type TransitionActionPlanInput = z.infer<typeof transitionActionPlanSchema>;

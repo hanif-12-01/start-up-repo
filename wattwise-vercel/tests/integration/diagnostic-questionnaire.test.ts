@@ -101,6 +101,7 @@ describe('IT-DIAG-02 PostgreSQL integration', () => {
   });
 
   afterAll(async () => {
+    await pool.query(readRollbackMigration('0006_energy_action_plans_rollback.sql'));
     await pool.query(readRollbackMigration('0005_guided_inspections_rollback.sql'));
     await pool.query(readRollbackMigration('0004_diagnostic_candidates_rollback.sql'));
     await pool.query(readRollbackMigration('0003_diagnostic_questionnaire_rollback.sql'));
