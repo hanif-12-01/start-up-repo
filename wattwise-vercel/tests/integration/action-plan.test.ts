@@ -198,6 +198,7 @@ describe('IT-DIAG-05 PostgreSQL integration', () => {
 
   afterAll(async () => {
     for (const name of [
+      '0007_action_outcome_evaluations_rollback.sql',
       '0006_energy_action_plans_rollback.sql',
       '0005_guided_inspections_rollback.sql',
       '0004_diagnostic_candidates_rollback.sql',
@@ -226,9 +227,11 @@ describe('IT-DIAG-05 PostgreSQL integration', () => {
 
   it('migrates 0006 up, down, verifies absence, and migrates up again', async () => {
     expect((await pool.query(`SELECT to_regclass('public.energy_action_plan') AS name`)).rows[0].name).toBe('energy_action_plan');
+    await pool.query(readRollbackMigration('0007_action_outcome_evaluations_rollback.sql'));
     await pool.query(readRollbackMigration('0006_energy_action_plans_rollback.sql'));
     expect((await pool.query(`SELECT to_regclass('public.energy_action_plan') AS name`)).rows[0].name).toBeNull();
     await pool.query(readForwardMigration('0006_energy_action_plans.sql'));
+    await pool.query(readForwardMigration('0007_action_outcome_evaluations.sql'));
     expect((await pool.query(`SELECT to_regclass('public.energy_action_plan') AS name`)).rows[0].name).toBe('energy_action_plan');
   });
 

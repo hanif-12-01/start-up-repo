@@ -72,6 +72,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
   });
 
   afterAll(async () => {
+    await pool.query(readRollbackMigration('0007_action_outcome_evaluations_rollback.sql'));
     await pool.query(readRollbackMigration('0006_energy_action_plans_rollback.sql'));
     await pool.query(readRollbackMigration('0005_guided_inspections_rollback.sql'));
     await pool.query(readRollbackMigration('0004_diagnostic_candidates_rollback.sql'));
@@ -97,7 +98,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
     await pool.query('DELETE FROM "user"');
   });
 
-  it('discovers through 0006 and proves the newest migration up-down-up', async () => {
+  it('discovers through 0007 and proves the newest migration up-down-up', async () => {
     const discovered = listForwardMigrationNames();
     expect(discovered).toEqual([
       '0000_auth_schema.sql',
@@ -107,18 +108,19 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
       '0004_diagnostic_candidates.sql',
       '0005_guided_inspections.sql',
       '0006_energy_action_plans.sql',
+      '0007_action_outcome_evaluations.sql',
     ]);
 
-    const firstUp = await pool.query(`SELECT to_regclass('public.energy_action_plan') AS table_name`);
-    expect(firstUp.rows[0].table_name).toBe('energy_action_plan');
+    const firstUp = await pool.query(`SELECT to_regclass('public.action_outcome_evaluation') AS table_name`);
+    expect(firstUp.rows[0].table_name).toBe('action_outcome_evaluation');
 
-    await pool.query(readRollbackMigration('0006_energy_action_plans_rollback.sql'));
-    const down = await pool.query(`SELECT to_regclass('public.energy_action_plan') AS table_name`);
+    await pool.query(readRollbackMigration('0007_action_outcome_evaluations_rollback.sql'));
+    const down = await pool.query(`SELECT to_regclass('public.action_outcome_evaluation') AS table_name`);
     expect(down.rows[0].table_name).toBeNull();
 
-    await pool.query(readForwardMigration('0006_energy_action_plans.sql'));
-    const secondUp = await pool.query(`SELECT to_regclass('public.energy_action_plan') AS table_name`);
-    expect(secondUp.rows[0].table_name).toBe('energy_action_plan');
+    await pool.query(readForwardMigration('0007_action_outcome_evaluations.sql'));
+    const secondUp = await pool.query(`SELECT to_regclass('public.action_outcome_evaluation') AS table_name`);
+    expect(secondUp.rows[0].table_name).toBe('action_outcome_evaluation');
   });
 
   it('verifies bigint/numeric columns, constraints, foreign key, and index', async () => {

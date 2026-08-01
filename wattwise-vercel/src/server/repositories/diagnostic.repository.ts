@@ -33,6 +33,7 @@ export interface DiagnosticSessionContext {
   status: DiagnosticStatus;
   ruleVersion: string;
   questionnaireCompletedAt: Date | null;
+  closedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   currentBill: DiagnosticBillSnapshot;
@@ -60,6 +61,7 @@ interface SessionRow {
   status: DiagnosticStatus;
   rule_version: string;
   questionnaire_completed_at: Date | null;
+  closed_at: Date | null;
   created_at: Date;
   updated_at: Date;
   current_bill_id: string;
@@ -127,6 +129,7 @@ function mapSession(row: SessionRow, answers: DiagnosticAnswerRecord[]): Diagnos
     status: row.status,
     ruleVersion: row.rule_version,
     questionnaireCompletedAt: row.questionnaire_completed_at,
+    closedAt: row.closed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     currentBill: {
@@ -151,7 +154,8 @@ function mapSession(row: SessionRow, answers: DiagnosticAnswerRecord[]): Diagnos
 
 const SESSION_SELECT = `
   SELECT ds.id, ds.business_id, b.name AS business_name, ds.segment_code, ds.status,
-         ds.rule_version, ds.questionnaire_completed_at, ds.created_at, ds.updated_at,
+         ds.rule_version, ds.questionnaire_completed_at, ds.closed_at,
+         ds.created_at, ds.updated_at,
          current_bill.id AS current_bill_id,
          current_bill.period_start AS current_period_start,
          current_bill.period_end AS current_period_end,

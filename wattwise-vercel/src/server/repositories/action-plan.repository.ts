@@ -15,6 +15,7 @@ interface ActionPlanRow {
   diagnostic_candidate_id: string;
   inspection_plan_id: string;
   diagnostic_session_id: string;
+  session_status: DiagnosticStatus;
   candidate_title: string;
   action_code: string;
   action_version: number;
@@ -106,6 +107,7 @@ export interface ActionPlanRecord {
   diagnosticCandidateId: string;
   inspectionPlanId: string;
   diagnosticSessionId: string;
+  diagnosticSessionStatus: DiagnosticStatus;
   candidateTitle: string;
   actionCode: string;
   actionVersion: number;
@@ -130,6 +132,7 @@ export interface ActionPlanRecord {
 const PLAN_COLUMNS = `
   eap.id, eap.business_id, eap.diagnostic_candidate_id, eap.inspection_plan_id,
   dc.diagnostic_session_id, dc.title AS candidate_title,
+  ds.status AS session_status,
   eap.action_code, eap.action_version, eap.rule_version,
   eap.title_snapshot, eap.description_snapshot, eap.reason_snapshot,
   eap.steps_snapshot_json, eap.inspection_result_snapshot,
@@ -199,6 +202,7 @@ function mapPlan(row: ActionPlanRow): ActionPlanRecord {
     diagnosticCandidateId: row.diagnostic_candidate_id,
     inspectionPlanId: row.inspection_plan_id,
     diagnosticSessionId: row.diagnostic_session_id,
+    diagnosticSessionStatus: row.session_status,
     candidateTitle: row.candidate_title,
     actionCode: row.action_code,
     actionVersion: row.action_version,
@@ -257,6 +261,7 @@ async function loadPlanByInspection(
     `SELECT ${PLAN_COLUMNS}
        FROM energy_action_plan eap
        JOIN diagnostic_candidate dc ON dc.id = eap.diagnostic_candidate_id
+       JOIN diagnostic_session ds ON ds.id = dc.diagnostic_session_id
       WHERE eap.inspection_plan_id = $1
       LIMIT 1`,
     [inspectionPlanId]
@@ -379,6 +384,7 @@ export async function createOrGetActionPlan(
        )
        RETURNING id, business_id, diagnostic_candidate_id, inspection_plan_id,
          $18::text AS diagnostic_session_id, $19::text AS candidate_title,
+         $20::text AS session_status,
          action_code, action_version, rule_version, title_snapshot,
          description_snapshot, reason_snapshot, steps_snapshot_json,
          inspection_result_snapshot, baseline_snapshot_json, status,
@@ -404,6 +410,7 @@ export async function createOrGetActionPlan(
         captured.rows[0].captured_at,
         context.diagnosticSessionId,
         context.candidateTitle,
+        context.sessionStatus,
       ]
     );
     await client.query('COMMIT');
@@ -432,13 +439,47 @@ export async function withLockedActionPlan<T>(
          JOIN diagnostic_session ds ON ds.id = dc.diagnostic_session_id
          JOIN business b ON b.id = ds.business_id
         WHERE eap.id = $1 AND ds.id = $2 AND b.user_id = $3 AND b.is_active = true
-        FOR UPDATE OF eap`,
+        FOR UPDATE OF ds, eap`,
       [actionPlanId, sessionId, userId]
     );
     if (!result.rows[0]) {
       await client.query('ROLLBACK');
       return null;
     }
+    const value = await work(client, mapPlan(result.rows[0]));
+    await client.query('COMMIT');
+    return value;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function withLockedActionPlanById<T>(
+  userId: string,
+  actionPlanId: string,
+  work: (client: PoolClient, plan: ActionPlanRecord) => Promise<T>
+): Promise<T | null> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query<ActionPlanRow>(
+      `SELECT ${PLAN_COLUMNS}
+         FROM energy_action_plan eap
+         JOIN diagnostic_candidate dc ON dc.id = eap.diagnostic_candidate_id
+         JOIN diagnostic_session ds ON ds.id = dc.diagnostic_session_id
+         JOIN business b ON b.id = ds.business_id
+        WHERE eap.id = $1 AND b.user_id = $2 AND b.is_active = true
+        FOR UPDATE OF ds, eap`,
+      [actionPlanId, userId]
+    );
+    if (!result.rows[0]) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [actionPlanId]);
     const value = await work(client, mapPlan(result.rows[0]));
     await client.query('COMMIT');
     return value;
@@ -465,12 +506,19 @@ export async function persistActionPlanTransition(
       WHERE id = $1
       RETURNING id, business_id, diagnostic_candidate_id, inspection_plan_id,
         $3::text AS diagnostic_session_id, $4::text AS candidate_title,
+        $5::text AS session_status,
         action_code, action_version, rule_version, title_snapshot,
         description_snapshot, reason_snapshot, steps_snapshot_json,
         inspection_result_snapshot, baseline_snapshot_json, status,
         review_mode, planned_start_date, user_note, started_at, completed_at,
         cancelled_at, created_at, updated_at`,
-    [plan.id, nextStatus, plan.diagnosticSessionId, plan.candidateTitle]
+    [
+      plan.id,
+      nextStatus,
+      plan.diagnosticSessionId,
+      plan.candidateTitle,
+      plan.diagnosticSessionStatus,
+    ]
   );
   if (!result.rows[0]) throw new Error('Action plan transition was not persisted');
   return mapPlan(result.rows[0]);

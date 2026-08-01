@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
+import { env } from '@/config/env';
 import { getOptionalSession } from '@/server/auth/session';
 import { INSPECTION_ANSWER_LABELS } from '@/server/services/inspection-presentation';
 import { getActionPlan } from '@/server/services/action-plan.service';
@@ -12,7 +13,9 @@ import {
   ACTION_PLAN_STATUS_LABELS,
 } from '@/server/services/action-plan-presentation';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { getOutcomeEvaluationState } from '@/server/services/outcome.service';
 import { ActionPlanTransitionForm } from './ActionPlanTransitionForm';
+import { EvaluateOutcomeForm } from './EvaluateOutcomeForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +60,10 @@ export default async function ActionPlanDetailPage({
   const { sessionId, actionPlanId } = await params;
   const plan = await getActionPlan(userId, sessionId, actionPlanId);
   if (!plan) notFound();
+  const outcomeState =
+    plan.status === 'COMPLETED' && env.OUTCOME_TRACKING_ENABLED
+      ? await getOutcomeEvaluationState(userId, sessionId, actionPlanId)
+      : null;
   const inspectionPath = `/diagnostics/${encodeURIComponent(
     sessionId
   )}/inspections/${encodeURIComponent(plan.inspectionPlanId)}`;
@@ -81,7 +88,7 @@ export default async function ActionPlanDetailPage({
             <div><p className="text-xs uppercase tracking-wide text-slate-500">Status Rencana</p><p className="mt-2 font-semibold text-cyan-200">{ACTION_PLAN_STATUS_LABELS[plan.status]}</p></div>
             <div><p className="text-xs uppercase tracking-wide text-slate-500">Mulai direncanakan</p><p className="mt-2 text-slate-200">{formatDate(plan.plannedStartDate)}</p></div>
             <div><p className="text-xs uppercase tracking-wide text-slate-500">Hasil pemeriksaan</p><p className="mt-2 text-slate-200">{INSPECTION_ANSWER_LABELS[plan.inspectionResult]}</p></div>
-            <div><p className="text-xs uppercase tracking-wide text-slate-500">Evaluasi</p><p className="mt-2 text-slate-200">Tagihan berikutnya yang eligible setelah tindakan dimulai</p></div>
+            <div><p className="text-xs uppercase tracking-wide text-slate-500">Evaluasi</p><p className="mt-2 text-slate-200">Tagihan berikutnya yang periodenya dimulai setelah tindakan selesai</p></div>
           </section>
         </Reveal>
 
@@ -137,8 +144,31 @@ export default async function ActionPlanDetailPage({
 
         <Reveal direction="up">
           <section className="rounded-xl border border-cyan-900/80 bg-cyan-950/20 p-5">
-            <h2 className="font-semibold text-cyan-200">Evaluasi Tagihan Berikutnya</h2>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Dampak tindakan akan dibandingkan setelah tagihan berikutnya yang eligible tersedia. Hasil belum dapat dipastikan.</p>
+            {outcomeState?.kind === 'EVALUATED' ? (
+              <>
+                <h2 className="font-semibold text-cyan-200">Evaluasi Hasil tersedia</h2>
+                <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Perbandingan menggunakan snapshot yang tersimpan dan tidak berubah otomatis.</p>
+                <Link href={`/diagnostics/${encodeURIComponent(sessionId)}/actions/${encodeURIComponent(actionPlanId)}/outcome`} className="mt-4 inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300">Lihat Evaluasi Hasil</Link>
+              </>
+            ) : outcomeState?.kind === 'WAITING_FOR_BILL' ? (
+              <>
+                <h2 className="font-semibold text-cyan-200">Menunggu Tagihan Evaluasi</h2>
+                <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Belum ada tagihan evaluasi yang memenuhi syarat.</p>
+                <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Tambahkan tagihan dengan periode yang dimulai setelah tindakan selesai pada {formatDate(outcomeState.eligibleAfterDate)}.</p>
+                <Link href="/bills/new" className="mt-4 inline-flex rounded-md border border-cyan-500 px-5 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-950/50 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300">Tambah tagihan</Link>
+              </>
+            ) : outcomeState?.kind === 'READY' ? (
+              <>
+                <h2 className="font-semibold text-cyan-200">Evaluasi Hasil</h2>
+                <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Tagihan Evaluasi dipilih otomatis untuk periode {formatDate(outcomeState.followUpBill.periodStart)}–{formatDate(outcomeState.followUpBill.periodEnd)}. Pilihan ini tidak dapat diganti manual.</p>
+                <div className="mt-4"><EvaluateOutcomeForm actionPlanId={plan.id} /></div>
+              </>
+            ) : (
+              <>
+                <h2 className="font-semibold text-cyan-200">Evaluasi Tagihan Berikutnya</h2>
+                <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">Evaluasi tersedia setelah tindakan ditandai selesai dan tagihan berikutnya memenuhi syarat.</p>
+              </>
+            )}
             <p className="mt-3 text-sm leading-relaxed text-cyan-100/70">{ACTION_PLAN_DISCLAIMER}</p>
           </section>
         </Reveal>

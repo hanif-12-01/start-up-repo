@@ -333,7 +333,8 @@ export async function getDiagnosticCandidateResults(
   if (!session) return null;
   if (
     session.status !== 'ANALYZED' &&
-    session.status !== 'INSPECTION_IN_PROGRESS'
+    session.status !== 'INSPECTION_IN_PROGRESS' &&
+    session.status !== 'CLOSED'
   ) {
     throw new DiagnosticCandidateGenerationNotReadyError();
   }

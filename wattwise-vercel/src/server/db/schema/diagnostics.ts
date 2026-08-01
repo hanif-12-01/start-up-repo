@@ -57,6 +57,7 @@ export const diagnosticSession = pgTable(
     status: text('status').notNull().default('DRAFT'),
     ruleVersion: text('rule_version').notNull(),
     questionnaireCompletedAt: timestamp('questionnaire_completed_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

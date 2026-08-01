@@ -203,6 +203,9 @@ async function transitionActionPlan(
     input.sessionId,
     input.actionPlanId,
     async (client, plan) => {
+      if (plan.diagnosticSessionStatus !== 'INSPECTION_IN_PROGRESS') {
+        throw new ActionPlanTransitionError('Sesi yang sudah ditutup tidak dapat diubah.');
+      }
       let nextStatus: ActionPlanStatus;
       try {
         nextStatus = resolveActionPlanTransition(plan.status, transition);

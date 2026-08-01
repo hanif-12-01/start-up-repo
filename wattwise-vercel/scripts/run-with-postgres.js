@@ -78,6 +78,7 @@ async function main() {
       DATABASE_URL: activeDbUrl,
       DIAGNOSTICS_ENABLED: 'true',
       ACTION_PLANS_ENABLED: 'true',
+      OUTCOME_TRACKING_ENABLED: 'true',
       SEGMENT_TEMPLATES_ENABLED: 'true',
     };
 

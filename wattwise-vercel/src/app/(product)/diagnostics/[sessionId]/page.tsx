@@ -115,7 +115,22 @@ export default async function DiagnosticSessionPage({
                 Jawaban Anda sudah tersimpan. WattWise dapat menyusun maksimal tiga bagian
                 prioritas berdasarkan jawaban dan data tagihan yang tersedia.
               </p>
-              <GenerateCandidatesForm sessionId={session.id} />
+              {session.status === 'CLOSED' ? (
+                <div className="mt-5">
+                  <p className="font-semibold text-emerald-200">Sesi Cek Kenaikan Selesai</p>
+                  <p className="mt-2 text-sm text-emerald-100/70">
+                    Data tersimpan dan tetap dapat dibaca. Sesi ini tidak menerima perubahan baru.
+                  </p>
+                  <Link
+                    href={`/diagnostics/${encodeURIComponent(session.id)}/results`}
+                    className="mt-4 inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                  >
+                    Lihat hasil tersimpan
+                  </Link>
+                </div>
+              ) : (
+                <GenerateCandidatesForm sessionId={session.id} />
+              )}
             </section>
           </Reveal>
         ) : (

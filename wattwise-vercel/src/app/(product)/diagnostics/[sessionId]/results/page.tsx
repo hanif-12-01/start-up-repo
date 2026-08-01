@@ -110,6 +110,17 @@ export default async function DiagnosticResultsPage({
           </section>
         </Reveal>
 
+        {session.status === 'CLOSED' && (
+          <Reveal direction="up">
+            <section className="rounded-xl border border-emerald-800/70 bg-emerald-950/20 p-5">
+              <h2 className="font-semibold text-emerald-200">Sesi Cek Kenaikan Selesai</h2>
+              <p className="mt-2 text-sm text-emerald-100/70">
+                Hasil, pemeriksaan, dan Rencana Hemat tetap dapat dibaca. Sesi ini tidak menerima pemeriksaan baru.
+              </p>
+            </section>
+          </Reveal>
+        )}
+
         {candidates.length === 0 ? (
           <Reveal direction="up">
             <section className="rounded-xl border border-slate-700 bg-slate-800 p-6">
@@ -204,7 +215,13 @@ export default async function DiagnosticResultsPage({
                             </div>
                           );
                         }
-                        return <StartInspectionForm candidateId={candidate.id} />;
+                        return session.status === 'CLOSED' ? (
+                          <p className="mt-5 text-sm text-slate-500">
+                            Sesi sudah ditutup; pemeriksaan baru tidak dapat dimulai.
+                          </p>
+                        ) : (
+                          <StartInspectionForm candidateId={candidate.id} />
+                        );
                       })()}
                   </article>
                 </Reveal>

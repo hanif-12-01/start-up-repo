@@ -398,6 +398,7 @@ export async function withLockedInspectionPlan<T>(
          JOIN diagnostic_session ds ON ds.id = dc.diagnostic_session_id
          JOIN business b ON b.id = ds.business_id
         WHERE ip.id = $1 AND ds.id = $2 AND b.user_id = $3 AND b.is_active = true
+          AND ds.status <> 'CLOSED'
         FOR UPDATE OF ip`,
       [planId, sessionId, userId]
     );

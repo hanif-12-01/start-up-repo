@@ -74,6 +74,18 @@ export const transitionActionPlanSchema = z
   })
   .strict();
 
+export const evaluateActionOutcomeSchema = z
+  .object({
+    actionPlanId: resourceId,
+  })
+  .strict();
+
+export const closeDiagnosticSessionSchema = z
+  .object({
+    sessionId: resourceId,
+  })
+  .strict();
+
 export type StartDiagnosticInput = z.infer<typeof startDiagnosticSchema>;
 export type AnswerDiagnosticInput = z.infer<typeof answerDiagnosticSchema>;
 export type GenerateDiagnosticCandidatesInput = z.infer<
@@ -86,3 +98,5 @@ export type AnswerInspectionItemInput = z.infer<
 export type CompleteInspectionInput = z.infer<typeof completeInspectionSchema>;
 export type CreateActionPlanInput = z.infer<typeof createActionPlanSchema>;
 export type TransitionActionPlanInput = z.infer<typeof transitionActionPlanSchema>;
+export type EvaluateActionOutcomeInput = z.infer<typeof evaluateActionOutcomeSchema>;
+export type CloseDiagnosticSessionInput = z.infer<typeof closeDiagnosticSessionSchema>;

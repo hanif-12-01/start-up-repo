@@ -41,10 +41,24 @@ import {
 } from '@/server/services/action-plan.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import {
+  OutcomeActionNotFoundError,
+  OutcomeNotEligibleError,
+  OutcomeTrackingUnavailableError,
+  OutcomeWaitingForBillError,
+  evaluateActionOutcome,
+} from '@/server/services/outcome.service';
+import {
+  SessionClosureNotEligibleError,
+  SessionClosureNotFoundError,
+  closeDiagnosticSession,
+} from '@/server/services/session-closure.service';
+import {
   answerDiagnosticSchema,
   answerInspectionItemSchema,
   completeInspectionSchema,
   createActionPlanSchema,
+  evaluateActionOutcomeSchema,
+  closeDiagnosticSessionSchema,
   generateDiagnosticCandidatesSchema,
   startInspectionSchema,
   startDiagnosticSchema,
@@ -82,6 +96,12 @@ function safeDiagnosticMessage(error: unknown) {
     || error instanceof ActionPlanSelectionError
     || error instanceof ActionPlanDateError
     || error instanceof ActionPlanTransitionError
+    || error instanceof OutcomeTrackingUnavailableError
+    || error instanceof OutcomeActionNotFoundError
+    || error instanceof OutcomeNotEligibleError
+    || error instanceof OutcomeWaitingForBillError
+    || error instanceof SessionClosureNotFoundError
+    || error instanceof SessionClosureNotEligibleError
   ) {
     return error.message;
   }
@@ -309,4 +329,47 @@ export async function cancelActionPlanAction(
   formData: FormData
 ) {
   return transitionAction(formData, cancelActionPlan);
+}
+
+export async function evaluateActionOutcomeAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = evaluateActionOutcomeSchema.safeParse(strictFormData(formData));
+  if (!parsed.success) return { error: 'Rencana Hemat tidak valid.' };
+  let outcome;
+  try {
+    outcome = await evaluateActionOutcome(userId, parsed.data.actionPlanId);
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const path = `/diagnostics/${encodeURIComponent(
+    outcome.diagnosticSessionId
+  )}/actions/${encodeURIComponent(outcome.actionPlanId)}/outcome`;
+  revalidatePath(path);
+  revalidatePath(
+    `/diagnostics/${encodeURIComponent(outcome.diagnosticSessionId)}/actions/${encodeURIComponent(outcome.actionPlanId)}`
+  );
+  redirect(path);
+}
+
+export async function closeDiagnosticSessionAction(
+  _previousState: DiagnosticActionState | null,
+  formData: FormData
+): Promise<DiagnosticActionState> {
+  const userId = await requireUserId();
+  await requireCompletedJourney(userId);
+  const parsed = closeDiagnosticSessionSchema.safeParse(strictFormData(formData));
+  if (!parsed.success) return { error: 'Sesi Cek Kenaikan tidak valid.' };
+  try {
+    await closeDiagnosticSession(userId, parsed.data.sessionId);
+  } catch (error) {
+    return { error: safeDiagnosticMessage(error) };
+  }
+  const path = `/diagnostics/${encodeURIComponent(parsed.data.sessionId)}/results`;
+  revalidatePath(path);
+  revalidatePath(`/diagnostics/${encodeURIComponent(parsed.data.sessionId)}`);
+  redirect(path);
 }
