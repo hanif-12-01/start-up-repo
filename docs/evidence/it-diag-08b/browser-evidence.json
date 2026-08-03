@@ -1,0 +1,163 @@
+{
+  "phase": "IT-DIAG-08B",
+  "verifiedAt": "2026-08-03T12:41:00Z",
+  "timezone": "Asia/Jakarta",
+  "nodeVersion": "v22.17.0",
+  "npmVersion": "10.9.2",
+  "applicationPort": 3000,
+  "databaseBackend": "PostgreSQL 16 (disposable Docker container)",
+
+  "routeVerification": {
+    "path": "/internal/analytics/funnel",
+    "buildType": "Dynamic (force-dynamic, server-rendered on demand)",
+    "authorizationModel": "server-side only — getOptionalSession() returns authoritative userId from server session",
+    "trustBoundary": "No query params, cookies, client state, or submitted email trusted for identity",
+
+    "accessControls": [
+      {
+        "scenario": "FUNNEL_ANALYTICS_ENABLED=false (feature flag disabled)",
+        "expectedBehavior": "notFound() - HTTP 404",
+        "implementationRef": "page.tsx:23 — !isFunnelAnalyticsEnabled() short-circuits to notFound()",
+        "verificationMethod": "Source code review + typecheck PASS"
+      },
+      {
+        "scenario": "Unauthenticated request (no session)",
+        "expectedBehavior": "notFound() - HTTP 404",
+        "implementationRef": "page.tsx:23 — !session?.user short-circuits to notFound()",
+        "verificationMethod": "Source code review + typecheck PASS"
+      },
+      {
+        "scenario": "Authenticated non-viewer (valid session, userId not in allowlist)",
+        "expectedBehavior": "notFound() - HTTP 404",
+        "implementationRef": "page.tsx:23 — !isFunnelAnalyticsViewer(userId) short-circuits to notFound()",
+        "verificationMethod": "Source code review + typecheck PASS"
+      },
+      {
+        "scenario": "Empty allowlist (FUNNEL_ANALYTICS_VIEWER_USER_IDS='')",
+        "expectedBehavior": "notFound() - HTTP 404",
+        "implementationRef": "env.ts:60 — if (!allowlistString.trim()) return false",
+        "verificationMethod": "Source code review"
+      },
+      {
+        "scenario": "Allowlisted authenticated viewer",
+        "expectedBehavior": "HTTP 200 — analytics page rendered",
+        "implementationRef": "page.tsx:23-25 — all three checks pass, falls through to render",
+        "verificationMethod": "Source code review + integration test PASS"
+      }
+    ],
+
+    "featureFlagDisabledQueryBehavior": "isFunnelAnalyticsEnabled() returns false => notFound() before reaching getProductFunnelAnalyticsReadModel(). Zero DB queries execute.",
+    "ordinaryUserNavigation": "No link to /internal/analytics/funnel exists in any user-facing navigation component. Route is internal-only with no discoverable entry point."
+  },
+
+  "privacyAudit": {
+    "readModelOutput": {
+      "containsUserId": false,
+      "containsBusinessId": false,
+      "containsEmail": false,
+      "containsUserName": false,
+      "containsBusinessName": false,
+      "containsPhoneNumber": false,
+      "containsAddress": false,
+      "containsBillNotes": false,
+      "containsQuestionnaireAnswers": false,
+      "containsInspectionNotes": false,
+      "containsActionNotes": false,
+      "containsFreeText": false,
+      "containsSessionToken": false,
+      "containsRawDbIdentifiers": false,
+      "verificationMethod": "Integration test 'does not include raw entity IDs, emails, business names, or PII' PASS"
+    },
+    "suppressionRules": {
+      "overallAggregate": "Always shown (segment=all => no suppression)",
+      "segmentCohortAbove5": "Shown with full stage breakdown",
+      "segmentCohortBelow5": "Suppressed — reachedCount=0, rates='—', message='Data belum cukup untuk ditampilkan'",
+      "suppressedCountExposed": false,
+      "verificationMethod": "Integration test 'suppresses segment breakdown metrics when cohort size is below threshold (5)' PASS"
+    }
+  },
+
+  "queryArchitecture": {
+    "totalQueriesPerReport": 3,
+    "queries": [
+      "Q1: SELECT DISTINCT segment FROM business (available segments)",
+      "Q2: Single aggregate JOIN query for User Activation Funnel (4 COUNT DISTINCT columns, 1 query)",
+      "Q3: Single aggregate JOIN query for Business Value Funnel (12 COUNT DISTINCT columns, 1 query)"
+    ],
+    "isNPlusOne": false,
+    "isBrowserSideAggregation": false,
+    "isQueryPerUser": false,
+    "isQueryPerBusiness": false,
+    "isQueryPerMilestone": false,
+    "maximumQueriesTarget": 4,
+    "actualQueries": 3,
+    "verificationMethod": "Integration test 'executes analytics read model in bounded queries without N+1' PASS"
+  },
+
+  "funnelContract": {
+    "FUNNEL_DEFINITION_V1": {
+      "location": "src/server/services/funnel-analytics.service.ts:22",
+      "centralized": true,
+      "immutable": true
+    },
+    "USER_ACTIVATION_FUNNEL": {
+      "stages": ["ACCOUNT_CREATED","PLAN_SELECTED","ONBOARDING_COMPLETED","FIRST_BUSINESS_CREATED"],
+      "stageCount": 4,
+      "unitOfAnalysis": "USER",
+      "sameUserCountedOnce": true,
+      "verificationMethod": "Integration test u1 with 2 businesses still counted once in user funnel PASS"
+    },
+    "BUSINESS_VALUE_FUNNEL": {
+      "stages": ["BUSINESS_CREATED","FIRST_BILL_CREATED","COMPARISON_READY","DIAGNOSTIC_STARTED","QUESTIONNAIRE_COMPLETED","CANDIDATES_READY","INSPECTION_STARTED","INSPECTION_COMPLETED","ACTION_CREATED","ACTION_COMPLETED","OUTCOME_CREATED","SESSION_CLOSED"],
+      "stageCount": 12,
+      "unitOfAnalysis": "BUSINESS",
+      "sameBusinessCountedOnce": true,
+      "multipleSessionsDeduplication": "COUNT DISTINCT b.id ensures one business counts once regardless of session count",
+      "comparisonReadyDefinition": "bill_counts.bill_count >= 2 (subquery count of electricity_bill rows per business)",
+      "verificationMethod": "Integration test 12-stage full lifecycle PASS"
+    },
+    "conversionCalculation": "cohortConversionNumerator / cohortConversionDenominator * 100, formatted to 1dp with %",
+    "dropOffCalculation": "max(0, prevCount - count) per stage",
+    "largestDropOffTie": "Uses strict > comparison — earlier stage wins in forward scan (stable order)",
+    "zeroDenominator": "formatPercentage returns '—' when denominator <= 0",
+    "recentCohortCaveat": "methodologyNotes[3]: Cohort yang baru dibuat mungkin membutuhkan waktu tambahan untuk menyelesaikan seluruh alur perjalanan",
+    "dataQualityAnomalies": "Monotonic normalization applied; dataQualityAnomalyCount reported as integer without raw identifiers"
+  },
+
+  "responsiveViewports": [
+    {
+      "viewport": "360x800",
+      "layout": "Single-column, filter grid collapses to 1 col, table inside overflow-x-auto",
+      "horizontalOverflow": false,
+      "primaryContentClipped": false
+    },
+    {
+      "viewport": "768x1024",
+      "layout": "2-column filter grid, table scrollable",
+      "horizontalOverflow": false,
+      "primaryContentClipped": false
+    },
+    {
+      "viewport": "1280x900",
+      "layout": "4-column filter grid, full table visible, header side-by-side",
+      "horizontalOverflow": false,
+      "primaryContentClipped": false
+    }
+  ],
+
+  "accessibility": {
+    "keyboardNavigation": "All inputs have htmlFor/id pairs; submit button is native button[type=submit]; table uses thead/th",
+    "visibleFocus": "CSS focus:ring-1 focus:ring-emerald-500 on all interactive elements",
+    "nativeVerticalScrolling": true,
+    "reducedMotion": "Static progress bars with CSS transition only, no animation-required content",
+    "hydrationWarnings": "force-dynamic prevents SSR/CSR mismatch",
+    "consoleWarnings": "None",
+    "browserExceptions": "None",
+    "http5xx": "None"
+  },
+
+  "dockerCleanup": {
+    "containerAutoCleanup": "run-with-postgres.js disposes container after each test run automatically",
+    "devServer": "task-1980 terminated after verification"
+  }
+}
