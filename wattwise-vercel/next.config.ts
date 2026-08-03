@@ -21,12 +21,14 @@ const securityHeaders = [
       'usb=()',
     ].join(', '),
   },
-  // Content Security Policy — restrictive baseline for a server-rendered Next.js app
+  // Content Security Policy — minimized baseline for Next.js app
+  // Note: 'unsafe-inline' is retained for Next.js inline hydration scripts and Tailwind/CSS inline styles.
+  // Nonce-based CSP can be added in a future hardening pass (IT-DIAG-09B).
   {
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js Turbopack / client hydration requirement
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
