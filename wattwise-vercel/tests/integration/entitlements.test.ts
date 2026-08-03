@@ -7,7 +7,10 @@ import {
   BusinessLimitExceededError,
 } from '../../src/server/services/entitlement.service';
 import { createBusiness } from '../../src/server/services/business.service';
-import { getMonthlyReportReadModel, MonthlyReportHistoryGatedError } from '../../src/server/services/monthly-report.service';
+import {
+  getMonthlyReportReadModel,
+  MonthlyReportHistoryGatedError,
+} from '../../src/server/services/monthly-report.service';
 import { applyAllForwardMigrations, readRollbackMigration } from '../helpers/migrations';
 
 const { Pool } = pg;
@@ -104,6 +107,30 @@ describe('IT-DIAG-08A Entitlements & Trial Integration Tests', () => {
     ).rejects.toBeInstanceOf(BusinessLimitExceededError);
   });
 
+  it('serializes concurrent business creation for FREE user so exactly one insert succeeds', async () => {
+    process.env.ENTITLEMENTS_ENABLED = 'true';
+    const userId = 'user-concurrent-free';
+    await seedUser(userId);
+    await seedPlan(userId, 'FREE');
+
+    const results = await Promise.allSettled([
+      createBusiness(userId, { name: 'Concurrent 1', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' }),
+      createBusiness(userId, { name: 'Concurrent 2', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' }),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    if (rejected[0].status === 'rejected') {
+      expect(rejected[0].reason).toBeInstanceOf(BusinessLimitExceededError);
+    }
+
+    const countRes = await pool.query(`SELECT COUNT(*) FROM business WHERE user_id = $1 AND is_active = true`, [userId]);
+    expect(Number(countRes.rows[0].count)).toBe(1);
+  });
+
   it('resolves active TRIAL user and allows up to 3 businesses when enabled', async () => {
     process.env.ENTITLEMENTS_ENABLED = 'true';
     const userId = 'user-trial-1';
@@ -150,24 +177,94 @@ describe('IT-DIAG-08A Entitlements & Trial Integration Tests', () => {
     expect(ent.limits.maxBusinesses).toBe(1);
   });
 
-  it('enforces monthly report history window (3 months for FREE) when flag enabled', async () => {
+  it('counts active owned businesses only and ignores inactive or other tenant businesses', async () => {
     process.env.ENTITLEMENTS_ENABLED = 'true';
-    process.env.MONTHLY_REPORTS_ENABLED = 'true';
-    const userId = 'user-report-gating';
-    await seedUser(userId);
-    await seedPlan(userId, 'FREE');
-    await createBusiness(userId, {
-      name: 'Report Business',
-      businessType: 'LAUNDRY',
-      segment: 'LAUNDRY',
+    const ownerId = 'user-owner-count';
+    const otherId = 'user-other-tenant';
+    await seedUser(ownerId);
+    await seedUser(otherId);
+    await seedPlan(ownerId, 'FREE');
+    await seedPlan(otherId, 'FREE');
+
+    await pool.query(
+      `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active)
+       VALUES ('inactive-biz', $1, 'Inactive', 'RETAIL', 'RETAIL', 'ALL_IN', false)`,
+      [ownerId]
+    );
+
+    await pool.query(
+      `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active)
+       VALUES ('other-biz', $1, 'Other', 'RETAIL', 'RETAIL', 'ALL_IN', true)`,
+      [otherId]
+    );
+
+    const biz = await createBusiness(ownerId, {
+      name: 'Active 1',
+      businessType: 'RETAIL',
+      segment: 'RETAIL',
       electricalSystem: 'ALL_IN',
     });
+    expect(biz.id).toBeDefined();
+  });
+
+  it('allows current month, 1st past month, 2nd past month, and denies 3rd past month for FREE', async () => {
+    process.env.ENTITLEMENTS_ENABLED = 'true';
+    process.env.MONTHLY_REPORTS_ENABLED = 'true';
+    const userId = 'user-report-window';
+    await seedUser(userId);
+    await seedPlan(userId, 'FREE');
+    const biz = await createBusiness(userId, { name: 'Report Biz', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' });
 
     const now = new Date('2026-08-15T00:00:00Z');
-    // FREE plan allows current month (2026-08), 2026-07, 2026-06.
-    // Requesting 2026-04 (4 months ago) should throw MonthlyReportHistoryGatedError.
-    await expect(
-      getMonthlyReportReadModel(userId, undefined, '2026-04', now)
-    ).rejects.toBeInstanceOf(MonthlyReportHistoryGatedError);
+    // 2026-08 (0 months ago) allowed
+    const r0 = await getMonthlyReportReadModel(userId, biz.id, '2026-08', now);
+    expect(r0.reportCompleteness.code).toBe('NO_BILL');
+
+    // 2026-07 (1 month ago) allowed
+    const r1 = await getMonthlyReportReadModel(userId, biz.id, '2026-07', now);
+    expect(r1.reportCompleteness.code).toBe('NO_BILL');
+
+    // 2026-06 (2 months ago) allowed
+    const r2 = await getMonthlyReportReadModel(userId, biz.id, '2026-06', now);
+    expect(r2.reportCompleteness.code).toBe('NO_BILL');
+
+    // 2026-05 (3 months ago) denied
+    await expect(getMonthlyReportReadModel(userId, biz.id, '2026-05', now)).rejects.toBeInstanceOf(MonthlyReportHistoryGatedError);
+  });
+
+  it('presents cross-tenant business request as not-found (404) and owned history denial as 403', async () => {
+    process.env.ENTITLEMENTS_ENABLED = 'true';
+    process.env.MONTHLY_REPORTS_ENABLED = 'true';
+    const userA = 'user-a-tenant';
+    const userB = 'user-b-tenant';
+    await seedUser(userA);
+    await seedUser(userB);
+    await seedPlan(userA, 'FREE');
+    await seedPlan(userB, 'FREE');
+    const bizB = await createBusiness(userB, { name: 'Biz B', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' });
+
+    const now = new Date('2026-08-15T00:00:00Z');
+    // User A requesting User B's business -> MonthlyReportBusinessNotFoundError (404)
+    await expect(getMonthlyReportReadModel(userA, bizB.id, '2026-08', now)).rejects.toThrow(/Usaha aktif tidak ditemukan/);
+
+    // User B requesting owned business with outside window -> MonthlyReportHistoryGatedError (403)
+    await expect(getMonthlyReportReadModel(userB, bizB.id, '2026-04', now)).rejects.toBeInstanceOf(MonthlyReportHistoryGatedError);
+  });
+
+  it('preserves pre-entitlement behavior when feature flag is disabled', async () => {
+    delete process.env.ENTITLEMENTS_ENABLED;
+    process.env.MONTHLY_REPORTS_ENABLED = 'true';
+    const userId = 'user-flag-off';
+    await seedUser(userId);
+    await seedPlan(userId, 'FREE');
+    const biz1 = await createBusiness(userId, { name: 'Biz 1', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' });
+
+    // Flag disabled allows 2nd business creation for FREE
+    const biz2 = await createBusiness(userId, { name: 'Biz 2', businessType: 'RETAIL', segment: 'RETAIL', electricalSystem: 'ALL_IN' });
+    expect(biz2.id).toBeDefined();
+
+    // Flag disabled allows reading older report month
+    const report = await getMonthlyReportReadModel(userId, biz1.id, '2026-03', new Date('2026-08-15T00:00:00Z'));
+    expect(report.reportCompleteness.code).toBe('NO_BILL');
   });
 });

@@ -107,6 +107,23 @@ describe('Effective Plan & Trial Expiry Resolver', () => {
     expect(res.effectivePlan).toBe('PRO');
     expect(res.isTrialExpired).toBe(false);
   });
+
+  it('unknown or invalid plan string never becomes PRO and resolves to FREE', () => {
+    const row = {
+      id: '5',
+      userId: 'u1',
+      plan: 'INVALID_UNKNOWN_PLAN',
+      trialStartsAt: null,
+      trialEndsAt: null,
+      idempotencyKey: 'k5',
+      onboardingCompletedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const res = resolveEffectivePlanFromRow(row, baseNow);
+    expect(res.effectivePlan).toBe('FREE');
+    expect(res.effectivePlan).not.toBe('PRO');
+  });
 });
 
 describe('Monthly Report History Window Calculation', () => {
