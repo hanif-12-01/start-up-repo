@@ -1,5 +1,6 @@
 import { env } from '@/config/env';
 import { getPool } from '@/server/db/client';
+import { logger } from '@/server/logger';
 
 export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'error';
@@ -38,11 +39,14 @@ export class HealthCheckService {
     };
   }
 
-  public static async getDatabaseHealth(): Promise<{ result: DatabaseHealthResult; httpStatus: number }> {
+  public static async getDatabaseHealth(
+    correlationId?: string
+  ): Promise<{ result: DatabaseHealthResult; httpStatus: number }> {
     const activeDbUrl = process.env.DATABASE_URL !== undefined ? process.env.DATABASE_URL : env.DATABASE_URL;
     const isConfigured = Boolean(activeDbUrl && activeDbUrl.length > 0);
 
     if (!isConfigured) {
+      logger.warn('Database health check: not configured', { correlationId, event: 'health.db.unconfigured' });
       return {
         result: {
           status: 'unconfigured',
@@ -56,7 +60,16 @@ export class HealthCheckService {
 
     try {
       const pool = getPool();
+      const start = Date.now();
       await pool.query('SELECT 1;');
+      const durationMs = Date.now() - start;
+
+      logger.info('Database health check: ok', {
+        correlationId,
+        event: 'health.db.ok',
+        durationMs,
+      });
+
       return {
         result: {
           status: 'ok',
@@ -66,13 +79,20 @@ export class HealthCheckService {
         },
         httpStatus: 200,
       };
-    } catch {
+    } catch (err) {
+      // Log real error server-side; return safe message to caller
+      logger.error('Database health check failed', err, {
+        correlationId,
+        event: 'health.db.error',
+      });
+
       return {
         result: {
           status: 'error',
           timestamp: new Date().toISOString(),
           provider: 'neon-postgresql',
           configured: true,
+          // Safe generic message — no connection string, no error details
           message: 'Database connection failed',
         },
         httpStatus: 503,

@@ -4,10 +4,19 @@ const booleanFlag = z
   .preprocess((val) => val === 'true' || val === true, z.boolean())
   .default(false);
 
+// In production, DATABASE_URL and BETTER_AUTH_SECRET are strictly required.
+// In development/test, they fall back to empty string / defaults so the build
+// and unit-test suite can run without a live database.
+const databaseUrlSchema = z.string().min(1, 'DATABASE_URL must not be empty');
+const authSecretSchema = z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters');
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+  // Production-required secrets (enforced at runtime via validateProductionEnv)
   DATABASE_URL: z.string().optional().default(''),
   BETTER_AUTH_SECRET: z.string().optional().default(''),
+
   BETTER_AUTH_URL: z.string().url().optional().default('http://localhost:3000'),
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default('http://localhost:3000'),
 
@@ -46,6 +55,29 @@ export function parseEnv(input: Record<string, string | undefined>): Env {
   return result.data;
 }
 
+/**
+ * Validates that all production-required variables are present and well-formed.
+ * Called once at server startup. Throws with a sanitized message (no secret values).
+ * Never call this in client-side code.
+ */
+export function validateProductionEnv(parsed: Env): void {
+  if (parsed.NODE_ENV !== 'production') return;
+
+  const errors: string[] = [];
+
+  const dbResult = databaseUrlSchema.safeParse(parsed.DATABASE_URL);
+  if (!dbResult.success) errors.push('DATABASE_URL: required in production');
+
+  const secretResult = authSecretSchema.safeParse(parsed.BETTER_AUTH_SECRET);
+  if (!secretResult.success) errors.push('BETTER_AUTH_SECRET: must be at least 32 characters in production');
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Production startup check failed:\n - ${errors.join('\n - ')}`
+    );
+  }
+}
+
 export function isEntitlementsEnabled(): boolean {
   return process.env.ENTITLEMENTS_ENABLED === 'true' || env.ENTITLEMENTS_ENABLED;
 }
@@ -63,3 +95,9 @@ export function isFunnelAnalyticsViewer(userId: string | undefined | null): bool
 }
 
 export const env = parseEnv(process.env);
+
+// NOTE: validateProductionEnv(env) is intentionally NOT called here at module load.
+// next build runs with NODE_ENV=production but does not have runtime secrets.
+// Instead, call validateProductionEnv(env) from server-side startup code
+// (e.g., instrumentation.ts or the first request handler) when you want
+// fail-fast enforcement of production secrets at actual runtime.
