@@ -627,7 +627,7 @@ async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
     appRuntime: 'node:24-slim',
-    browserRuntime: process.version,
+    harnessRuntime: process.version,
     appUrl: APP_URL,
     migrations,
     viewports: ['360x800', '768x1024', '1280x900'],

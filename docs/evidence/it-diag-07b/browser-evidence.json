@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-08-03T10:09:55.789Z",
   "appRuntime": "node:24-slim",
-  "browserRuntime": "v22.17.0",
+  "harnessRuntime": "v22.17.0",
   "appUrl": "http://127.0.0.1:3108",
   "migrations": [],
   "viewports": [
