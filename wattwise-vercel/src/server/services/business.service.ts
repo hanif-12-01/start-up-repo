@@ -1,4 +1,4 @@
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, count, sql } from 'drizzle-orm';
 import { isEntitlementsEnabled } from '@/config/env';
 import { getDb } from '@/server/db/client';
 import { business } from '@/server/db/schema/journey';
@@ -27,8 +27,9 @@ export async function createBusiness(userId: string, input: CreateBusinessInput)
     }
   }
 
-  // Double check inside transaction for concurrency safety
+  // Double check inside transaction with PostgreSQL transaction-scoped advisory lock for concurrency safety
   const row = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${'business_create:' + userId}))`);
     if (isEntitlementsEnabled()) {
       const entitlements = await getUserEntitlements(userId);
       const [result] = await tx
