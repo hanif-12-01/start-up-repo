@@ -5,6 +5,7 @@ import { requireUserId } from '@/server/auth/session';
 import { resolveJourneyStep } from '@/server/services/journey.service';
 import { createBusiness } from '@/server/services/business.service';
 import { createBusinessSchema } from '@/server/validation/journey';
+import { BusinessLimitExceededError } from '@/server/services/entitlement.service';
 
 export async function createBusinessAction(_prev: unknown, formData: FormData) {
   const userId = await requireUserId();
@@ -31,6 +32,14 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
     return { error: 'Mohon periksa data yang dimasukkan.', fieldErrors: errors };
   }
 
-  await createBusiness(userId, parsed.data);
+  try {
+    await createBusiness(userId, parsed.data);
+  } catch (error) {
+    if (error instanceof BusinessLimitExceededError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
   redirect('/dashboard');
 }

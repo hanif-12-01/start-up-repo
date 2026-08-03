@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { env } from '@/config/env';
+import { env, isEntitlementsEnabled } from '@/config/env';
 import type { ActionPlanStatus } from '@/server/db/schema/action-plans';
 import type { DiagnosticStatus } from '@/server/db/schema/diagnostics';
 import {
@@ -25,6 +25,7 @@ import {
   reportMonthBoundaries,
   resolveReportMonth,
 } from '@/server/validation/monthly-report';
+import { getUserEntitlements } from '@/server/services/entitlement.service';
 
 export const REPORT_COMPLETENESS_CODES = [
   'NO_BILL',
@@ -183,6 +184,22 @@ export class MonthlyReportBillLimitError extends Error {
   }
 }
 
+export class MonthlyReportHistoryGatedError extends Error {
+  readonly code = 'MONTHLY_REPORT_HISTORY_GATED';
+  readonly status = 403;
+  constructor(message = 'Akses laporan bulanan historis ini memerlukan paket PRO atau TRIAL.') {
+    super(message);
+    this.name = 'MonthlyReportHistoryGatedError';
+  }
+}
+
+export function monthDistance(currentMonthStr: string, targetMonthStr: string): number {
+  const [curY, curM] = currentMonthStr.split('-').map(Number);
+  const [tarY, tarM] = targetMonthStr.split('-').map(Number);
+  if (isNaN(curY) || isNaN(curM) || isNaN(tarY) || isNaN(tarM)) return 0;
+  return (curY - tarY) * 12 + (curM - tarM);
+}
+
 export function resolveReportCompleteness(input: {
   hasBill: boolean;
   sessionStatus: DiagnosticStatus | null;
@@ -266,7 +283,9 @@ export async function getMonthlyReportReadModel(
   requestedMonth?: string,
   now = new Date()
 ): Promise<MonthlyReportReadModel> {
-  if (!env.MONTHLY_REPORTS_ENABLED) throw new MonthlyReportsUnavailableError();
+  if (!env.MONTHLY_REPORTS_ENABLED && process.env.MONTHLY_REPORTS_ENABLED !== 'true') {
+    throw new MonthlyReportsUnavailableError();
+  }
   const context = await readMonthlyReportContext(userId, requestedBusinessId);
   if (!context.business) throw new MonthlyReportBusinessNotFoundError();
 
@@ -283,6 +302,20 @@ export async function getMonthlyReportReadModel(
       throw new MonthlyReportMonthError();
     }
     throw error;
+  }
+
+  let availableMonthsList = context.availableMonths;
+  if (isEntitlementsEnabled()) {
+    const entitlements = await getUserEntitlements(userId, now);
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const maxPastMonths = entitlements.limits.monthlyReportHistoryMonths - 1;
+
+    if (requestedMonth && monthDistance(currentMonthStr, requestedMonth) > maxPastMonths) {
+      throw new MonthlyReportHistoryGatedError();
+    }
+    availableMonthsList = context.availableMonths.filter(
+      (month) => monthDistance(currentMonthStr, month) <= maxPastMonths
+    );
   }
   const boundaries = reportMonthBoundaries(reportMonth);
   const period = await readMonthlyReportPeriod({
@@ -487,7 +520,7 @@ export async function getMonthlyReportReadModel(
         ? ['Evaluasi pemakaian terbatas karena data kWh belum lengkap.']
         : []),
     ],
-    availableMonths: context.availableMonths.map((month) => ({
+    availableMonths: availableMonthsList.map((month) => ({
       value: month,
       label: formatMonth(month),
     })),

@@ -24,6 +24,7 @@ import {
   OVERALL_OUTCOME_LABELS,
 } from '@/server/services/outcome-presentation';
 import { resolveSessionClosureEligibility } from '@/server/services/session-closure.service';
+import { getUserEntitlements, type EffectivePlan } from '@/server/services/entitlement.service';
 
 const SESSION_STATUS_LABELS: Record<DiagnosticStatus, string> = {
   DRAFT: 'Cek Kenaikan belum dimulai',
@@ -100,6 +101,14 @@ export interface DashboardReadModel {
   nextAction: DashboardNextAction;
   secondaryLinks: Array<{ label: string; href: string }>;
   dataFreshness: { updatedAt: string; label: string };
+  planSummary?: {
+    plan: EffectivePlan;
+    isTrialExpired: boolean;
+    trialEndsAt: string | null;
+    businessCount: number;
+    maxBusinesses: number;
+    usageLabel: string;
+  };
 }
 
 export class DashboardUnavailableError extends Error {
@@ -189,6 +198,15 @@ export async function getDashboardReadModel(
   const previous = snapshot.bills[1] ?? null;
   const comparison = latest && previous ? compareBills(latest, previous) : null;
   const diagnostic = snapshot.diagnostic;
+  const entitlements = await getUserEntitlements(userId);
+  const planSummary = {
+    plan: entitlements.plan,
+    isTrialExpired: entitlements.isTrialExpired,
+    trialEndsAt: entitlements.trialEndsAt ? entitlements.trialEndsAt.toISOString() : null,
+    businessCount: entitlements.usage.businessCount,
+    maxBusinesses: entitlements.limits.maxBusinesses,
+    usageLabel: `${entitlements.usage.businessCount} dari ${entitlements.limits.maxBusinesses} usaha digunakan`,
+  };
 
   const closureEligible = diagnostic
     ? resolveSessionClosureEligibility({
@@ -412,5 +430,6 @@ export async function getDashboardReadModel(
         timeZone: 'Asia/Jakarta',
       })}`,
     },
+    planSummary,
   };
 }

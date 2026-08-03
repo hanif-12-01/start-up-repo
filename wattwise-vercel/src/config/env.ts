@@ -21,6 +21,7 @@ const envSchema = z.object({
   BUSINESS_PORTFOLIO_ENABLED: booleanFlag,
   SENSOR_IMPORT_ENABLED: booleanFlag,
   ADVANCED_ML_ENABLED: booleanFlag,
+  ENTITLEMENTS_ENABLED: booleanFlag,
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -41,6 +42,10 @@ export function parseEnv(input: Record<string, string | undefined>): Env {
     throw new Error(safeErrorMessage);
   }
   return result.data;
+}
+
+export function isEntitlementsEnabled(): boolean {
+  return process.env.ENTITLEMENTS_ENABLED === 'true' || env.ENTITLEMENTS_ENABLED;
 }
 
 export const env = parseEnv(process.env);

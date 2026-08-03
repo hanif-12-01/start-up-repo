@@ -1,6 +1,8 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
+import { isEntitlementsEnabled } from '@/config/env';
 import { getDb } from '@/server/db/client';
 import { business } from '@/server/db/schema/journey';
+import { getUserEntitlements, BusinessLimitExceededError } from '@/server/services/entitlement.service';
 
 export interface CreateBusinessInput {
   name: string;
@@ -12,20 +14,49 @@ export interface CreateBusinessInput {
 }
 
 export async function createBusiness(userId: string, input: CreateBusinessInput) {
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+
   const db = getDb();
 
-  const [row] = await db
-    .insert(business)
-    .values({
-      userId,
-      name: input.name,
-      businessType: input.businessType,
-      city: input.city || null,
-      segment: input.segment,
-      electricalSystem: input.electricalSystem,
-      roomCount: input.roomCount ?? null,
-    })
-    .returning();
+  if (isEntitlementsEnabled()) {
+    const entitlements = await getUserEntitlements(userId);
+    if (!entitlements.canCreateBusiness) {
+      throw new BusinessLimitExceededError(entitlements.plan, entitlements.limits.maxBusinesses);
+    }
+  }
+
+  // Double check inside transaction for concurrency safety
+  const row = await db.transaction(async (tx) => {
+    if (isEntitlementsEnabled()) {
+      const entitlements = await getUserEntitlements(userId);
+      const [result] = await tx
+        .select({ count: count() })
+        .from(business)
+        .where(and(eq(business.userId, userId), eq(business.isActive, true)));
+
+      const currentCount = Number(result?.count ?? 0);
+      if (currentCount >= entitlements.limits.maxBusinesses) {
+        throw new BusinessLimitExceededError(entitlements.plan, entitlements.limits.maxBusinesses);
+      }
+    }
+
+    const [inserted] = await tx
+      .insert(business)
+      .values({
+        userId,
+        name: input.name,
+        businessType: input.businessType,
+        city: input.city || null,
+        segment: input.segment,
+        electricalSystem: input.electricalSystem,
+        roomCount: input.roomCount ?? null,
+      })
+      .returning();
+
+    return inserted;
+  });
 
   return row;
 }
