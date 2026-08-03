@@ -24,3 +24,53 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .report-page {
+    min-height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  .report-print-root {
+    max-width: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .report-print-hide {
+    display: none !important;
+  }
+
+  .report-section,
+  .report-section article,
+  .report-section table {
+    break-inside: avoid;
+  }
+
+  .report-section {
+    overflow: visible !important;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 9pt !important;
+  }
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+  }
+}

@@ -3,6 +3,8 @@ import {
   resolveDashboardNextAction,
   type DashboardNextActionInput,
 } from '@/server/services/dashboard-next-action';
+import { env } from '@/config/env';
+import { buildMonthlyReportLink } from '@/server/services/dashboard.service';
 
 function input(
   overrides: Partial<DashboardNextActionInput> = {}
@@ -232,6 +234,18 @@ describe('IT-DIAG-07A deterministic next action', () => {
       kind: 'LINK',
       label: 'Tambah Tagihan Pertama',
       href: '/bills/new?businessId=usaha%2Fdua',
+    });
+  });
+
+  it('keeps the monthly report as a secondary link without replacing the primary CTA', () => {
+    env.MONTHLY_REPORTS_ENABLED = true;
+    const primary = resolveDashboardNextAction(input());
+    const reportLink = buildMonthlyReportLink('usaha/dua', '2026-08-31');
+
+    expect(primary.label).toBe('Cek Kenaikan');
+    expect(reportLink).toEqual({
+      label: 'Lihat Laporan Bulanan',
+      href: '/reports/monthly?businessId=usaha%2Fdua&month=2026-08',
     });
   });
 });

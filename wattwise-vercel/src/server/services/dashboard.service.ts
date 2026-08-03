@@ -116,6 +116,17 @@ export class DashboardBusinessNotFoundError extends Error {
   }
 }
 
+export function buildMonthlyReportLink(
+  businessId: string,
+  latestBillPeriodEnd: string | null
+): { label: 'Lihat Laporan Bulanan'; href: string } | null {
+  if (!env.MONTHLY_REPORTS_ENABLED || !latestBillPeriodEnd) return null;
+  return {
+    label: 'Lihat Laporan Bulanan',
+    href: `/reports/monthly?businessId=${encodeURIComponent(businessId)}&month=${latestBillPeriodEnd.slice(0, 7)}`,
+  };
+}
+
 function formatDate(value: string | Date): string {
   const instant = typeof value === 'string' ? new Date(`${value}T00:00:00.000Z`) : value;
   return instant.toLocaleDateString('id-ID', {
@@ -236,6 +247,10 @@ export async function getDashboardReadModel(
       : null,
   };
   const nextAction = resolveDashboardNextAction(nextActionInput);
+  const monthlyReportLink = buildMonthlyReportLink(
+    business.id,
+    latest?.periodEnd ?? null
+  );
 
   const freshnessCandidates = [
     business.updatedAt,
@@ -377,6 +392,7 @@ export async function getDashboardReadModel(
         label: 'Lihat Riwayat Tagihan',
         href: `/bills?businessId=${encodeURIComponent(business.id)}`,
       },
+      ...(monthlyReportLink ? [monthlyReportLink] : []),
       ...(diagnostic
         ? [
             {

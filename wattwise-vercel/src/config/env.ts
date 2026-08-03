@@ -13,6 +13,7 @@ const envSchema = z.object({
 
   // Feature Flags
   DASHBOARD_ENABLED: booleanFlag,
+  MONTHLY_REPORTS_ENABLED: booleanFlag,
   DIAGNOSTICS_ENABLED: booleanFlag,
   ACTION_PLANS_ENABLED: booleanFlag,
   OUTCOME_TRACKING_ENABLED: booleanFlag,

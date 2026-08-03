@@ -1,0 +1,293 @@
+{
+  "generatedAt": "2026-08-03T10:09:55.789Z",
+  "appRuntime": "node:24-slim",
+  "browserRuntime": "v22.17.0",
+  "appUrl": "http://127.0.0.1:3108",
+  "migrations": [],
+  "viewports": [
+    "360x800",
+    "768x1024",
+    "1280x900"
+  ],
+  "checks": [
+    {
+      "path": "/dashboard?businessId=report-browser-bill-only",
+      "expectedText": "Lihat Laporan Bulanan",
+      "url": "/dashboard?businessId=report-browser-bill-only",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 1119,
+      "finalUrl": "http://127.0.0.1:3108/dashboard?businessId=report-browser-bill-only"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-no-bill&month=2026-08",
+      "expectedText": "Belum ada data tagihan",
+      "url": "/reports/monthly?businessId=report-browser-no-bill&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 1463,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-no-bill&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-bill-only&month=2026-08",
+      "expectedText": "Ringkasan tagihan tersedia",
+      "url": "/reports/monthly?businessId=report-browser-bill-only&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 1761,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-bill-only&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-diagnostic&month=2026-08",
+      "expectedText": "Cek Kenaikan sedang berjalan",
+      "url": "/reports/monthly?businessId=report-browser-diagnostic&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 1895,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-diagnostic&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-action&month=2026-08",
+      "expectedText": "Rencana Hemat sedang berjalan",
+      "url": "/reports/monthly?businessId=report-browser-action&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2054,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-action&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-evaluated&month=2026-08",
+      "expectedText": "Evaluasi hasil tersedia",
+      "url": "/reports/monthly?businessId=report-browser-evaluated&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2273,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-evaluated&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "expectedText": "Perjalanan Cek Kenaikan selesai",
+      "url": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2282,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-closed&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "expectedText": "Perubahan sebelum dan sesudah tidak membuktikan",
+      "url": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "width": 360,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2282,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-closed&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "expectedText": "Perubahan sebelum dan sesudah tidak membuktikan",
+      "url": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "width": 768,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2282,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-closed&month=2026-08"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "expectedText": "Perubahan sebelum dan sesudah tidak membuktikan",
+      "url": "/reports/monthly?businessId=report-browser-closed&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": true,
+      "reducedMotion": true,
+      "bodyTextLength": 2282,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-closed&month=2026-08"
+    },
+    {
+      "path": "/bills?businessId=report-browser-closed",
+      "expectedText": "Tagihan listrik",
+      "url": "/bills?businessId=report-browser-closed",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 1031,
+      "finalUrl": "http://127.0.0.1:3108/bills?businessId=report-browser-closed"
+    },
+    {
+      "path": "/bills/new?businessId=report-browser-closed",
+      "expectedText": "Masukkan tagihan listrik",
+      "url": "/bills/new?businessId=report-browser-closed",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 544,
+      "finalUrl": "http://127.0.0.1:3108/bills/new?businessId=report-browser-closed"
+    },
+    {
+      "path": "/diagnostics/report-browser-closed-session/results",
+      "expectedText": "Bagian yang perlu dicek",
+      "url": "/diagnostics/report-browser-closed-session/results",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 840,
+      "finalUrl": "http://127.0.0.1:3108/diagnostics/report-browser-closed-session/results"
+    },
+    {
+      "path": "/diagnostics/report-browser-closed-session/inspections/report-browser-closed-inspection",
+      "expectedText": "Pemeriksaan jadwal operasional",
+      "url": "/diagnostics/report-browser-closed-session/inspections/report-browser-closed-inspection",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 863,
+      "finalUrl": "http://127.0.0.1:3108/diagnostics/report-browser-closed-session/inspections/report-browser-closed-inspection"
+    },
+    {
+      "path": "/diagnostics/report-browser-closed-session/actions/report-browser-closed-action",
+      "expectedText": "Tindakan Selesai",
+      "url": "/diagnostics/report-browser-closed-session/actions/report-browser-closed-action",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 942,
+      "finalUrl": "http://127.0.0.1:3108/diagnostics/report-browser-closed-session/actions/report-browser-closed-action"
+    },
+    {
+      "path": "/diagnostics/report-browser-closed-session/actions/report-browser-closed-action/outcome",
+      "expectedText": "Ada sinyal perbaikan",
+      "url": "/diagnostics/report-browser-closed-session/actions/report-browser-closed-action/outcome",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 1046,
+      "finalUrl": "http://127.0.0.1:3108/diagnostics/report-browser-closed-session/actions/report-browser-closed-action/outcome"
+    },
+    {
+      "path": "/",
+      "expectedText": "WattWise",
+      "url": "/",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 696,
+      "finalUrl": "http://127.0.0.1:3108/"
+    },
+    {
+      "path": "/register",
+      "expectedText": "Laundry Tanpa Tagihan",
+      "url": "/dashboard",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 822,
+      "finalUrl": "http://127.0.0.1:3108/dashboard"
+    },
+    {
+      "path": "/login",
+      "expectedText": "Laundry Tanpa Tagihan",
+      "url": "/dashboard",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 822,
+      "finalUrl": "http://127.0.0.1:3108/dashboard"
+    },
+    {
+      "path": "/plan",
+      "expectedText": "Laundry Tanpa Tagihan",
+      "url": "/dashboard",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 822,
+      "finalUrl": "http://127.0.0.1:3108/dashboard"
+    },
+    {
+      "path": "/onboarding",
+      "expectedText": "Laundry Tanpa Tagihan",
+      "url": "/dashboard",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 822,
+      "finalUrl": "http://127.0.0.1:3108/dashboard"
+    },
+    {
+      "path": "/businesses/new",
+      "expectedText": "Laundry Tanpa Tagihan",
+      "url": "/dashboard",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 822,
+      "finalUrl": "http://127.0.0.1:3108/dashboard"
+    },
+    {
+      "path": "/setup",
+      "expectedText": "Setup selesai",
+      "url": "/setup",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 540,
+      "finalUrl": "http://127.0.0.1:3108/setup"
+    },
+    {
+      "path": "/reports/monthly?businessId=report-browser-outsider&month=2026-08",
+      "expectedText": "404",
+      "url": "/reports/monthly?businessId=report-browser-outsider&month=2026-08",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "focusedPrintButton": null,
+      "reducedMotion": true,
+      "bodyTextLength": 120,
+      "finalUrl": "http://127.0.0.1:3108/reports/monthly?businessId=report-browser-outsider&month=2026-08"
+    }
+  ],
+  "printAudit": {
+    "controlsHidden": true,
+    "titleRetained": true,
+    "businessRetained": true,
+    "monthRetained": true,
+    "caveatRetained": true,
+    "horizontalOverflow": false,
+    "buttonFound": true,
+    "printOverridden": true,
+    "printCalled": true
+  },
+  "consoleMessages": [],
+  "exceptions": [],
+  "http5xx": [],
+  "secretsRedacted": true
+}
