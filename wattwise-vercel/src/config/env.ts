@@ -22,6 +22,8 @@ const envSchema = z.object({
   SENSOR_IMPORT_ENABLED: booleanFlag,
   ADVANCED_ML_ENABLED: booleanFlag,
   ENTITLEMENTS_ENABLED: booleanFlag,
+  FUNNEL_ANALYTICS_ENABLED: booleanFlag,
+  FUNNEL_ANALYTICS_VIEWER_USER_IDS: z.string().optional().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -46,6 +48,18 @@ export function parseEnv(input: Record<string, string | undefined>): Env {
 
 export function isEntitlementsEnabled(): boolean {
   return process.env.ENTITLEMENTS_ENABLED === 'true' || env.ENTITLEMENTS_ENABLED;
+}
+
+export function isFunnelAnalyticsEnabled(): boolean {
+  return process.env.FUNNEL_ANALYTICS_ENABLED === 'true' || env.FUNNEL_ANALYTICS_ENABLED;
+}
+
+export function isFunnelAnalyticsViewer(userId: string | undefined | null): boolean {
+  if (!userId) return false;
+  const allowlistString = process.env.FUNNEL_ANALYTICS_VIEWER_USER_IDS ?? env.FUNNEL_ANALYTICS_VIEWER_USER_IDS ?? '';
+  if (!allowlistString.trim()) return false;
+  const allowlist = allowlistString.split(',').map((id) => id.trim()).filter(Boolean);
+  return allowlist.includes(userId);
 }
 
 export const env = parseEnv(process.env);

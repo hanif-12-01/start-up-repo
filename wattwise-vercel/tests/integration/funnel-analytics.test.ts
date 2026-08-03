@@ -1,11 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import pg from 'pg';
-import { getPool } from '../../src/server/db/client';
 import {
   getProductFunnelAnalyticsReadModel,
-  ANALYTICS_MINIMUM_BREAKDOWN_COHORT,
 } from '../../src/server/services/funnel-analytics.service';
-import { applyAllForwardMigrations, readRollbackMigration } from '../helpers/migrations';
+import { applyAllForwardMigrations } from '../helpers/migrations';
 
 const { Pool } = pg;
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
