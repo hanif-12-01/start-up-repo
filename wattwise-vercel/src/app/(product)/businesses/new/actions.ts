@@ -10,7 +10,7 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
   const userId = await requireUserId();
 
   const step = await resolveJourneyStep(userId);
-  if (step !== 'BUSINESS') redirect(step === 'COMPLETE' ? '/setup' : `/${step.toLowerCase()}`);
+  if (step !== 'BUSINESS') redirect(step === 'COMPLETE' ? '/dashboard' : `/${step.toLowerCase()}`);
 
   const raw = {
     name: formData.get('name'),
@@ -32,5 +32,5 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
   }
 
   await createBusiness(userId, parsed.data);
-  redirect('/setup');
+  redirect('/dashboard');
 }

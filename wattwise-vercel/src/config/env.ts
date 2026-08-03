@@ -12,6 +12,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default('http://localhost:3000'),
 
   // Feature Flags
+  DASHBOARD_ENABLED: booleanFlag,
   DIAGNOSTICS_ENABLED: booleanFlag,
   ACTION_PLANS_ENABLED: booleanFlag,
   OUTCOME_TRACKING_ENABLED: booleanFlag,

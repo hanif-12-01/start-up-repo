@@ -76,6 +76,7 @@ async function main() {
     const env = {
       ...process.env,
       DATABASE_URL: activeDbUrl,
+      DASHBOARD_ENABLED: 'true',
       DIAGNOSTICS_ENABLED: 'true',
       ACTION_PLANS_ENABLED: 'true',
       OUTCOME_TRACKING_ENABLED: 'true',

@@ -10,7 +10,7 @@ const inputClass =
   'w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';
 const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-300';
 
-export function BillForm() {
+export function BillForm({ businessId }: { businessId: string }) {
   const [state, formAction, isPending] = useActionState(createBillAction, null);
   const fieldError = (name: string) => state?.fieldErrors?.[name];
   const previousValue = (name: string) => state?.values?.[name] ?? '';
@@ -26,6 +26,7 @@ export function BillForm() {
       )}
 
       <form action={formAction} className="space-y-5">
+        <input type="hidden" name="businessId" value={businessId} />
         <fieldset disabled={isPending} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -144,7 +145,7 @@ export function BillForm() {
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Link
-            href="/bills"
+            href={`/bills?businessId=${encodeURIComponent(businessId)}`}
             className="rounded-md border border-slate-600 px-4 py-2.5 text-center text-sm font-semibold text-slate-200 hover:bg-slate-700"
           >
             Batal
@@ -163,4 +164,3 @@ export function BillForm() {
     </>
   );
 }
-

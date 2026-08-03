@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/setup', '/plan', '/onboarding', '/businesses'];
+const PROTECTED_PREFIXES = ['/dashboard', '/setup', '/plan', '/onboarding', '/businesses'];
 
 function hasSessionCookie(request: NextRequest): boolean {
   return (
@@ -23,12 +23,12 @@ export function proxy(request: NextRequest) {
   }
 
   if ((pathname === '/login' || pathname === '/register') && hasCookie) {
-    return NextResponse.redirect(new URL('/setup', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/setup/:path*', '/plan/:path*', '/onboarding/:path*', '/businesses/:path*', '/login', '/register'],
+  matcher: ['/dashboard/:path*', '/setup/:path*', '/plan/:path*', '/onboarding/:path*', '/businesses/:path*', '/login', '/register'],
 };

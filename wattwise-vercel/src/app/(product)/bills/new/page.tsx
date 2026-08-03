@@ -1,14 +1,18 @@
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
 import { getOptionalSession } from '@/server/auth/session';
-import { getBusinessesByUser } from '@/server/services/business.service';
+import { getActiveBusinessById, getBusinessesByUser } from '@/server/services/business.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { BillForm } from './BillForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewBillPage() {
+export default async function NewBillPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ businessId?: string | string[] }>;
+}) {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
 
@@ -16,8 +20,16 @@ export default async function NewBillPage() {
   const step = await resolveJourneyStep(userId);
   if (step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
-  const businesses = await getBusinessesByUser(userId);
-  const currentBusiness = businesses[0];
+  const query = await searchParams;
+  const requestedBusinessId =
+    typeof query.businessId === 'string' && query.businessId.trim()
+      ? query.businessId
+      : undefined;
+  const businesses = (await getBusinessesByUser(userId)).filter((item) => item.isActive);
+  const currentBusiness = requestedBusinessId
+    ? await getActiveBusinessById(userId, requestedBusinessId)
+    : businesses[0];
+  if (requestedBusinessId && !currentBusiness) notFound();
   if (!currentBusiness) redirect('/businesses/new');
 
   return (
@@ -34,9 +46,8 @@ export default async function NewBillPage() {
           </div>
         </Reveal>
 
-        <BillForm />
+        <BillForm businessId={currentBusiness.id} />
       </PageReveal>
     </main>
   );
 }
-

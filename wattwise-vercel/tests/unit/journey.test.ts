@@ -174,8 +174,8 @@ describe('Journey Routes', () => {
     expect(JOURNEY_ROUTES.BUSINESS).toBe('/businesses/new');
   });
 
-  it('maps COMPLETE to /setup', () => {
-    expect(JOURNEY_ROUTES.COMPLETE).toBe('/setup');
+  it('maps COMPLETE to the action dashboard', () => {
+    expect(JOURNEY_ROUTES.COMPLETE).toBe('/dashboard');
   });
 
   it('no route target is an external URL (prevents open redirect)', () => {

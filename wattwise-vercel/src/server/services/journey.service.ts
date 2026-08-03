@@ -9,7 +9,7 @@ export const JOURNEY_ROUTES: Record<JourneyStep, string> = {
   PLAN: '/plan',
   ONBOARDING: '/onboarding',
   BUSINESS: '/businesses/new',
-  COMPLETE: '/setup',
+  COMPLETE: '/dashboard',
 };
 
 export const TRIAL_DURATION_DAYS = 30;

@@ -46,3 +46,8 @@ export async function getBusinessById(sessionUserId: string, businessId: string)
     .limit(1);
   return rows[0] ?? null;
 }
+
+export async function getActiveBusinessById(sessionUserId: string, businessId: string) {
+  const row = await getBusinessById(sessionUserId, businessId);
+  return row?.isActive ? row : null;
+}

@@ -33,6 +33,7 @@ export async function createBillAction(
     tariffRupiahPerKwh: String(formData.get('tariffRupiahPerKwh') ?? ''),
     notes: String(formData.get('notes') ?? ''),
   };
+  const businessId = String(formData.get('businessId') ?? '');
 
   const parsed = createBillSchema.safeParse(values);
   if (!parsed.success) {
@@ -49,7 +50,7 @@ export async function createBillAction(
   }
 
   try {
-    await createBill(userId, parsed.data);
+    await createBill(userId, parsed.data, businessId || undefined);
   } catch (error) {
     if (
       error instanceof DuplicateBillPeriodError ||
@@ -71,6 +72,5 @@ export async function createBillAction(
     };
   }
 
-  redirect('/bills');
+  redirect(`/bills?businessId=${encodeURIComponent(businessId)}`);
 }
-

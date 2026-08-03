@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/LogoutButton';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
 import { getOptionalSession } from '@/server/auth/session';
 import type { BillRecord } from '@/server/repositories/bill.repository';
 import { getBillOverview } from '@/server/services/bill.service';
+import { getActiveBusinessById, getBusinessesByUser } from '@/server/services/business.service';
 import { getDiagnosticEntryState } from '@/server/services/diagnostic.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
@@ -58,7 +59,11 @@ function decimalChangeLabel(difference: string, percentage: string | null, unit:
   return `${sign}${formatDecimal(difference)} ${unit} (${percentageLabel(percentage)})`;
 }
 
-export default async function BillsPage() {
+export default async function BillsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ businessId?: string | string[] }>;
+}) {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
 
@@ -66,7 +71,23 @@ export default async function BillsPage() {
   const step = await resolveJourneyStep(userId);
   if (step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
-  const { bills, current, previous, comparison } = await getBillOverview(userId);
+  const query = await searchParams;
+  const requestedBusinessId =
+    typeof query.businessId === 'string' && query.businessId.trim()
+      ? query.businessId
+      : undefined;
+  const businesses = (await getBusinessesByUser(userId)).filter((item) => item.isActive);
+  const selectedBusiness = requestedBusinessId
+    ? await getActiveBusinessById(userId, requestedBusinessId)
+    : businesses[0];
+  if (requestedBusinessId && !selectedBusiness) notFound();
+  if (!selectedBusiness) redirect('/businesses/new');
+
+  const businessQuery = `?businessId=${encodeURIComponent(selectedBusiness.id)}`;
+  const { bills, current, previous, comparison } = await getBillOverview(
+    userId,
+    selectedBusiness.id
+  );
   const diagnosticEntry = current
     ? await getDiagnosticEntryState(userId, current.id)
     : null;
@@ -83,10 +104,16 @@ export default async function BillsPage() {
             </div>
             <div className="flex items-center gap-3">
               <Link
-                href="/bills/new"
+                href={`/bills/new${businessQuery}`}
                 className="rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
               >
                 Tambah Tagihan
+              </Link>
+              <Link
+                href={`/dashboard${businessQuery}`}
+                className="rounded-md border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+              >
+                Dashboard
               </Link>
               <LogoutButton />
             </div>
@@ -102,7 +129,7 @@ export default async function BillsPage() {
                 tarif, atau penyebab perubahan.
               </p>
               <Link
-                href="/bills/new"
+                href={`/bills/new${businessQuery}`}
                 className="mt-5 inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500"
               >
                 Masukkan Tagihan Pertama

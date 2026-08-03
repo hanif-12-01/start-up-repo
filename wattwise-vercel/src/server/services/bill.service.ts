@@ -6,17 +6,20 @@ import {
 import { compareBills } from '@/server/services/bill-comparison.service';
 import type { CreateBillInput } from '@/server/validation/bills';
 
-export async function createBill(userId: string, input: CreateBillInput) {
+export async function createBill(
+  userId: string,
+  input: CreateBillInput,
+  businessId?: string
+) {
   if (!userId) throw new Error('UNAUTHENTICATED');
-  return createBillForOwnedBusiness(userId, input);
+  return createBillForOwnedBusiness(userId, input, businessId);
 }
 
-export async function getBillOverview(userId: string) {
-  const bills = await listBillsForUser(userId);
+export async function getBillOverview(userId: string, businessId?: string) {
+  const bills = await listBillsForUser(userId, businessId);
   const current = bills[0] ?? null;
   const previous = current ? await findPreviousBillForUser(userId, current) : null;
   const comparison = current && previous ? compareBills(current, previous) : null;
 
   return { bills, current, previous, comparison };
 }
-

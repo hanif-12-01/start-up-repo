@@ -74,26 +74,33 @@ function mapBill(row: BillRow): BillRecord {
   };
 }
 
-async function findPrimaryOwnedBusiness(client: PoolClient, userId: string) {
+async function findPrimaryOwnedBusiness(
+  client: PoolClient,
+  userId: string,
+  requestedBusinessId?: string
+) {
   const result = await client.query<{ id: string; name: string }>(
     `SELECT id, name
        FROM business
-      WHERE user_id = $1 AND is_active = true
+      WHERE user_id = $1
+        AND is_active = true
+        AND ($2::text IS NULL OR id = $2)
       ORDER BY created_at ASC, id ASC
       LIMIT 1`,
-    [userId]
+    [userId, requestedBusinessId ?? null]
   );
   return result.rows[0] ?? null;
 }
 
 export async function createBillForOwnedBusiness(
   userId: string,
-  input: CreateBillInput
+  input: CreateBillInput,
+  requestedBusinessId?: string
 ): Promise<BillRecord> {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
-    const ownedBusiness = await findPrimaryOwnedBusiness(client, userId);
+    const ownedBusiness = await findPrimaryOwnedBusiness(client, userId, requestedBusinessId);
     if (!ownedBusiness) throw new BillBusinessNotFoundError();
 
     // Serialize writes per business so concurrent requests cannot pass the overlap check together.
@@ -149,7 +156,10 @@ export async function createBillForOwnedBusiness(
   }
 }
 
-export async function listBillsForUser(userId: string): Promise<BillRecord[]> {
+export async function listBillsForUser(
+  userId: string,
+  businessId?: string
+): Promise<BillRecord[]> {
   if (!userId) return [];
   const result = await getPool().query<BillRow>(
     `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
@@ -158,8 +168,9 @@ export async function listBillsForUser(userId: string): Promise<BillRecord[]> {
        FROM electricity_bill eb
        JOIN business b ON b.id = eb.business_id
       WHERE b.user_id = $1
+        AND ($2::text IS NULL OR eb.business_id = $2)
       ORDER BY eb.period_end DESC, eb.period_start DESC, eb.id DESC`,
-    [userId]
+    [userId, businessId ?? null]
   );
   return result.rows.map(mapBill);
 }
