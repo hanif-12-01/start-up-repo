@@ -27,6 +27,7 @@ export interface ReleaseInfoResult {
 }
 
 const startTime = Date.now();
+const READINESS_DB_TIMEOUT_MS = 3000;
 
 export class HealthCheckService {
   public static getSystemHealth(): HealthCheckResult {
@@ -61,7 +62,14 @@ export class HealthCheckService {
     try {
       const pool = getPool();
       const start = Date.now();
-      await pool.query('SELECT 1;');
+
+      // Enforce 3000ms timeout for readiness database ping
+      const queryPromise = pool.query('SELECT 1;');
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Readiness database ping timed out after 3000ms')), READINESS_DB_TIMEOUT_MS)
+      );
+
+      await Promise.race([queryPromise, timeoutPromise]);
       const durationMs = Date.now() - start;
 
       logger.info('Database health check: ok', {
@@ -80,7 +88,7 @@ export class HealthCheckService {
         httpStatus: 200,
       };
     } catch (err) {
-      // Log real error server-side; return safe message to caller
+      // Log real error server-side; return safe message to caller without leaking DB host, credentials, or stack trace
       logger.error('Database health check failed', err, {
         correlationId,
         event: 'health.db.error',
@@ -92,7 +100,6 @@ export class HealthCheckService {
           timestamp: new Date().toISOString(),
           provider: 'neon-postgresql',
           configured: true,
-          // Safe generic message — no connection string, no error details
           message: 'Database connection failed',
         },
         httpStatus: 503,

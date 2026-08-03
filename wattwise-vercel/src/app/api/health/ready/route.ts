@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HealthCheckService } from '@/server/services/health.service';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/health/ready
@@ -26,6 +27,11 @@ export async function GET(request: NextRequest) {
       database: result.status,
       timestamp: new Date().toISOString(),
     },
-    { status: ready ? 200 : 503 }
+    {
+      status: ready ? 200 : 503,
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    }
   );
 }

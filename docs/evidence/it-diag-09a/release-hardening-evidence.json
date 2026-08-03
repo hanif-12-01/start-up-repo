@@ -1,31 +1,96 @@
 {
   "phase": "IT-DIAG-09A",
-  "verifiedAt": "2026-08-04T01:50:00Z",
+  "verifiedAt": "2026-08-04T02:19:00Z",
   "timezone": "Asia/Jakarta",
   "nodeVersion": "v22.17.0",
   "npmVersion": "10.9.2",
+  "databaseEngine": "PostgreSQL 16 (disposable Docker container)",
+
+  "lineage": {
+    "acceptedBase": "f1296805808d5cfeacf686a6cfc4fa3a6821c9dc",
+    "activationCommit": "469d8d87240c7a497cb8a2992b74641e4f25b776",
+    "implementationCommit1": "83dcac86f70a1c5be363f0355fffa3be064df9fd",
+    "implementationCommit2": "4ac01b2ba9520abba3aef9a28be025610fcebddd",
+    "reportCommit1": "5bbf11c87b6f1ff3fbe694a9cf10f1ff3ec37a03"
+  },
+
+  "migrationRehearsal": {
+    "sequence": "UP (0000-0007) -> DOWN (0007-0000) -> SECOND UP (0000-0007)",
+    "firstUpStatus": "PASS (14 tables, FKs, unique, check, indexes verified)",
+    "downStatus": "PASS (0 public base tables remaining)",
+    "secondUpStatus": "PASS (14 tables, FKs, unique, check, indexes verified)",
+    "finalSchemaConsistency": "PASS",
+    "testFile": "tests/integration/migration-rehearsal.test.ts"
+  },
+
+  "dependencyAdvisories": {
+    "currentFullAudit": "8 vulnerabilities (6 moderate, 2 high)",
+    "currentProductionAudit": "7 vulnerabilities (6 moderate, 1 high)",
+    "acceptedBaseAuditMatch": "PASS (0 package diff vs f129680; advisory count matches baseline under current npm DB)",
+    "highAdvisories": [
+      {
+        "name": "postcss",
+        "severity": "high",
+        "path": "next -> postcss",
+        "exposure": "Server-side CSS compilation / sourcemap parser; zero user-supplied CSS input exposure.",
+        "action": "Residual risk accepted; fix requires major breaking Next.js version change."
+      },
+      {
+        "name": "brace-expansion",
+        "severity": "high",
+        "path": "@typescript-eslint/typescript-estree -> brace-expansion",
+        "exposure": "Development-only linting / typechecking toolchain; zero runtime exposure.",
+        "action": "Residual risk accepted."
+      }
+    ]
+  },
+
+  "environmentContract": {
+    "serverOnlySecrets": ["DATABASE_URL", "BETTER_AUTH_SECRET"],
+    "serverOnlyNonSecret": ["FUNNEL_ANALYTICS_VIEWER_USER_IDS"],
+    "browserExposedPublic": ["NEXT_PUBLIC_APP_URL", "BETTER_AUTH_URL"],
+    "validationHelper": "validateProductionEnv() throws safely in production without exposing secret string values",
+    "clientBundleLeakageCheck": "PASS (0 secret values present in .next/static chunks)"
+  },
+
+  "secretAudit": {
+    "trackedSensitiveFiles": 0,
+    "envHistory": ["wattwise-vercel/.env.example"],
+    "credentialGrepMatches": "Synthetic test fixtures only (testpass@127.0.0.1:5439, build_noop@127.0.0.1:5432). Zero real secrets or keys."
+  },
+
+  "securityHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "X-XSS-Protection": "0",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload (in production)"
+  },
+
+  "healthProbes": {
+    "liveness": "/api/health/live -> 200 OK (no DB I/O)",
+    "readinessHealthy": "/api/health/ready -> 200 OK (status: ready)",
+    "readinessUnreachableDB": "/api/health/ready -> 503 Service Unavailable (status: not-ready, 3000ms timeout, no stack trace, no DB host exposed)",
+    "headers": "Cache-Control: no-store, max-age=0, force-dynamic"
+  },
+
+  "correlationIdAndLogging": {
+    "headerName": "X-Correlation-Id",
+    "validation": "Alphanumeric + hyphens only, max 64 chars limit enforced by sanitizeCorrelationId()",
+    "redaction": "Automatic recursive key-based redaction for password, token, authorization, cookie, database_url, secret, email, phone, PII, SQL params",
+    "unitTestCoverage": "tests/unit/logger.test.ts PASS"
+  },
+
   "qualityGates": {
     "npmCi": "PASS",
-    "npmAudit": "8 vulnerabilities (6 moderate, 2 high) - baseline match",
-    "unitTests": "243 passed (16 test files)",
-    "integrationTests": "148 passed (12 test files)",
+    "unitTests": "242 passed (16 test files)",
+    "integrationTests": "151 passed (13 test files)",
     "typecheck": "PASS (0 errors)",
     "lint": "PASS (0 errors, 0 warnings)",
-    "build": "PASS (all routes compiled cleanly)"
-  },
-  "securityControls": {
-    "envValidation": "validateProductionEnv() added and verified",
-    "sanitizedEnvExample": "wattwise-vercel/.env.example updated with complete contract",
-    "securityHeaders": ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection", "Referrer-Policy", "Permissions-Policy", "Content-Security-Policy"],
-    "correlationIdHeader": "X-Correlation-Id populated on proxy middleware",
-    "healthProbes": {
-      "liveness": "/api/health/live (200 OK)",
-      "readiness": "/api/health/ready (200 OK / 503 Service Unavailable)"
-    }
-  },
-  "protectedPathDiffs": {
-    "packageJson": "EMPTY (0 lines)",
-    "drizzleMigrations": "EMPTY (0 lines)",
-    "baselineAndLaravel": "EMPTY (0 lines)"
+    "build": "PASS (all routes compiled cleanly)",
+    "diffCheck": "PASS (0 whitespace errors)",
+    "protectedPathDiffs": "EMPTY (0 lines diff on drizzle, rollbacks, docs/baseline, wattwise-laravel)"
   }
 }

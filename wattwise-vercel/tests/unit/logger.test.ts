@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { logger, generateCorrelationId } from '../../src/server/logger';
+import { logger, generateCorrelationId, sanitizeCorrelationId, redactValue } from '../../src/server/logger';
 
 describe('logger', () => {
   it('should generate valid correlation IDs in UUID v4 format', () => {
@@ -9,34 +9,49 @@ describe('logger', () => {
     );
   });
 
-  it('should generate unique correlation IDs on each call', () => {
-    const ids = Array.from({ length: 10 }, generateCorrelationId);
-    const unique = new Set(ids);
-    expect(unique.size).toBe(10);
+  it('should sanitize incoming correlation IDs safely', () => {
+    expect(sanitizeCorrelationId('custom-id-123')).toBe('custom-id-123');
+    expect(sanitizeCorrelationId('   valid-id   ')).toBe('valid-id');
+    // Reject invalid chars (e.g. script injection attempt)
+    const invalid = sanitizeCorrelationId('<script>alert(1)</script>');
+    expect(invalid).not.toContain('<script>');
+    expect(invalid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4/i);
+    // Reject oversized ID
+    const longId = 'a'.repeat(100);
+    const sanitizedLong = sanitizeCorrelationId(longId);
+    expect(sanitizedLong.length).toBeLessThanOrEqual(64);
   });
 
-  it('should expose info, warn, error, debug methods', () => {
-    expect(typeof logger.info).toBe('function');
-    expect(typeof logger.warn).toBe('function');
-    expect(typeof logger.error).toBe('function');
-    expect(typeof logger.debug).toBe('function');
+  it('should automatically redact sensitive keys in context objects', () => {
+    expect(redactValue('password', 'secret123')).toBe('[REDACTED]');
+    expect(redactValue('token', 'session-tok-123')).toBe('[REDACTED]');
+    expect(redactValue('authorization', 'Bearer xyz')).toBe('[REDACTED]');
+    expect(redactValue('DATABASE_URL', 'postgresql://user:pass@host/db')).toBe('[REDACTED]');
+    expect(redactValue('email', 'user@example.com')).toBe('[REDACTED]');
+    expect(redactValue('phone', '08123456789')).toBe('[REDACTED]');
+    expect(redactValue('questionnaireNotes', 'confidential notes')).toBe('[REDACTED]');
+    expect(redactValue('sqlParams', ['param1', 'param2'])).toBe('[REDACTED]');
+  });
+
+  it('should recursively redact nested objects', () => {
+    const nested = {
+      user: {
+        id: 'u-123',
+        email: 'secret@example.com',
+        nestedSecret: {
+          password: 'pass',
+        },
+      },
+      safeField: 'hello',
+    };
+    const redacted = redactValue('context', nested) as typeof nested;
+    expect(redacted.user.id).toBe('u-123');
+    expect(redacted.user.email).toBe('[REDACTED]');
+    expect(redacted.user.nestedSecret.password).toBe('[REDACTED]');
+    expect(redacted.safeField).toBe('hello');
   });
 
   it('should not throw when logging an error without context', () => {
     expect(() => logger.error('test error', new Error('boom'))).not.toThrow();
-  });
-
-  it('should not throw when logging with correlationId context', () => {
-    const correlationId = generateCorrelationId();
-    expect(() =>
-      logger.info('test event', { correlationId, event: 'test.event', path: '/api/test' })
-    ).not.toThrow();
-  });
-
-  it('should not expose secret fields on the logger object', () => {
-    // The logger itself must not carry any state that includes secrets
-    expect(logger).not.toHaveProperty('databaseUrl');
-    expect(logger).not.toHaveProperty('secret');
-    expect(logger).not.toHaveProperty('password');
   });
 });

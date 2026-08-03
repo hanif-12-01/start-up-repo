@@ -3,11 +3,9 @@
  *
  * Rules:
  * - All log entries are JSON-formatted for log aggregation compatibility.
- * - PII fields (email, name, phone, address, businessName, sessionToken) are
- *   never logged — callers must not pass them in the context object.
- * - Secret values (DATABASE_URL, BETTER_AUTH_SECRET) are never logged.
- * - Each request should carry a correlationId (generated in middleware or
- *   passed from the caller) to allow log tracing across a request lifecycle.
+ * - Sensitive keys (password, token, authorization, cookie, secrets, PII, SQL params)
+ *   are automatically sanitized/redacted to prevent accidental leakage.
+ * - Each request should carry a correlationId for tracing across request lifecycles.
  * - Stack traces are included only in development; in production only the
  *   sanitized message is emitted to avoid leaking internal paths.
  */
@@ -26,12 +24,43 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
+const SENSITIVE_KEY_PATTERN =
+  /password|token|authorization|cookie|database_url|databaseurl|auth_secret|authsecret|secret|email|phone|address|questionnaire|inspectionnotes|actionnotes|requestbody|sqlparams/i;
+
+export function redactValue(key: string, value: unknown): unknown {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const redactedObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      redactedObj[k] = redactValue(k, v);
+    }
+    return redactedObj;
+  }
+  if (SENSITIVE_KEY_PATTERN.test(key)) {
+    return '[REDACTED]';
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      typeof item === 'object' && item !== null
+        ? redactValue(key, item)
+        : item
+    );
+  }
+  return value;
+}
+
 function buildEntry(level: LogLevel, message: string, context?: LogContext) {
+  const sanitizedContext: Record<string, unknown> = {};
+  if (context) {
+    for (const [k, v] of Object.entries(context)) {
+      sanitizedContext[k] = redactValue(k, v);
+    }
+  }
+
   return {
     ts: new Date().toISOString(),
     level,
     message,
-    ...(context ?? {}),
+    ...sanitizedContext,
   };
 }
 
@@ -71,14 +100,25 @@ export const logger = {
           ? { errorMessage: error.message }
           : {};
 
-    emit('error', buildEntry('error', message, { ...context, ...errorDetail }));
+    emit('error', buildEntry('error', message, redactValue('context', { ...context, ...errorDetail }) as LogContext));
   },
 };
 
 /**
  * Generate a short, URL-safe correlation ID for request tracing.
  * Uses crypto.randomUUID() which is available in Node 14.17+ and all modern runtimes.
+ * Enforces safe character format (UUID v4) and max length limit (64 chars).
  */
 export function generateCorrelationId(): string {
   return crypto.randomUUID();
+}
+
+export function sanitizeCorrelationId(id: string | null | undefined): string {
+  if (!id) return generateCorrelationId();
+  // Safe character check: alphanumeric and hyphens only, max 64 chars
+  const sanitized = id.trim();
+  if (/^[a-zA-Z0-9-]{1,64}$/.test(sanitized)) {
+    return sanitized;
+  }
+  return generateCorrelationId();
 }

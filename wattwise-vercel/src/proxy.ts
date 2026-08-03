@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { sanitizeCorrelationId } from '@/server/logger';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/setup', '/plan', '/onboarding', '/businesses'];
 
@@ -12,18 +13,11 @@ function hasSessionCookie(request: NextRequest): boolean {
   );
 }
 
-/**
- * Generate a short URL-safe correlation ID for request tracing.
- * Attached as X-Correlation-Id response header on every request.
- */
-function generateCorrelationId(): string {
-  return crypto.randomUUID();
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasCookie = hasSessionCookie(request);
-  const correlationId = request.headers.get('x-correlation-id') || generateCorrelationId();
+  const rawCorrelationId = request.headers.get('x-correlation-id');
+  const correlationId = sanitizeCorrelationId(rawCorrelationId);
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
 
@@ -37,7 +31,7 @@ export function proxy(request: NextRequest) {
     response = NextResponse.next();
   }
 
-  // Propagate correlation ID on every response for log tracing
+  // Propagate sanitized correlation ID on every response for log tracing
   response.headers.set('x-correlation-id', correlationId);
 
   return response;

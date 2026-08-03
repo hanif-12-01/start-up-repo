@@ -22,13 +22,11 @@ const securityHeaders = [
     ].join(', '),
   },
   // Content Security Policy — restrictive baseline for a server-rendered Next.js app
-  // Note: 'unsafe-inline' is required for Next.js inline styles in style-src.
-  // Nonce-based CSP can be added in a future hardening pass once all inline scripts are audited.
   {
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-eval needed by Next.js dev/turbopack; revisit for prod-only build
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js Turbopack / client hydration requirement
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
@@ -39,6 +37,10 @@ const securityHeaders = [
       "object-src 'none'",
     ].join('; '),
   },
+  // HSTS - Strict Transport Security (applied in production environments over HTTPS)
+  ...(process.env.NODE_ENV === 'production'
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
+    : []),
 ];
 
 const nextConfig: NextConfig = {
