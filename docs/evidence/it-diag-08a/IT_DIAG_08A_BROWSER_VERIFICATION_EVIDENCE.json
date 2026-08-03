@@ -1,0 +1,70 @@
+{
+  "phase": "IT-DIAG-08A",
+  "verificationDate": "2026-08-03T18:56:55+07:00",
+  "environment": {
+    "node": "v24.18.0",
+    "npm": "11.16.0",
+    "postgres": "PostgreSQL 16.8 (disposable container)"
+  },
+  "viewportsTested": [
+    { "width": 360, "height": 800, "device": "Mobile" },
+    { "width": 768, "height": 1024, "device": "Tablet" },
+    { "width": 1280, "height": 900, "device": "Desktop" }
+  ],
+  "verifiedScenarios": [
+    {
+      "scenario": "FREE plan summary & limits",
+      "plan": "FREE",
+      "businessUsage": "0/1 and 1/1",
+      "creationLimitEnforced": true,
+      "denialCopy": "Batas Maksimal Usaha Tercapai. Paket FREE Anda hanya dapat mengelola 1 usaha.",
+      "status": "PASS"
+    },
+    {
+      "scenario": "TRIAL plan summary & limits",
+      "plan": "TRIAL",
+      "businessUsage": "3/3 max",
+      "creationLimitEnforced": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "PRO plan summary & limits",
+      "plan": "PRO",
+      "businessUsage": "10/10 max",
+      "creationLimitEnforced": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "Monthly report history window (FREE 3 months vs TRIAL/PRO 24 months)",
+      "freeWindowMonths": 3,
+      "trialProWindowMonths": 24,
+      "outsideWindowBehavior": "HTTP 403 Access Denied (MONTHLY_REPORT_HISTORY_GATED)",
+      "noBillAllowedMonthBehavior": "HTTP 200 with NO_BILL report completeness state",
+      "status": "PASS"
+    },
+    {
+      "scenario": "Expired trial fallback & diagnostic journey continuity",
+      "effectivePlan": "FREE",
+      "isTrialExpired": true,
+      "inProgressJourneyBlocked": false,
+      "status": "PASS"
+    },
+    {
+      "scenario": "Tenant isolation vs Entitlement denial error presentation",
+      "crossTenantRouteAccess": "HTTP 404 Not Found",
+      "ownedOutsideEntitlementAccess": "HTTP 403 Access Denied",
+      "status": "PASS"
+    },
+    {
+      "scenario": "Accessibility & Layout Quality Gates",
+      "keyboardNavigation": "PASS",
+      "visibleFocus": "PASS",
+      "reducedMotion": "PASS",
+      "nativeScrolling": "PASS",
+      "horizontalOverflow": "NONE",
+      "hydrationWarnings": "NONE",
+      "consoleErrors": "NONE",
+      "status": "PASS"
+    }
+  ]
+}
