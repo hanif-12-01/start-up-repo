@@ -1,0 +1,41 @@
+{
+  "phase": "IT-DIAG-09A",
+  "verifiedAt": "2026-08-04T02:28:00Z",
+  "captureMechanism": "Chrome Browser Subagent & Playwright Harness against local production server (next start -p 3000)",
+  "productionRuntimeCommand": "NODE_ENV=production DATABASE_URL=postgresql://wattwise_test_user:***@127.0.0.1:5439/wattwise_test npx next start -p 3000",
+  "browserSessions": [
+    {
+      "route": "/login",
+      "viewport": "1280x900",
+      "httpStatus": 200,
+      "pageTitle": "WattWise AI — Listrik Lebih Cerdas, Cash Flow Lebih Terkendali",
+      "consoleErrors": 0,
+      "networkFailures": 0,
+      "screenshot": "hardening-1280x900.png"
+    },
+    {
+      "route": "/api/health/live",
+      "viewport": "768x1024",
+      "httpStatus": 200,
+      "jsonBody": { "status": "live", "timestamp": "2026-08-03T19:27:27.716Z" },
+      "consoleErrors": 0,
+      "networkFailures": 0,
+      "screenshot": "hardening-768x1024.png"
+    },
+    {
+      "route": "/api/health/ready",
+      "viewport": "360x800",
+      "httpStatus": 200,
+      "jsonBody": { "status": "ready", "database": "ok", "timestamp": "2026-08-03T19:27:36.857Z" },
+      "consoleErrors": 0,
+      "networkFailures": 0,
+      "screenshot": "hardening-360x800.png"
+    }
+  ],
+  "rawResponseFiles": {
+    "healthLiveResponse": "health-live-response.txt",
+    "healthReadyResponse": "health-ready-response.txt",
+    "healthNotReadyResponse": "health-not-ready-response.txt",
+    "securityHeaders": "security-headers.txt"
+  }
+}
