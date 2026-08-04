@@ -731,15 +731,35 @@ async function runProductBrowserRegression() {
       throw new Error(`${code}: expected final path ${expectedFinalPath} but reached ${finalPath}`);
     }
 
+    if (!emulatePrint) {
+      await cdp.send('Runtime.evaluate', {
+        expression: `document.activeElement instanceof HTMLElement && document.activeElement.blur()`,
+      });
+      await cdp.send('Input.dispatchKeyEvent', {
+        type: 'rawKeyDown',
+        key: 'Tab',
+        code: 'Tab',
+        windowsVirtualKeyCode: 9,
+        nativeVirtualKeyCode: 9,
+      });
+      await cdp.send('Input.dispatchKeyEvent', {
+        type: 'keyUp',
+        key: 'Tab',
+        code: 'Tab',
+        windowsVirtualKeyCode: 9,
+        nativeVirtualKeyCode: 9,
+      });
+    }
+
     const audit = await cdp.send('Runtime.evaluate', {
       expression: `(() => {
         const root = document.documentElement;
         const bodyText = document.body?.innerText || '';
         const nextAction = document.querySelector('[aria-labelledby="next-action-title"]');
         const primaryCta = nextAction?.querySelector('a[href], button') || document.querySelector('main a[href], main button');
-        if (primaryCta instanceof HTMLElement) primaryCta.focus();
         const ctaRect = primaryCta?.getBoundingClientRect();
-        const focusStyle = primaryCta ? getComputedStyle(primaryCta) : null;
+        const focusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const focusStyle = focusedElement ? getComputedStyle(focusedElement) : null;
         const selector = document.querySelector('select[name="businessId"]');
         const selectorRect = selector?.getBoundingClientRect();
         const printHiddenNodes = [...document.querySelectorAll('.report-print-hide')];
@@ -762,9 +782,8 @@ async function runProductBrowserRegression() {
           primaryCtaVisible: !ctaRect || (ctaRect.left >= 0 && ctaRect.right <= innerWidth && ctaRect.width > 0),
           businessSelectorReadable: !selectorRect || (selectorRect.width >= 160 && selectorRect.left >= 0 && selectorRect.right <= innerWidth),
           nativeVerticalScrolling: root.scrollHeight > innerHeight && getComputedStyle(root).overflowY !== 'hidden',
-          visibleKeyboardFocus: !primaryCta || (
-            document.activeElement === primaryCta &&
-            ((focusStyle?.outlineStyle !== 'none' && parseFloat(focusStyle?.outlineWidth || '0') > 0) || focusStyle?.boxShadow !== 'none')
+          visibleKeyboardFocus: !!focusedElement && focusedElement !== document.body && (
+              ((focusStyle?.outlineStyle !== 'none' && parseFloat(focusStyle?.outlineWidth || '0') > 0) || focusStyle?.boxShadow !== 'none')
           ),
           reducedMotionMatched: matchMedia('(prefers-reduced-motion: reduce)').matches,
           runningAnimationCount: document.getAnimations().filter((animation) => animation.playState === 'running').length,
