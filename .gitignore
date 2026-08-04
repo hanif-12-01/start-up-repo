@@ -38,6 +38,10 @@ credentials.json
 # no markdown files
 *.md
 **/*.md
+!docs/tasks/*.md
+!docs/archive/*.md
+!docs/reports/*.md
+!docs/runbooks/*.md
 !docs/product/meter-ocr-manual-qa.md
 !docs/product/pdf-reports-manual-qa.md
 !wattwise-laravel/docs/ui/IT-UI-02_authenticated-app-shell.md
