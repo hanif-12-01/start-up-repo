@@ -173,7 +173,7 @@ All six files are non-empty and were produced during the same passing final run.
 After the final report commit SHA is known, revert browser-recovery work newest to oldest:
 
 ```powershell
-git revert <IT_DIAG_09A_FINAL_REPORT_COMMIT_SHA>
+git revert 635dd01b14082d48bda5f489b48bc8ab563d44f1
 git revert c5e2b50a1faf8b0091b8abc1160516f81873e1e9
 git revert ef8c77406caeddf9dbf5b9f8801b649d827c6b78
 git revert a8919a8cc9015379f0c9e17c7256231a89301acb
