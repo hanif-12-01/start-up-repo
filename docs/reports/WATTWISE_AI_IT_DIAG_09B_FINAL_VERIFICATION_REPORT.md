@@ -5,7 +5,6 @@ IT-DIAG-09B — VERIFIED PREVIEW — READY FOR PRODUCT OWNER REVIEW
 ```
 
 Repository: `hanif-12-01/start-up-repo`  
-Local Working Directory: `D:\LOMBA\MVP PROTOTIPE start-up`  
 Target Branch: `feature/it-diag-09b-preview-neon-rehearsal`  
 Accepted IT-DIAG-09A Base: `ad98dbd6e57aae59a5faee3da0426cb0c257c48a`  
 
@@ -33,8 +32,9 @@ The repository contains a clean, linear, forward-only commit history without squ
 | `a8eb2e5deca593c766a4c11bb5fa9601d92e6324` | `docs(reports): record IT-DIAG-09B final verification` | Initial Report |
 | `5b347a4df488a97fde98426fa1be7f3791681e34` | `fix(preview): secure Neon TLS and restore preview controls` | Correction Fix |
 | `8e7a4841e99a63f0f1c83324e23b0dafa503eaf1` | `test(preview): refresh sanitized Kos-only preview evidence` | Correction Evidence |
-| `47a4114c2109b264d128b36c1df2a8be66fe7e8e` | `docs(reports): correct IT-DIAG-09B final verification` | Verification Report |
-| `cd0691bda8c6a93672df982123ad621b848c426b` | `docs(reports): finalize IT-DIAG-09B verification` | Final Report |
+| `47a4114c2109b264d128b36c1df2a8be66fe7e8e` | `docs(reports): correct IT-DIAG-09B final verification` | Correction Report |
+| `cd0691bda8c6a93672df982123ad621b848c426b` | `docs(reports): finalize IT-DIAG-09B verification` | Correction Report |
+| `783721ee8c9225a9f42dfa8fd2565153c100b0f3` | `docs(reports): update commit SHA in final report` | Correction Report |
 
 Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c257c48a HEAD` returns `0` (**PASS**).
 
@@ -46,7 +46,7 @@ Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c25
 - **Resource Name**: `wattwise-ai-preview-db`
 - **Neon Database Region**: `aws-ap-southeast-1` (AWS Singapore)
 - **PostgreSQL Engine Release**: `17.10` (Approved under Option A; verified via `SHOW server_version;`)
-- **Database Connection TLS**: Standard TLS with full server certificate verification enabled (`ssl: true` in [client.ts](file:///d:/LOMBA/MVP%20PROTOTIPE%20start-up/wattwise-vercel/src/server/db/client.ts)).
+- **Database Connection TLS**: Standard TLS with full server certificate verification enabled (`ssl: true` in `wattwise-vercel/src/server/db/client.ts`).
 - **Connection Strategy**:
   - **Direct Connection** (`DATABASE_URL_UNPOOLED` / `POSTGRES_URL_NON_POOLING` on port 5432): Migration rehearsal and DDL execution.
   - **Pooled Connection** (`DATABASE_URL` via Neon connection pooler): Serverless Vercel Preview runtime.
@@ -58,11 +58,20 @@ Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c25
 - **Automated Test Access Mechanism**: Official `x-vercel-protection-bypass` header secret.
 - **Bypass Secret Handling**: Retrieved dynamically via Vercel CLI during test execution; no secret material exposed in Git, logs, screenshots, or report.
 
+### Deployment Provenance
+- **Deployment ID**: `dpl_DgiBc5Gnsk8ZHMYfDjb8KQaXZCHZ`
+- **Project**: `wattwise-ai-preview` (Team: `clara3`)
+- **Target**: `preview`
+- **Status**: `Ready`
+- **Build Region**: `sin1`
+- **Created**: `2026-08-04T20:05:20+07:00`
+- **Verified via**: `npx vercel inspect dpl_DgiBc5Gnsk8ZHMYfDjb8KQaXZCHZ`
+
 ---
 
 ## 3. Database Migration Rehearsal (Neon PostgreSQL 17.10)
 
-Executed via [rehearse-neon-migrations.mjs](file:///d:/LOMBA/MVP%20PROTOTIPE%20start-up/wattwise-vercel/scripts/rehearse-neon-migrations.mjs) against the dedicated Neon preview database:
+Executed via `wattwise-vercel/scripts/rehearse-neon-migrations.mjs` against the dedicated Neon preview database:
 
 ```text
 📋 Initial tables count: 0 (Schema cleaned)
@@ -93,7 +102,7 @@ Executed via [rehearse-neon-migrations.mjs](file:///d:/LOMBA/MVP%20PROTOTIPE%20s
   - `BETTER_AUTH_SECRET` (Preview scope)
   - `BETTER_AUTH_URL` (Preview scope)
   - `NEXT_PUBLIC_APP_URL` (Preview scope)
-  - `FUNNEL_ANALYTICS_VIEWER_USER_IDS` (Preview scope)
+  - `FUNNEL_ANALYTICS_VIEWER_USER_IDS` (Preview scope, value: `ANALYTICS_VIEWER`)
   - `DASHBOARD_ENABLED` (`true`)
   - `MONTHLY_REPORT_ENABLED` (`true`)
   - `ENTITLEMENTS_ENABLED` (`true`)
@@ -126,7 +135,7 @@ Verified against the HTTPS Protected Preview endpoint:
 - `Referrer-Policy`: `strict-origin-when-cross-origin`
 - `Permissions-Policy`: `camera=(), microphone=(), geolocation=()`
 - `Cache-Control`: `no-store, max-age=0`
-- `X-Correlation-Id`: Present (`req-09b-...`)
+- `X-Correlation-Id`: Present
 
 ### Connection Smoke Results
 - **10 Sequential Readiness Requests**: `10 / 10 PASSED (HTTP 200)`
@@ -142,11 +151,11 @@ Verified HTTP status codes and contract semantics using Kos synthetic tenants:
 
 | Test Contract | Request Target | Expected Contract | Actual HTTP / Contract Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Owned Out-of-Window Monthly Report** | `/reports/monthly?businessId=biz-09b-kos&year=2025&month=1` | `HTTP 403` | `HTTP 403` (Entitlement Window Denial) | **PASS** |
-| **Cross-Tenant Monthly Report** | `/reports/monthly?businessId=biz-09b-other-tenant&year=2026&month=8` | `HTTP 404` | `HTTP 404` (Tenant Isolation Denial) | **PASS** |
-| **Allowed Empty Month** | `/reports/monthly?businessId=biz-09b-kos-2&year=2026&month=8` | `NO_BILL` | `NO_BILL` (Empty Month State) | **PASS** |
-| **Analytics Viewer Authorization** | `/internal/analytics/funnel` (User `user-09b-viewer`) | `HTTP 200` | `HTTP 200` (Funnel Analytics Dashboard) | **PASS** |
-| **Analytics Non-Viewer Denial** | `/internal/analytics/funnel` (User `user-09b-nonviewer`) | `HTTP 404` | `HTTP 404` (Access Denied) | **PASS** |
+| **Owned Out-of-Window Monthly Report** | `/reports/monthly?businessId=OWNED_KOS&year=2025&month=1` | `HTTP 403` | `HTTP 403` (Entitlement Window Denial) | **PASS** |
+| **Cross-Tenant Monthly Report** | `/reports/monthly?businessId=OTHER_TENANT&year=2026&month=8` | `HTTP 404` | `HTTP 404` (Tenant Isolation Denial) | **PASS** |
+| **Allowed Empty Month** | `/reports/monthly?businessId=OWNED_KOS_2&year=2026&month=8` | `NO_BILL` | `NO_BILL` (Empty Month State) | **PASS** |
+| **Analytics Viewer Authorization** | `/internal/analytics/funnel` (User `ANALYTICS_VIEWER`) | `HTTP 200` | `HTTP 200` (Funnel Analytics Dashboard) | **PASS** |
+| **Analytics Non-Viewer Denial** | `/internal/analytics/funnel` (User `ANALYTICS_NON_VIEWER`) | `HTTP 404` | `HTTP 404` (Access Denied) | **PASS** |
 
 ---
 
@@ -161,18 +170,18 @@ Executed via headless Chrome CDP with `x-vercel-protection-bypass` header and si
 | `LOGIN` | Login Page | `/login` | **PASS** |
 | `DASHBOARD` | Business Dashboard (Desktop) | `/dashboard` | **PASS** |
 | `BUSINESS_SELECTOR` | Business Selector | `/dashboard` | **PASS** |
-| `BILL_INPUT` | Bill Input Form | `/bills/new?businessId=biz-09b-kos` | **PASS** |
-| `BILL_COMPARISON` | Bill Comparison History | `/bills?businessId=biz-09b-kos` | **PASS** |
-| `DIAGNOSTIC_QUESTIONNAIRE` | Diagnostic Questionnaire | `/diagnostics/session-09b-questionnaire` | **PASS** |
-| `CANDIDATE_RESULT` | Candidate Evidence Results | `/diagnostics/session-09b-kos/results` | **PASS** |
-| `GUIDED_INSPECTION` | Guided Inspection Checklist | `/diagnostics/session-09b-kos/inspections/insp-09b-biz-09b-kos` | **PASS** |
-| `ACTION_PLAN` | Action Plan Checklist | `/diagnostics/session-09b-kos/actions/act-09b-biz-09b-kos` | **PASS** |
-| `OUTCOME_EVALUATION` | Outcome Evaluation View | `/diagnostics/session-09b-closed/actions/act-09b-biz-09b-closed/outcome` | **PASS** |
-| `SESSION_CLOSURE` | Closed Session Results | `/diagnostics/session-09b-closed/results` | **PASS** |
-| `MONTHLY_REPORT` | Monthly Report Page | `/reports/monthly?businessId=biz-09b-kos&year=2026&month=8` | **PASS** |
+| `BILL_INPUT` | Bill Input Form | `/bills/new?businessId=OWNED_KOS` | **PASS** |
+| `BILL_COMPARISON` | Bill Comparison History | `/bills?businessId=OWNED_KOS` | **PASS** |
+| `DIAGNOSTIC_QUESTIONNAIRE` | Diagnostic Questionnaire | `/diagnostics/SESSION_OPEN/questionnaire` | **PASS** |
+| `CANDIDATE_RESULT` | Candidate Evidence Results | `/diagnostics/SESSION_OPEN/results` | **PASS** |
+| `GUIDED_INSPECTION` | Guided Inspection Checklist | `/diagnostics/SESSION_OPEN/inspections/INSPECTION_KOS` | **PASS** |
+| `ACTION_PLAN` | Action Plan Checklist | `/diagnostics/SESSION_OPEN/actions/ACTION_KOS` | **PASS** |
+| `OUTCOME_EVALUATION` | Outcome Evaluation View | `/diagnostics/SESSION_CLOSED/actions/ACTION_CLOSED/outcome` | **PASS** |
+| `SESSION_CLOSURE` | Closed Session Results | `/diagnostics/SESSION_CLOSED/results` | **PASS** |
+| `MONTHLY_REPORT` | Monthly Report Page | `/reports/monthly?businessId=OWNED_KOS&year=2026&month=8` | **PASS** |
 | `MONTHLY_REPORT_PRINT` | Monthly Report Print Layout | `/reports/monthly` | **PASS** |
 | `BUSINESS_LIMIT_DENIAL` | Business Limit Denial (FREE) | `/businesses/new` | **PASS** |
-| `REPORT_HISTORY_DENIAL` | Out-of-Window Entitlement Denial | `/reports/monthly?businessId=biz-09b-kos&year=2025&month=1` | **PASS** |
+| `REPORT_HISTORY_DENIAL` | Out-of-Window Entitlement Denial | `/reports/monthly?businessId=OWNED_KOS&year=2025&month=1` | **PASS** |
 | `ANALYTICS_VIEWER` | Internal Analytics Viewer | `/internal/analytics/funnel` | **PASS** |
 | `ANALYTICS_NON_VIEWER` | Analytics Non-Viewer Denial | `/internal/analytics/funnel` | **PASS** |
 
@@ -190,27 +199,61 @@ Multi-Viewport Audit (1280x900, 768x1024, 360x800): PASS (No horizontal overflow
 
 ## 8. Dependency Vulnerability Triage (`npm audit`)
 
-| Package | Dependency Type | Affected Version | Advisory Class | Runtime Reachability | Available Fix | Breaking Change | Mitigation & Disposition |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `brace-expansion` | `devDependency` | `<=1.1.17 || 4.0.0-5.0.8` | `GHSA-mh99-v99m-4gvg` (DoS in dev tooling) | **Unreachable** in production | `npm audit fix` | No | Transitive AST devtooling. Unreachable in serverless production runtime. |
-| `postcss` | `dependency` (nested via `next`) | `<=8.5.22` | `GHSA-6g55-p6wh-862q` (Build-time source map path traversal) | **Unreachable** in production | `npm audit fix --force` | Yes (forces `next` major upgrade) | Executed solely during `next build` in isolated environment. `package.json` diff preserved as EMPTY. |
-| `esbuild` | `devDependency` (nested via `drizzle-kit`) | `<=0.24.2` | `GHSA-67mh-4wv8-2f99` (Dev server CORS) | **Unreachable** in production | `npm audit fix --force` | Yes | Local Drizzle CLI devtooling only. Unreachable in production. |
+### Dependency Tree (`npm ls`)
+
+Audited vulnerable packages resolved to the following dependency chains (output of `npm ls brace-expansion postcss esbuild`):
+
+```text
+wattwise-vercel@0.1.0
++-- @tailwindcss/postcss@4.3.3
+|   └── postcss@8.5.22
++-- drizzle-kit@0.31.10
+|   +-- @esbuild-kit/esm-loader@2.6.5
+|   |   └── @esbuild-kit/core-utils@3.3.2
+|   |       └── esbuild@0.18.20
+|   └── tsx@4.23.1
+|       └── esbuild@0.28.1
++-- eslint-config-next@16.2.11
+|   └── typescript-eslint@8.65.0
+|       └── minimatch@10.2.5
+|           └── brace-expansion@5.0.7
++-- eslint@9.39.5
+|   └── minimatch@3.1.5
+|       └── brace-expansion@1.1.16
++-- next@16.2.11
+|   └── postcss@8.5.10 (overridden)
+└── vitest@4.1.10
+    └── vite@8.1.5
+        +-- esbuild@0.28.1
+        └── postcss@8.5.22
+```
+
+### Vulnerability Summary
+
+| Package | Dependency Chain | Affected Version | Advisory | Runtime Reachability | Reported by `npm audit --omit=dev` | Available Fix | Breaking Change | Disposition |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `brace-expansion` | `eslint` → `minimatch` → `brace-expansion` | `<=1.1.17 \|\| 4.0.0-5.0.8` | `GHSA-mh99-v99m-4gvg` (DoS in dev tooling) | **Unreachable** in production | **Not reported** (dev-only chain) | `npm audit fix` | No | Transitive ESLint AST tooling. Not present in serverless production runtime. |
+| `postcss` | `next` → `postcss`; `@tailwindcss/postcss` → `postcss` | `<=8.5.22` | `GHSA-6g55-p6wh-862q` (build-time source map path traversal) | **Unreachable** in production | **Reported** (transitive via `next`) | `npm audit fix --force` | Yes (forces `next` major upgrade) | Executed solely during `next build` in isolated environment. `package.json` diff preserved as EMPTY. |
+| `esbuild` | `drizzle-kit` → `@esbuild-kit/esm-loader` → `esbuild@0.18.20` | `<=0.24.2` | `GHSA-67mh-4wv8-2f99` (dev server CORS) | **Unreachable** in production | **Reported** (transitive via `drizzle-kit`) | `npm audit fix --force` | Yes | Local Drizzle migration CLI devtooling only. Dev server CORS advisory irrelevant in serverless Preview runtime. |
+
+**`npm audit --omit=dev` result**: 7 vulnerabilities (6 moderate, 1 high) — all transitive chains through `next` (postcss) and `drizzle-kit` (esbuild). Zero vulnerabilities present in the deployed serverless runtime payload.
 
 ---
 
 ## 9. Tracked-Secret & Privacy Audit
 
 - **Tracked-Secret Audit Result**: **PASS**
-- **Audited Parameters**: Database connection strings, passwords, Vercel bypass secret values, `BETTER_AUTH_SECRET`, session tokens, cookies, authorization headers, full Preview URLs, absolute local paths (`D:\...`), `file:///` paths, account emails, platform resource IDs.
-- **Path Sanitization**: Relative repository paths (`docs/evidence/it-diag-09b/preview-verification.json`) used exclusively across evidence artifacts and report files.
+- **Audited Parameters**: Database connection strings, passwords, Vercel bypass secret values, `BETTER_AUTH_SECRET`, session tokens, cookies, authorization headers, full Preview URLs, absolute local paths, `file:///` paths, account emails, platform resource IDs, raw synthetic seed IDs.
+- **Path Sanitization**: Relative repository paths used exclusively across evidence artifacts and report files. No absolute local filesystem paths or `file:///` URIs present in tracked files.
+- **ID Aliasing**: Raw synthetic seed IDs replaced with semantic aliases (`OWNED_KOS`, `OTHER_TENANT`, `OWNED_KOS_2`, `ANALYTICS_VIEWER`, `ANALYTICS_NON_VIEWER`, `SESSION_OPEN`, `SESSION_CLOSED`, `INSPECTION_KOS`, `ACTION_KOS`, `ACTION_CLOSED`) throughout all tracked evidence. Actual IDs exist only in the untracked local database.
 
 ---
 
 ## 10. Local Quality Gates & Protected Path Diffs
 
 ### Quality Gates Execution Log
-- **Unit Tests (`npm run test`)**: `13 passed (13 test files)`, `151 passed (151 tests)`.
-- **Integration Tests (`npm run test:integration`)**: **PASS** (100%).
+- **Unit Tests (`npm run test`)**: `16 test files passed`, `242 tests passed`.
+- **Integration Tests (`npm run test:integration`)**: `13 test files passed`, `151 tests passed` (**PASS**, 100%).
 - **TypeScript Typecheck (`npm run typecheck`)**: **PASS** (`0` errors).
 - **ESLint (`npm run lint`)**: **PASS** (`0` errors).
 - **Production Build (`npm run build`)**: **PASS** (Next.js 16.2.11 Turbopack build succeeded).
@@ -240,9 +283,11 @@ Multi-Viewport Audit (1280x900, 768x1024, 360x800): PASS (No horizontal overflow
 
 ### Teardown Instructions for Product Owner
 ```powershell
-# To clean up temporary preview resources upon final sign-off:
+# To remove the temporary Neon preview database after final sign-off:
+npx neonctl projects delete <neon-project-id> --confirm
+
+# To remove the temporary Vercel Preview project after final sign-off:
 npx vercel project rm wattwise-ai-preview --yes
-npx vercel integration remove neon --yes
 ```
 
 ---
