@@ -1,0 +1,33 @@
+{
+  "suite": "Headless Chrome CDP Protected Preview Browser Regression",
+  "timestamp": "2026-08-04T21:11:23+07:00",
+  "flows_executed": 19,
+  "flows_passed": 19,
+  "console_errors": 0,
+  "csp_violations": 0,
+  "fatal_network_failures": 0,
+  "unexpected_http_5xx": 0,
+  "viewports_audited": ["1280x900", "768x1024", "360x800"],
+  "horizontal_overflow": false,
+  "flow_details": [
+    { "code": "HEALTH_LIVE", "name": "Live Health Probe", "path": "/api/health/live", "status": "PASS" },
+    { "code": "HEALTH_READY", "name": "Ready Health Probe", "path": "/api/health/ready", "status": "PASS" },
+    { "code": "LOGIN", "name": "Login Page", "path": "/login", "status": "PASS" },
+    { "code": "DASHBOARD", "name": "Business Dashboard (Desktop)", "path": "/dashboard", "status": "PASS" },
+    { "code": "BUSINESS_SELECTOR", "name": "Business Selector", "path": "/dashboard", "status": "PASS" },
+    { "code": "BILL_INPUT", "name": "Bill Input Form", "path": "/bills/new?businessId=OWNED_KOS", "status": "PASS" },
+    { "code": "BILL_COMPARISON", "name": "Bill Comparison History", "path": "/bills?businessId=OWNED_KOS", "status": "PASS" },
+    { "code": "DIAGNOSTIC_QUESTIONNAIRE", "name": "Diagnostic Questionnaire", "path": "/diagnostics/SESSION_OPEN/questionnaire", "status": "PASS" },
+    { "code": "CANDIDATE_RESULT", "name": "Candidate Evidence Results", "path": "/diagnostics/SESSION_OPEN/results", "status": "PASS" },
+    { "code": "GUIDED_INSPECTION", "name": "Guided Inspection Checklist", "path": "/diagnostics/SESSION_OPEN/inspections/INSPECTION_KOS", "status": "PASS" },
+    { "code": "ACTION_PLAN", "name": "Action Plan Checklist", "path": "/diagnostics/SESSION_OPEN/actions/ACTION_KOS", "status": "PASS" },
+    { "code": "OUTCOME_EVALUATION", "name": "Outcome Evaluation View", "path": "/diagnostics/SESSION_CLOSED/actions/ACTION_CLOSED/outcome", "status": "PASS" },
+    { "code": "SESSION_CLOSURE", "name": "Closed Session Results", "path": "/diagnostics/SESSION_CLOSED/results", "status": "PASS" },
+    { "code": "MONTHLY_REPORT", "name": "Monthly Report Page", "path": "/reports/monthly?businessId=OWNED_KOS&year=2026&month=8", "status": "PASS" },
+    { "code": "MONTHLY_REPORT_PRINT", "name": "Monthly Report Print Layout", "path": "/reports/monthly", "status": "PASS" },
+    { "code": "BUSINESS_LIMIT_DENIAL", "name": "Business Limit Denial (FREE)", "path": "/businesses/new", "status": "PASS" },
+    { "code": "REPORT_HISTORY_DENIAL", "name": "Out-of-Window Entitlement Denial", "path": "/reports/monthly?businessId=OWNED_KOS&year=2025&month=1", "status": "PASS" },
+    { "code": "ANALYTICS_VIEWER", "name": "Internal Analytics Viewer", "path": "/internal/analytics/funnel", "status": "PASS" },
+    { "code": "ANALYTICS_NON_VIEWER", "name": "Analytics Non-Viewer Denial", "path": "/internal/analytics/funnel", "status": "PASS" }
+  ]
+}

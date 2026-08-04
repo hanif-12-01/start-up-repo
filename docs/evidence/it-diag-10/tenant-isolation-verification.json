@@ -1,0 +1,43 @@
+{
+  "test_suite": "Tenant Isolation & Entitlement Semantics Verification",
+  "knowledge_pack": "Kos Knowledge Pack V1",
+  "timestamp": "2026-08-04T21:11:23+07:00",
+  "contracts_verified": [
+    {
+      "contract": "Owned Out-of-Window Monthly Report",
+      "target": "/reports/monthly?businessId=OWNED_KOS&year=2025&month=1",
+      "expected_http": 403,
+      "actual_http": 403,
+      "status": "PASS"
+    },
+    {
+      "contract": "Cross-Tenant Monthly Report",
+      "target": "/reports/monthly?businessId=OTHER_TENANT&year=2026&month=8",
+      "expected_http": 404,
+      "actual_http": 404,
+      "status": "PASS"
+    },
+    {
+      "contract": "Allowed Empty Month",
+      "target": "/reports/monthly?businessId=OWNED_KOS_2&year=2026&month=8",
+      "expected_contract": "NO_BILL",
+      "actual_contract": "NO_BILL",
+      "status": "PASS"
+    },
+    {
+      "contract": "Analytics Viewer Authorization",
+      "target": "/internal/analytics/funnel (User ANALYTICS_VIEWER)",
+      "expected_http": 200,
+      "actual_http": 200,
+      "status": "PASS"
+    },
+    {
+      "contract": "Analytics Non-Viewer Denial",
+      "target": "/internal/analytics/funnel (User ANALYTICS_NON_VIEWER)",
+      "expected_http": 404,
+      "actual_http": 404,
+      "status": "PASS"
+    }
+  ],
+  "tenant_isolation_result": "PASS (0 cross-tenant leaks detected)"
+}

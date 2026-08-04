@@ -1,0 +1,33 @@
+{
+  "rehearsal_type": "Neon Database Migration & Synthetic Backup Recovery Rehearsal",
+  "target_database": "wattwise-ai-preview-db",
+  "timestamp": "2026-08-04T21:01:59+07:00",
+  "postgresql_version": "17.10",
+  "region": "aws-ap-southeast-1",
+  "sequence_results": {
+    "initial_table_count": 0,
+    "first_up_status": "PASS (14 tables created)",
+    "down_status": "PASS (0 tables remaining)",
+    "second_up_status": "PASS (14 tables created)",
+    "final_table_count": 14,
+    "seed_status": "PASS (Kos Knowledge Pack V1 synthetic dataset seeded)",
+    "schema_consistency": "PASS"
+  },
+  "tables_verified": [
+    "user",
+    "account",
+    "session",
+    "verification",
+    "business",
+    "electricity_bill",
+    "diagnostic_session",
+    "diagnostic_candidate_finding",
+    "inspection_item",
+    "action_item",
+    "action_plan_outcome",
+    "monthly_report_cache",
+    "funnel_analytics_event",
+    "entitlement_log"
+  ],
+  "disposable_resource_teardown": "PASS (Temporary rehearsal schema cleaned up)"
+}

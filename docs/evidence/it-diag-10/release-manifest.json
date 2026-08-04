@@ -1,0 +1,27 @@
+{
+  "release_candidate_name": "WattWise-AI-v1.0.0-RC1",
+  "phase": "IT-DIAG-10A",
+  "accepted_base_sha": "8756b8c18eeb5c496cc8aecc343797d6e79c6d2e",
+  "deployed_source_sha": "5b347a4df488a97fde98426fa1be7f3791681e34",
+  "activation_commit_sha": "e22483df1e5efec059d0ef7b6cb8c20144d03eef",
+  "runtime_stack": {
+    "framework": "Next.js 16.2.11",
+    "node_version": "24.18.0",
+    "npm_version": "11.16.0",
+    "orm": "Drizzle ORM 0.45.2",
+    "auth": "Better Auth 1.6.24",
+    "database": "Neon PostgreSQL (aws-ap-southeast-1)"
+  },
+  "migration_set": [
+    "0000_initial_schema.sql",
+    "0001_auth_tables.sql",
+    "0002_business_tables.sql",
+    "0003_bill_tables.sql",
+    "0004_diagnostic_tables.sql",
+    "0005_action_tables.sql",
+    "0006_report_tables.sql",
+    "0007_analytics_tables.sql"
+  ],
+  "dependency_lockfile_fingerprint": "lockfile-validated-clean",
+  "database_compatibility_result": "PASS (PostgreSQL 16 & 17 compatible)"
+}

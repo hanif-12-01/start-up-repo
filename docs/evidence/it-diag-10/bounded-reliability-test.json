@@ -1,0 +1,13 @@
+{
+  "test_name": "Bounded Preview Connection Smoke & Reliability Test",
+  "timestamp": "2026-08-04T21:11:23+07:00",
+  "metrics": {
+    "sequential_readiness_requests": "10 / 10 PASSED (HTTP 200)",
+    "concurrent_readiness_requests": "5 / 5 PASSED (HTTP 200)",
+    "concurrent_authenticated_dashboard_reads": "5 / 5 PASSED (HTTP 200)",
+    "unexpected_5xx_errors": 0,
+    "timeouts": 0,
+    "connection_exhaustion": 0
+  },
+  "verdict": "PASS"
+}

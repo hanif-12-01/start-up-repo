@@ -1,0 +1,40 @@
+{
+  "audit_timestamp": "2026-08-04T21:11:45+07:00",
+  "full_audit_exit_code": 1,
+  "full_audit_severities": {
+    "total": 8,
+    "moderate": 6,
+    "high": 2
+  },
+  "omit_dev_exit_code": 1,
+  "omit_dev_severities": {
+    "total": 7,
+    "moderate": 6,
+    "high": 1
+  },
+  "high_severity_findings": [
+    {
+      "package": "brace-expansion",
+      "dependency_chain": "eslint -> minimatch -> brace-expansion",
+      "severity": "high",
+      "classification": "development",
+      "request_path_reachability": "UNREACHABLE",
+      "available_fix": "npm audit fix",
+      "breaking_change": false,
+      "preview_disposition": "Accepted Preview risk (dev tooling AST processor only)",
+      "production_recommendation": "Maintain version constraint; un-executed in production runtime"
+    },
+    {
+      "package": "postcss",
+      "dependency_chain": "next -> postcss; @tailwindcss/postcss -> postcss",
+      "severity": "high",
+      "classification": "build-time",
+      "request_path_reachability": "UNREACHABLE",
+      "available_fix": "npm audit fix --force",
+      "breaking_change": true,
+      "preview_disposition": "Accepted Preview risk (build-time CSS transformation only)",
+      "production_recommendation": "Accepted risk pending non-breaking upstream patch"
+    }
+  ],
+  "reachability_conclusion": "No identified high-severity advisory is reachable through the deployed application request runtime based on dependency-chain and execution-path review. Remaining high-severity findings are limited to build or tooling execution and are documented as accepted Preview risks pending non-breaking remediation."
+}

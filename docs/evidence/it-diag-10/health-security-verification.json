@@ -1,0 +1,26 @@
+{
+  "verification_suite": "Health Endpoints & Security Headers Audit",
+  "environment": "Protected Vercel Preview",
+  "timestamp": "2026-08-04T21:11:23+07:00",
+  "health_endpoints": {
+    "/api/health/live": {
+      "http_status": 200,
+      "response_body": { "status": "ok" }
+    },
+    "/api/health/ready": {
+      "http_status": 200,
+      "response_body": { "status": "ready", "database": "ok" }
+    }
+  },
+  "security_headers": {
+    "Content-Security-Policy": "Present (unsafe-eval absent)",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cache-Control": "no-store, max-age=0",
+    "X-Correlation-Id": "Present"
+  },
+  "verdict": "PASS"
+}

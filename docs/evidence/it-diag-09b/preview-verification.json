@@ -1,7 +1,7 @@
 {
   "title": "Vercel Preview Verification Evidence — IT-DIAG-09B",
   "previewTargetClassification": "Protected Vercel Preview Deployment (SSO Enabled)",
-  "timestamp": "2026-08-04T13:14:50.354Z",
+  "timestamp": "2026-08-04T14:11:23.375Z",
   "knowledgePack": "Kos Knowledge Pack V1",
   "healthAndSecurity": {
     "liveStatus": 200,
@@ -52,7 +52,7 @@
     "metrics": {
       "consoleErrors": 0,
       "cspViolations": 0,
-      "networkFailures": 905,
+      "networkFailures": 1322,
       "http5xxErrors": 0
     }
   },

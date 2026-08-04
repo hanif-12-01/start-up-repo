@@ -1,0 +1,98 @@
+{
+  "audit_phase": "IT-DIAG-10A",
+  "audit_type": "Environment Variable Matrix & Contract Validation",
+  "scopes_audited": ["Preview", "Production"],
+  "production_values_configured": false,
+  "environment_variables": [
+    {
+      "name": "DATABASE_URL",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "server-only sensitive configuration",
+      "purpose": "Neon PostgreSQL pooled connection string for application runtime",
+      "validation_rule": "Must begin with postgresql:// and specify sslmode=verify-full",
+      "failure_behavior": "Fails closed (500 internal server error without leaking connection string)"
+    },
+    {
+      "name": "DATABASE_URL_UNPOOLED",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "server-only sensitive configuration",
+      "purpose": "Direct unpooled connection for migration DDL execution",
+      "validation_rule": "Must begin with postgresql:// on direct port 5432",
+      "failure_behavior": "Migration scripts abort execution immediately"
+    },
+    {
+      "name": "BETTER_AUTH_SECRET",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "server-only secret",
+      "purpose": "Session signing and cryptographic token generation",
+      "validation_rule": "High-entropy string with minimum 32 characters",
+      "failure_behavior": "Authentication initialization fails closed"
+    },
+    {
+      "name": "BETTER_AUTH_URL",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "server-only configuration",
+      "purpose": "Base URL for authentication callbacks and CSRF validation",
+      "validation_rule": "Valid HTTPS URL origin",
+      "failure_behavior": "OAuth/Callback handlers reject invalid origin"
+    },
+    {
+      "name": "NEXT_PUBLIC_APP_URL",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "public configuration",
+      "purpose": "Client-side canonical origin",
+      "validation_rule": "Valid HTTPS URL origin",
+      "failure_behavior": "Client navigation falls back to window.location.origin"
+    },
+    {
+      "name": "FUNNEL_ANALYTICS_VIEWER_USER_IDS",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "server-only sensitive configuration",
+      "purpose": "Comma-separated user IDs authorized to access internal funnel analytics",
+      "validation_rule": "Non-empty string of user identifiers",
+      "failure_behavior": "Renders HTTP 404 access denied for unauthorized users"
+    },
+    {
+      "name": "DASHBOARD_ENABLED",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "feature flag",
+      "purpose": "Controls access to main business dashboard feature",
+      "validation_rule": "Boolean true/false string",
+      "failure_behavior": "Renders feature disabled placeholder"
+    },
+    {
+      "name": "MONTHLY_REPORT_ENABLED",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "feature flag",
+      "purpose": "Controls monthly electricity report feature",
+      "validation_rule": "Boolean true/false string",
+      "failure_behavior": "Renders feature disabled placeholder"
+    },
+    {
+      "name": "ENTITLEMENTS_ENABLED",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "feature flag",
+      "purpose": "Enforces monthly report entitlement window restrictions",
+      "validation_rule": "Boolean true/false string",
+      "failure_behavior": "Bypasses window restrictions if false"
+    },
+    {
+      "name": "FUNNEL_ANALYTICS_ENABLED",
+      "preview_scope": true,
+      "production_scope": false,
+      "classification": "feature flag",
+      "purpose": "Controls internal funnel analytics route accessibility",
+      "validation_rule": "Boolean true/false string",
+      "failure_behavior": "Renders HTTP 404 for analytics route"
+    }
+  ]
+}

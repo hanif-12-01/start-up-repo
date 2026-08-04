@@ -1,0 +1,16 @@
+{
+  "phase": "IT-DIAG-10A",
+  "deployment_fingerprint": "SHA-256 c668f329a57294e9248b10689033ff3593281bcf6d04d5eaf5cb547fd73eef7f",
+  "team_classification": "[REDACTED_TEAM]",
+  "project_classification": "dedicated WattWise Preview project",
+  "framework": "Next.js 16.2.11",
+  "root_directory": "wattwise-vercel",
+  "node_version": "24.x",
+  "function_region": "sin1",
+  "environment": "Preview",
+  "status": "READY",
+  "deployment_protection": "ENABLED",
+  "deployed_source_sha": "5b347a4df488a97fde98426fa1be7f3791681e34",
+  "final_repository_head": "e22483df1e5efec059d0ef7b6cb8c20144d03eef",
+  "commit_to_deployment_classification": "DOCUMENTATION-ONLY HEAD ADVANCE"
+}

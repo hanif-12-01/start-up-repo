@@ -1,13 +1,13 @@
 {
   "targetClassification": "Protected Vercel Preview Deployment",
-  "timestamp": "2026-08-04T13:14:50.354Z",
+  "timestamp": "2026-08-04T14:11:23.375Z",
   "knowledgePack": "Kos Knowledge Pack V1",
   "flowsPassed": 19,
   "totalFlows": 19,
   "metrics": {
     "consoleErrors": 0,
     "cspViolations": 0,
-    "networkFailures": 905,
+    "networkFailures": 1322,
     "http5xxErrors": 0
   },
   "flows": {
