@@ -65,10 +65,36 @@ export default async function MonthlyReportPage({
     }
     if (
       error instanceof MonthlyReportBusinessNotFoundError ||
-      error instanceof MonthlyReportMonthError ||
-      error instanceof MonthlyReportHistoryGatedError
+      error instanceof MonthlyReportMonthError
     ) {
       notFound();
+    }
+    if (error instanceof MonthlyReportHistoryGatedError) {
+      return (
+        <main className="min-h-screen flex items-center justify-center bg-slate-950 p-4 text-slate-100">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-400">
+              WattWise AI · Entitlement
+            </p>
+            <h1 className="text-xl font-bold text-slate-100">Akses Laporan Dibatasi</h1>
+            <p className="text-sm leading-relaxed text-slate-300">
+              Laporan untuk bulan ini berada di luar riwayat paket Anda.
+            </p>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Data tagihan tetap tersimpan.<br />
+              Pilih bulan yang tersedia atau lihat pilihan paket.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/reports/monthly"
+                className="inline-block rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                Lihat Bulan Yang Tersedia
+              </Link>
+            </div>
+          </div>
+        </main>
+      );
     }
     throw error;
   }
