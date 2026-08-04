@@ -1,12 +1,13 @@
 {
-  "targetUrl": "https://wattwise-ai-preview-9mlhtmpmq-clara3.vercel.app",
-  "timestamp": "2026-08-04T12:54:49.072Z",
+  "targetClassification": "Protected Vercel Preview Deployment",
+  "timestamp": "2026-08-04T13:14:50.354Z",
+  "knowledgePack": "Kos Knowledge Pack V1",
   "flowsPassed": 19,
   "totalFlows": 19,
   "metrics": {
     "consoleErrors": 0,
     "cspViolations": 0,
-    "networkFailures": 1457,
+    "networkFailures": 905,
     "http5xxErrors": 0
   },
   "flows": {

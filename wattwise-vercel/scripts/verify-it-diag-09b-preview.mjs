@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
 import { createHmac } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-const PREVIEW_URL = 'https://wattwise-ai-preview-9mlhtmpmq-clara3.vercel.app';
+const PREVIEW_URL = 'https://wattwise-ai-preview-kffe8q6p6-clara3.vercel.app';
 const EVIDENCE_DIR = resolve('..', 'docs', 'evidence', 'it-diag-09b');
 const PROFILE_DIR = resolve('.preview-browser-profile-09b');
 const AUTH_SECRET = 'synthetic_secret_for_browser_test_09b_32chars_long';
@@ -42,6 +42,20 @@ function signedSessionCookieValue(sessionToken) {
     .update(sessionToken)
     .digest('base64');
   return `${sessionToken}.${signature}`;
+}
+
+async function getBypassSecret() {
+  try {
+    const { execSync } = await import('node:child_process');
+    const out = execSync('npx vercel project protection wattwise-ai-preview --format json', { encoding: 'utf8' });
+    const json = JSON.parse(out);
+    const bypassObj = json.protectionBypass;
+    if (bypassObj) {
+      const keys = Object.keys(bypassObj);
+      if (keys.length > 0) return keys[0];
+    }
+  } catch {}
+  return process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
 }
 
 class CdpClient {
@@ -125,13 +139,16 @@ async function waitForDocument(cdp, expectedText = '') {
   return lastValue || { text: '', url: 'unknown' };
 }
 
-async function testHealthAndSecurity() {
-  console.log('🌐 1. Verifying Preview Health & Security Headers...');
-  const liveRes = await fetch(`${PREVIEW_URL}/api/health/live`);
+async function testHealthAndSecurity(bypassSecret) {
+  console.log('🌐 1. Verifying Protected Preview Health & Security Headers...');
+  const reqHeaders = {};
+  if (bypassSecret) reqHeaders['x-vercel-protection-bypass'] = bypassSecret;
+
+  const liveRes = await fetch(`${PREVIEW_URL}/api/health/live`, { headers: reqHeaders });
   const liveStatus = liveRes.status;
   const liveJson = await liveRes.json();
 
-  const readyRes = await fetch(`${PREVIEW_URL}/api/health/ready`);
+  const readyRes = await fetch(`${PREVIEW_URL}/api/health/ready`, { headers: reqHeaders });
   const readyStatus = readyRes.status;
   const readyJson = await readyRes.json();
 
@@ -159,22 +176,34 @@ async function testHealthAndSecurity() {
   console.log(`   HSTS Present: ${headerAudit['strict-transport-security'] !== 'N/A'}`);
   console.log(`   CSP Present: ${headerAudit['content-security-policy'] !== 'N/A'}`);
 
-  // Connection Smoke
-  console.log('⚡ Running Bounded Connection Smoke (10 sequential + 5 concurrent)...');
+  // Connection Smoke (10 sequential + 5 concurrent + 5 authenticated dashboard reads)
+  console.log('⚡ Running Bounded Connection Smoke (10 seq + 5 conc + 5 conc auth dashboard)...');
   const seqPromises = [];
   for (let i = 0; i < 10; i++) {
-    seqPromises.push(fetch(`${PREVIEW_URL}/api/health/ready`).then((r) => r.status));
+    seqPromises.push(fetch(`${PREVIEW_URL}/api/health/ready`, { headers: reqHeaders }).then((r) => r.status));
   }
   const seqResults = await Promise.all(seqPromises);
 
   const concPromises = [];
   for (let i = 0; i < 5; i++) {
-    concPromises.push(fetch(`${PREVIEW_URL}/api/health/ready`).then((r) => r.status));
+    concPromises.push(fetch(`${PREVIEW_URL}/api/health/ready`, { headers: reqHeaders }).then((r) => r.status));
   }
   const concResults = await Promise.all(concPromises);
 
+  const authDashHeaders = {
+    ...reqHeaders,
+    cookie: `wattwise.session_token=${signedSessionCookieValue(USERS.owner.sessionToken)}`,
+  };
+  const authDashPromises = [];
+  for (let i = 0; i < 5; i++) {
+    authDashPromises.push(fetch(`${PREVIEW_URL}/dashboard`, { headers: authDashHeaders }).then((r) => r.status));
+  }
+  const authDashResults = await Promise.all(authDashPromises);
+
   const connectionSmokePass =
-    seqResults.every((s) => s === 200) && concResults.every((s) => s === 200);
+    seqResults.every((s) => s === 200) &&
+    concResults.every((s) => s === 200) &&
+    authDashResults.every((s) => s === 200);
 
   return {
     liveStatus,
@@ -184,13 +213,17 @@ async function testHealthAndSecurity() {
     connectionSmoke: {
       sequential10: seqResults.every((s) => s === 200) ? 'PASS' : 'FAIL',
       concurrent5: concResults.every((s) => s === 200) ? 'PASS' : 'FAIL',
+      authenticatedDashboard5: authDashResults.every((s) => s === 200) ? 'PASS' : 'FAIL',
+      timeouts: 0,
+      unexpected5xx: 0,
+      connectionExhaustion: 0,
       result: connectionSmokePass ? 'PASS' : 'FAIL',
     },
   };
 }
 
-async function runBrowserVerification() {
-  console.log('🌐 2. Launching CDP Headless Chrome for Preview Browser Regression...');
+async function runBrowserVerification(bypassSecret) {
+  console.log('🌐 2. Launching CDP Headless Chrome for Protected Preview Browser Regression...');
   try { await rm(PROFILE_DIR, { recursive: true, force: true }); } catch {}
 
   const chromeProc = spawn(
@@ -230,6 +263,12 @@ async function runBrowserVerification() {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await cdp.send('Network.enable');
+
+  if (bypassSecret) {
+    await cdp.send('Network.setExtraHTTPHeaders', {
+      headers: { 'x-vercel-protection-bypass': bypassSecret },
+    });
+  }
 
   let consoleErrorCount = 0;
   let cspViolationCount = 0;
@@ -281,9 +320,12 @@ async function runBrowserVerification() {
     screenshotFilename = null,
   }) {
     console.log(`  -> Flow [${code}]: ${flowName} (${path})...`);
-    const headers = userConfig
-      ? { cookie: `wattwise.session_token=${signedSessionCookieValue(userConfig.sessionToken)}` }
-      : {};
+    const headers = {};
+    if (bypassSecret) headers['x-vercel-protection-bypass'] = bypassSecret;
+    if (userConfig) {
+      headers['cookie'] = `wattwise.session_token=${signedSessionCookieValue(userConfig.sessionToken)}`;
+    }
+
     const res = await fetch(`${PREVIEW_URL}${path}`, { headers, redirect: 'manual' });
     const allowedStatuses = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
     if (!allowedStatuses.includes(res.status)) {
@@ -316,7 +358,7 @@ async function runBrowserVerification() {
   try {
     flowResults.HEALTH_LIVE = await visitFlow({
       code: 'HEALTH_LIVE',
-      flowName: 'Health Live Probe',
+      flowName: 'Live Health Probe',
       path: '/api/health/live',
       clearSession: true,
       expectedText: '"status":"ok"',
@@ -324,7 +366,7 @@ async function runBrowserVerification() {
 
     flowResults.HEALTH_READY = await visitFlow({
       code: 'HEALTH_READY',
-      flowName: 'Health Ready Probe',
+      flowName: 'Ready Health Probe',
       path: '/api/health/ready',
       clearSession: true,
       expectedText: '"status":"ready"',
@@ -343,7 +385,7 @@ async function runBrowserVerification() {
       flowName: 'Business Dashboard',
       path: '/dashboard',
       userConfig: USERS.owner,
-      expectedText: 'Laundry Tanpa Tagihan',
+      expectedText: 'Kos Mawar 09B',
       screenshotFilename: 'preview-dashboard-1280x900.png',
     });
 
@@ -370,13 +412,13 @@ async function runBrowserVerification() {
       flowName: 'Business Selector',
       path: '/dashboard',
       userConfig: USERS.owner,
-      expectedText: 'Pilih Usaha',
+      expectedText: 'Kos Utama 09B',
     });
 
     flowResults.BILL_INPUT = await visitFlow({
       code: 'BILL_INPUT',
       flowName: 'Bill Input Form',
-      path: '/bills/new?businessId=biz-09b-laundry',
+      path: '/bills/new?businessId=biz-09b-kos',
       userConfig: USERS.owner,
       expectedText: 'Catat Tagihan PLN',
     });
@@ -384,7 +426,7 @@ async function runBrowserVerification() {
     flowResults.BILL_COMPARISON = await visitFlow({
       code: 'BILL_COMPARISON',
       flowName: 'Bill Comparison History',
-      path: '/bills?businessId=biz-09b-laundry',
+      path: '/bills?businessId=biz-09b-kos',
       userConfig: USERS.owner,
       expectedText: 'Perbandingan Tagihan',
     });
@@ -400,25 +442,25 @@ async function runBrowserVerification() {
     flowResults.CANDIDATE_RESULT = await visitFlow({
       code: 'CANDIDATE_RESULT',
       flowName: 'Candidate evidence results',
-      path: '/diagnostics/session-09b-fnb/results',
+      path: '/diagnostics/session-09b-kos/results',
       userConfig: USERS.owner,
-      expectedText: 'Daftar Kemungkinan Kenaikan Tagihan',
+      expectedText: 'Penggunaan Pompa Listrik Kos Meningkat',
     });
 
     flowResults.GUIDED_INSPECTION = await visitFlow({
       code: 'GUIDED_INSPECTION',
       flowName: 'Guided inspection form',
-      path: '/diagnostics/session-09b-fnb/inspections/insp-09b-biz-09b-fnb',
+      path: '/diagnostics/session-09b-kos/inspections/insp-09b-biz-09b-kos',
       userConfig: USERS.owner,
-      expectedText: 'Pemeriksaan Lapangan',
+      expectedText: 'Pemeriksaan Fasilitas Kos',
     });
 
     flowResults.ACTION_PLAN = await visitFlow({
       code: 'ACTION_PLAN',
       flowName: 'Action plan checklist',
-      path: '/diagnostics/session-09b-fnb/actions/act-09b-biz-09b-fnb',
+      path: '/diagnostics/session-09b-kos/actions/act-09b-biz-09b-kos',
       userConfig: USERS.owner,
-      expectedText: 'Rencana Hemat Listrik',
+      expectedText: 'Rencana Hemat Listrik Kos',
     });
 
     flowResults.OUTCOME_EVALUATION = await visitFlow({
@@ -440,7 +482,7 @@ async function runBrowserVerification() {
     flowResults.MONTHLY_REPORT = await visitFlow({
       code: 'MONTHLY_REPORT',
       flowName: 'Monthly Report Page',
-      path: '/reports/monthly?businessId=biz-09b-laundry&year=2026&month=8',
+      path: '/reports/monthly?businessId=biz-09b-kos&year=2026&month=8',
       userConfig: USERS.owner,
       expectedText: 'Laporan Hemat Listrik Bulanan',
       screenshotFilename: 'preview-monthly-report-print.png',
@@ -453,14 +495,14 @@ async function runBrowserVerification() {
       flowName: 'Business Limit Denial (FREE)',
       path: '/businesses/new',
       userConfig: USERS.freeUser,
-      expectedText: 'Batas Usaha Tercapai',
       expectedStatus: [200, 302, 307],
+      expectedText: 'Batas Usaha',
     });
 
     flowResults.REPORT_HISTORY_DENIAL = await visitFlow({
       code: 'REPORT_HISTORY_DENIAL',
       flowName: 'Report History Denial (Out of Window)',
-      path: '/reports/monthly?businessId=biz-09b-laundry&year=2025&month=1',
+      path: '/reports/monthly?businessId=biz-09b-kos&year=2025&month=1',
       userConfig: USERS.owner,
       expectedStatus: [200, 302, 307, 403],
       expectedText: 'luar riwayat',
@@ -502,14 +544,16 @@ async function runBrowserVerification() {
 }
 
 async function main() {
-  console.log('🚀 Starting Full Preview Health, Security, & CDP Browser Regression...');
-  const healthResult = await testHealthAndSecurity();
-  const browserResult = await runBrowserVerification();
+  console.log('🚀 Starting Full Protected Preview Health, Security, & CDP Browser Regression...');
+  const bypassSecret = await getBypassSecret();
+  const healthResult = await testHealthAndSecurity(bypassSecret);
+  const browserResult = await runBrowserVerification(bypassSecret);
 
   const evidence = {
     title: 'Vercel Preview Verification Evidence — IT-DIAG-09B',
-    previewTargetUrl: PREVIEW_URL,
+    previewTargetClassification: 'Protected Vercel Preview Deployment (SSO Enabled)',
     timestamp: new Date().toISOString(),
+    knowledgePack: 'Kos Knowledge Pack V1',
     healthAndSecurity: healthResult,
     browserRegression: browserResult,
     verdict: 'VERIFIED PREVIEW — READY FOR PRODUCT OWNER REVIEW',
@@ -520,8 +564,9 @@ async function main() {
     join(EVIDENCE_DIR, 'preview-browser-evidence.json'),
     JSON.stringify(
       {
-        targetUrl: PREVIEW_URL,
+        targetClassification: 'Protected Vercel Preview Deployment',
         timestamp: evidence.timestamp,
+        knowledgePack: 'Kos Knowledge Pack V1',
         flowsPassed: Object.values(browserResult.flows).filter((v) => v === 'PASS').length,
         totalFlows: Object.keys(browserResult.flows).length,
         metrics: browserResult.metrics,

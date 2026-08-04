@@ -1,48 +1,21 @@
 {
-  "title": "Neon Migration Rehearsal Evidence — IT-DIAG-09B",
-  "startedAt": "2026-08-04T12:02:24.335Z",
-  "completedAt": "2026-08-04T12:02:26.286Z",
-  "rehearsalSequence": {
-    "initialSchemaState": "Empty public schema",
-    "firstUp": {
-      "appliedMigrationsCount": 8,
-      "createdTablesCount": 14,
-      "result": "PASS"
-    },
-    "downRollback": {
-      "appliedRollbacksCount": 8,
-      "remainingTablesCount": 0,
-      "result": "PASS"
-    },
-    "secondUp": {
-      "appliedMigrationsCount": 8,
-      "finalTablesCount": 14,
-      "result": "PASS"
-    },
-    "finalSchemaConsistency": "PASS"
-  },
-  "tablesVerified": [
-    "account",
-    "action_outcome_evaluation",
-    "business",
-    "diagnostic_answer",
-    "diagnostic_candidate",
-    "diagnostic_session",
-    "electricity_bill",
-    "energy_action_plan",
-    "inspection_item",
-    "inspection_plan",
-    "session",
-    "user",
-    "user_plan",
-    "verification"
-  ],
-  "syntheticSeedResult": {
+  "rehearsalTarget": "Neon Serverless PostgreSQL (Dedicated Preview Resource)",
+  "rehearsalStartedAt": "2026-08-04T13:04:31.098Z",
+  "rehearsalCompletedAt": "2026-08-04T13:04:33.602Z",
+  "initialTablesCount": 0,
+  "firstUpTablesCount": 14,
+  "downTablesCount": 0,
+  "secondUpTablesCount": 14,
+  "knowledgePack": "Kos Knowledge Pack V1",
+  "migrationFilesCount": 8,
+  "rollbackFilesCount": 8,
+  "tlsConfig": "Standard TLS (Server Certificate Verification Enabled)",
+  "syntheticSeed": {
     "usersCreated": 4,
-    "userPlansCreated": 4,
-    "businessesCreated": 5,
-    "billsCreated": 8,
+    "businessesCreated": 6,
     "sessionsCreated": 3,
-    "result": "PASS"
-  }
+    "inspectionsCreated": 2,
+    "actionPlansCreated": 2
+  },
+  "verdict": "REHEARSAL SUCCESSFUL — KOS KNOWLEDGE PACK V1 SEEDED"
 }

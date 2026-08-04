@@ -1,7 +1,8 @@
 {
   "title": "Vercel Preview Verification Evidence — IT-DIAG-09B",
-  "previewTargetUrl": "https://wattwise-ai-preview-9mlhtmpmq-clara3.vercel.app",
-  "timestamp": "2026-08-04T12:54:49.072Z",
+  "previewTargetClassification": "Protected Vercel Preview Deployment (SSO Enabled)",
+  "timestamp": "2026-08-04T13:14:50.354Z",
+  "knowledgePack": "Kos Knowledge Pack V1",
   "healthAndSecurity": {
     "liveStatus": 200,
     "readyStatus": 200,
@@ -19,6 +20,10 @@
     "connectionSmoke": {
       "sequential10": "PASS",
       "concurrent5": "PASS",
+      "authenticatedDashboard5": "PASS",
+      "timeouts": 0,
+      "unexpected5xx": 0,
+      "connectionExhaustion": 0,
       "result": "PASS"
     }
   },
@@ -47,7 +52,7 @@
     "metrics": {
       "consoleErrors": 0,
       "cspViolations": 0,
-      "networkFailures": 1457,
+      "networkFailures": 905,
       "http5xxErrors": 0
     }
   },

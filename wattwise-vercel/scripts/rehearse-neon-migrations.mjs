@@ -40,13 +40,14 @@ async function main() {
 
   const pool = new Pool({
     connectionString: directUrl,
-    ssl: { rejectUnauthorized: false },
+    ssl: true,
     connectionTimeoutMillis: 10000,
   });
 
   const rehearsalStartedAt = new Date().toISOString();
 
-  // Step 1: Verify Initial Empty Schema
+  // Step 1: Clean schema & verify initial empty state
+  await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;');
   const initialTables = await getTables(pool);
   console.log(`📋 Initial tables count: ${initialTables.length}`);
 
@@ -88,8 +89,8 @@ async function main() {
   const secondUpTables = await getTables(pool);
   console.log(`✅ SECOND UP complete: ${secondUpTables.length} tables created.`);
 
-  // Step 5: Synthetic Seed
-  console.log('🌱 Seeding synthetic test dataset...');
+  // Step 5: Kos Knowledge Pack V1 Synthetic Seed
+  console.log('🌱 Seeding synthetic test dataset (Kos Knowledge Pack V1)...');
   const USERS = {
     owner: { id: 'user-09b-owner', name: 'Synthetic Owner 09B', email: 'owner-09b@example.invalid', token: 'token-09b-owner' },
     free: { id: 'user-09b-free', name: 'Synthetic Free 09B', email: 'free-09b@example.invalid', token: 'token-09b-free' },
@@ -131,18 +132,18 @@ async function main() {
     [USERS.nonviewer.id]
   );
 
-  // Businesses
+  // Kos Businesses for Owner
   const ownerBusinesses = [
-    ['biz-09b-laundry', 'Laundry Tanpa Tagihan', 'LAUNDRY'],
-    ['biz-09b-fnb', 'Dapur Cek Kenaikan', 'FNB'],
-    ['biz-09b-closed', 'Bengkel Sesi Selesai', 'OTHER'],
+    ['biz-09b-kos', 'Kos Mawar 09B', 'KOS_PROPERTY', 'KOS', 'TOKEN_PER_KAMAR', 12],
+    ['biz-09b-kos-2', 'Kos Utama 09B', 'KOS_PROPERTY', 'KOS', 'ALL_IN', 20],
+    ['biz-09b-closed', 'Kos Sesi Selesai', 'KOS_PROPERTY', 'KOS', 'SUB_METER', 15],
   ];
   for (let i = 0; i < ownerBusinesses.length; i++) {
-    const [id, name, segment] = ownerBusinesses[i];
+    const [id, name, bType, segment, eleSys, roomCount] = ownerBusinesses[i];
     await pool.query(
-      `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active, created_at)
-       VALUES ($1, $2, $3, 'OTHER', $4, 'ALL_IN', true, $5) ON CONFLICT (id) DO NOTHING`,
-      [id, USERS.owner.id, name, segment, `2026-01-0${i + 1}T00:00:00Z`]
+      `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, room_count, is_active, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8) ON CONFLICT (id) DO NOTHING`,
+      [id, USERS.owner.id, name, bType, segment, eleSys, roomCount, `2026-01-0${i + 1}T00:00:00Z`]
     );
 
     await pool.query(
@@ -157,8 +158,8 @@ async function main() {
 
   // Free user business
   await pool.query(
-    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active)
-     VALUES ('biz-09b-free-1', $1, 'Toko Sembako Hemat', 'OTHER', 'RETAIL', 'ALL_IN', true) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, room_count, is_active)
+     VALUES ('biz-09b-free-1', $1, 'Kos Free Tier', 'KOS_PROPERTY', 'KOS', 'ALL_IN', 8, true) ON CONFLICT (id) DO NOTHING`,
     [USERS.free.id]
   );
   await pool.query(
@@ -173,18 +174,18 @@ async function main() {
   await pool.query(
     `INSERT INTO diagnostic_session (
        id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, created_at
-     ) VALUES ('session-09b-questionnaire', 'biz-09b-laundry', 'biz-09b-laundry-curr', 'biz-09b-laundry-prev', 'LAUNDRY', 'COLLECTING_CONTEXT', 'RULE_V1', '2026-09-01T00:00:00Z')
+     ) VALUES ('session-09b-questionnaire', 'biz-09b-kos-2', 'biz-09b-kos-2-curr', 'biz-09b-kos-2-prev', 'KOS', 'COLLECTING_CONTEXT', 'KOS_CONTEXT_V1', '2026-09-01T00:00:00Z')
      ON CONFLICT (id) DO NOTHING`
   );
 
   for (const [bizId, sessionId, status] of [
-    ['biz-09b-fnb', 'session-09b-fnb', 'INSPECTION_IN_PROGRESS'],
+    ['biz-09b-kos', 'session-09b-kos', 'INSPECTION_IN_PROGRESS'],
     ['biz-09b-closed', 'session-09b-closed', 'CLOSED'],
   ]) {
     await pool.query(
       `INSERT INTO diagnostic_session (
          id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, questionnaire_completed_at, closed_at, created_at
-       ) VALUES ($1, $2, $3, $4, 'FNB', $5, 'RULE_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
+       ) VALUES ($1, $2, $3, $4, 'KOS', $5, 'KOS_CONTEXT_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
        ON CONFLICT (id) DO NOTHING`,
       [sessionId, bizId, `${bizId}-curr`, `${bizId}-prev`, status]
     );
@@ -193,7 +194,7 @@ async function main() {
     await pool.query(
       `INSERT INTO diagnostic_candidate (
          id, diagnostic_session_id, candidate_code, candidate_version, candidate_type, rule_version, title, rank, internal_score, evidence_level, explanation, supporting_factors_json, contradicting_factors_json
-       ) VALUES ($1, $2, 'SPECIAL_ACTIVITY', 1, 'OPERATIONAL', 'CAND_RULE_V1', 'Jadwal operasional berubah', 1, 90, 'MODERATE', 'Aktivitas terpantau meningkat.', '[]'::jsonb, '[]'::jsonb)
+       ) VALUES ($1, $2, 'SPECIAL_ACTIVITY', 1, 'OPERATIONAL', 'CAND_RULE_V1', 'Penggunaan Pompa Listrik Kos Meningkat', 1, 90, 'MODERATE', 'Aktivitas terpantau meningkat di properti kos.', '[]'::jsonb, '[]'::jsonb)
        ON CONFLICT (id) DO NOTHING`,
       [candidateId, sessionId]
     );
@@ -202,7 +203,7 @@ async function main() {
     await pool.query(
       `INSERT INTO inspection_plan (
          id, business_id, diagnostic_candidate_id, inspection_code, inspection_version, rule_version, title, status, result_code, started_at, completed_at
-       ) VALUES ($1, $2, $3, 'SPECIAL_ACTIVITY_REVIEW', 1, 'INSP_RULE_V1', 'Pemeriksaan operasional', 'COMPLETED', 'FOUND', '2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z')
+       ) VALUES ($1, $2, $3, 'SPECIAL_ACTIVITY_REVIEW', 1, 'INSP_RULE_V1', 'Pemeriksaan Fasilitas Kos', 'COMPLETED', 'FOUND', '2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z')
        ON CONFLICT (id) DO NOTHING`,
       [inspectionId, bizId, candidateId]
     );
@@ -224,7 +225,7 @@ async function main() {
     await pool.query(
       `INSERT INTO energy_action_plan (
          id, business_id, diagnostic_candidate_id, inspection_plan_id, action_code, action_version, rule_version, title_snapshot, description_snapshot, reason_snapshot, steps_snapshot_json, inspection_result_snapshot, baseline_snapshot_json, status, review_mode, planned_start_date, started_at, completed_at
-       ) VALUES ($1, $2, $3, $4, 'LOG_SPECIAL_ACTIVITY', 1, 'ACT_RULE_V1', 'Rencana Catat Operasional', 'Catat jadwal peralatan listrik.', 'Hasil pengamatan.', '["Langkah 1"]'::jsonb, 'FOUND', $5::jsonb, $6, 'NEXT_ELIGIBLE_BILL', '2026-09-02', '2026-09-02T00:00:00Z', CASE WHEN $6 = 'COMPLETED' THEN '2026-09-30T00:00:00Z'::timestamptz ELSE NULL END)
+       ) VALUES ($1, $2, $3, $4, 'LOG_SPECIAL_ACTIVITY', 1, 'ACT_RULE_V1', 'Rencana Hemat Listrik Kos', 'Catat jadwal penggunaan fasilitas umum kos.', 'Hasil pengamatan area kos.', '["Catat penggunaan air dan pompa", "Atur timer AC area umum"]'::jsonb, 'FOUND', $5::jsonb, $6, 'NEXT_ELIGIBLE_BILL', '2026-09-02', '2026-09-02T00:00:00Z', CASE WHEN $6 = 'COMPLETED' THEN '2026-09-30T00:00:00Z'::timestamptz ELSE NULL END)
        ON CONFLICT (id) DO NOTHING`,
       [actionId, bizId, candidateId, inspectionId, baselineJson, status === 'CLOSED' ? 'COMPLETED' : 'IN_PROGRESS']
     );
@@ -232,66 +233,55 @@ async function main() {
 
   // Viewer & Nonviewer businesses
   await pool.query(
-    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active)
-     VALUES ('biz-09b-viewer-1', $1, 'Usaha Analytics Viewer', 'OTHER', 'FNB', 'ALL_IN', true) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, room_count, is_active)
+     VALUES ('biz-09b-viewer-1', $1, 'Kos Analytics Viewer', 'KOS_PROPERTY', 'KOS', 'ALL_IN', 10, true) ON CONFLICT (id) DO NOTHING`,
     [USERS.viewer.id]
   );
   await pool.query(
-    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, is_active)
-     VALUES ('biz-09b-nonviewer-1', $1, 'Usaha Non-Viewer', 'OTHER', 'RETAIL', 'ALL_IN', true) ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system, room_count, is_active)
+     VALUES ('biz-09b-nonviewer-1', $1, 'Kos Analytics Non-Viewer', 'KOS_PROPERTY', 'KOS', 'ALL_IN', 10, true) ON CONFLICT (id) DO NOTHING`,
     [USERS.nonviewer.id]
   );
 
-  console.log('✅ Synthetic dataset seeded successfully.');
+  console.log('✅ Kos Knowledge Pack V1 synthetic dataset seeded successfully.');
 
   const rehearsalCompletedAt = new Date().toISOString();
 
   await pool.end();
 
-  const evidence = {
-    title: 'Neon Migration Rehearsal Evidence — IT-DIAG-09B',
-    startedAt: rehearsalStartedAt,
-    completedAt: rehearsalCompletedAt,
-    rehearsalSequence: {
-      initialSchemaState: 'Empty public schema',
-      firstUp: {
-        appliedMigrationsCount: migrationFiles.length,
-        createdTablesCount: firstUpTables.length,
-        result: 'PASS',
-      },
-      downRollback: {
-        appliedRollbacksCount: rollbackFiles.length,
-        remainingTablesCount: downTables.length,
-        result: 'PASS',
-      },
-      secondUp: {
-        appliedMigrationsCount: migrationFiles.length,
-        finalTablesCount: secondUpTables.length,
-        result: 'PASS',
-      },
-      finalSchemaConsistency: 'PASS',
-    },
-    tablesVerified: secondUpTables,
-    syntheticSeedResult: {
-      usersCreated: Object.keys(USERS).length,
-      userPlansCreated: 4,
-      businessesCreated: 5,
-      billsCreated: 8,
-      sessionsCreated: 3,
-      result: 'PASS',
-    },
-  };
-
   const evidenceDir = resolve('..', 'docs', 'evidence', 'it-diag-09b');
   await mkdir(evidenceDir, { recursive: true });
+
+  const evidence = {
+    rehearsalTarget: 'Neon Serverless PostgreSQL (Dedicated Preview Resource)',
+    rehearsalStartedAt,
+    rehearsalCompletedAt,
+    initialTablesCount: initialTables.length,
+    firstUpTablesCount: firstUpTables.length,
+    downTablesCount: downTables.length,
+    secondUpTablesCount: secondUpTables.length,
+    knowledgePack: 'Kos Knowledge Pack V1',
+    migrationFilesCount: migrationFiles.length,
+    rollbackFilesCount: rollbackFiles.length,
+    tlsConfig: 'Standard TLS (Server Certificate Verification Enabled)',
+    syntheticSeed: {
+      usersCreated: Object.keys(USERS).length,
+      businessesCreated: ownerBusinesses.length + 3,
+      sessionsCreated: 3,
+      inspectionsCreated: 2,
+      actionPlansCreated: 2,
+    },
+    verdict: 'REHEARSAL SUCCESSFUL — KOS KNOWLEDGE PACK V1 SEEDED',
+  };
+
   await writeFile(
     join(evidenceDir, 'neon-migration-rehearsal.json'),
     JSON.stringify(evidence, null, 2) + '\n'
   );
-  console.log('✅ Rehearsal evidence JSON written to docs/evidence/it-diag-09b/neon-migration-rehearsal.json');
+  console.log('📄 Saved rehearsal evidence to docs/evidence/it-diag-09b/neon-migration-rehearsal.json');
 }
 
 main().catch((err) => {
-  console.error('❌ Neon Migration Rehearsal failed:', err);
+  console.error('❌ Migration rehearsal failed:', err);
   process.exitCode = 1;
 });

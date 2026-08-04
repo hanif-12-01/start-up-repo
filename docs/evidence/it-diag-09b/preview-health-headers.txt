@@ -3,7 +3,7 @@ cache-control: no-store, max-age=0
 content-encoding: br
 content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 content-type: application/json
-date: Tue, 04 Aug 2026 12:45:22 GMT
+date: Tue, 04 Aug 2026 13:06:36 GMT
 permissions-policy: camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()
 referrer-policy: strict-origin-when-cross-origin
 server: Vercel
@@ -14,5 +14,5 @@ x-frame-options: DENY
 x-matched-path: /api/health/ready
 x-robots-tag: noindex
 x-vercel-cache: MISS
-x-vercel-id: sin1::sin1::6tvvc-1785847522111-013638e4d64e
+x-vercel-id: sin1::sin1::jhkff-1785848796505-3108a80fe804
 x-xss-protection: 0
