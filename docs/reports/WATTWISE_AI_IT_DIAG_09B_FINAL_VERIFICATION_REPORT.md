@@ -34,7 +34,7 @@ The repository contains a clean, linear, forward-only commit history without squ
 | `5b347a4df488a97fde98426fa1be7f3791681e34` | `fix(preview): secure Neon TLS and restore preview controls` | Correction Fix |
 | `8e7a4841e99a63f0f1c83324e23b0dafa503eaf1` | `test(preview): refresh sanitized Kos-only preview evidence` | Correction Evidence |
 | `47a4114c2109b264d128b36c1df2a8be66fe7e8e` | `docs(reports): correct IT-DIAG-09B final verification` | Verification Report |
-| `[FINAL_HEAD]` | `docs(reports): finalize IT-DIAG-09B verification` | Final Report |
+| `cd0691bda8c6a93672df982123ad621b848c426b` | `docs(reports): finalize IT-DIAG-09B verification` | Final Report |
 
 Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c257c48a HEAD` returns `0` (**PASS**).
 
