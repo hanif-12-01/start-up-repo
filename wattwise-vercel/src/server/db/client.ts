@@ -20,7 +20,7 @@ export function getPool(): pg.Pool {
       max: process.env.NODE_ENV === 'production' ? 10 : 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
-      ...(isNeon ? { ssl: { rejectUnauthorized: false } } : {}),
+      ...(isNeon ? { ssl: true } : {}),
     });
   }
   return globalThis.__dbPool;
