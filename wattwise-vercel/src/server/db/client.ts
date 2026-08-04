@@ -14,11 +14,13 @@ export function getPool(): pg.Pool {
   const dbUrl = env.DATABASE_URL || 'postgresql://build_noop:build_noop@127.0.0.1:5432/build_noop';
 
   if (!globalThis.__dbPool) {
+    const isNeon = dbUrl.includes('neon.tech') || dbUrl.includes('sslmode=require');
     globalThis.__dbPool = new Pool({
       connectionString: dbUrl,
       max: process.env.NODE_ENV === 'production' ? 10 : 5,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
+      ...(isNeon ? { ssl: { rejectUnauthorized: false } } : {}),
     });
   }
   return globalThis.__dbPool;
