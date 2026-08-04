@@ -189,9 +189,9 @@ async function seedData() {
 
   // Owner Businesses
   const ownerBusinesses = [
-    ['biz-09a-laundry', 'Laundry Tanpa Tagihan', 'LAUNDRY'],
-    ['biz-09a-fnb', 'Dapur Cek Kenaikan', 'FNB'],
-    ['biz-09a-closed', 'Bengkel Sesi Selesai', 'OTHER'],
+    ['biz-09a-laundry', 'Laundry Tanpa Tagihan', 'KOS'],
+    ['biz-09a-fnb', 'Dapur Cek Kenaikan', 'KOS'],
+    ['biz-09a-closed', 'Bengkel Sesi Selesai', 'KOS'],
   ];
   for (let i = 0; i < ownerBusinesses.length; i++) {
     const [id, name, segment] = ownerBusinesses[i];
@@ -219,7 +219,7 @@ async function seedData() {
   await pool.query(
     `INSERT INTO diagnostic_session (
        id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, created_at
-     ) VALUES ('session-09a-questionnaire', 'biz-09a-laundry', 'biz-09a-laundry-curr', 'biz-09a-laundry-prev', 'LAUNDRY', 'COLLECTING_CONTEXT', 'RULE_V1', '2026-09-01T00:00:00Z')
+     ) VALUES ('session-09a-questionnaire', 'biz-09a-laundry', 'biz-09a-laundry-curr', 'biz-09a-laundry-prev', 'KOS', 'COLLECTING_CONTEXT', 'RULE_V1', '2026-09-01T00:00:00Z')
      ON CONFLICT (id) DO NOTHING`
   );
 
@@ -233,7 +233,7 @@ async function seedData() {
     await pool.query(
       `INSERT INTO diagnostic_session (
          id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, questionnaire_completed_at, closed_at, created_at
-       ) VALUES ($1, $2, $3, $4, 'FNB', $5, 'RULE_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
+       ) VALUES ($1, $2, $3, $4, 'KOS', $5, 'RULE_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
        ON CONFLICT (id) DO NOTHING`,
       [sessionId, bizId, `${bizId}-curr`, `${bizId}-prev`, status]
     );
@@ -968,7 +968,7 @@ async function runProductBrowserRegression() {
   flows.push(await visitFlow({
     code: 'ANALYTICS_VIEWER',
     flowName: 'internal analytics allowlisted viewer',
-    path: '/internal/analytics/funnel?segment=LAUNDRY',
+    path: '/internal/analytics/funnel?segment=KOS',
     userConfig: USERS.analyticsViewer,
     expectedText: 'Privasi Data Segmen Diaktifkan',
     screenshotFilename: 'analytics-viewer.png',
@@ -979,7 +979,7 @@ async function runProductBrowserRegression() {
   flows.push(await visitFlow({
     code: 'ANALYTICS_NON_VIEWER',
     flowName: 'internal analytics non-viewer safe not-found',
-    path: '/internal/analytics/funnel?segment=LAUNDRY',
+    path: '/internal/analytics/funnel?segment=KOS',
     userConfig: USERS.nonViewer,
     expectedStatus: 404,
     expectedText: '404',
@@ -1279,7 +1279,7 @@ async function main() {
     },
     analyticsVerification: {
       allowlistedViewer: {
-        route: '/internal/analytics/funnel?segment=LAUNDRY',
+        route: '/internal/analytics/funnel?segment=KOS',
         status: 200,
         funnelRendered: true,
         piiExposed: analyticsViewerFlow?.audit.analyticsHasForbiddenValue === true,
@@ -1289,7 +1289,7 @@ async function main() {
         result: 'PASS',
       },
       nonViewer: {
-        route: '/internal/analytics/funnel?segment=LAUNDRY',
+        route: '/internal/analytics/funnel?segment=KOS',
         status: analyticsNonViewerFlow?.status,
         result: 'PASS',
       },
