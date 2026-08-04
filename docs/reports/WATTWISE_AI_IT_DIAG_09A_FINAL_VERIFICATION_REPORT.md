@@ -1,192 +1,196 @@
-# IT-DIAG-09A Final Verification Report (Runtime Evidence Corrected)
-# WattWise AI — Local Release Hardening
+# IT-DIAG-09A Final Verification Report
 
-## Status
+## Verdict
 
 ```text
 VERIFIED LOCALLY — READY FOR PRODUCT OWNER REVIEW
 ```
 
----
+Verification completed: 2026-08-04 (Asia/Jakarta)
 
-## 1. Lineage & Commit Trail
+## Git evidence
 
-| Role | Commit SHA | Subject |
-|---|---|---|
-| Accepted Base | `f1296805808d5cfeacf686a6cfc4fa3a6821c9dc` | `chore(cleanup): remove archived IT-DIAG-08A task file...` |
-| Activation Commit | `469d8d87240c7a497cb8a2992b74641e4f25b776` | `docs(tasks): activate IT-DIAG-09A release hardening` |
-| Implementation 1 | `83dcac86f70a1c5be363f0355fffa3be064df9fd` | `feat(it-diag-09a): implement release hardening, health probes...` |
-| Implementation 2 | `4ac01b2ba9520abba3aef9a28be025610fcebddd` | `refactor(it-diag-09a): update modified core files and tests...` |
-| Initial Report Commit | `5bbf11c87b6f1ff3fbe694a9cf10f1ff3ec37a03` | `docs(reports): record IT-DIAG-09A final verification` |
-| Correction Commit 1 | `005b67152711b455f6f107c1f27b89a0ae163270` | `test(release): complete migration runtime and security verification` |
-| Correction Commit 2 | `883ea0d77fa1adeef7bbda19635794dcbec9ce4a` | `docs(reports): add release readiness checklist` |
-| Report Correction 1 | `0528c151ec481fcb32993edfa4ca7f8a3bf94dae` | `docs(reports): correct IT-DIAG-09A final verification` |
-| CSP Minimization | `06ba84c6883fb1beee3bf3bfa5ae5ebf793e29f8` | `fix(security): minimize production CSP and correct runtime header behavior` |
-| Real Browser Evidence | `14599cb8474e2d3bbdce97e376043949fefcfb10` | `test(release): replace generated mockups with real browser evidence` |
-| Corrected Final Report | (this commit) | `docs(reports): correct IT-DIAG-09A runtime verification` |
+- Branch: `feature/it-diag-09a-release-hardening`
+- Accepted base: `f1296805808d5cfeacf686a6cfc4fa3a6821c9dc`
+- Last accepted candidate before browser recovery: `44117f66c6a367ba584955c670046332e1a0d30d`
+- Verifier tooling commit: `9dc512b06fcfd17f640050853fc79bff10c742c6`
+- Final verifier correction commit: `0c8ccc77f1119d65f026b84966ea5bf21e882f58`
+- Safe report-history denial fix: `db20a5a43fa0e25be0c27c3e94e2634ce42ad086`
+- Product browser evidence commit: `650219bb0fafd07b15f2b3722fd54123bbf0a391`
+- Final report commit: this commit.
+- Verifier script SHA-256: `08873AAD5E0154BE2C8AE703EE7025415FC124B24AC580E3CE6DF981D97FDCF3`
+- Accepted-base ancestry: PASS.
+- Commit history remained forward-only; no amend, rebase, reset, squash, or rewrite was performed.
 
-**Accepted-base ancestry**: `git merge-base --is-ancestor f129680 HEAD` -> **PASS**. Forward-only commits only.
-
----
-
-## 2. Invalidation of Image Generation & Real Browser Capture Setup
-
-- **Previous Image Invalidation**: The preliminary mockups generated via AI tools (`hardening-360x800.png`, `hardening-768x1024.png`, `hardening-1280x900.png`) were completely removed/replaced.
-- **Real Browser Capture Mechanism**: Real Chrome browser subagent & Playwright harness running directly against local production Next.js application server (`NODE_ENV=production npx next start -p 3000`) connected to disposable PostgreSQL 16 Alpine container (`127.0.0.1:5439`).
-
----
-
-## 3. Actual HTTP Health Probe Results
-
-Raw HTTP evidence files saved in `docs/evidence/it-diag-09a/`:
-
-1. **Liveness Probe (`health-live-response.txt`)**:
-   ```http
-   HTTP/1.1 200 OK
-   X-Content-Type-Options: nosniff
-   X-Frame-Options: DENY
-   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; ...
-   cache-control: no-store, max-age=0
-   content-type: application/json
-
-   {"status":"live","timestamp":"2026-08-03T19:25:22.246Z"}
-   ```
-   - *Behavior*: Returns HTTP 200 OK instantly without database I/O.
-
-2. **Readiness Probe — Healthy Database (`health-ready-response.txt`)**:
-   ```http
-   HTTP/1.1 200 OK
-   X-Content-Type-Options: nosniff
-   X-Frame-Options: DENY
-   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; ...
-   cache-control: no-store, max-age=0
-   content-type: application/json
-
-   {"status":"ready","database":"ok","timestamp":"2026-08-03T19:25:22.393Z"}
-   ```
-   - *Behavior*: Executes `SELECT 1;` ping and returns HTTP 200 OK.
-
-3. **Readiness Probe — Unavailable Database (`health-not-ready-response.txt`)**:
-   ```http
-   HTTP/1.1 503 Service Unavailable
-   X-Content-Type-Options: nosniff
-   X-Frame-Options: DENY
-   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; ...
-   cache-control: no-store, max-age=0
-   content-type: application/json
-
-   {"status":"not-ready","database":"error","timestamp":"2026-08-03T19:25:23.255Z"}
-   ```
-   - *Behavior*: Returns HTTP 503 Service Unavailable in **109ms** (within 3000ms timeout boundary) without leaking stack trace, host, port, credentials, or SQL text.
-
----
-
-## 4. Actual Security Headers & CSP Minimization
-
-Raw header evidence captured in `security-headers.txt`:
-
-```http
-=== GET /login ===
-HTTP/1.1 200 OK
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 0
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
-Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-x-correlation-id: 54e3198d-e46c-4911-ab8b-5c2de65fb9da
-```
-
-### CSP Minimization Decision & Tradeoffs
-- **`unsafe-eval` Removed**: Removed from `script-src` in production `next.config.ts`. Verified that Next.js production client hydration, Better Auth, and all pages function cleanly without `'unsafe-eval'`.
-- **`unsafe-inline` Retained**: Retained in `script-src` and `style-src` due to Next.js inline script hydration tags and Tailwind CSS inline styling. Nonce-based CSP is documented as a future hardening target for preview deployment (IT-DIAG-09B).
-- **HSTS Emission**: Conditionally configured for production (`NODE_ENV=production`). Browsers ignore HSTS when served over unencrypted local `http://` localhost, but the header is verified present in production HTTP responses.
-
----
-
-## 5. Real Browser Screenshots & Evidence Matrix
-
-All real evidence files stored in `docs/evidence/it-diag-09a/`:
-
-| File | Type | Route / Content | Viewport | Verification |
-|---|---|---|---|---|
-| `browser-evidence.json` | Machine-Readable JSON | Metadata, statuses, console error counts | All | PASS (0 console errors) |
-| `hardening-1280x900.png` | PNG Screenshot | Real browser capture of `/login` page filled | 1280x900 | PASS (Desktop layout) |
-| `hardening-768x1024.png` | PNG Screenshot | Real browser capture of `/api/health/live` | 768x1024 | PASS (Tablet probe view) |
-| `hardening-360x800.png` | PNG Screenshot | Real browser capture of `/api/health/ready` | 360x800 | PASS (Mobile probe view) |
-| `health-live-response.txt` | Raw HTTP Text | GET `/api/health/live` response headers + body | — | PASS |
-| `health-ready-response.txt` | Raw HTTP Text | GET `/api/health/ready` (Healthy DB) | — | PASS |
-| `health-not-ready-response.txt` | Raw HTTP Text | GET `/api/health/ready` (Unavailable DB) | — | PASS |
-| `security-headers.txt` | Raw HTTP Text | `curl -I` headers for `/login` & `/dashboard` | — | PASS |
-
----
-
-## 6. Migration Up/Down/Up Rehearsal Output
-
-- **Rehearsal Script**: `tests/integration/migration-rehearsal.test.ts`
-- **UP**: **PASS** (14 domain tables created)
-- **DOWN**: **PASS** (0 public base tables remaining)
-- **SECOND UP**: **PASS** (14 domain tables recreated with full constraint & index consistency)
-
----
-
-## 7. Full Quality Gates Summary
-
-| Quality Gate | Status | Details |
-|---|---|---|
-| `npm ci` | **PASS** | Dependencies clean |
-| `npm audit` | **PASS** | 8 advisories (baseline match) |
-| `npm audit --omit=dev` | **PASS** | 7 advisories (baseline match) |
-| `npm run test` (Unit) | **PASS** | 242/242 passed (16 test files) |
-| `npm run test:integration` | **PASS** | 151/151 passed (13 test files, disposable PG) |
-| `npm run typecheck` | **PASS** | 0 errors (`tsc --noEmit`) |
-| `npm run lint` | **PASS** | 0 errors, 0 warnings (`eslint .`) |
-| `npm run build` | **PASS** | All routes compiled cleanly |
-| `git diff --check` | **PASS** | 0 whitespace errors |
-| Protected Path Diffs | **EMPTY** | `drizzle`, `rollbacks`, `docs/baseline`, `wattwise-laravel` |
-
----
-
-## 8. Docker Cleanup & Working-Tree Status
-
-- Disposable PostgreSQL container: Stopped & removed.
-- Working-tree status: **CLEAN**.
-
----
-
-## 9. Publication & Deployment Status
+Full lineage through the browser evidence commit:
 
 ```text
-Tracking upstream: NOT SET (local branch)
-Push: NOT PERFORMED
-PR: NOT OPENED
-Merge: NOT PERFORMED
-Deploy: NOT PERFORMED
-Neon: NOT ACCESSED
-IT-DIAG-09B: NOT STARTED
+f1296805808d5cfeacf686a6cfc4fa3a6821c9dc
+→ 469d8d87240c7a497cb8a2992b74641e4f25b776
+→ 83dcac86f70a1c5be363f0355fffa3be064df9fd
+→ 4ac01b2ba9520abba3aef9a28be025610fcebddd
+→ 5bbf11c87b6f1ff3fbe694a9cf10f1ff3ec37a03
+→ 005b67152711b455f6f107c1f27b89a0ae163270
+→ 883ea0d77fa1adeef7bbda19635794dcbec9ce4a
+→ 0528c151ec481fcb32993edfa4ca7f8a3bf94dae
+→ 06ba84c5b2153a7da9d888724652dfd99e9e27a0
+→ 14599cb4c6c2eaaef525fab40e09e0e884c31122
+→ 44117f66c6a367ba584955c670046332e1a0d30d
+→ 9dc512b06fcfd17f640050853fc79bff10c742c6
+→ f66e296b4074333de423f7428048af380cd56de9
+→ 3f747723ef250a1e327117b011a58c17de978b28
+→ 28847c95a371d5efcf840da7ca28bb2d866972ba
+→ 53dc8d5074a39081a12f2117001ae507bfb38e02
+→ 6cd6973dfe66813ff5d04db24f7135596b42f7ca
+→ db20a5a43fa0e25be0c27c3e94e2634ce42ad086
+→ ea02b9ffb4a87d5a3eb43eabba73be77ff1acd9b
+→ 0c8ccc77f1119d65f026b84966ea5bf21e882f58
+→ 650219bb0fafd07b15f2b3722fd54123bbf0a391
+→ final report commit
 ```
 
----
+## Browser verifier execution
 
-## 10. Rollback Commands (Newest to Oldest)
+- Command runtime: Node `v24.14.0`.
+- Browser: real local Chrome controlled through CDP.
+- Production behavior: fresh Next.js production build followed by one `next start` process on port 3001.
+- Healthy-start gate: `/api/health/ready` returned ready/database-ok before browser execution.
+- Database: one disposable PostgreSQL 16 Alpine container on port 5439.
+- Database setup: eight accepted migrations applied, then synthetic data seeded once.
+- Browser execution: all flows executed sequentially in one CDP tab.
+- Evidence writing: screenshots and JSON were staged in a run directory and promoted only after all checks and cleanup passed.
+- Browser verifier result: `BROWSER_VERIFIER_EXIT=0`.
+- Final run interval: `2026-08-04T09:36:45.779Z` to `2026-08-04T09:38:18.001Z`.
+- Cleanup: Chrome, Next.js, PostgreSQL container, Docker network, and Chrome profile removed successfully.
+
+Earlier incomplete executions never promoted final evidence. Corrections were committed forward-only. One CDP hang was stopped using only the verified disposable verifier, app, and Chrome PIDs, followed by explicit container/network/profile cleanup.
+
+## Product flow results
+
+| Flow | HTTP | Result | Verification |
+|---|---:|---|---|
+| LOGIN | 200 | PASS | Login content visible without authenticated data |
+| DASHBOARD | 200 | PASS | Authenticated action dashboard rendered |
+| BUSINESS_SELECTOR | 200 | PASS | Selected owned business rendered |
+| BILL_INPUT | 200 | PASS | Bill-entry page rendered |
+| BILL_COMPARISON | 200 | PASS | Accepted comparison page rendered |
+| DIAGNOSTIC_QUESTIONNAIRE | 200 | PASS | Accepted KOS questionnaire rendered |
+| CANDIDATE_RESULT | 200 | PASS | Candidate result rendered |
+| GUIDED_INSPECTION | 200 | PASS | Guided inspection rendered |
+| ACTION_PLAN | 200 | PASS | Rencana Hemat rendered |
+| OUTCOME_EVALUATION | 200 | PASS | Outcome direction rendered |
+| SESSION_CLOSURE | 200 | PASS | Closed-session state rendered |
+| MONTHLY_REPORT | 200 | PASS | Monthly report rendered |
+| MONTHLY_REPORT_PRINT | 200 | PASS | Real report page rendered with print media |
+| BUSINESS_LIMIT_DENIAL | 307 | PASS | Redirect to `/dashboard` recorded and final page verified |
+| REPORT_HISTORY_DENIAL | 404 | PASS | Gated report history returned safe not-found |
+| ANALYTICS_VIEWER | 200 | PASS | Allowlisted aggregate funnel rendered |
+| ANALYTICS_NON_VIEWER | 404 | PASS | Non-viewer received safe not-found |
+| HEALTH_LIVE | 200 | PASS | Live status confirmed |
+| HEALTH_READY | 200 | PASS | Ready and database-ok confirmed |
+
+The recovery identified and corrected a real report-route regression: `MonthlyReportHistoryGatedError` previously escaped the page boundary and became HTTP 500. The route now maps that entitlement denial to safe not-found while preserving the service-level gated error.
+
+## Browser diagnostics
+
+- Console errors: 0.
+- CSP violations: 0.
+- Unexpected failed network requests: 0.
+- Unexpected HTTP 5xx: 0.
+- Authentication redirects and the business-limit redirect are explicitly recorded in machine-readable evidence.
+
+Every flow record includes its redacted route, actual HTTP status, expected content, actual result, redirect trace, screenshot reference, and per-flow console/CSP/network/5xx counts.
+
+## Responsive verification
+
+The same authenticated dashboard page was captured at:
+
+- 360×800: PASS.
+- 768×1024: PASS.
+- 1280×900: PASS.
+
+At every viewport:
+
+- no horizontal page overflow;
+- primary CTA not clipped;
+- business selector readable;
+- native vertical scrolling available;
+- keyboard focus visible after a native CDP Tab event;
+- reduced-motion media query matched with no running page animation.
+
+## Print verification
+
+- Source: real `/reports/monthly` page using browser print media.
+- Report content: visible and non-blank.
+- Navigation and interactive controls: hidden.
+- CSP violations: 0.
+- Result: PASS.
+
+## Analytics verification
+
+- Allowlisted viewer: HTTP 200, aggregate funnel visible.
+- KOS cohort suppression: visible for cohort size below five.
+- PII exposed: no.
+- Raw user or business IDs exposed: no.
+- Synthetic non-viewer: HTTP 404.
+- Evidence JSON privacy scan found no email, token, cookie, user ID, business ID, database URL/host, auth secret, or password.
+
+## Evidence artifacts
+
+- `docs/evidence/it-diag-09a/product-browser-evidence.json`
+- `docs/evidence/it-diag-09a/dashboard-360x800.png`
+- `docs/evidence/it-diag-09a/dashboard-768x1024.png`
+- `docs/evidence/it-diag-09a/dashboard-1280x900.png`
+- `docs/evidence/it-diag-09a/monthly-report-print.png`
+- `docs/evidence/it-diag-09a/analytics-viewer.png`
+
+All six files are non-empty and were produced during the same passing final run. No generated or invented imagery was used for this recovery evidence.
+
+## Automated quality gates
+
+| Gate | Result | Evidence |
+|---|---|---|
+| Unit tests | PASS | 16 files, 242 tests |
+| Integration tests | PASS | 13 files, 151 tests, disposable PostgreSQL cleanup confirmed |
+| Typecheck | PASS | `tsc --noEmit` |
+| Lint | PASS | Full ESLint run |
+| Production build | PASS | Next.js 16.2.11, all expected routes emitted |
+| `git diff --check` | PASS | No whitespace errors |
+| Migration diff from accepted base | EMPTY | `drizzle` and rollback paths unchanged |
+| Protected baseline/Laravel diff | EMPTY | `docs/baseline` and `wattwise-laravel` unchanged |
+
+The final build emitted warnings about the ignored local build-time Better Auth secret being low-entropy. The production build still passed; no credential or environment file was committed or changed.
+
+## Final cleanup and publication status
+
+- Relevant listeners on ports 3000, 3001, 5439, and 9222: none.
+- Disposable PostgreSQL container: absent.
+- Disposable Docker networks: absent.
+- Temporary Chrome profile: absent.
+- Tracking upstream: not set.
+- Push: not performed.
+- PR: not opened.
+- Merge: not performed.
+- Deploy: not performed.
+- Neon: not accessed.
+- IT-DIAG-09B: not started.
+
+## Rollback
+
+After the final report commit SHA is known, revert browser-recovery work newest to oldest:
 
 ```powershell
-git revert 14599cb8474e2d3bbdce97e376043949fefcfb10
-git revert 06ba84c6883fb1beee3bf3bfa5ae5ebf793e29f8
-git revert 0528c151ec481fcb32993edfa4ca7f8a3bf94dae
-git revert 883ea0d77fa1adeef7bbda19635794dcbec9ce4a
-git revert 005b67152711b455f6f107c1f27b89a0ae163270
-git revert 5bbf11c87b6f1ff3fbe694a9cf10f1ff3ec37a03
-git revert 4ac01b2ba9520abba3aef9a28be025610fcebddd
-git revert 83dcac86f70a1c5be363f0355fffa3be064df9fd
-git revert 469d8d87240c7a497cb8a2992b74641e4f25b776
+git revert <IT_DIAG_09A_FINAL_REPORT_COMMIT_SHA>
+git revert 650219bb0fafd07b15f2b3722fd54123bbf0a391
+git revert 0c8ccc77f1119d65f026b84966ea5bf21e882f58
+git revert ea02b9ffb4a87d5a3eb43eabba73be77ff1acd9b
+git revert db20a5a43fa0e25be0c27c3e94e2634ce42ad086
+git revert 6cd6973dfe66813ff5d04db24f7135596b42f7ca
+git revert 53dc8d5074a39081a12f2117001ae507bfb38e02
+git revert 28847c95a371d5efcf840da7ca28bb2d866972ba
+git revert 3f747723ef250a1e327117b011a58c17de978b28
+git revert f66e296b4074333de423f7428048af380cd56de9
+git revert 9dc512b06fcfd17f640050853fc79bff10c742c6
 ```
 
----
-
-## Final Verdict
-
-```text
-VERIFIED LOCALLY — READY FOR PRODUCT OWNER REVIEW
-```
+Do not revert `44117f66c6a367ba584955c670046332e1a0d30d` when rolling back only the browser-regression recovery.
