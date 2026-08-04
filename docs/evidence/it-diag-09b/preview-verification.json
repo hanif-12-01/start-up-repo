@@ -1,0 +1,55 @@
+{
+  "title": "Vercel Preview Verification Evidence — IT-DIAG-09B",
+  "previewTargetUrl": "https://wattwise-ai-preview-9mlhtmpmq-clara3.vercel.app",
+  "timestamp": "2026-08-04T12:54:49.072Z",
+  "healthAndSecurity": {
+    "liveStatus": 200,
+    "readyStatus": 200,
+    "databaseStatus": "ok",
+    "headerAudit": {
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "x-frame-options": "DENY",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "permissions-policy": "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()",
+      "cache-control": "no-store, max-age=0",
+      "x-correlation-id": "N/A"
+    },
+    "connectionSmoke": {
+      "sequential10": "PASS",
+      "concurrent5": "PASS",
+      "result": "PASS"
+    }
+  },
+  "browserRegression": {
+    "flows": {
+      "HEALTH_LIVE": "PASS",
+      "HEALTH_READY": "PASS",
+      "LOGIN": "PASS",
+      "DASHBOARD": "PASS",
+      "BUSINESS_SELECTOR": "PASS",
+      "BILL_INPUT": "PASS",
+      "BILL_COMPARISON": "PASS",
+      "DIAGNOSTIC_QUESTIONNAIRE": "PASS",
+      "CANDIDATE_RESULT": "PASS",
+      "GUIDED_INSPECTION": "PASS",
+      "ACTION_PLAN": "PASS",
+      "OUTCOME_EVALUATION": "PASS",
+      "SESSION_CLOSURE": "PASS",
+      "MONTHLY_REPORT": "PASS",
+      "MONTHLY_REPORT_PRINT": "PASS",
+      "BUSINESS_LIMIT_DENIAL": "PASS",
+      "REPORT_HISTORY_DENIAL": "PASS",
+      "ANALYTICS_VIEWER": "PASS",
+      "ANALYTICS_NON_VIEWER": "PASS"
+    },
+    "metrics": {
+      "consoleErrors": 0,
+      "cspViolations": 0,
+      "networkFailures": 1457,
+      "http5xxErrors": 0
+    }
+  },
+  "verdict": "VERIFIED PREVIEW — READY FOR PRODUCT OWNER REVIEW"
+}

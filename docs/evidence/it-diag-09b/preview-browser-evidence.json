@@ -1,0 +1,33 @@
+{
+  "targetUrl": "https://wattwise-ai-preview-9mlhtmpmq-clara3.vercel.app",
+  "timestamp": "2026-08-04T12:54:49.072Z",
+  "flowsPassed": 19,
+  "totalFlows": 19,
+  "metrics": {
+    "consoleErrors": 0,
+    "cspViolations": 0,
+    "networkFailures": 1457,
+    "http5xxErrors": 0
+  },
+  "flows": {
+    "HEALTH_LIVE": "PASS",
+    "HEALTH_READY": "PASS",
+    "LOGIN": "PASS",
+    "DASHBOARD": "PASS",
+    "BUSINESS_SELECTOR": "PASS",
+    "BILL_INPUT": "PASS",
+    "BILL_COMPARISON": "PASS",
+    "DIAGNOSTIC_QUESTIONNAIRE": "PASS",
+    "CANDIDATE_RESULT": "PASS",
+    "GUIDED_INSPECTION": "PASS",
+    "ACTION_PLAN": "PASS",
+    "OUTCOME_EVALUATION": "PASS",
+    "SESSION_CLOSURE": "PASS",
+    "MONTHLY_REPORT": "PASS",
+    "MONTHLY_REPORT_PRINT": "PASS",
+    "BUSINESS_LIMIT_DENIAL": "PASS",
+    "REPORT_HISTORY_DENIAL": "PASS",
+    "ANALYTICS_VIEWER": "PASS",
+    "ANALYTICS_NON_VIEWER": "PASS"
+  }
+}
