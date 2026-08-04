@@ -219,7 +219,7 @@ async function seedData() {
   await pool.query(
     `INSERT INTO diagnostic_session (
        id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, created_at
-     ) VALUES ('session-09a-questionnaire', 'biz-09a-laundry', 'biz-09a-laundry-curr', 'biz-09a-laundry-prev', 'KOS', 'COLLECTING_CONTEXT', 'RULE_V1', '2026-09-01T00:00:00Z')
+     ) VALUES ('session-09a-questionnaire', 'biz-09a-laundry', 'biz-09a-laundry-curr', 'biz-09a-laundry-prev', 'KOS', 'COLLECTING_CONTEXT', 'KOS_CONTEXT_V1', '2026-09-01T00:00:00Z')
      ON CONFLICT (id) DO NOTHING`
   );
 
@@ -233,7 +233,7 @@ async function seedData() {
     await pool.query(
       `INSERT INTO diagnostic_session (
          id, business_id, electricity_bill_id, comparison_bill_id, segment_code, status, rule_version, questionnaire_completed_at, closed_at, created_at
-       ) VALUES ($1, $2, $3, $4, 'KOS', $5, 'RULE_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
+       ) VALUES ($1, $2, $3, $4, 'KOS', $5, 'KOS_CONTEXT_V1', now(), CASE WHEN $5 = 'CLOSED' THEN now() ELSE NULL END, '2026-09-01T00:00:00Z')
        ON CONFLICT (id) DO NOTHING`,
       [sessionId, bizId, `${bizId}-curr`, `${bizId}-prev`, status]
     );
@@ -242,7 +242,7 @@ async function seedData() {
     await pool.query(
       `INSERT INTO diagnostic_candidate (
          id, diagnostic_session_id, candidate_code, candidate_version, candidate_type, rule_version, title, rank, internal_score, evidence_level, explanation, supporting_factors_json, contradicting_factors_json
-       ) VALUES ($1, $2, 'SPECIAL_ACTIVITY', 1, 'OPERATIONAL', 'CAND_RULE_V1', 'Jadwal operasional berubah', 1, 90, 'MODERATE', 'Aktivitas terpantau meningkat.', '[]'::jsonb, '[]'::jsonb)
+       ) VALUES ($1, $2, 'SPECIAL_ACTIVITY', 1, 'OPERATIONAL', 'DIAG_CANDIDATE_RULE_V1', 'Jadwal operasional berubah', 1, 90, 'MODERATE', 'Aktivitas terpantau meningkat.', '[]'::jsonb, '[]'::jsonb)
        ON CONFLICT (id) DO NOTHING`,
       [candidateId, sessionId]
     );
@@ -251,7 +251,7 @@ async function seedData() {
     await pool.query(
       `INSERT INTO inspection_plan (
          id, business_id, diagnostic_candidate_id, inspection_code, inspection_version, rule_version, title, status, result_code, started_at, completed_at
-       ) VALUES ($1, $2, $3, 'SPECIAL_ACTIVITY_REVIEW', 1, 'INSP_RULE_V1', 'Pemeriksaan operasional', 'COMPLETED', 'FOUND', '2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z')
+       ) VALUES ($1, $2, $3, 'SPECIAL_ACTIVITY_REVIEW', 1, 'INSPECTION_RULE_V1', 'Pemeriksaan operasional', 'COMPLETED', 'FOUND', '2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z')
        ON CONFLICT (id) DO NOTHING`,
       [inspectionId, bizId, candidateId]
     );
@@ -286,7 +286,7 @@ async function seedData() {
     await pool.query(
       `INSERT INTO energy_action_plan (
          id, business_id, diagnostic_candidate_id, inspection_plan_id, action_code, action_version, rule_version, title_snapshot, description_snapshot, reason_snapshot, steps_snapshot_json, inspection_result_snapshot, baseline_snapshot_json, status, review_mode, planned_start_date, started_at, completed_at
-       ) VALUES ($1, $2, $3, $4, 'LOG_SPECIAL_ACTIVITY', 1, 'ACT_RULE_V1', 'Rencana Catat Operasional', 'Catat jadwal peralatan listrik.', 'Hasil pengamatan.', '["Langkah 1"]'::jsonb, 'FOUND', $5::jsonb, $6, 'NEXT_ELIGIBLE_BILL', '2026-09-02', '2026-09-02T00:00:00Z', CASE WHEN $6 = 'COMPLETED' THEN '2026-09-30T00:00:00Z'::timestamptz ELSE NULL END)
+       ) VALUES ($1, $2, $3, $4, 'LOG_SPECIAL_ACTIVITY', 1, 'ACTION_PLAN_RULE_V1', 'Rencana Catat Operasional', 'Catat jadwal peralatan listrik.', 'Hasil pengamatan.', '["Langkah 1"]'::jsonb, 'FOUND', $5::jsonb, $6, 'NEXT_ELIGIBLE_BILL', '2026-09-02', '2026-09-02T00:00:00Z', CASE WHEN $6 = 'COMPLETED' THEN '2026-09-30T00:00:00Z'::timestamptz ELSE NULL END)
        ON CONFLICT (id) DO NOTHING`,
       [actionId, bizId, candidateId, inspectionId, baselineJson, status === 'CLOSED' ? 'COMPLETED' : 'IN_PROGRESS']
     );
