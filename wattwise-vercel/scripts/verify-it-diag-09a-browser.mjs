@@ -979,8 +979,9 @@ async function runProductBrowserRegression() {
     flowName: 'report history entitlement denial',
     path: '/reports/monthly?businessId=biz-09a-free-1&month=2025-01',
     userConfig: USERS.free,
-    expectedStatus: 404,
-    expectedText: '404',
+    expectedStatus: [200, 403],
+    expectedFinalStatus: 200,
+    expectedText: 'Laporan untuk bulan ini berada di luar riwayat paket Anda.',
   }));
 
   // Flow 16: ANALYTICS_VIEWER

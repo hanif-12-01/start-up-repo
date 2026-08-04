@@ -1,7 +1,7 @@
 {
   "captureMechanism": "Chrome CDP (headless mode via Node.js)",
   "runtime": "Fresh Next.js production build and server exercised sequentially through Chrome CDP",
-  "nodeVersion": "v24.14.0",
+  "nodeVersion": "v22.17.0",
   "databaseRuntime": "PostgreSQL 16 Alpine disposable container",
   "productionStartBehavior": {
     "freshBuild": true,
@@ -16,8 +16,8 @@
     "disposable": true
   },
   "overallResult": "PASS",
-  "startedAt": "2026-08-04T09:36:45.779Z",
-  "completedAt": "2026-08-04T09:38:18.001Z",
+  "startedAt": "2026-08-04T10:02:56.401Z",
+  "completedAt": "2026-08-04T10:04:39.158Z",
   "consoleErrorCount": 0,
   "cspViolationCount": 0,
   "unexpectedNetworkFailureCount": 0,
@@ -211,9 +211,9 @@
     {
       "code": "REPORT_HISTORY_DENIAL",
       "route": "/reports/monthly?businessId=[REDACTED]&month=2025-01",
-      "status": 404,
-      "expected": "HTTP 404 and visible content: 404",
-      "actual": "Initial HTTP 404; final HTTP 404; final route /reports/monthly; expected content visible",
+      "status": 200,
+      "expected": "HTTP 200/403 and visible content: Laporan untuk bulan ini berada di luar riwayat paket Anda.",
+      "actual": "Initial HTTP 200; final HTTP 200; final route /reports/monthly; expected content visible",
       "result": "PASS",
       "screenshot": null,
       "redirects": [],
