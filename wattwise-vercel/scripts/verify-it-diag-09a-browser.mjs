@@ -1,4 +1,5 @@
 import { spawn, execFileSync, execSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import pg from 'pg';
@@ -12,6 +13,7 @@ const DB_NAME = 'wattwise_test';
 const DB_USER = 'wattwise_test_user';
 const DB_PASS = 'synthetic_test_password_01b';
 const DATABASE_URL = `postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${PG_PORT}/${DB_NAME}`;
+const AUTH_SECRET = 'synthetic_secret_for_browser_test_09a_32chars_long';
 
 const APP_PORT = 3001;
 const APP_URL = `http://127.0.0.1:${APP_PORT}`;
@@ -64,13 +66,20 @@ let startedNetwork = false;
 let cleanupCompleted = false;
 let runEvidenceDir = null;
 
+function signedSessionCookieValue(sessionToken) {
+  const signature = createHmac('sha256', AUTH_SECRET)
+    .update(sessionToken)
+    .digest('base64');
+  return `${sessionToken}.${signature}`;
+}
+
 function applicationEnv(viewerUserId = '') {
   return {
     ...process.env,
     NODE_ENV: 'production',
     PORT: String(APP_PORT),
     DATABASE_URL,
-    BETTER_AUTH_SECRET: 'synthetic_secret_for_browser_test_09a_32chars_long',
+    BETTER_AUTH_SECRET: AUTH_SECRET,
     BETTER_AUTH_URL: APP_URL,
     NEXT_PUBLIC_APP_URL: APP_URL,
     DASHBOARD_ENABLED: 'true',
@@ -610,7 +619,7 @@ async function runProductBrowserRegression() {
     });
     const cookieResult = await cdp.send('Network.setCookie', {
       name: 'wattwise.session_token',
-      value: userConfig.sessionToken,
+      value: signedSessionCookieValue(userConfig.sessionToken),
       url: APP_URL,
       httpOnly: true,
       sameSite: 'Lax',
@@ -637,7 +646,7 @@ async function runProductBrowserRegression() {
 
   async function inspectInitialResponse(path, userConfig) {
     const headers = userConfig
-      ? { cookie: `wattwise.session_token=${userConfig.sessionToken}` }
+      ? { cookie: `wattwise.session_token=${signedSessionCookieValue(userConfig.sessionToken)}` }
       : {};
     const response = await fetch(`${APP_URL}${path}`, {
       headers,
@@ -1135,6 +1144,7 @@ async function promoteEvidenceAtomically(evidence) {
   const forbiddenValues = [
     DATABASE_URL,
     DB_PASS,
+    AUTH_SECRET,
     ...Object.values(USERS).flatMap((user) => [
       user.userId,
       user.email,
