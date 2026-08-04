@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getOptionalSession } from '@/server/auth/session';
 import {
   MonthlyReportBusinessNotFoundError,
+  MonthlyReportHistoryGatedError,
   MonthlyReportMonthError,
   MonthlyReportsUnavailableError,
   getMonthlyReportReadModel,
@@ -64,7 +65,8 @@ export default async function MonthlyReportPage({
     }
     if (
       error instanceof MonthlyReportBusinessNotFoundError ||
-      error instanceof MonthlyReportMonthError
+      error instanceof MonthlyReportMonthError ||
+      error instanceof MonthlyReportHistoryGatedError
     ) {
       notFound();
     }
