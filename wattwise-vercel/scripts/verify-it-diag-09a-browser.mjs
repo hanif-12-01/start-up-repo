@@ -597,6 +597,12 @@ async function runProductBrowserRegression() {
   });
 
   async function setSessionUser(userConfig) {
+    await cdp.send('Page.navigate', { url: 'about:blank' });
+    await waitForDocument(cdp);
+    await cdp.send('Network.deleteCookies', {
+      name: 'wattwise.session_token',
+      url: APP_URL,
+    });
     const cookieResult = await cdp.send('Network.setCookie', {
       name: 'wattwise.session_token',
       value: userConfig.sessionToken,
