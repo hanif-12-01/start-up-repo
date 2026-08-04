@@ -445,6 +445,7 @@ class CdpClient {
         const pending = this.pending.get(msg.id);
         if (!pending) return;
         this.pending.delete(msg.id);
+        clearTimeout(pending.timeoutId);
         if (msg.error) pending.reject(new Error(JSON.stringify(msg.error)));
         else pending.resolve(msg.result);
         return;
@@ -463,7 +464,11 @@ class CdpClient {
     const id = ++this.sequence;
     this.ws.send(JSON.stringify({ id, method, params }));
     return new Promise((resolveSend, reject) => {
-      this.pending.set(id, { resolve: resolveSend, reject });
+      const timeoutId = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`CDP command timed out: ${method}`));
+      }, 15_000);
+      this.pending.set(id, { resolve: resolveSend, reject, timeoutId });
     });
   }
 
@@ -613,6 +618,15 @@ async function runProductBrowserRegression() {
     if (!cookieResult.success) throw new Error(`Failed to set session cookie for ${userConfig.email}`);
   }
 
+  async function clearSessionUser() {
+    await cdp.send('Page.navigate', { url: 'about:blank' });
+    await waitForDocument(cdp);
+    await cdp.send('Network.deleteCookies', {
+      name: 'wattwise.session_token',
+      url: APP_URL,
+    });
+  }
+
   function redactRoute(path) {
     return path
       .replace(/businessId=[^&]+/g, 'businessId=[REDACTED]')
@@ -644,6 +658,7 @@ async function runProductBrowserRegression() {
     path,
     evidenceRoute = redactRoute(path),
     userConfig,
+    clearSession = false,
     expectedText,
     expectedStatus = 200,
     expectedFinalStatus = expectedStatus,
@@ -669,6 +684,7 @@ async function runProductBrowserRegression() {
     }
 
     if (userConfig) await setSessionUser(userConfig);
+    else if (clearSession) await clearSessionUser();
 
     await cdp.send('Emulation.setDeviceMetricsOverride', {
       width: viewport.width,
@@ -805,15 +821,6 @@ async function runProductBrowserRegression() {
   }
 
   const flows = [];
-
-  // Flow 1: LOGIN
-  flows.push(await visitFlow({
-    code: 'LOGIN',
-    flowName: 'login',
-    path: '/login',
-    userConfig: null,
-    expectedText: 'Masuk ke akun WattWise Anda.',
-  }));
 
   // Flow 2: DASHBOARD
   flows.push(await visitFlow({
@@ -967,6 +974,16 @@ async function runProductBrowserRegression() {
     userConfig: USERS.nonViewer,
     expectedStatus: 404,
     expectedText: '404',
+  }));
+
+  // LOGIN runs after authenticated coverage so an anonymous page cannot race a later cookie change.
+  flows.push(await visitFlow({
+    code: 'LOGIN',
+    flowName: 'login',
+    path: '/login',
+    userConfig: null,
+    clearSession: true,
+    expectedText: 'Masuk ke akun WattWise Anda.',
   }));
 
   // Flow 18: HEALTH_LIVE
