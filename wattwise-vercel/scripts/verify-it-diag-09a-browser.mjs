@@ -832,14 +832,14 @@ async function runProductBrowserRegression() {
       route: evidenceRoute,
       status: initialResponse.status,
       expected: `HTTP ${allowedInitialStatuses.join('/')} and visible content: ${expectedText}`,
-      actual: `Initial HTTP ${initialResponse.status}; final HTTP ${finalResponse.status}; final route ${finalPath}; expected content visible`,
+      actual: `Initial HTTP ${initialResponse.status}; final HTTP ${finalResponse.status}; final route ${redactRoute(finalPath)}; expected content visible`,
       result: 'PASS',
       screenshot,
       redirects: [
         ...(initialResponse.location ? [`${initialResponse.status} -> ${initialResponse.location}`] : []),
         ...documentRedirects.slice(metricStart.redirects).map((redirect) => {
-          const from = new URL(redirect.from).pathname;
-          const to = new URL(redirect.to).pathname;
+          const from = redactRoute(new URL(redirect.from).pathname);
+          const to = redactRoute(new URL(redirect.to).pathname);
           return `${redirect.status} ${from} -> ${to}`;
         }),
       ],
