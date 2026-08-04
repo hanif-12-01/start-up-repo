@@ -34,7 +34,7 @@ The repository contains a clean, linear, forward-only commit history without squ
 | `8e7a4841e99a63f0f1c83324e23b0dafa503eaf1` | `test(preview): refresh sanitized Kos-only preview evidence` | Correction Evidence |
 | `47a4114c2109b264d128b36c1df2a8be66fe7e8e` | `docs(reports): correct IT-DIAG-09B final verification` | Correction Report |
 | `cd0691bda8c6a93672df982123ad621b848c426b` | `docs(reports): finalize IT-DIAG-09B verification` | Correction Report |
-| `783721ee8c9225a9f42dfa8fd2565153c100b0f3` | `docs(reports): update commit SHA in final report` | Correction Report |
+| `8947f79e16d70e94cd3710c01fc83866cb3b0184` | `docs(reports): sanitize IT-DIAG-09B report paths, aliases, test counts, provenance` | Correction Report |
 
 Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c257c48a HEAD` returns `0` (**PASS**).
 
@@ -59,13 +59,39 @@ Ancestry check `git merge-base --is-ancestor ad98dbd6e57aae59a5faee3da0426cb0c25
 - **Bypass Secret Handling**: Retrieved dynamically via Vercel CLI during test execution; no secret material exposed in Git, logs, screenshots, or report.
 
 ### Deployment Provenance
-- **Deployment ID**: `dpl_DgiBc5Gnsk8ZHMYfDjb8KQaXZCHZ`
-- **Project**: `wattwise-ai-preview` (Team: `clara3`)
-- **Target**: `preview`
-- **Status**: `Ready`
-- **Build Region**: `sin1`
+- **Deployment Fingerprint**: SHA-256 `c668f329a57294e9248b10689033ff3593281bcf6d04d5eaf5cb547fd73eef7f`
+- **Team Classification**: `[REDACTED_TEAM]`
+- **Project Classification**: dedicated WattWise Preview project
+- **Framework**: Next.js
+- **Root Directory**: `wattwise-vercel`
+- **Node.js**: `24.x`
+- **Function Region**: `sin1` (Singapore)
+- **Environment**: `Preview`
+- **Status**: `READY`
+- **Deployment Protection**: `ENABLED`
 - **Created**: `2026-08-04T20:05:20+07:00`
-- **Verified via**: `npx vercel inspect dpl_DgiBc5Gnsk8ZHMYfDjb8KQaXZCHZ`
+
+### Deployed Source Provenance
+- **Deployed Source SHA**: `5b347a4df488a97fde98426fa1be7f3791681e34` (`fix(preview): secure Neon TLS and restore preview controls`)
+- **Final Repository HEAD**: `8947f79e16d70e94cd3710c01fc83866cb3b0184`
+- **Commit-to-Deployment Classification**: `DOCUMENTATION-ONLY HEAD ADVANCE`
+
+Commits after deployed source (`5b347a4`) up to current HEAD (`8947f79`) affect only:
+
+| Commit SHA | Scope | Paths Affected |
+| :--- | :--- | :--- |
+| `8e7a4841` | `test(preview)` | `docs/evidence/it-diag-09b/**`, `wattwise-vercel/scripts/*.mjs` |
+| `a8eb2e5d` | `docs(reports)` | `docs/reports/**` |
+| `47a4114c` | `docs(reports)` | `docs/reports/**` |
+| `cd0691bd` | `docs(reports)` | `docs/reports/**` |
+| `8947f79e` | `docs(reports)` | `docs/reports/**` |
+
+No application source (`wattwise-vercel/src/**`), migration (`drizzle/**`), or dependency manifest (`package.json`, `package-lock.json`) was modified after the deployed source SHA. The deployed runtime is fully represented by `5b347a4`, which contains:
+
+- Secure Neon TLS correction (`ssl: true` in `wattwise-vercel/src/server/db/client.ts`)
+- Kos Knowledge Pack V1 fixtures (seeded via `rehearse-neon-migrations.mjs`)
+- Deployment Protection correction (verified via `npx vercel project ls`)
+- Final accepted runtime code
 
 ---
 
@@ -98,15 +124,15 @@ Executed via `wattwise-vercel/scripts/rehearse-neon-migrations.mjs` against the 
 
 ### Environment Variable Scopes
 - **Configured Preview Environment Variables**:
-  - `DATABASE_URL` (Preview scope, Neon pooled endpoint)
-  - `BETTER_AUTH_SECRET` (Preview scope)
-  - `BETTER_AUTH_URL` (Preview scope)
-  - `NEXT_PUBLIC_APP_URL` (Preview scope)
-  - `FUNNEL_ANALYTICS_VIEWER_USER_IDS` (Preview scope, value: `ANALYTICS_VIEWER`)
-  - `DASHBOARD_ENABLED` (`true`)
-  - `MONTHLY_REPORT_ENABLED` (`true`)
-  - `ENTITLEMENTS_ENABLED` (`true`)
-  - `FUNNEL_ANALYTICS_ENABLED` (`true`)
+  - `DATABASE_URL` (Preview scope, server-only, Neon pooled connection)
+  - `BETTER_AUTH_SECRET` (Preview scope, server-only secret)
+  - `BETTER_AUTH_URL` (Preview scope, server-only configuration)
+  - `NEXT_PUBLIC_APP_URL` (Preview scope, public configuration)
+  - `FUNNEL_ANALYTICS_VIEWER_USER_IDS` (Preview scope, server-only sensitive configuration)
+  - `DASHBOARD_ENABLED` (Preview scope, feature flag)
+  - `MONTHLY_REPORT_ENABLED` (Preview scope, feature flag)
+  - `ENTITLEMENTS_ENABLED` (Preview scope, feature flag)
+  - `FUNNEL_ANALYTICS_ENABLED` (Preview scope, feature flag)
 - **Production Scope**: Completely untouched (`UNTOUCHED`). No environment variables or connection strings added to Production.
 
 ### Billing Audit
@@ -228,15 +254,30 @@ wattwise-vercel@0.1.0
         └── postcss@8.5.22
 ```
 
+### Audit Exit Codes
+
+| Command | Exit Code | Severity Count |
+| :--- | :--- | :--- |
+| `npm audit` (full) | `1` | 8 total: 6 moderate, 2 high |
+| `npm audit --omit=dev` | `1` | 7 total: 6 moderate, 1 high |
+
 ### Vulnerability Summary
 
-| Package | Dependency Chain | Affected Version | Advisory | Runtime Reachability | Reported by `npm audit --omit=dev` | Available Fix | Breaking Change | Disposition |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `brace-expansion` | `eslint` → `minimatch` → `brace-expansion` | `<=1.1.17 \|\| 4.0.0-5.0.8` | `GHSA-mh99-v99m-4gvg` (DoS in dev tooling) | **Unreachable** in production | **Not reported** (dev-only chain) | `npm audit fix` | No | Transitive ESLint AST tooling. Not present in serverless production runtime. |
-| `postcss` | `next` → `postcss`; `@tailwindcss/postcss` → `postcss` | `<=8.5.22` | `GHSA-6g55-p6wh-862q` (build-time source map path traversal) | **Unreachable** in production | **Reported** (transitive via `next`) | `npm audit fix --force` | Yes (forces `next` major upgrade) | Executed solely during `next build` in isolated environment. `package.json` diff preserved as EMPTY. |
-| `esbuild` | `drizzle-kit` → `@esbuild-kit/esm-loader` → `esbuild@0.18.20` | `<=0.24.2` | `GHSA-67mh-4wv8-2f99` (dev server CORS) | **Unreachable** in production | **Reported** (transitive via `drizzle-kit`) | `npm audit fix --force` | Yes | Local Drizzle migration CLI devtooling only. Dev server CORS advisory irrelevant in serverless Preview runtime. |
+| Package | Full Audit Severity | `--omit=dev` Reported | Dependency Chain | Affected Version | Advisory | Build/Runtime Reachability | Available Fix | Breaking Change | Preview Disposition |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `brace-expansion` | high | **Not reported** (dev-only chain) | `eslint` → `minimatch` → `brace-expansion` | `<=1.1.17 \|\| 4.0.0-5.0.8` | `GHSA-mh99-v99m-4gvg`, `GHSA-rgw5-rvv9-x895` (DoS via unbounded expansion) | Build-time dev tooling only. No application request path. | `npm audit fix` | No | Accepted Preview risk. Non-breaking fix available without dependency manifest change. |
+| `postcss` | high | **Reported** (transitive via `next`) | `next` → `postcss`; `@tailwindcss/postcss` → `postcss` | `<=8.5.22` | `GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`, `GHSA-fxqj-rqcc-2cmp` (build-time source map path traversal) | Build-time CSS processing only. No application request path. | `npm audit fix --force` | Yes (forces `next` major upgrade) | Accepted Preview risk pending non-breaking remediation. |
+| `esbuild` | moderate | **Reported** (transitive via `drizzle-kit`) | `drizzle-kit` → `@esbuild-kit/esm-loader` → `esbuild@0.18.20` | `<=0.24.2` | `GHSA-67mh-4wv8-2f99` (dev server CORS) | Local Drizzle migration CLI devtooling only. No application request path. | `npm audit fix --force` | Yes | Accepted Preview risk pending non-breaking remediation. |
 
-**`npm audit --omit=dev` result**: 7 vulnerabilities (6 moderate, 1 high) — all transitive chains through `next` (postcss) and `drizzle-kit` (esbuild). Zero vulnerabilities present in the deployed serverless runtime payload.
+### Runtime Reachability Conclusion
+
+```text
+No identified high-severity advisory is reachable through the deployed
+application request runtime based on dependency-chain and execution-path review.
+
+Remaining high-severity findings are limited to build or tooling execution and
+are documented as accepted Preview risks pending non-breaking remediation.
+```
 
 ---
 
@@ -278,17 +319,22 @@ wattwise-vercel@0.1.0
 - Phase IT-DIAG-10: **NOT STARTED**
 
 ### Retained Temporary Resources
-- Vercel Preview Project: `wattwise-ai-preview` (Team `clara3`)
+- Vercel Preview Project: dedicated WattWise Preview project (`[REDACTED_TEAM]`)
 - Neon Database Resource: `wattwise-ai-preview-db` (AWS Singapore `aws-ap-southeast-1`)
 
-### Teardown Instructions for Product Owner
-```powershell
-# To remove the temporary Neon preview database after final sign-off:
-npx neonctl projects delete <neon-project-id> --confirm
+### Resource Teardown Governance
 
-# To remove the temporary Vercel Preview project after final sign-off:
-npx vercel project rm wattwise-ai-preview --yes
-```
+Teardown is not authorized during IT-DIAG-09B review.
+
+A separate Product Owner authorization is required.
+
+Before teardown:
+1. Verify the exact dedicated Vercel Preview project.
+2. Verify the exact Vercel Marketplace Neon resource attached to that project.
+3. Confirm no unrelated Vercel project shares the resource.
+4. Confirm no Production environment or domain references the resource.
+5. Use the provider-supported project/resource-scoped Marketplace removal flow.
+6. Verify the unrelated existing Neon project remains untouched.
 
 ---
 
