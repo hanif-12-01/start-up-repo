@@ -3,15 +3,21 @@
 ## 1. Scope
 This runbook defines emergency rollback procedures for WattWise AI in the event of critical production failures, application regressions, database corruption, or security incidents post-deployment.
 
-## 2. Prerequisites
+## 2. Capability & Target Classifications
+- **Instant Vercel Deployment Alias Rollback**: `provider-dependent assumption` (Vercel deployment alias re-pointing)
+- **Database Down-Migration Rollback**: `measured rehearsal result` (Rehearsed DOWN migrations 0007-0000 against Preview Neon database)
+- **Maximum Acceptable Outage (MAO)**: `proposed target` (15 minutes) — Product Owner Decision Required
+- **Point-in-Time Data Restore**: `provider-dependent assumption` (Relies on Neon WAL branch restore)
+
+## 3. Prerequisites
 - Identified production anomaly (HTTP 5xx spikes, database connectivity failure, data corruption, or security breach).
 - Access to Vercel CLI / Vercel Dashboard and Neon CLI / Neon Console.
 - Previous stable production deployment SHA and database snapshot identifier documented.
 
-## 3. Authorized Operator
+## 4. Authorized Operator
 - Authorized Incident Manager / Release Engineer / Product Owner.
 
-## 4. Commands & UI Workflow
+## 5. Commands & UI Workflow
 ```powershell
 # 1. Promote previous stable Vercel deployment to Production (Instant Rollback)
 npx vercel rollback <previous-deployment-id-or-url>
@@ -27,32 +33,32 @@ node scripts/run-with-postgres.js drizzle-kit drop
 npx neonctl branches create --project-id <project-id> --name rollback-recovery --parent <snapshot-branch-id>
 ```
 
-## 5. Safety Checks
+## 6. Safety Checks
 - Confirm previous Vercel deployment target status is `Ready`.
 - Verify database down-migrations do not cause irreversible data loss for existing customer records.
 - If data loss risk exists, halt down-migration and initiate Neon point-in-time restore (PITR) / snapshot branch switch.
 
-## 6. Evidence Required
+## 7. Evidence Required
 - Incident ticket ID and root-cause summary.
 - Vercel rollback command output log.
 - Post-rollback health readiness verification output (`/api/health/ready`).
 - Database schema and record count reconciliation report.
 
-## 7. Stop Conditions
+## 8. Stop Conditions
 - Vercel rollback failure or alias target mismatch.
 - Database restore inconsistency or tenant data mismatch.
-- Rollback duration exceeding Maximum Acceptable Outage boundary (15 minutes).
+- Rollback duration exceeding Maximum Acceptable Outage boundary (15 minutes target).
 
-## 8. Rollback & Recovery Path
+## 9. Rollback & Recovery Path
 - If instant deployment rollback fails, switch production domain alias via Vercel CLI directly to the known good deployment SHA.
 - If database restore fails, activate point-in-time restore to pre-incident timestamp.
 
-## 9. Post-Action Verification
+## 10. Post-Action Verification
 - Run readiness health checks: `/api/health/live` and `/api/health/ready`.
 - Verify synthetic authentication flow and business dashboard loading.
 - Verify log stream shows zero recurring 5xx errors or unhandled database exceptions.
 
-## 10. Forbidden Actions
+## 11. Forbidden Actions
 - NEVER perform uncoordinated database rollbacks without checking schema down-migration compatibility.
 - NEVER delete production database branches during an active incident.
 - NEVER expose customer data or connection credentials in incident logs or communications.

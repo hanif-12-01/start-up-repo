@@ -3,21 +3,23 @@
 ## 1. Scope
 This runbook governs the detection, triage, escalation, containment, and resolution of production incidents affecting WattWise AI services, databases, authentication, or entitlements.
 
-## 2. Prerequisites
+## 2. Capability & Target Classifications
+- **Manual Log Triage via Correlation-ID**: `verified capability` (Verified via `X-Correlation-Id` structured logger)
+- **Automated Metric Alerting**: `proposed target` (Requires paid observability subscription) — Product Owner Decision Required
+- **Target Incident Response Time**: `proposed target` (< 15 minutes for SEV-1) — Product Owner Decision Required
+
+## 3. Prerequisites
 - Access to Vercel deployment logs and runtime function metrics.
 - Access to Neon database metrics and query analytics.
 - Access to structured application logs filtered by `X-Correlation-Id`.
 
-## 3. Authorized Operator
-- On-Call Incident Lead / System Administrator.
-
 ## 4. Severity Classification Matrix
 | Severity | Description | Target Response Time | Escalation Trigger |
 | :--- | :--- | :--- | :--- |
-| **SEV-1 (Critical)** | Complete service outage, data corruption, or active security breach | < 15 minutes | Immediate Product Owner notification |
-| **SEV-2 (High)** | Major feature failure (e.g., login down, bill calculations failing) | < 30 minutes | Operations Lead notification |
-| **SEV-3 (Moderate)** | Non-blocking feature issue or intermittent performance degradation | < 2 hours | Next business day triage |
-| **SEV-4 (Low)** | Minor cosmetic or documentation defect | < 24 hours | Standard backlog item |
+| **SEV-1 (Critical)** | Complete service outage, data corruption, or active security breach | < 15 minutes (Proposed Target) | Immediate Product Owner notification |
+| **SEV-2 (High)** | Major feature failure (e.g., login down, bill calculations failing) | < 30 minutes (Proposed Target) | Operations Lead notification |
+| **SEV-3 (Moderate)** | Non-blocking feature issue or intermittent performance degradation | < 2 hours (Proposed Target) | Next business day triage |
+| **SEV-4 (Low)** | Minor cosmetic or documentation defect | < 24 hours (Proposed Target) | Standard backlog item |
 
 ## 5. Triage & Diagnostic Commands
 ```powershell
