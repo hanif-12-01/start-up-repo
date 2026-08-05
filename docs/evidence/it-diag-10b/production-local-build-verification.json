@@ -1,0 +1,13 @@
+{
+  "build_type": "Local Vercel Production Pre-Cutover Build",
+  "project_name": "wattwise-ai",
+  "environment": "Production",
+  "root_directory": "wattwise-vercel",
+  "node_version": "24.18.0",
+  "compiler": "Turbopack",
+  "build_status": "PASS (status: ok)",
+  "deployment_upload": "NOT PERFORMED",
+  "production_alias_assigned": "NONE",
+  "public_url_created": "NONE",
+  "precutover_build_verdict": "PASS"
+}

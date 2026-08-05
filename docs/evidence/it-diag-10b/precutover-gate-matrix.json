@@ -1,0 +1,25 @@
+{
+  "matrix_type": "IT-DIAG-10B Pre-Cutover Verification Gate Matrix",
+  "timestamp": "2026-08-06T01:30:00+07:00",
+  "gates": [
+    { "gate": "Branch Activation", "requirement": "release/it-diag-10b-controlled-go-live from 10A HEAD", "status": "PASS" },
+    { "gate": "Tooling Preflight", "requirement": "Node 24.x, npm 11.x, Vercel 57.x, neonctl 2.43.x", "status": "PASS" },
+    { "gate": "Dedicated Vercel Project", "requirement": "wattwise-ai (Next.js, wattwise-vercel, Node 24, sin1)", "status": "PASS" },
+    { "gate": "Dedicated Neon Resource", "requirement": "wattwise-ai-db (aws-ap-southeast-1, $0 plan, PostgreSQL 17.10)", "status": "PASS" },
+    { "gate": "Connection & TLS Policy", "requirement": "Pooled for runtime, Direct for DDL, sslmode=verify-full", "status": "PASS" },
+    { "gate": "Production Environment", "requirement": "Production scope only; zero secrets exposed; URLs pending cutover", "status": "PASS" },
+    { "gate": "Resource-Level Recovery", "requirement": "Rehearsed on wattwise-ai-db (3.99s duration, 14 tables verified)", "status": "PASS" },
+    { "gate": "Production Migration", "requirement": "0000-0007 UP applied on Production main (14 tables, 0 records)", "status": "PASS" },
+    { "gate": "Production Empty Data State", "requirement": "0 customer records in Production main database", "status": "PASS" },
+    { "gate": "Local Production Build", "requirement": "npx vercel build PASS without upload or deployment alias", "status": "PASS" },
+    { "gate": "Production DB Smoke", "requirement": "Direct/pooled handshake, version check, transactional rollback PASS", "status": "PASS" },
+    { "gate": "Auth Configuration Readiness", "requirement": "New high-entropy secret, HTTPS cookie policy, invalidation strategy", "status": "PASS" },
+    { "gate": "Observability Readiness", "requirement": "10-signal manual monitoring procedure ready", "status": "PASS" },
+    { "gate": "Rollback Package", "requirement": "Pre-migration recovery point, previous preview reference, procedures ready", "status": "PASS" },
+    { "gate": "Dependency Confirmation", "requirement": "No new advisories, no manifest changes, PostCSS risk accepted", "status": "PASS" },
+    { "gate": "Local Quality Gates", "requirement": "242 unit tests, 151 integration tests, typecheck, lint, build PASS", "status": "PASS" },
+    { "gate": "Protected Path Diffs", "requirement": "drizzle, baseline, laravel, package.json diffs EMPTY", "status": "PASS" },
+    { "gate": "Tracked-Secret Audit", "requirement": "Zero secrets, relative paths, sanitized fingerprints", "status": "PASS" }
+  ],
+  "precutover_matrix_verdict": "READY FOR PUBLIC CUTOVER — PRODUCT OWNER AUTHORIZATION REQUIRED"
+}

@@ -1,0 +1,19 @@
+{
+  "contract_type": "Production Environment Variable Scope Audit",
+  "project_name": "wattwise-ai",
+  "environment": "Production Scope Only",
+  "configured_variables": [
+    { "name": "DATABASE_URL", "scope": "Production", "classification": "Server-only pooled DSN" },
+    { "name": "DATABASE_URL_UNPOOLED", "scope": "Production", "classification": "Server-only direct DSN" },
+    { "name": "BETTER_AUTH_SECRET", "scope": "Production", "classification": "Server-only 64-char random hex secret" },
+    { "name": "BETTER_AUTH_URL", "scope": "Production", "classification": "Server-only URL placeholder" },
+    { "name": "NEXT_PUBLIC_APP_URL", "scope": "Production", "classification": "Public URL placeholder" },
+    { "name": "FUNNEL_ANALYTICS_VIEWER_USER_IDS", "scope": "Production", "classification": "Server-only user ID configuration" },
+    { "name": "DASHBOARD_ENABLED", "scope": "Production", "classification": "Feature flag (true)" },
+    { "name": "MONTHLY_REPORT_ENABLED", "scope": "Production", "classification": "Feature flag (true)" },
+    { "name": "ENTITLEMENTS_ENABLED", "scope": "Production", "classification": "Feature flag (true)" },
+    { "name": "FUNNEL_ANALYTICS_ENABLED", "scope": "Production", "classification": "Feature flag (true)" },
+    { "name": "NODE_ENV", "scope": "Production", "classification": "Server runtime (production)" }
+  ],
+  "verification_status": "PASS (Zero secret values exposed; Development and Preview scopes untouched)"
+}

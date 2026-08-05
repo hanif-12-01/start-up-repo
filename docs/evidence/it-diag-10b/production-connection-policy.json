@@ -1,0 +1,24 @@
+{
+  "policy_name": "Production Database Connection & Security Policy",
+  "resource": "wattwise-ai-db",
+  "connection_rules": [
+    {
+      "connection_type": "Pooled Connection (DATABASE_URL)",
+      "port": 5432,
+      "usage": "Application Serverless Request Runtime",
+      "tls_policy": "sslmode=verify-full (Strict TLS Server Certificate Verification Enforced)"
+    },
+    {
+      "connection_type": "Direct Connection (DATABASE_URL_UNPOOLED)",
+      "port": 5432,
+      "usage": "DDL Migrations and Direct Schema Administration Only",
+      "tls_policy": "sslmode=verify-full (Strict TLS Server Certificate Verification Enforced)"
+    }
+  ],
+  "disallowed_configurations": [
+    "rejectUnauthorized: false",
+    "sslmode=disable",
+    "Plain-text passwords in repository or logs"
+  ],
+  "policy_verdict": "PASS"
+}

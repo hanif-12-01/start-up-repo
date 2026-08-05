@@ -1,0 +1,29 @@
+{
+  "inventory_type": "Production Dedicated Resource Inventory",
+  "phase": "IT-DIAG-10B-1",
+  "timestamp": "2026-08-06T01:25:00+07:00",
+  "resources": [
+    {
+      "resource_type": "Vercel Dedicated Production Project",
+      "name": "wattwise-ai",
+      "classification": "Dedicated Production Project",
+      "framework": "Next.js",
+      "root_directory": "wattwise-vercel",
+      "node_version": "24.x",
+      "function_region": "sin1",
+      "custom_domain": "NONE (Not Authorized)",
+      "deployment_status": "NOT PERFORMED",
+      "isolation_status": "PASS (Isolated from Preview & external projects)"
+    },
+    {
+      "resource_type": "Neon Dedicated Production Database Resource",
+      "name": "wattwise-ai-db",
+      "classification": "Dedicated Production Database Resource",
+      "cloud_provider": "AWS",
+      "region": "aws-ap-southeast-1 (Singapore)",
+      "plan": "Free / $0 Plan",
+      "postgres_version": "17.10",
+      "isolation_status": "PASS (Isolated from Preview DB & external databases)"
+    }
+  ]
+}

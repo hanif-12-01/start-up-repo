@@ -1,0 +1,17 @@
+{
+  "observability_type": "Production Manual Monitoring & Triage Setup",
+  "project_name": "wattwise-ai",
+  "automated_alerting_status": "NOT CONFIGURED (No Paid Observability Subscription)",
+  "manual_monitoring_status": "READY FOR CUTOVER",
+  "monitored_signals": [
+    { "signal": "Build Failure", "source": "Vercel Build Console", "procedure": "Inspect compile logs on build trigger" },
+    { "signal": "Migration Failure", "source": "Drizzle Execution Logs", "procedure": "Inspect DDL migration output" },
+    { "signal": "Health-Ready Failure", "source": "Vercel Runtime Logs / Probe", "procedure": "Probe GET /api/health/ready" },
+    { "signal": "Database Connection Failure", "source": "Vercel Serverless Logs", "procedure": "Filter logs by SSL/Pool timeout" },
+    { "signal": "Authentication Failure Spike", "source": "Better Auth Logs", "procedure": "Filter logs by 401 response status" },
+    { "signal": "HTTP 5xx Spike", "source": "Vercel Log Stream", "procedure": "Filter logs by 500-599 status code" },
+    { "signal": "Authorization Anomaly", "source": "Entitlement Check Logs", "procedure": "Filter by 403 / 404 response contract" },
+    { "signal": "Connection Exhaustion", "source": "Neon Console Analytics", "procedure": "Check active client pool connections" },
+    { "signal": "Latency Regression", "source": "Vercel Function Metrics", "procedure": "Monitor p95 execution duration" }
+  ]
+}

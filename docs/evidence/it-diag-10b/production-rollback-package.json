@@ -1,0 +1,13 @@
+{
+  "package_name": "Production Pre-Cutover Rollback Package",
+  "project_name": "wattwise-ai",
+  "database_resource": "wattwise-ai-db",
+  "release_candidate_source_sha": "5b347a4df488a97fde98426fa1be7f3791681e34",
+  "accepted_preview_deployment": "https://wattwise-ai-preview.vercel.app",
+  "rollback_procedures": {
+    "application_rollback": "npx vercel rollback <previous-deployment-id>",
+    "database_rollback": "Restore from pre-migration Neon branch snapshot (DO NOT run SQL DOWN migrations after customer data exists)",
+    "forward_fix_policy": "Applicable for minor non-schema defects"
+  },
+  "rollback_package_verdict": "PASS"
+}
