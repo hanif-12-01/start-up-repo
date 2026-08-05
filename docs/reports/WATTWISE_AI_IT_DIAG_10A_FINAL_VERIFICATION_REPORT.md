@@ -34,6 +34,7 @@ The repository contains a clean, linear, forward-only commit history without squ
 | `154b4e531108b4ce826ac1c11a353bd58c17dd0f` | `docs(archive): preserve legacy prompt archives` | Task Governance |
 | `acac696528d48bf6add4841d7177845517cfd776` | `docs(runbooks): correct production recovery assumptions` | Correction Runbooks |
 | `154d427c2bd5d359945cf38abf8748cfe8912b8d` | `test(readiness): complete recovery and reliability evidence` | Correction Evidence |
+| `36ca55831c5227c4955308d1cb11ba95df2b0cff` | `test(readiness): clean unused imports` | Code Cleanup |
 
 Ancestry check `git merge-base --is-ancestor 8756b8c18eeb5c496cc8aecc343797d6e79c6d2e HEAD` returns `0` (**PASS**).
 
