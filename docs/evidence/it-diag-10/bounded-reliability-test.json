@@ -1,13 +1,79 @@
 {
-  "test_name": "Bounded Preview Connection Smoke & Reliability Test",
-  "timestamp": "2026-08-04T21:11:23+07:00",
-  "metrics": {
-    "sequential_readiness_requests": "10 / 10 PASSED (HTTP 200)",
-    "concurrent_readiness_requests": "5 / 5 PASSED (HTTP 200)",
-    "concurrent_authenticated_dashboard_reads": "5 / 5 PASSED (HTTP 200)",
-    "unexpected_5xx_errors": 0,
-    "timeouts": 0,
-    "connection_exhaustion": 0
+  "test_suite": "Bounded Preview Reliability & Latency Test",
+  "environment": "Protected Vercel Preview",
+  "timestamp": "2026-08-05T16:50:27.316Z",
+  "global_metrics": {
+    "total_requests": 55,
+    "total_timeouts": 0,
+    "total_unexpected_5xx": 0,
+    "connection_exhaustion": 0,
+    "bounded_reliability_verdict": "PASS"
   },
-  "verdict": "PASS"
+  "groups": [
+    {
+      "group_name": "Sequential Readiness Requests",
+      "request_count": 25,
+      "execution_mode": "sequential",
+      "success_count": 25,
+      "failure_count": 0,
+      "timeouts": 0,
+      "unexpected_5xx": 0,
+      "min_latency_ms": 59,
+      "median_latency_ms": 108,
+      "p95_latency_ms": 390,
+      "max_latency_ms": 501
+    },
+    {
+      "group_name": "Concurrent Readiness Requests",
+      "request_count": 10,
+      "execution_mode": "concurrent",
+      "success_count": 10,
+      "failure_count": 0,
+      "timeouts": 0,
+      "unexpected_5xx": 0,
+      "min_latency_ms": 80,
+      "median_latency_ms": 194,
+      "p95_latency_ms": 243,
+      "max_latency_ms": 243
+    },
+    {
+      "group_name": "Concurrent Authenticated Dashboard Reads",
+      "request_count": 10,
+      "execution_mode": "concurrent",
+      "success_count": 10,
+      "failure_count": 0,
+      "timeouts": 0,
+      "unexpected_5xx": 0,
+      "min_latency_ms": 112,
+      "median_latency_ms": 138,
+      "p95_latency_ms": 192,
+      "max_latency_ms": 192
+    },
+    {
+      "group_name": "Concurrent Monthly Report Reads",
+      "request_count": 5,
+      "execution_mode": "concurrent",
+      "success_count": 5,
+      "failure_count": 0,
+      "timeouts": 0,
+      "unexpected_5xx": 0,
+      "min_latency_ms": 607,
+      "median_latency_ms": 618,
+      "p95_latency_ms": 625,
+      "max_latency_ms": 625
+    },
+    {
+      "group_name": "Concurrent Analytics Viewer Reads",
+      "request_count": 5,
+      "execution_mode": "concurrent",
+      "success_count": 5,
+      "failure_count": 0,
+      "timeouts": 0,
+      "unexpected_5xx": 0,
+      "min_latency_ms": 78,
+      "median_latency_ms": 82,
+      "p95_latency_ms": 86,
+      "max_latency_ms": 86
+    }
+  ]
 }

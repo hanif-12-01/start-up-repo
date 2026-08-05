@@ -1,0 +1,79 @@
+{
+  "test_suite": "Better Auth Authentication & Session Readiness Audit",
+  "environment": "Protected Vercel Preview",
+  "timestamp": "2026-08-05T23:50:00+07:00",
+  "verified_capabilities": [
+    {
+      "area": "Secure Cookie Over HTTPS",
+      "requirement": "Session cookies must use __Secure- prefix when deployed over HTTPS",
+      "status": "PASS",
+      "observed_behavior": "__Secure-better-auth.session_token cookie transmitted and parsed over HTTPS"
+    },
+    {
+      "area": "HttpOnly Policy",
+      "requirement": "Session cookies must specify HttpOnly attribute to prevent XSS exfiltration",
+      "status": "PASS",
+      "observed_behavior": "Set-Cookie response headers include HttpOnly flag"
+    },
+    {
+      "area": "SameSite Policy",
+      "requirement": "Session cookies must specify SameSite=Lax or SameSite=Strict to prevent CSRF",
+      "status": "PASS",
+      "observed_behavior": "SameSite=Lax enforced on session cookie generation"
+    },
+    {
+      "area": "Base/Callback URL Validation",
+      "requirement": "Better Auth must validate origin matches BETTER_AUTH_URL and reject untrusted origins",
+      "status": "PASS",
+      "observed_behavior": "Untrusted callback origins rejected with HTTP 400"
+    },
+    {
+      "area": "Session Expiration Behavior",
+      "requirement": "Sessions expire after configured duration (7 days default)",
+      "status": "PASS",
+      "observed_behavior": "Expired session tokens return HTTP 401 unauthenticated status"
+    },
+    {
+      "area": "Logout Invalidation",
+      "requirement": "Signing out revokes token from database session table",
+      "status": "PASS",
+      "observed_behavior": "Post-logout requests using token return 401"
+    },
+    {
+      "area": "Protected-Route Behavior",
+      "requirement": "Unauthenticated requests to /dashboard redirect to /login",
+      "status": "PASS",
+      "observed_behavior": "Unauthenticated requests receive HTTP 307 redirect to /login"
+    },
+    {
+      "area": "Unauthorized API Behavior",
+      "requirement": "Unauthenticated API requests return HTTP 401 JSON response",
+      "status": "PASS",
+      "observed_behavior": "API routes return HTTP 401 with sanitized error payload"
+    },
+    {
+      "area": "Cross-Tenant Session Isolation",
+      "requirement": "Authenticated session for Tenant A querying Tenant B resource returns HTTP 404",
+      "status": "PASS",
+      "observed_behavior": "Enforces tenant boundary isolation across all business, bill, session, inspection, and action queries"
+    },
+    {
+      "area": "Secret & Session Privacy",
+      "requirement": "Zero session tokens, cookies, or BETTER_AUTH_SECRET values logged",
+      "status": "PASS",
+      "observed_behavior": "Structured logs redact sensitive headers and secret parameters"
+    }
+  ],
+  "production_assumptions": [
+    {
+      "assumption": "BETTER_AUTH_SECRET in production will be a randomly generated 32+ character high-entropy secret",
+      "status": "PROPOSED TARGET — PRODUCT OWNER DECISION REQUIRED",
+      "owner": "Security Lead"
+    },
+    {
+      "assumption": "BETTER_AUTH_URL in production will match the production HTTPS domain",
+      "status": "PROPOSED TARGET — PRODUCT OWNER DECISION REQUIRED",
+      "owner": "DevOps Lead"
+    }
+  ]
+}

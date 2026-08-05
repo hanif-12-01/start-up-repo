@@ -1,7 +1,7 @@
 {
   "rehearsalTarget": "Neon Serverless PostgreSQL (Dedicated Preview Resource)",
-  "rehearsalStartedAt": "2026-08-04T14:01:55.876Z",
-  "rehearsalCompletedAt": "2026-08-04T14:01:59.382Z",
+  "rehearsalStartedAt": "2026-08-05T16:46:05.506Z",
+  "rehearsalCompletedAt": "2026-08-05T16:46:12.494Z",
   "initialTablesCount": 0,
   "firstUpTablesCount": 14,
   "downTablesCount": 0,

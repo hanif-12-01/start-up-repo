@@ -1,0 +1,118 @@
+{
+  "audit_type": "Production Observability Readiness Matrix",
+  "phase": "IT-DIAG-10A",
+  "timestamp": "2026-08-05T23:51:00+07:00",
+  "automated_alerting_status": "MANUAL REVIEW ONLY — Automated Alerting Not Configured (No Paid Observability Subscription)",
+  "signals": [
+    {
+      "signal_id": "OBS-01",
+      "name": "Deployment Failure",
+      "source": "Vercel CLI / Vercel Deployment Console",
+      "threshold_or_review_condition": "Vercel build or deployment status != Ready",
+      "owner": "Release Engineer",
+      "first_response": "Inspect Vercel build log and check Turbopack compilation error",
+      "escalation": "Escalate to Lead Developer if compilation error relates to source code",
+      "rollback_trigger": "Automatic deployment cancellation by Vercel",
+      "evidence_required": "Vercel deployment inspect output and build log tail"
+    },
+    {
+      "signal_id": "OBS-02",
+      "name": "Build Failure",
+      "source": "Local Preflight / CI Pipeline",
+      "threshold_or_review_condition": "npm run build exit code != 0",
+      "owner": "Release Engineer",
+      "first_response": "Check TypeScript errors or static asset compilation failures",
+      "escalation": "Halt release candidate promotion",
+      "rollback_trigger": "N/A (Pre-deployment failure)",
+      "evidence_required": "Next.js build console log"
+    },
+    {
+      "signal_id": "OBS-03",
+      "name": "Health-Ready Failure",
+      "source": "Vercel Functions Log / HTTP Probe",
+      "threshold_or_review_condition": "GET /api/health/ready returns status != 200 or database != ok",
+      "owner": "On-Call Incident Lead",
+      "first_response": "Verify Neon database status via neonctl and test direct connection",
+      "escalation": "Escalate to Database Administrator if database is unreachable",
+      "rollback_trigger": "Health check failure > 3 consecutive probes post-deploy",
+      "evidence_required": "/api/health/ready JSON response and database connectivity logs"
+    },
+    {
+      "signal_id": "OBS-04",
+      "name": "Database Connection Failure",
+      "source": "Serverless Runtime Log (X-Correlation-Id)",
+      "threshold_or_review_condition": "Connection pool timeout or sslmode verification error logged",
+      "owner": "Database Administrator",
+      "first_response": "Verify Neon connection pooler health and active client count",
+      "escalation": "Escalate to Neon Support if pooler service is degraded",
+      "rollback_trigger": "Database connectivity loss > 5 minutes",
+      "evidence_required": "Neon pooler metrics and application error stack traces"
+    },
+    {
+      "signal_id": "OBS-05",
+      "name": "Authentication Failure Spike",
+      "source": "Better Auth Session Logs / Vercel Function Logs",
+      "threshold_or_review_condition": "HTTP 401 rate > 10% of total traffic over 5 minutes",
+      "owner": "Security Lead",
+      "first_response": "Inspect session token validation errors and verify BETTER_AUTH_SECRET matching",
+      "escalation": "Escalate to Product Owner if valid sessions are being invalidated",
+      "rollback_trigger": "Widespread auth failure affecting > 50% of active sessions post-deploy",
+      "evidence_required": "Redacted session validation log stream"
+    },
+    {
+      "signal_id": "OBS-06",
+      "name": "Unexpected HTTP 5xx Spike",
+      "source": "Vercel Project Analytics / Runtime Function Logs",
+      "threshold_or_review_condition": "HTTP 5xx rate > 1% of total requests over 5 minutes",
+      "owner": "On-Call Incident Lead",
+      "first_response": "Filter Vercel logs by status 500-599 and extract correlation IDs",
+      "escalation": "Escalate to Lead Developer for emergency patch or rollback",
+      "rollback_trigger": "Sustained HTTP 5xx rate > 5% for > 10 minutes",
+      "evidence_required": "Vercel function execution log with correlation IDs"
+    },
+    {
+      "signal_id": "OBS-07",
+      "name": "Authorization Anomaly / Tenant Denial Spike",
+      "source": "Entitlement & Security Logs",
+      "threshold_or_review_condition": "HTTP 403 or HTTP 404 rate on /reports or /internal > 5% of requests",
+      "owner": "Security Lead",
+      "first_response": "Inspect request parameters for cross-tenant business ID mismatch",
+      "escalation": "Escalate to Lead Developer if entitlement logic is misconfigured",
+      "rollback_trigger": "False-positive entitlement block affecting valid PRO users",
+      "evidence_required": "Entitlement check audit logs"
+    },
+    {
+      "signal_id": "OBS-08",
+      "name": "Migration Failure",
+      "source": "Drizzle Migration Runner Log",
+      "threshold_or_review_condition": "drizzle-kit migrate exit code != 0",
+      "owner": "Database Administrator",
+      "first_response": "Inspect migration lock status and identify failing SQL DDL statement",
+      "escalation": "Halt deployment; consult Database Administrator",
+      "rollback_trigger": "Immediate abort of deployment pipeline before application code release",
+      "evidence_required": "Drizzle migration execution output log"
+    },
+    {
+      "signal_id": "OBS-09",
+      "name": "Connection Exhaustion",
+      "source": "Neon Console Query Analytics",
+      "threshold_or_review_condition": "Active connection pool utilization > 90% of pool capacity",
+      "owner": "Database Administrator",
+      "first_response": "Inspect un-closed client connections and verify connection pooler configuration",
+      "escalation": "Escalate to DevOps Lead for pooler max_connections adjustment",
+      "rollback_trigger": "Sustained connection exhaustion causing request timeouts",
+      "evidence_required": "Neon connection metrics snapshot"
+    },
+    {
+      "signal_id": "OBS-10",
+      "name": "Latency Regression",
+      "source": "Vercel Web Vitals / Bounded Reliability Probes",
+      "threshold_or_review_condition": "p95 latency on /dashboard or /reports > 2500ms",
+      "owner": "Lead Developer",
+      "first_response": "Analyze serverless function execution time and database query duration",
+      "escalation": "Escalate to DevOps for function memory allocation increase",
+      "rollback_trigger": "p95 latency > 5000ms affecting user flow completion",
+      "evidence_required": "Latency distribution profile report"
+    }
+  ]
+}

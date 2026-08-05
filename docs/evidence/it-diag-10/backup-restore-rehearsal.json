@@ -1,33 +1,39 @@
 {
-  "rehearsal_type": "Neon Database Migration & Synthetic Backup Recovery Rehearsal",
-  "target_database": "wattwise-ai-preview-db",
-  "timestamp": "2026-08-04T21:01:59+07:00",
-  "postgresql_version": "17.10",
-  "region": "aws-ap-southeast-1",
-  "sequence_results": {
-    "initial_table_count": 0,
-    "first_up_status": "PASS (14 tables created)",
-    "down_status": "PASS (0 tables remaining)",
-    "second_up_status": "PASS (14 tables created)",
-    "final_table_count": 14,
-    "seed_status": "PASS (Kos Knowledge Pack V1 synthetic dataset seeded)",
-    "schema_consistency": "PASS"
+  "rehearsal_type": "Actual Backup & Restore Rehearsal (Isolated Disposable Schema)",
+  "backup_method": "Schema DDL & Synthetic Kos Dataset Memory Snapshot",
+  "restore_method": "Isolated Target Schema Table Creation & Data Restoration",
+  "source_classification": "Dedicated Neon Preview Database (public schema)",
+  "target_classification": "Isolated Disposable Target (disposable_restore_target)",
+  "timestamps": {
+    "started_at": "2026-08-05T16:45:03.209Z",
+    "finished_at": "2026-08-05T16:45:09.550Z"
   },
-  "tables_verified": [
-    "user",
-    "account",
-    "session",
-    "verification",
-    "business",
-    "electricity_bill",
-    "diagnostic_session",
-    "diagnostic_candidate_finding",
-    "inspection_item",
-    "action_item",
-    "action_plan_outcome",
-    "monthly_report_cache",
-    "funnel_analytics_event",
-    "entitlement_log"
-  ],
-  "disposable_resource_teardown": "PASS (Temporary rehearsal schema cleaned up)"
+  "recovery_duration": "6.34 seconds (6341 ms)",
+  "recovery_duration_ms": 6341,
+  "verification_metrics": {
+    "table_count": 14,
+    "migration_consistency": "PASS",
+    "record_count_verification": "PASS",
+    "application_readable_state": "PASS",
+    "disposable_target_cleanup": "PASS",
+    "main_preview_health_http": 200,
+    "main_preview_health_status": "PASS"
+  },
+  "restored_record_counts": {
+    "account": 0,
+    "action_outcome_evaluation": 0,
+    "business": 6,
+    "diagnostic_answer": 0,
+    "diagnostic_candidate": 2,
+    "diagnostic_session": 3,
+    "electricity_bill": 8,
+    "energy_action_plan": 2,
+    "inspection_item": 0,
+    "inspection_plan": 2,
+    "session": 4,
+    "user": 4,
+    "user_plan": 4,
+    "verification": 0
+  },
+  "overall_rehearsal_result": "PASS"
 }
