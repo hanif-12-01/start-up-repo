@@ -1,0 +1,17 @@
+{
+  "audit_type": "Vercel Production Project Configuration Inspection",
+  "project_name": "wattwise-ai",
+  "org_handle": "clara3",
+  "timestamp": "2026-08-06T01:47:00+07:00",
+  "inspected_configuration": {
+    "framework": "Next.js 16.2.11",
+    "root_directory": "wattwise-vercel",
+    "node_version": "24.x",
+    "function_region": "sin1 (Singapore)",
+    "latest_production_deployment": "NONE (--)",
+    "public_deployment_url": "NONE / NOT ACTIVATED",
+    "custom_domain": "NONE",
+    "dns_records": "UNTOUCHED"
+  },
+  "project_inspection_verdict": "PASS"
+}

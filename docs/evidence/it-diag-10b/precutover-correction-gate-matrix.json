@@ -1,0 +1,22 @@
+{
+  "matrix_type": "IT-DIAG-10B-1 Pre-Cutover Correction Gate Matrix",
+  "timestamp": "2026-08-06T01:52:00+07:00",
+  "gates": [
+    { "gate": "Branch Activation", "requirement": "release/it-diag-10b-controlled-go-live from 10A HEAD", "status": "PASS" },
+    { "gate": "Dedicated Vercel Project", "requirement": "wattwise-ai (Next.js, wattwise-vercel, Node 24, sin1)", "status": "PASS" },
+    { "gate": "Dedicated Neon Resource", "requirement": "wattwise-ai-db (aws-ap-southeast-1, $0 plan, PostgreSQL 17.10)", "status": "PASS" },
+    { "gate": "Production Secret Rotation", "requirement": "BETTER_AUTH_SECRET rotated via non-echoing stdin pipe (256-bit entropy)", "status": "PASS" },
+    { "gate": "Local Secret Cleanup", "requirement": "Zero local temporary secret files present", "status": "PASS" },
+    { "gate": "Genuine Neon Provider-Level Recovery", "requirement": "Rehearsed via Neon CLI branching (37.09s duration, 14 tables verified)", "status": "PASS" },
+    { "gate": "Production Main Database Migration", "requirement": "0000-0007 UP applied on Production main (14 tables, 0 records)", "status": "PASS" },
+    { "gate": "Production Customer Data State", "requirement": "0 customer records in Production main database", "status": "PASS" },
+    { "gate": "Vercel Project Inspection", "requirement": "inspected via CLI (Next.js, Node 24.x, no deployment URL)", "status": "PASS" },
+    { "gate": "Local Production Build", "requirement": "npx vercel build PASS without upload or deployment alias", "status": "PASS" },
+    { "gate": "Production Database Post-Correction Smoke", "requirement": "Direct/pooled handshake, version check, transactional rollback PASS", "status": "PASS" },
+    { "gate": "Dependency Confirmation", "requirement": "No new advisories, no manifest changes, PostCSS risk accepted", "status": "PASS" },
+    { "gate": "Local Quality Gates Rerun", "requirement": "242 unit tests, 151 integration tests, typecheck, lint, build PASS", "status": "PASS" },
+    { "gate": "Protected Path Diffs", "requirement": "drizzle, baseline, laravel, package.json diffs EMPTY", "status": "PASS" },
+    { "gate": "Tracked-Secret Audit", "requirement": "Zero secrets, relative paths, sanitized fingerprints", "status": "PASS" }
+  ],
+  "precutover_matrix_verdict": "READY FOR PUBLIC CUTOVER — PRODUCT OWNER AUTHORIZATION REQUIRED"
+}

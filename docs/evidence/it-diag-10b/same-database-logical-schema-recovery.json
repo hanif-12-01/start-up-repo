@@ -1,0 +1,13 @@
+{
+  "audit_type": "Same-Database Logical Schema Recovery Rehearsal (Superseded Test)",
+  "phase": "IT-DIAG-10B-1",
+  "timestamp": "2026-08-06T01:22:00+07:00",
+  "status_classification": "SUPERSEDED — SAME-DATABASE LOGICAL SCHEMA TEST",
+  "note": "This rehearsal tested DDL and schema isolation within the same Neon database instance. It is superseded by the genuine provider-level Neon branch recovery rehearsal documented in provider-level-neon-recovery-rehearsal.json.",
+  "results": {
+    "schema_isolation_test": "PASS",
+    "measured_duration": "3.99 seconds",
+    "table_count_verified": 14,
+    "customer_records_retained": 0
+  }
+}

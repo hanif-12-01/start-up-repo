@@ -1,0 +1,30 @@
+{
+  "rehearsal_type": "Genuine Neon Provider-Level Branch Recovery Rehearsal",
+  "target_resource": "Dedicated Production Neon Resource (wattwise-ai-db)",
+  "provider": "Neon Serverless PostgreSQL (aws-ap-southeast-1, Free plan)",
+  "timestamps": {
+    "started_at": "2026-08-05T18:45:57.803Z",
+    "finished_at": "2026-08-05T18:46:34.892Z"
+  },
+  "recovery_reference": {
+    "parent_branch": "PROD_MAIN (main)",
+    "source_branch_alias": "RECOVERY_SOURCE",
+    "restored_branch_alias": "RECOVERY_RESTORED",
+    "reference_timestamp": "2026-08-05T18:46:21.093Z"
+  },
+  "measured_recovery_duration": "37.09 seconds (37089 ms)",
+  "measured_recovery_duration_ms": 37089,
+  "verification_results": {
+    "prod_main_initial_clean_state": "PASS",
+    "recovery_source_creation": "PASS",
+    "synthetic_seeding_and_query_check": "PASS",
+    "recovery_restored_branch_creation": "PASS",
+    "restored_table_count": 14,
+    "restored_table_count_verification": "PASS",
+    "restored_synthetic_data_reconciliation": "PASS",
+    "restored_application_readable_queries": "PASS",
+    "disposable_branches_deletion": "PASS",
+    "prod_main_final_clean_state": "PASS"
+  },
+  "verdict": "PROVIDER-LEVEL NEON BRANCH RECOVERY REHEARSAL — PASS"
+}
