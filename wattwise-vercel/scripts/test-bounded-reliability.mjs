@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { createHmac } from 'node:crypto';
 
