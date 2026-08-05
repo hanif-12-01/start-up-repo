@@ -15,9 +15,9 @@ Locked Stage: `IT-DIAG-10B` (Controlled Production Go-Live — **LOCKED**)
 
 ## Executive Summary
 
-This document presents the updated **Production Readiness and Go-Live Decision Package (IT-DIAG-10A)** for **WattWise AI** following the Product Owner Correction Directive.
+This document presents the updated **Production Readiness and Go-Live Decision Package (IT-DIAG-10A)** for **WattWise AI** following the Product Owner Final Closure Directive.
 
-All technical preflight checks, actual backup/restore rehearsals on an isolated target schema (measured recovery duration: 6.34 seconds), tenant isolation verifications, authentication/session readiness audits, security header checks, 5-group bounded reliability & latency probes (55/55 requests successful, 0 timeouts, 0 5xx errors), and 19-flow headless Chrome CDP browser regressions have completed cleanly.
+All technical preflight checks, logical backup/restore rehearsals on an isolated target schema (measured duration: 6.34 seconds), tenant isolation verifications, authentication/session readiness audits, security header checks, 5-group bounded reliability & latency probes (55/55 requests successful, 0 timeouts, 0 5xx errors), and 19-flow headless Chrome CDP browser regressions have completed cleanly.
 
 The software payload, migration scripts, and architecture are frozen and ready for production deployment under **Release Candidate 1 (`WattWise-AI-v1.0.0-RC1`)**. No production infrastructure, database, domain, or environment variables have been created during IT-DIAG-10A. Stage **IT-DIAG-10B** remains strictly **LOCKED** until the Product Owner reviews this decision package and issues explicit go-live authorization.
 
@@ -27,25 +27,31 @@ The software payload, migration scripts, and architecture are frozen and ready f
 
 ### Verified Readiness Gates (PASS)
 - **Application Runtime & Quality Gates**: Next.js 16.2.11, Node.js 24.18.0, 242 unit tests passed (100%), 151 integration tests passed (100%), TypeScript typecheck (0 errors), ESLint (0 errors), Next.js Turbopack production build (PASS).
-- **Actual Backup & Restore Rehearsal**: Backup captured, restored into isolated target schema `disposable_restore_target`, 14 tables verified, migration consistency verified, critical record counts matched, application-readable queries verified, measured recovery duration **6.34 seconds (6341 ms)**, disposable target deleted, main Preview resource health verified (`HTTP 200`, `database: ok`).
+- **Logical Backup & Restore Rehearsal**: Backup captured, restored into separate target schema `disposable_restore_target` in the same Preview database. 14 tables verified, migration consistency verified, critical record counts matched, application-readable queries verified, measured logical restore duration **6.34 seconds**, disposable target deleted (`DROP SCHEMA CASCADE`), main Preview resource health verified (`HTTP 200`, `database: ok`).
+  - Classification: `LOGICAL BACKUP/RESTORE REHEARSAL — PASS`
+  - Disaster Recovery: `RESOURCE-LEVEL DISASTER RECOVERY — NOT VERIFIED`
+  - Production RPO: `proposed target, not yet verified`
+  - Production RTO: `proposed target, not yet verified`
 - **Bounded Reliability & Latency Probes**: 55 total requests across 5 test groups (25 sequential readiness, 10 concurrent readiness, 10 concurrent dashboard, 5 concurrent monthly report, 5 concurrent analytics viewer). Result: **0 timeouts, 0 5xx errors, 0 connection exhaustion**. Latency stats: Readiness median 108ms / p95 390ms; Dashboard median 138ms / p95 192ms; Monthly Report median 618ms / p95 625ms; Analytics Viewer median 82ms / p95 86ms.
 - **Tenant Isolation & Security Headers**: 100% enforcement of HTTP response contracts (`HTTP 403` out-of-window, `HTTP 404` cross-tenant, `NO_BILL` empty month state, `HTTP 200` analytics viewer, `HTTP 404` non-viewer). Security headers HSTS, CSP (no `unsafe-eval`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` present.
 - **19-Flow CDP Browser Regression**: `19 / 19 PASSED (100%)`, 0 console errors, 0 CSP violations across 360x800, 768x1024, and 1280x900 viewports.
 
 ### Incomplete or Limited Capabilities (Manual Review Only)
 - **Automated Metric Alerting**: Not configured (requires paid observability subscription). Incident triage is manual via `X-Correlation-Id` and Vercel CLI log inspection.
-- **Zero-Downtime Secret Rotation for Better Auth**: Rotating `BETTER_AUTH_SECRET` immediately invalidates active user session cookie signatures. Overlap dual-key signing is not supported in Better Auth; secret rotation requires a scheduled maintenance window.
+- **Better Auth Secret Rotation**: Rotating `BETTER_AUTH_SECRET` invalidates existing active user session cookie signatures. Maintenance or controlled user reauthentication is required; zero-downtime rotation is not verified.
 
 ---
 
 ## 2. Risk Register & Advisory Disposition
 
-| Risk ID | Category | Description | Reachability | Remediation | Product Owner Disposition |
+| Risk ID | Category | Description | Execution & Path | Remediation | Product Owner Disposition |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **RISK-01** | Dependency Advisory | `postcss` <=8.5.22 path traversal advisory (`GHSA-6g55-p6wh-862q`). | **Unreachable** in serverless request path (Build-time CSS transformation only). | Requires breaking Next.js major upgrade (`npm audit fix --force`). | **PRODUCT OWNER RISK DECISION REQUIRED** (Build-only advisory with no non-breaking fix). |
-| **RISK-02** | Dependency Advisory | `brace-expansion` DoS advisory (`GHSA-mh99-v99m-4gvg`). | **Unreachable** in production runtime (Dev-only ESLint AST tooling). | `npm audit fix` | Document and monitor (Dev-only advisory). |
-| **RISK-03** | Database Versioning | Neon Marketplace default is PostgreSQL 17.10, whereas PRD specifies PostgreSQL 16.x baseline. | **Unreachable** (Rehearsal confirms 100% Drizzle migration compatibility). | N/A | Product Owner choice: approve PostgreSQL 17.10 (recommended) or mandate PostgreSQL 16.x. |
-| **RISK-04** | Auth Session Invalidation | Rotating `BETTER_AUTH_SECRET` invalidates active cookie signatures. | Server-side auth module. | Schedule during announced maintenance windows. | Accepted operational constraint. |
+| **RISK-01** | Dependency Advisory | `postcss` <=8.5.22 path traversal advisory (`GHSA-6g55-p6wh-862q`). | Build-time dependency path; not identified in application request-path execution. | Requires breaking Next.js major upgrade (`npm audit fix --force`). | **Product Owner Production risk decision required** (Build-only advisory; breaking remediation). |
+| **RISK-02** | Dependency Advisory | `brace-expansion` DoS advisory (`GHSA-mh99-v99m-4gvg`). | Development tooling only (`eslint`). | `npm audit fix` | Document and monitor (Dev-only advisory). |
+| **RISK-03** | Database Versioning | Neon Marketplace default is PostgreSQL 17.10, whereas PRD baseline specifies PostgreSQL 16.x. | PostgreSQL 17.10 is approved **only for existing Preview rehearsal**. Production PostgreSQL is not yet approved. | Select production engine version. | **Compatibility risk: VERIFIED ON PREVIEW**<br>**Production risk: PRODUCT OWNER VERSION DECISION REQUIRED** |
+| **RISK-04** | Auth Session Invalidation | Rotating `BETTER_AUTH_SECRET` invalidates existing sessions. | Server-side auth module. | Schedule during announced maintenance windows. | Maintenance or controlled user reauthentication is required; zero-downtime rotation is not verified. |
+
+*Note: Artifact-level vulnerability scanner was not run; `npm audit` reports 8 vulnerabilities (6 moderate, 2 high).*
 
 ---
 
@@ -70,7 +76,7 @@ The software payload, migration scripts, and architecture are frozen and ready f
 | Criterion | Option A: PostgreSQL 16.x | Option B: PostgreSQL 17.10 (Neon Cloud Default) | Agent Recommendation |
 | :--- | :--- | :--- | :--- |
 | **PRD Baseline Match** | Exact match with original spec | Minor major-version advance | Option B recommended |
-| **Drizzle ORM Compatibility** | 100% compatible | 100% compatible (Rehearsal verified) | Equal |
+| **Drizzle ORM Compatibility** | 100% compatible | 100% compatible (Preview Rehearsal verified) | Equal |
 | **Marketplace Provisioning** | Requires manual override / CLI creation | Standard default provisioned by Neon Vercel integration | Option B simplifies automated integration |
 | **Upgrade Complexity** | Future upgrade to pg17 required | Currently on latest stable release | Option B eliminates future upgrade downtime |
 
@@ -106,7 +112,7 @@ The following environment variables must be configured in the Production Vercel 
 ```
 
 > [!NOTE]
-> The implementation agent recommends **GO WITH ACCEPTED RISK** based on 100% PASS across all quality gates, rehearsal duration (6.34s), and zero 5xx/timeouts. However, only the Product Owner has the authority to make the final Go-Live decision.
+> The implementation agent recommends **GO WITH ACCEPTED RISK** based on 100% PASS across all quality gates, logical restore rehearsal (6.34s), and zero 5xx/timeouts. However, only the Product Owner has the authority to make the final Go-Live decision.
 
 ---
 
@@ -114,7 +120,7 @@ The following environment variables must be configured in the Production Vercel 
 
 Before initiating **IT-DIAG-10B**, the Product Owner must review and authorize the following decisions:
 
-1. **Production PostgreSQL Major Version**: Authorize PostgreSQL 17.10 (Recommended) or mandate PostgreSQL 16.x.
+1. **Production PostgreSQL Major Version**: Authorize PostgreSQL 17.10 (Recommended) or mandate PostgreSQL 16.x. (PostgreSQL 17.10 is currently approved ONLY for existing Preview rehearsal; Production PostgreSQL is not yet approved).
 2. **Production Vercel Project Approval**: Authorize creation of dedicated Vercel project `wattwise-ai`.
 3. **Production Neon Resource Approval**: Authorize creation of dedicated Neon resource `wattwise-ai-db`.
 4. **Production Domain Approval**: Specify official production domain name (e.g., `wattwise.id` or `wattwise-ai.vercel.app`).

@@ -7,14 +7,15 @@ IT-DIAG-10A — READY FOR GO-LIVE DECISION — PRODUCT OWNER REVIEW REQUIRED
 Repository: `hanif-12-01/start-up-repo`  
 Target Branch: `feature/it-diag-10-production-readiness`  
 Accepted IT-DIAG-09B Base: `8756b8c18eeb5c496cc8aecc343797d6e79c6d2e`  
+Release-Candidate Source SHA: `5b347a4df488a97fde98426fa1be7f3791681e34`  
 
 ---
 
 ## Executive Summary
 
-Phase **IT-DIAG-10A — Production Readiness and Go-Live Decision Package** has completed all technical, architecture, operations runbook, vulnerability triage, backup rehearsal, reliability smoke, CDP browser regression, and privacy audit gates per the Product Owner Correction Directive.
+Phase **IT-DIAG-10A — Production Readiness and Go-Live Decision Package** has completed all technical, architecture, operations runbook, vulnerability triage, backup rehearsal, reliability smoke, CDP browser regression, and privacy audit gates per the Product Owner Final Closure Directive.
 
-All quality gates passed with **100% success**: 16 unit test files / 242 tests passed, 13 integration test files / 151 tests passed, TypeScript typecheck (0 errors), ESLint (0 errors), Next.js 16.2.11 Turbopack build (PASS), actual backup & restore rehearsal on an isolated schema target (measured recovery duration: **6.34 seconds**), 5-group bounded reliability smoke (55/55 requests successful, 0 timeouts, 0 5xx errors), and 19/19 headless Chrome CDP browser flows passed across mobile, tablet, and desktop viewports.
+All quality gates passed with **100% success**: 16 unit test files / 242 tests passed, 13 integration test files / 151 tests passed, TypeScript typecheck (0 errors), ESLint (0 errors), Next.js 16.2.11 Turbopack build (PASS), logical backup & restore rehearsal on a separate schema target (`disposable_restore_target`) in the same database (measured logical restore duration: **6.34 seconds**), 5-group bounded reliability smoke (55/55 requests successful, 0 timeouts, 0 5xx errors), and 19/19 headless Chrome CDP browser flows passed across mobile, tablet, and desktop viewports.
 
 No production Vercel project, production Neon database, production domain, or production environment variables were created. Stage **IT-DIAG-10B** remains strictly **LOCKED**.
 
@@ -40,27 +41,33 @@ Ancestry check `git merge-base --is-ancestor 8756b8c18eeb5c496cc8aecc343797d6e79
 
 ---
 
-## 2. Actual Backup & Restore Rehearsal Results
+## 2. Logical Backup & Restore Rehearsal Results
 
 Executed via `wattwise-vercel/scripts/rehearse-backup-restore.mjs` against the dedicated Neon preview database:
 
-- **Backup Method**: Schema DDL & Synthetic Kos Dataset Memory Snapshot from `public` schema.
-- **Restore Target**: Isolated Disposable Target Schema (`disposable_restore_target`).
-- **Sequence Steps**:
+- **Backup Mechanism**: Schema DDL & Synthetic Kos Dataset Memory Snapshot from `public` schema.
+- **Restore Target Classification**: Separate schema in the same Preview database (`disposable_restore_target`).
+- **Rehearsal Classifications**:
+  - `LOGICAL BACKUP/RESTORE REHEARSAL — PASS`
+  - `RESOURCE-LEVEL DISASTER RECOVERY — NOT VERIFIED`
+  - `Measured logical restore duration: 6.34 seconds` (6341 ms)
+  - `Production RPO: proposed target, not yet verified`
+  - `Production RTO: proposed target, not yet verified`
+- **Verification Sequence & Metrics**:
   1. Captured DDL & synthetic Kos dataset backup snapshot from `public` schema.
-  2. Created isolated target schema `disposable_restore_target`.
+  2. Created separate schema `disposable_restore_target` in the same Preview database.
   3. Restored schema structure & synthetic records into target schema.
-  4. Verified **14 application tables** in restored schema.
+  4. Verified **14 application tables** in restored target schema (**PASS**).
   5. Verified migration consistency (**PASS**).
   6. Verified critical synthetic record counts across all 14 tables (**PASS**, 100% match).
   7. Verified application-readable state by executing SQL queries on `disposable_restore_target` (**PASS**).
-  8. Recorded actual recovery duration: **6.34 seconds (6341 ms)**.
-  9. Deleted target schema `disposable_restore_target` (`DROP SCHEMA CASCADE`) (**PASS**).
-  10. Verified main Preview resource health via `/api/health/ready` HTTP probe (**PASS**, `HTTP 200`, `database: ok`).
+  8. Recorded measured logical restore duration: **6.34 seconds** (6341 ms).
+  9. Cleanup result: Deleted target schema `disposable_restore_target` (`DROP SCHEMA CASCADE`) (**PASS**).
+  10. Main Preview health result: Verified primary Preview resource health via `/api/health/ready` probe (**PASS**, `HTTP 200`, `database: ok`).
 
 ---
 
-## 3. Bounded Reliability & Latency Probes
+## 3. Bounded Reliability & Latency Results
 
 Executed via `wattwise-vercel/scripts/test-bounded-reliability.mjs` against protected Preview:
 
@@ -81,50 +88,33 @@ Executed via `wattwise-vercel/scripts/test-bounded-reliability.mjs` against prot
 
 ---
 
-## 4. Dependency & Supply-Chain Triage (`npm audit`)
-
-### Audit Exit Codes
-- `FULL_AUDIT_EXIT=1`
-- `PRODUCTION_AUDIT_EXIT=1`
-
-### Vulnerability Summary Table
-
-| Package | Severity | `--omit=dev` Reported | Dependency Chain | Reachability | Preview Disposition | Production Recommendation |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `brace-expansion` | high | **Not reported** (dev-only) | `eslint` -> `minimatch` -> `brace-expansion` | **Unreachable** in production | Accepted dev tooling AST risk | Document and monitor |
-| `postcss` | high | **Reported** (transitive via `next`) | `next` -> `postcss`; `@tailwindcss/postcss` -> `postcss` | **Unreachable** in request runtime | Accepted build-time CSS risk | **PRODUCT OWNER RISK DECISION REQUIRED** (Build-only advisory; no non-breaking fix) |
-| `esbuild` | moderate | **Reported** (transitive via `drizzle-kit`) | `drizzle-kit` -> `@esbuild-kit/esm-loader` -> `esbuild` | **Unreachable** in request runtime | Accepted Drizzle CLI dev risk | Document and monitor |
-
-### Reachability Conclusion
-```text
-No identified high-severity advisory is reachable through the deployed
-application request runtime based on dependency-chain and execution-path review.
-
-Remaining high-severity findings are limited to build or tooling execution and
-are documented as accepted Preview risks pending non-breaking remediation.
-```
-
----
-
-## 5. Authentication & Session Readiness
+## 4. Authentication and Session Readiness Evidence
 
 Verified against synthetic Preview identities:
-- **Secure Cookie Over HTTPS**: `__Secure-better-auth.session_token` transmitted & parsed.
-- **HttpOnly Policy**: `HttpOnly` flag present on Set-Cookie headers.
-- **SameSite Policy**: `SameSite=Lax` enforced.
-- **Callback URL Validation**: Untrusted callback origins rejected with `HTTP 400`.
-- **Session Expiration**: Expired tokens return `HTTP 401`.
-- **Logout Invalidation**: Signing out revokes token from DB session table.
-- **Protected Routes**: Unauthenticated `/dashboard` requests redirect `HTTP 307` to `/login`.
-- **Secret & Token Privacy**: Zero session tokens or `BETTER_AUTH_SECRET` logged.
+
+### Verified Preview Behavior
+- **Secure Cookie Over HTTPS**: `__Secure-better-auth.session_token` transmitted & parsed over HTTPS.
+- **HttpOnly Policy**: `HttpOnly` attribute enforced on session cookie response headers.
+- **SameSite Policy**: `SameSite=Lax` policy enforced.
+- **Session Expiration Behavior**: Expired session tokens return `HTTP 401` unauthenticated status.
+- **Logout Invalidation**: Signing out revokes token from database session table (`HTTP 401` on re-use).
+- **Protected-Route Denial**: Unauthenticated `/dashboard` requests redirect `HTTP 307` to `/login`.
+- **Unauthorized API Behavior**: Unauthenticated API requests return `HTTP 401` sanitized JSON payload.
+- **Callback/Base URL Validation**: Untrusted callback origins rejected with `HTTP 400`.
+- **Cross-Tenant Session Isolation**: Authenticated session for Tenant A querying Tenant B resource returns `HTTP 404`.
+- **Session & Secret Log Privacy**: Zero session tokens, cookies, or `BETTER_AUTH_SECRET` logged; structured logs redact sensitive parameters.
+
+### Production Assumptions & Decisions
+- **Production Secret Entropy**: `BETTER_AUTH_SECRET` in production will be a randomly generated 32+ character high-entropy secret (`proposed Production target`).
+- **Production Base URL**: `BETTER_AUTH_URL` in production will match official HTTPS app origin (`Product Owner decision required`).
 
 ---
 
-## 6. Expanded Tenant Isolation Verification
+## 5. Complete Tenant-Isolation Verification Matrix
 
 Verified HTTP status codes and contract semantics using synthetic Kos tenants:
 
-| Test Contract | Request Target | Expected Contract | Actual HTTP / Contract Result | Status |
+| Test Contract | Request Target | Expected Contract | Actual HTTP / Contract Result | Verification Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Cross-Tenant Business Access** | `/dashboard` (Tenant A accessing Tenant B business) | `HTTP 404` | `HTTP 404` | **PASS** |
 | **Cross-Tenant Diagnostic Session** | `/diagnostics/SESSION_TENANT_B` (Tenant A) | `HTTP 404` | `HTTP 404` | **PASS** |
@@ -138,23 +128,71 @@ Verified HTTP status codes and contract semantics using synthetic Kos tenants:
 
 ---
 
-## 7. Operational Runbooks & Recovery Capability Classification
+## 6. Dependency Risk & Vulnerability Triage
 
-All claims across the 5 runbooks in `docs/runbooks/` are explicitly classified below:
+### Audit Exit Codes
+- `FULL_AUDIT_EXIT=1` (8 vulnerabilities: 6 moderate, 2 high)
+- `PRODUCTION_AUDIT_EXIT=1` (7 vulnerabilities: 6 moderate, 1 high)
 
-| Runbook Claim | Stated Metric / Capability | Exact Capability Classification |
-| :--- | :--- | :--- |
-| **Measured Recovery Duration** | 6.34 seconds (6341 ms) | `measured rehearsal result` (Rehearsed on isolated schema target) |
-| **Recovery Point Objective (RPO)** | 5 minutes | `proposed target` / `provider-dependent assumption` (Product Owner Decision Required) |
-| **Recovery Time Objective (RTO)** | 15 minutes | `proposed target` (Product Owner Decision Required) |
-| **Instant Deployment Rollback** | Instant Vercel alias switch | `provider-dependent assumption` (Vercel deployment alias re-pointing) |
-| **Database Down Migration** | UP/DOWN/UP 0007-0000 | `measured rehearsal result` (Rehearsed on Preview Neon DB) |
-| **Better Auth Secret Rotation** | Immediate session invalidation | `verified capability with session invalidation` (Requires scheduled maintenance window) |
-| **Automated Metric Alerting** | Log triage via Correlation ID | `proposed target` (Manual review only; paid observability subscription not enabled) |
+### Vulnerability Triage Summary
+
+| Advisory | Severity | Scope & Execution Path | Remediation | Status & Disposition |
+| :--- | :--- | :--- | :--- | :--- |
+| **`postcss` advisory** (`GHSA-6g55-p6wh-862q`) | high | Build-time dependency path (`next` -> `postcss`); not identified in application request-path execution. | Requires breaking Next.js major upgrade (`npm audit fix --force`). | **Product Owner Production risk decision required** (Build-only advisory; breaking remediation required). |
+| **`brace-expansion` advisory** (`GHSA-mh99-v99m-4gvg`) | high | Development tooling only (`eslint`). | `npm audit fix` | Document and monitor (Dev-only advisory). |
+| **`esbuild` advisory** (`GHSA-67mh-4wv8-2f99`) | moderate | Local Drizzle CLI devtooling (`drizzle-kit`). | `npm audit fix --force` | Document and monitor (Dev-only advisory). |
+
+*Note: Artifact-level vulnerability scanner was not run; `npm audit` reports 8 vulnerabilities (6 moderate, 2 high).*
 
 ---
 
-## 8. Protected Preview CDP Browser Regression Table
+## 7. PostgreSQL Version Decision Status
+
+- **Preview Baseline**: PostgreSQL 17.10 (Neon cloud default). Rehearsal confirmed 100% Drizzle migration compatibility (0000–0007 UP/DOWN/UP).
+- **PRD Specification**: PostgreSQL 16.x baseline.
+- **Decision Status**:
+  - `Compatibility risk: VERIFIED ON PREVIEW`
+  - `Production risk: PRODUCT OWNER VERSION DECISION REQUIRED`
+- **Scope Restriction**: PostgreSQL 17.10 is approved **only for the existing Preview rehearsal**. Production PostgreSQL is not yet approved.
+
+---
+
+## 8. Operational Runbooks & Recovery Claim Classifications
+
+All claims across the 5 runbooks in `docs/runbooks/` are audited and classified using exact allowed categories below:
+
+| Runbook Claim | Stated Value / Description | Exact Classification |
+| :--- | :--- | :--- |
+| **Measured Logical Restore Duration** | 6.34 seconds (6341 ms) | `measured rehearsal result` (Rehearsed on separate schema target) |
+| **Recovery Point Objective (RPO)** | 5 minutes | `proposed Production target` (Product Owner Decision Required) |
+| **Recovery Time Objective (RTO)** | 15 minutes | `proposed Production target` (Product Owner Decision Required) |
+| **Instant Deployment Rollback** | Instant Vercel deployment alias switch | `provider-dependent assumption` (Vercel deployment alias re-pointing) |
+| **Database Down Migration** | UP/DOWN/UP 0007-0000 schema rollback | `measured rehearsal result` (Rehearsed on Preview Neon DB) |
+| **Better Auth Secret Rotation** | Rotating `BETTER_AUTH_SECRET` invalidates existing sessions; maintenance or controlled user reauthentication is required; zero-downtime rotation is not verified | `verified capability` (With session invalidation operational constraint) |
+| **Automated Metric Alerting** | Log triage via Correlation ID | `proposed Production target` (Manual monitoring labeled manual; automated alerting not configured) |
+
+---
+
+## 9. Observability Readiness Matrix
+
+All signals are monitored manually via `X-Correlation-Id` and Vercel CLI log inspection. Automated alerting is not configured (no paid observability subscription).
+
+| Signal ID | Signal Name | Signal Source | Review Threshold | Owner | First Response | Escalation | Rollback Trigger | Evidence Required |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **OBS-01** | Deployment Failure | Vercel CLI / Console | Status != Ready | Release Engineer | Inspect build log | Escalate to Lead Dev | Auto-cancellation by Vercel | Vercel inspect log |
+| **OBS-02** | Build Failure | Local Preflight / CI | `npm run build` exit != 0 | Release Engineer | Check TS compile error | Halt RC promotion | N/A (Pre-deploy) | Next.js build log |
+| **OBS-03** | Health-Ready Failure | Vercel Function Log | `/api/health/ready` != 200 | On-Call Lead | Check Neon DSN status | Escalate to DBA | > 3 consecutive failures | `/api/health/ready` JSON |
+| **OBS-04** | Database Failure | Serverless Log | Pool timeout / SSL error | DBA | Verify pooler health | Escalate to Neon Support | Outage > 5 minutes | Pooler metric log |
+| **OBS-05** | Auth Spike | Better Auth Log | 401 rate > 10% / 5m | Security Lead | Check secret matching | Escalate to Product Owner | Auth failure > 50% sessions | Redacted auth log |
+| **OBS-06** | 5xx Spike | Vercel Analytics | 5xx rate > 1% / 5m | On-Call Lead | Filter logs by 500-599 | Escalate to Lead Dev | 5xx rate > 5% / 10m | Function log with req ID |
+| **OBS-07** | Authorization Anomaly | Entitlement Log | 403/404 rate > 5% | Security Lead | Check tenant ID mismatch | Escalate to Lead Dev | False-positive PRO block | Entitlement audit log |
+| **OBS-08** | Migration Failure | Drizzle Runner Log | `drizzle-kit` exit != 0 | DBA | Check migration locks | Halt deployment | Immediate pipeline abort | Drizzle execution log |
+| **OBS-09** | Connection Exhaustion | Neon Console | Pool utilization > 90% | DBA | Inspect open clients | Escalate to DevOps | Sustained pool exhaustion | Neon connection snapshot |
+| **OBS-10** | Latency Regression | Bounded Probes | p95 latency > 2500ms | Lead Dev | Check SQL duration | Escalate to DevOps | p95 > 5000ms | Latency profile report |
+
+---
+
+## 10. Protected Preview CDP Browser Regression (19-Flow UAT)
 
 Executed via headless Chrome CDP against protected Vercel Preview:
 
@@ -192,51 +230,50 @@ Multi-Viewport Audit (1280x900, 768x1024, 360x800): PASS (No horizontal overflow
 
 ---
 
-## 9. Local Quality Gates & Protected Path Diffs
+## 11. Local Quality Gates & Protected Path Diffs
 
-### Quality Gates Execution Log
 - **Unit Tests (`npm run test`)**: `16 test files passed`, `242 tests passed` (**PASS**)
 - **Integration Tests (`npm run test:integration`)**: `13 test files passed`, `151 tests passed` (**PASS**)
 - **TypeScript Typecheck (`npm run typecheck`)**: `PASS` (`0` errors)
 - **ESLint (`npm run lint`)**: `PASS` (`0` errors)
 - **Production Build (`npm run build`)**: `PASS` (Next.js Turbopack build succeeded)
-
-### Protected Paths Diff Audit
-- `drizzle/` & `drizzle/rollbacks/` diff: **EMPTY**
-- `docs/baseline/` & `wattwise-laravel/` diff: **EMPTY**
-- `package.json` & `package-lock.json` diff: **EMPTY**
-- `git diff --check`: **PASS** (0 whitespace errors)
-
----
-
-## 10. Tracked-Secret & Privacy Audit
-
-- **Tracked-Secret Audit Result**: **PASS**
-- **Absolute-Path Audit Result**: **PASS**
-- **Full-Deployment-URL Audit Result**: **PASS**
-- **Platform-Resource-ID Audit Result**: **PASS**
-- **Path Sanitization**: Relative repository paths used exclusively across evidence artifacts and report files.
-- **ID Aliasing**: Semantic aliases (`OWNED_KOS`, `OTHER_TENANT`, `ANALYTICS_VIEWER`, etc.) used throughout evidence tables.
+- **Protected Path Diffs**:
+  - `drizzle/` & `drizzle/rollbacks/` diff: **EMPTY**
+  - `docs/baseline/` & `wattwise-laravel/` diff: **EMPTY**
+  - `package.json` & `package-lock.json` diff: **EMPTY**
+- **Git Check**: `git diff --check` returns **PASS** (`0` whitespace errors).
 
 ---
 
-## 11. Required Publication State & IT-DIAG-10B Lock
+## 12. Privacy Audits & Tracked-File Sanitization
 
-### Publication Boundaries
-- `git push`: **NOT PERFORMED**
-- Pull Request: **NOT OPENED**
-- Git Merge: **NOT PERFORMED**
-- Production Vercel Project: **NOT CREATED**
-- Production Neon Database: **NOT CREATED**
-- Production Deployment: **NOT PERFORMED**
-- Production Domain: **NOT CONFIGURED**
-- Production Environment: **UNTOUCHED**
-- Real Customer Data: **NOT USED**
-- Preview Resource Teardown: **NOT PERFORMED**
+- **Tracked-secret audit**: **PASS**
+- **Absolute-path audit**: **PASS**
+- **Full-deployment-URL audit**: **PASS**
+- **Platform-resource-ID audit**: **PASS**
+- **Path Formatting**: Repository-relative paths used exclusively across evidence artifacts and report files.
+
+---
+
+## 13. Remaining Product Owner Decisions & Stage Lock
+
+### 12 Required Product Owner Decision Items
+1. **Production PostgreSQL Major Version**: Authorize PostgreSQL 17.10 (Recommended) or mandate PostgreSQL 16.x.
+2. **Production Vercel Project Approval**: Authorize creation of dedicated Vercel project `wattwise-ai`.
+3. **Production Neon Resource Approval**: Authorize creation of dedicated Neon resource `wattwise-ai-db`.
+4. **Production Domain Approval**: Specify official production domain name.
+5. **DNS & SSL Ownership**: Assign operator responsible for DNS A/CNAME updates.
+6. **Production Secret Management**: Authorize generation of production credentials.
+7. **Billing Approval**: Confirm free tier or paid plan subscription level.
+8. **Maintenance Window**: Approve target time window for launch.
+9. **Migration & Rollback Authority**: Confirm Release Engineer execution authority.
+10. **Incident Response Owner**: Designate On-Call Incident Lead.
+11. **Go-Live Date**: Specify target calendar date for production launch.
+12. **Preview Retention Period**: Confirm retention duration post-launch.
 
 ### IT-DIAG-10B Status
 ```text
-IT-DIAG-10B — LOCKED — AWAITING PRODUCT OWNER AUTHORIZATION
+IT-DIAG-10B — LOCKED — AWAITING PRODUCT OWNER GO-LIVE AUTHORIZATION
 ```
 
 ---
@@ -244,5 +281,5 @@ IT-DIAG-10B — LOCKED — AWAITING PRODUCT OWNER AUTHORIZATION
 ## Final Verdict
 
 ```text
-IT-DIAG-10A — READY FOR GO-LIVE DECISION — PRODUCT OWNER REVIEW REQUIRED
+READY FOR GO-LIVE DECISION — PRODUCT OWNER REVIEW REQUIRED
 ```
