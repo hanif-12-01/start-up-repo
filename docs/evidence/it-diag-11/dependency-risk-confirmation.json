@@ -1,0 +1,10 @@
+{
+  "audit_type": "IT-DIAG-11 Dependency Audit Confirmation",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "full_audit_exit": 1,
+  "production_audit_exit": 1,
+  "postcss_advisory": "Accepted Build-Time Risk",
+  "new_critical_advisories": 0,
+  "dependency_manifest_changes": 0,
+  "dependency_audit_verdict": "PASS WITH ACCEPTED RISK"
+}

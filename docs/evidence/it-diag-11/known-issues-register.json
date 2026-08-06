@@ -1,0 +1,33 @@
+{
+  "audit_type": "IT-DIAG-11 Categorized Known Issues & Residual Risk Register",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "items": [
+    {
+      "category": "security",
+      "item": "PostCSS build-time advisory",
+      "status": "ACCEPTED"
+    },
+    {
+      "category": "observability",
+      "item": "Manual log & health monitoring",
+      "status": "MONITOR"
+    },
+    {
+      "category": "billing",
+      "item": "Free-tier storage & compute limits",
+      "status": "MONITOR"
+    },
+    {
+      "category": "custom_domain",
+      "item": "Domain configuration deferred",
+      "status": "DEFERRED"
+    },
+    {
+      "category": "analytics",
+      "item": "Funnel analytics disabled",
+      "status": "DEFERRED"
+    }
+  ],
+  "blocking_issues_count": 0,
+  "known_issues_verdict": "PASS"
+}

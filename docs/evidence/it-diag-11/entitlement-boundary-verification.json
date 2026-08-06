@@ -1,0 +1,17 @@
+{
+  "audit_type": "IT-DIAG-11 Entitlement & Product Boundary Verification",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "enabled_features": [
+    "dashboard",
+    "monthly_report",
+    "entitlements",
+    "kos_diagnostic_journey"
+  ],
+  "disabled_features": [
+    "funnel_analytics",
+    "laundry_knowledge_pack",
+    "fb_knowledge_pack",
+    "custom_domain"
+  ],
+  "entitlement_verdict": "PASS"
+}

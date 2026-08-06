@@ -1,0 +1,7 @@
+{
+  "audit_type": "IT-DIAG-11 Synthetic Data Cleanup",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "synthetic_records_remaining": 0,
+  "unrelated_records_deleted": 0,
+  "cleanup_verdict": "PASS"
+}

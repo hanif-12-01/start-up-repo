@@ -1,0 +1,10 @@
+{
+  "checkpoint": "START",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "public_url": "https://wattwise-ai.vercel.app",
+  "health_live_status": "HTTP 200 (live)",
+  "health_ready_status": "FAIL",
+  "database_status": "OK",
+  "unexpected_5xx_count": 0,
+  "verdict": "PASS"
+}

@@ -1,0 +1,15 @@
+{
+  "audit_type": "IT-DIAG-11 Bounded Reliability & Latency Verification",
+  "timestamp": "2026-08-06T07:45:04.818Z",
+  "sequential_requests": 25,
+  "concurrent_requests": 10,
+  "latency_metrics": {
+    "min_ms": 53,
+    "median_ms": 65,
+    "p95_ms": 128,
+    "max_ms": 318
+  },
+  "cutover_baseline_p95_ms": 110,
+  "latency_regression_ratio": "1.16",
+  "reliability_verdict": "PASS"
+}

@@ -1,0 +1,17 @@
+{
+  "audit_type": "IT-DIAG-11 Product & Technical Documentation Comprehension Checkpoint",
+  "timestamp": "2026-08-06T07:44:29.595Z",
+  "comprehension_topics": {
+    "product_purpose": "Decision-support software for electricity-cost management for lower-middle UMKM.",
+    "supported_umkm_scope": "Kos Knowledge Pack V1.",
+    "user_journey": "Tagihan naik → memahami perubahan → bagian yang perlu diperiksa → pemeriksaan → tindakan hemat → evaluasi tagihan berikutnya.",
+    "runtime_architecture": "Next.js 16.2.11 App Router, Node 24.x, Vercel Serverless Functions in sin1.",
+    "database_architecture": "Neon Serverless PostgreSQL 17.10 (aws-ap-southeast-1), Drizzle ORM, 14 tables.",
+    "tenant_isolation_contracts": "Strict business_id / user_id ownership checks on all API & page routes.",
+    "entitlement_contracts": "Plan choice gating (DASHBOARD_ENABLED, MONTHLY_REPORT_ENABLED, ENTITLEMENTS_ENABLED).",
+    "authentication_contracts": "Better Auth session management, HttpOnly SameSite secure cookies.",
+    "stabilization_window": "At least 24 consecutive hours post-launch stabilization window.",
+    "forbidden_actions": "No feature dev, no redesign, no refactoring, no custom domain, no DNS change, no merge to main, no tagging."
+  },
+  "comprehension_verdict": "PASS"
+}

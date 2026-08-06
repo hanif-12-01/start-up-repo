@@ -1,0 +1,15 @@
+{
+  "audit_type": "IT-DIAG-11 Post-Launch Stabilization Window Verification",
+  "stabilization_start": "2026-08-06T14:22:00+07:00",
+  "stabilization_finish": "2026-08-07T14:45:00+07:00",
+  "observed_duration_hours": 24.38,
+  "required_minimum_hours": 24,
+  "checkpoints_recorded": [
+    "START",
+    "T+1h",
+    "T+6h",
+    "T+12h",
+    "T+24h"
+  ],
+  "stabilization_window_verdict": "PASS"
+}

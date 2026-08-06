@@ -1,0 +1,1903 @@
+{
+  "audit_type": "IT-DIAG-11 Complete Tracked Documentation Inventory & Read Manifest",
+  "timestamp": "2026-08-06T07:44:29.595Z",
+  "summary": {
+    "tracked_docs_files_discovered": 210,
+    "tracked_docs_files_read_completely": 210,
+    "skipped_files": 0,
+    "unreadable_files": 0,
+    "manifest_verdict": "PASS"
+  },
+  "files": [
+    {
+      "path": "docs/MVP_DEMO.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 7734,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/architecture/IT-ARCH-01_active-root.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1822,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/architecture/IT-ARCH-01_cleanup-manifest.csv",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4931,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/architecture/IT-ARCH-01_model-asset-inventory.csv",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 9483,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/architecture/IT-ARCH-01_repository-inventory.csv",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5068,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 15542,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_00C_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 27060,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_01A_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 22586,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_01B_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 36235,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_02_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 24458,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_03_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 27610,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_04_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 34161,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_05_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 35365,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_06_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 35911,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_07A_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 28679,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_07B_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 32573,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_08A_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1511,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_08B_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1774,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_09A_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1152,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_09B_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 909,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_10A_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 922,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_IT_DIAG_UI_01_GSAP_MOTION_IMPLEMENTATION_PROMPT.md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 32427,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/archive/WATTWISE_AI_PRD_AGENTIC_GUARDRAILS(3).md",
+      "category": "ARCHIVED_TASK",
+      "authority": "AUTHORITY_LEVEL_10",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 33802,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07a/browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 14903,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07a/dashboard-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 170531,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07a/dashboard-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 80032,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07a/dashboard-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 135676,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07b/browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10931,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07b/monthly-report-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 52030,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07b/monthly-report-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 28591,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-07b/monthly-report-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 51404,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-08a/IT_DIAG_08A_BROWSER_VERIFICATION_EVIDENCE.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2213,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-08b/browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 7614,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-08b/funnel-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 536187,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-08b/funnel-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 575742,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-08b/funnel-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 482779,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/analytics-viewer.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 55383,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1484,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/dashboard-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 170214,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/dashboard-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 87158,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/dashboard-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 142311,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/hardening-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 37514,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/hardening-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 26625,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/hardening-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 27191,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/health-live-response.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 958,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/health-not-ready-response.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 999,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/health-ready-response.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 975,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/monthly-report-print.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 104046,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/product-browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 12549,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/release-hardening-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4559,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09a/security-headers.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1967,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/neon-migration-rehearsal.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 699,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-analytics-viewer.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 15207,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-browser-evidence.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 929,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-dashboard-1280x900.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5290,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-dashboard-360x800.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2403,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-dashboard-768x1024.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4466,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-health-headers.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 916,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-monthly-report-print.png",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5290,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-09b/preview-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2227,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/authentication-session-readiness.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3277,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/backup-restore-rehearsal.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1312,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/bounded-reliability-test.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2110,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/browser-regression.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2854,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/dependency-risk-register.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1626,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/deployment-provenance.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 674,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/environment-contract-audit.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3961,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/go-live-gate-matrix.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2110,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/health-security-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 885,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/observability-readiness.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6261,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/production-readiness-summary.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1454,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/release-manifest.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 946,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/tenant-isolation-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1355,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10/tracked-secret-audit.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1300,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/dependency-risk-confirmation.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 904,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/local-production-secret-cleanup.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 765,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/precutover-correction-gate-matrix.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2342,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/precutover-gate-matrix.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2690,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-auth-readiness.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 866,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-billing-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 380,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-connection-policy.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 820,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-database-post-correction-smoke.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 589,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-database-smoke.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 518,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-database-version.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 334,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-empty-data-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1157,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-environment-contract.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1469,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-local-build-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 411,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-migration-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1157,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-observability-readiness.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1414,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-resource-inventory.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1034,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-rollback-package.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 641,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/production-secret-rotation.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 965,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/provider-level-neon-recovery-rehearsal.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1231,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/quality-gates-rerun.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 912,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/same-database-logical-schema-recovery.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 641,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/tracked-secret-audit.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1053,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b/vercel-production-project-inspection.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 562,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/dependency-risk-confirmation.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 627,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/docs-authority-conflict-review.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1114,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/docs-complete-read-manifest.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 58057,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/docs-comprehension-checkpoint.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2167,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/monitoring-t0.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 340,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/monitoring-t15.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 426,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/monitoring-t5.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 365,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/production-environment-finalization.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1270,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/production-log-review.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 512,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/public-critical-flows.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 358,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/public-cutover-gate-matrix.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1974,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/public-production-smoke.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 358,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/quality-gates.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 895,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/remote-checkpoint-verification.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 617,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/rollback-availability.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 517,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/secret-assurance.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 685,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/synthetic-data-cleanup.json",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 276,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/evidence/it-diag-10b2/tracked-secret-audit.txt",
+      "category": "EVIDENCE",
+      "authority": "AUTHORITY_LEVEL_7",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2146,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-analysis.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 159167,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-dashboard.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 151494,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-login.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 54461,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-meter-ocr.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 165850,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-plans-sandbox.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 191950,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/images/wattwise-report.png",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 141047,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/demo-flow.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10230,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/deployment-checklist.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 9697,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/deployment-dry-run-v0.2-rc1.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5085,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/manual-qa-checklist.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 9387,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/railway-demo-readiness-contract.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5693,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/smoke-test.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5335,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/launch/staging-deployment-plan.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 14265,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/IT-ML-01_multi-model-shadow-evaluation.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6892,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/IT-ML-02B_dataset-ingestion-and-benchmark-report.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 12375,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/IT-ML-02C_model-portfolio-recommendation.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6825,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/IT-ML-03_demo-validation-harness.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3744,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/IT-ML-05_phase-b-application-integration.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6781,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/IT-ML-02A_dataset-discovery-report.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 29083,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/dataset-catalog.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 16314,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/dataset-license-matrix.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6630,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/dataset-phase-coverage.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8145,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/dataset-ranking.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5059,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/dataset-schema-mapping.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8989,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/download-plan.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6439,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/datasets/standard-monthly-schema.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10023,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/IT-ML-04_real-data-qualification-report.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8570,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/checksums.sha256",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1340,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/commands.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8678,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/data-quality-audit.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1754,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/dataset-provenance.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 967,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/leakage-audit.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4276,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/model-cards.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2051,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/model-eligibility.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 13150,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/model-leaderboard.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 946,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/operational-benchmark.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2187,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/paired-comparisons.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 42043,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/phase-leaderboard.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 17171,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/phase-routing.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 807,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/qualification-gates.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2312,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/reproducibility-audit.csv",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1920,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/ml/qualification/run-manifest.json",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8322,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/product/meter-ocr-manual-qa.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6168,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/product/pdf-reports-manual-qa.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2811,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/product/wattwise-ai-prd.md",
+      "category": "PRD",
+      "authority": "AUTHORITY_LEVEL_1",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 22304,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/README.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 7187,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/desktop-hero.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 65428,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/desktop-product-story.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 43800,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/desktop-transparency-final-cta.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 78636,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/mobile-hero.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 33958,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/mobile-menu.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 29828,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/qa/IT-UI-01/mobile-product-story.webp",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 26406,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_07B_FINAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5189,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_08A_FINAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 6826,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_08B_FINAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 15957,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_09A_FINAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 8424,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_09B_FINAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 18209,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_10A_FINAL_VERIFICATION_REPORT.md",
+      "category": "ACCEPTED_REPORT",
+      "authority": "AUTHORITY_LEVEL_6",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 18611,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_10B_2_PUBLIC_CUTOVER_REPORT.md",
+      "category": "ACCEPTED_REPORT",
+      "authority": "AUTHORITY_LEVEL_6",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5714,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_10B_PRE_CUTOVER_FINAL_VERIFICATION_REPORT.md",
+      "category": "ACCEPTED_REPORT",
+      "authority": "AUTHORITY_LEVEL_6",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10752,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_10B_PRE_CUTOVER_REPORT.md",
+      "category": "ACCEPTED_REPORT",
+      "authority": "AUTHORITY_LEVEL_6",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 9416,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_IT_DIAG_10_GO_LIVE_DECISION_PACKAGE.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 11758,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 7838,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/IT_DIAG_04_LOCAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 9559,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/browser/browser-report.json",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1832,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/browser/inspection-1280x800.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 47214,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/browser/inspection-360x800.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 37187,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/browser/inspection-768x1024.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 50021,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-04/browser/inspection-completed.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 38209,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/IT_DIAG_05_LOCAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10592,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/browser/action-plan-1280x800.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 77448,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/browser/action-plan-360x800.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 76818,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/browser/action-plan-768x1024.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 74712,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/browser/action-plan-completed.png",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 78649,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-05/browser/browser-report.json",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 1711,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/reports/it-diag-07a/IT_DIAG_07A_LOCAL_VERIFICATION_REPORT.md",
+      "category": "HISTORICAL_REPORT",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 12071,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/laravel-migration-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 10135,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-2-electricity-revenue-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 12139,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-3-appliance-templates-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 11367,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-4-insights-recommendations-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 15036,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-5-monthly-reports-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 11643,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-6-plan-gating-trial-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 17769,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-7-qa-stabilization-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 21553,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/rewrite/week-8-demo-launch-readiness-spec.md",
+      "category": "ARCHITECTURE",
+      "authority": "AUTHORITY_LEVEL_3",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 31124,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/roadmap/IT-UI-01_GSAP_Product_Landing.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 15169,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/runbooks/WATTWISE_AI_DATABASE_BACKUP_RESTORE_RUNBOOK.md",
+      "category": "RUNBOOK",
+      "authority": "AUTHORITY_LEVEL_4",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3541,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/runbooks/WATTWISE_AI_INCIDENT_RESPONSE_RUNBOOK.md",
+      "category": "RUNBOOK",
+      "authority": "AUTHORITY_LEVEL_4",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3266,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/runbooks/WATTWISE_AI_PRODUCTION_DEPLOYMENT_RUNBOOK.md",
+      "category": "RUNBOOK",
+      "authority": "AUTHORITY_LEVEL_4",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3552,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/runbooks/WATTWISE_AI_PRODUCTION_ROLLBACK_RUNBOOK.md",
+      "category": "RUNBOOK",
+      "authority": "AUTHORITY_LEVEL_4",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3319,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/runbooks/WATTWISE_AI_SECRET_ROTATION_RUNBOOK.md",
+      "category": "RUNBOOK",
+      "authority": "AUTHORITY_LEVEL_4",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4464,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/tasks/WATTWISE_AI_IT_DIAG_11_IMPLEMENTATION_PROMPT.md",
+      "category": "ACTIVE_TASK",
+      "authority": "AUTHORITY_LEVEL_5",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 539,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/validation/feedback-scorecard-v0.2.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 3480,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/validation/pilot-participant-tracker-template.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 2192,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/validation/user-testing-script-v0.2.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 5212,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    },
+    {
+      "path": "docs/validation/validation-results-template.md",
+      "category": "OTHER",
+      "authority": "AUTHORITY_LEVEL_8",
+      "read_status": "READ_COMPLETE",
+      "size_bytes": 4093,
+      "applicability_to_it_diag_11": "APPLICABLE",
+      "conflict_status": "NONE"
+    }
+  ]
+}

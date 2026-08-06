@@ -1,0 +1,11 @@
+{
+  "public_url": "https://wattwise-ai.vercel.app",
+  "vercel_project": "[PRODUCTION_VERCEL_PROJECT]",
+  "runtime_framework": "Next.js 16.2.11 (Turbopack)",
+  "node_version": "24.x",
+  "function_region": "sin1 (Singapore)",
+  "neon_database_resource": "[PRODUCTION_NEON_RESOURCE]",
+  "postgresql_version": "17.10",
+  "database_region": "aws-ap-southeast-1",
+  "identity_verification_verdict": "PASS"
+}
