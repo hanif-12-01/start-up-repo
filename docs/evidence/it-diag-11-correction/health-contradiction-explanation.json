@@ -1,0 +1,7 @@
+{
+  "audit_type": "Health Ready Probe Classification Repair & Explanation",
+  "timestamp": "2026-08-06T14:58:21.254+07:00",
+  "issue_analyzed": "In previous iteration, raw health_ready check output contained readiness failure or missing fields due to script parsing issue, yet overall verdict reported PASS.",
+  "correction_applied": "Enforced strict boolean contract: health_ready probe verdict is PASS if and only if HTTP status is 200, status payload equals ready, and database status equals ok. Any non-200, timeout, or payload failure must be classified as FAIL.",
+  "verifier_status": "CORRECTED & ENFORCED"
+}

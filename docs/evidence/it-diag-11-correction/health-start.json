@@ -1,0 +1,21 @@
+{
+  "checkpoint": "START",
+  "timestamp_utc": "2026-08-06T07:58:21.253Z",
+  "timestamp_jakarta": "2026-08-06T14:58:21.254+07:00",
+  "public_url": "https://wattwise-ai.vercel.app",
+  "health_live_http_status": 200,
+  "health_live_payload": {
+    "status": "live",
+    "timestamp": "2026-08-06T07:58:21.167Z"
+  },
+  "health_ready_http_status": 200,
+  "health_ready_payload": {
+    "status": "ready",
+    "database": "ok",
+    "timestamp": "2026-08-06T07:58:22.037Z"
+  },
+  "database_status": "unknown",
+  "health_live_verdict": "PASS",
+  "health_ready_verdict": "FAIL",
+  "checkpoint_verdict": "FAIL"
+}

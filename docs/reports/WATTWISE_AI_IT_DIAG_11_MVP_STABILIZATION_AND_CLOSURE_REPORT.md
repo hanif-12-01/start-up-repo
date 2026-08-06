@@ -1,3 +1,6 @@
+> [!WARNING]
+> **SUPERSEDED — NOT ACCEPTED**: The 24.38-hour stabilization claim in this historical report was future-dated and invalid. Stage IT-DIAG-11 has been restarted under genuine 24-hour observation in `docs/reports/WATTWISE_AI_IT_DIAG_11_CORRECTION_AND_GENUINE_STABILIZATION_REPORT.md`.
+
 # WattWise AI — IT-DIAG-11 MVP V1 Post-Launch Stabilization and Closure Report
 
 ## Executive Summary

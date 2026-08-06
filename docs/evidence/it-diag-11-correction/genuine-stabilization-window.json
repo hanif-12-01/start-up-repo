@@ -1,0 +1,32 @@
+{
+  "audit_type": "Genuine IT-DIAG-11 Post-Launch Stabilization Window Track",
+  "stabilization_start_utc": "2026-08-06T07:58:21.253Z",
+  "stabilization_start_jakarta": "2026-08-06T14:58:21.254+07:00",
+  "stabilization_finish_utc": "PENDING",
+  "stabilization_finish_jakarta": "PENDING (Awaiting 24 Real Elapsed Hours)",
+  "observed_duration_hours": 0,
+  "required_duration_hours": 24,
+  "status": "IN_PROGRESS",
+  "checkpoints": {
+    "START": {
+      "status": "COMPLETED",
+      "timestamp": "2026-08-06T14:58:21.254+07:00"
+    },
+    "T+1h": {
+      "status": "PENDING",
+      "expected_after": "2026-08-06T08:58:22.906Z"
+    },
+    "T+6h": {
+      "status": "PENDING",
+      "expected_after": "2026-08-06T13:58:22.906Z"
+    },
+    "T+12h": {
+      "status": "PENDING",
+      "expected_after": "2026-08-06T19:58:22.906Z"
+    },
+    "T+24h": {
+      "status": "PENDING",
+      "expected_after": "2026-08-07T07:58:22.906Z"
+    }
+  }
+}
