@@ -14,8 +14,8 @@ Stage **IT-DIAG-10B-2 — Controlled Public Production Cutover** has been fully 
 - **Unreadable Files**: 0
 - **Documentation Complete Read Verdict**: `PASS`
 - **Documentation Authority & Conflict Review**: `PASS`
-- **Active Task**: [`docs/tasks/WATTWISE_AI_IT_DIAG_10B_2_IMPLEMENTATION_PROMPT.md`](file:///d:/LOMBA/MVP%20PROTOTIPE%20start-up/docs/tasks/WATTWISE_AI_IT_DIAG_10B_2_IMPLEMENTATION_PROMPT.md)
-- **Archived Task**: [`docs/archive/it-diag-10b/WATTWISE_AI_IT_DIAG_10B_1_IMPLEMENTATION_PROMPT.md`](file:///d:/LOMBA/MVP%20PROTOTIPE%20start-up/docs/archive/it-diag-10b/WATTWISE_AI_IT_DIAG_10B_1_IMPLEMENTATION_PROMPT.md)
+- **Active Task**: [`docs/tasks/WATTWISE_AI_IT_DIAG_10B_2_IMPLEMENTATION_PROMPT.md`](docs/tasks/WATTWISE_AI_IT_DIAG_10B_2_IMPLEMENTATION_PROMPT.md)
+- **Archived Task**: [`docs/archive/it-diag-10b/WATTWISE_AI_IT_DIAG_10B_1_IMPLEMENTATION_PROMPT.md`](docs/archive/it-diag-10b/WATTWISE_AI_IT_DIAG_10B_1_IMPLEMENTATION_PROMPT.md)
 
 ---
 
@@ -31,8 +31,8 @@ Stage **IT-DIAG-10B-2 — Controlled Public Production Cutover** has been fully 
 
 ## 3. Production Environment & Secret Assurance
 
-- **Vercel Project**: `wattwise-ai` (`prj_FTTDA05HsPXB9R5JlHATDnt6pAtS`, Next.js 16.2.11, Node 24.x, `sin1`)
-- **Neon Database Resource**: `wattwise-ai-db` (`broad-truth-57130495`, PostgreSQL 17.10, `aws-ap-southeast-1`)
+- **Vercel Project**: `wattwise-ai` (`[PRODUCTION_VERCEL_PROJECT]`, Next.js 16.2.11, Node 24.x, `sin1`)
+- **Neon Database Resource**: `wattwise-ai-db` (`[PRODUCTION_NEON_RESOURCE]`, PostgreSQL 17.10, `aws-ap-southeast-1`)
 - **Secret Rotation**: `BETTER_AUTH_SECRET` rotated via non-echoing process stdin pipe (`c8f2a1b4` SHA-256 fingerprint)
 - **Production Scope Environment Variables**:
   - `BETTER_AUTH_URL` = `https://wattwise-ai.vercel.app`
@@ -58,8 +58,8 @@ Stage **IT-DIAG-10B-2 — Controlled Public Production Cutover** has been fully 
 
 ## 5. Promotion & Public Verification
 
-- **Staged Build ID**: `dpl_WdTDSJq8kKPGRGKfBgrwR3zbhW42`
-- **Promoted Public URL**: `https://wattwise-ai.vercel.app` (`https://wattwise-ai-hazel.vercel.app`)
+- **Staged Build ID**: `[STAGED_PRODUCTION_DEPLOYMENT_ID]`
+- **Promoted Public URL**: `https://wattwise-ai.vercel.app` (`https://wattwise-ai.vercel.app`)
 - **Promotion Status**: `SUCCESS`
 - **Public Health Endpoints**:
   - `GET /api/health/live` -> **HTTP 200** (`status: 'live'`)
