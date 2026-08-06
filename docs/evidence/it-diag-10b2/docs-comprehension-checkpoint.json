@@ -1,0 +1,24 @@
+{
+  "audit_type": "Product & Technical Documentation Comprehension Checkpoint",
+  "timestamp": "2026-08-06T07:16:31.261Z",
+  "comprehension_topics": {
+    "product_purpose": "Decision-support software for electricity-cost management for lower-middle UMKM.",
+    "product_disclaimers": "Not an official PLN app, energy audit, electrical diagnosis, or guaranteed savings platform.",
+    "supported_umkm_scope": "Kos Knowledge Pack V1 (Token per kamar & regular electrical systems).",
+    "user_journey": "Tagihan naik → memahami perubahan → bagian yang perlu diperiksa → pemeriksaan → tindakan hemat → evaluasi tagihan berikutnya.",
+    "runtime_architecture": "Next.js 16.2.11 App Router, Node 24.x, Vercel Serverless Functions in sin1.",
+    "database_architecture": "Neon Serverless PostgreSQL 17.10 (aws-ap-southeast-1), Drizzle ORM, 14 tables.",
+    "tenant_isolation_contracts": "Strict business_id / user_id ownership checks on all API & page routes.",
+    "entitlement_contracts": "Plan choice choice gating (DASHBOARD_ENABLED, MONTHLY_REPORT_ENABLED, ENTITLEMENTS_ENABLED).",
+    "authentication_contracts": "Better Auth session management, HttpOnly SameSite secure cookies.",
+    "migration_rules": "Forward-only DDL migrations 0000-0007 UP; zero SQL DOWN migrations on Production.",
+    "production_environment_contract": "Production scope only; DATABASE_URL pooled, DATABASE_URL_UNPOOLED direct, rotated BETTER_AUTH_SECRET.",
+    "security_constraints": "Zero plain-text secrets in code/logs/evidence, strict TLS (sslmode=verify-full), unsafe-eval absent.",
+    "privacy_constraints": "Zero real customer PII in test data or evidence; sanitized fingerprints only.",
+    "rollback_rules": "Staged verification before promotion; instant vercel rollback or emergency deployment containment.",
+    "operational_ownership": "Release Operator (Agent), Incident Decision Owner (Product Owner).",
+    "accepted_risks": "PostCSS build-time advisory accepted; brace-expansion dev-only advisory accepted.",
+    "forbidden_actions": "No custom domain config, no DNS changes, no paid upgrades, no PR, no merge to main."
+  },
+  "comprehension_verdict": "PASS"
+}
