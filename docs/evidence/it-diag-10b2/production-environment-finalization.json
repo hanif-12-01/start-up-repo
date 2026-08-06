@@ -1,0 +1,19 @@
+{
+  "audit_type": "Final Production Environment Configuration",
+  "project_name": "wattwise-ai",
+  "environment": "Production Scope Only",
+  "timestamp": "2026-08-06T14:18:00+07:00",
+  "configured_variables": [
+    { "name": "DATABASE_URL", "scope": "Production", "classification": "Server-only pooled DSN" },
+    { "name": "DATABASE_URL_UNPOOLED", "scope": "Production", "classification": "Server-only direct DSN" },
+    { "name": "BETTER_AUTH_SECRET", "scope": "Production", "classification": "Server-only rotated secret" },
+    { "name": "BETTER_AUTH_URL", "scope": "Production", "classification": "https://wattwise-ai.vercel.app" },
+    { "name": "NEXT_PUBLIC_APP_URL", "scope": "Production", "classification": "https://wattwise-ai.vercel.app" },
+    { "name": "DASHBOARD_ENABLED", "scope": "Production", "classification": "true" },
+    { "name": "MONTHLY_REPORT_ENABLED", "scope": "Production", "classification": "true" },
+    { "name": "ENTITLEMENTS_ENABLED", "scope": "Production", "classification": "true" },
+    { "name": "FUNNEL_ANALYTICS_ENABLED", "scope": "Production", "classification": "false" },
+    { "name": "NODE_ENV", "scope": "Production", "classification": "platform-managed production runtime" }
+  ],
+  "environment_finalization_verdict": "PASS"
+}

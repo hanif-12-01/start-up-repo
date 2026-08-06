@@ -1,0 +1,22 @@
+{
+  "audit_type": "IT-DIAG-10B-2 Dependency & Supply-Chain Confirmation",
+  "full_audit_exit_code": 1,
+  "production_audit_exit_code": 1,
+  "advisories": [
+    {
+      "package": "postcss",
+      "severity": "high",
+      "scope": "Build-time dependency path (next -> postcss)",
+      "disposition": "Accepted Initial Production Risk"
+    },
+    {
+      "package": "brace-expansion",
+      "severity": "high",
+      "scope": "Development tooling (eslint)",
+      "disposition": "Dev-only advisory"
+    }
+  ],
+  "newly_introduced_advisories": 0,
+  "manifest_changes": 0,
+  "dependency_risk_verdict": "PASS WITH ACCEPTED RISK"
+}

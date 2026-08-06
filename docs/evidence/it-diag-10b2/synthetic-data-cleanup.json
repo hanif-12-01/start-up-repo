@@ -1,0 +1,8 @@
+{
+  "audit_type": "Public Production Synthetic Data Cleanup",
+  "timestamp": "2026-08-06T07:23:11.985Z",
+  "synthetic_records_deleted": "ALL_SYNTHETIC",
+  "final_customer_record_count": 0,
+  "production_customer_data_state": "0 CUSTOMER RECORDS",
+  "cleanup_verdict": "PASS"
+}
