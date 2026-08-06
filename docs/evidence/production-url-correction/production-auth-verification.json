@@ -1,0 +1,11 @@
+{
+  "synthetic_user_domain": "example.invalid",
+  "synthetic_user_email": "qa-verification-20260806@example.invalid",
+  "registration": "PASS",
+  "login": "PASS",
+  "logout": "PASS",
+  "unauthorized_api_access": "HTTP 401 (PASS)",
+  "callback_origin_validation": "PASS",
+  "secure_httponly_samesite_cookies": "PASS",
+  "verdict": "PASS"
+}

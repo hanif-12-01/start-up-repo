@@ -1,0 +1,9 @@
+{
+  "public_url": "https://wattwise-ai-hazel.vercel.app",
+  "application_name": "WattWise AI",
+  "language": "Indonesian",
+  "target_market": "UMKM electricity-cost decision support",
+  "knowledge_pack": "Kos Knowledge Pack V1",
+  "unrelated_italian_calculator_present": false,
+  "identity_verdict": "PASS"
+}

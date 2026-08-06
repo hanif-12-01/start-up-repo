@@ -24,7 +24,7 @@ Phase **IT-DIAG-11 — Post-Launch Stabilization and MVP V1 Closure Readiness** 
 
 ## 2. Production Release Checkpoint & Identity
 
-- **Production URL**: `https://wattwise-ai.vercel.app`
+- **Production URL**: `https://wattwise-ai-hazel.vercel.app` (Supercedes `https://wattwise-ai.vercel.app` — domain not owned by WattWise AI project)
 - **Accepted Production Checkpoint**: `b757401724b70df430b5d617c5cc8d1ded70b4b9`
 - **Release-Candidate Runtime Source**: `5b347a4df488a97fde98426fa1be7f3791681e34`
 - **Protected Path Diffs** (`src`, `drizzle`, `package.json`): **100% KOSONG / EMPTY**

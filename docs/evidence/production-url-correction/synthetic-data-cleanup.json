@@ -1,0 +1,10 @@
+{
+  "purged_users": [
+    "qa-verification-20260806@example.invalid"
+  ],
+  "purged_records": "All associated sessions, accounts, businesses, and entries",
+  "real_customer_data_affected": false,
+  "current_production_customer_count": 0,
+  "production_tables_count": 14,
+  "cleanup_verdict": "PASS"
+}

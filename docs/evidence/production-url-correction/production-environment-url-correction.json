@@ -1,0 +1,23 @@
+{
+  "environment": "Production",
+  "project": "wattwise-ai",
+  "updated_variables": [
+    {
+      "name": "BETTER_AUTH_URL",
+      "value": "https://wattwise-ai-hazel.vercel.app",
+      "scope": "Production"
+    },
+    {
+      "name": "NEXT_PUBLIC_APP_URL",
+      "value": "https://wattwise-ai-hazel.vercel.app",
+      "scope": "Production"
+    }
+  ],
+  "unmodified_secret_variables": [
+    "BETTER_AUTH_SECRET",
+    "DATABASE_URL",
+    "DATABASE_URL_UNPOOLED"
+  ],
+  "preview_and_dev_variables_status": "UNTOUCHED",
+  "verification_verdict": "PASS"
+}

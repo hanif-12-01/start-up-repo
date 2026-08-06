@@ -1,0 +1,15 @@
+{
+  "target_url": "https://wattwise-ai-hazel.vercel.app",
+  "health_live": {
+    "endpoint": "/api/health/live",
+    "http_status": 200,
+    "status": "live"
+  },
+  "health_ready": {
+    "endpoint": "/api/health/ready",
+    "http_status": 200,
+    "status": "ready",
+    "database": "ok"
+  },
+  "verdict": "PASS"
+}

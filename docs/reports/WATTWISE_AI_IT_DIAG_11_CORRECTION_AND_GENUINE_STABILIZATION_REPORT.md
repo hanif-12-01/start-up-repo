@@ -48,7 +48,7 @@ This report documents the official correction of stage **IT-DIAG-11 — Post-Lau
 
 ## 4. Current Operational & Production Facts
 
-- **Official Public URL**: `https://wattwise-ai.vercel.app`
+- **Official Public URL**: `https://wattwise-ai-hazel.vercel.app`
 - **Production Deployment**: **ACTIVE / UNCHANGED**
 - **START Health Live**: **HTTP 200 / live**
 - **START Health Ready**: **HTTP 200 / ready** (`database: 'ok'`)
