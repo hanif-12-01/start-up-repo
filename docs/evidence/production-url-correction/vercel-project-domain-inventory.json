@@ -1,12 +1,12 @@
 {
   "audit_type": "Vercel Project & Domain Inventory Audit",
   "timestamp": "2026-08-06T09:05:00.000Z",
-  "project_name": "wattwise-ai",
-  "owner_team": "clara3",
+  "project_name": "[PRODUCTION_VERCEL_PROJECT]",
+  "owner_team": "[VERCEL_TEAM]",
   "assigned_production_domain": "https://wattwise-ai-hazel.vercel.app",
   "unrelated_external_domain": "https://wattwise-ai.vercel.app",
   "unrelated_external_domain_status": "SUPERSEDED — DOMAIN NOT OWNED BY WATTWISE AI PROJECT",
   "deployment_target": "production",
-  "deployment_url": "https://wattwise-mu09cxo4m-clara3.vercel.app",
+  "deployment_url": "[INTERNAL_DEPLOYMENT_URL]",
   "verdict": "CORRECT_DOMAIN_IDENTIFIED"
 }

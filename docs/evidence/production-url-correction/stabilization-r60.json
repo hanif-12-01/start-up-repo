@@ -1,0 +1,37 @@
+{
+  "checkpoint": "R+60 Post-Correction Stabilization",
+  "target_url": "https://wattwise-ai-hazel.vercel.app",
+  "deployment_ready_timestamp": "2026-08-06T15:57:28+07:00",
+  "r60_checkpoint_timestamp": "2026-08-06T16:57:28+07:00",
+  "actual_elapsed_duration_minutes": 60,
+  "application_identity": {
+    "visible_name": "WattWise AI",
+    "language": "Indonesian",
+    "product_scope": "UMKM electricity-cost decision support",
+    "knowledge_pack": "Kos Knowledge Pack V1",
+    "unrelated_italian_calculator_present": false
+  },
+  "health_live": {
+    "endpoint": "/api/health/live",
+    "http_status": 200,
+    "status": "live"
+  },
+  "health_ready": {
+    "endpoint": "/api/health/ready",
+    "http_status": 200,
+    "status": "ready",
+    "database": "ok"
+  },
+  "authentication_flow": {
+    "registration": "PASS",
+    "login": "PASS",
+    "dashboard_access": "PASS",
+    "logout": "PASS",
+    "unauthorized_api_401": "PASS"
+  },
+  "tenant_isolation": "PASS",
+  "security_headers": "PASS",
+  "unexpected_5xx_errors": 0,
+  "synthetic_records_remaining": 0,
+  "verdict": "PASS"
+}
