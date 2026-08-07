@@ -52,7 +52,7 @@ async function main() {
   console.log(`📋 Initial tables count: ${initialTables.length}`);
 
   // Step 2: FIRST UP (0000–0007)
-  console.log('📦 Executing FIRST UP: Applying migrations 0000-0007...');
+  console.log('📦 Executing FIRST UP: Applying migrations 0000-0008...');
   const migrationsDir = resolve('drizzle', 'migrations');
   const migrationFiles = (await readdir(migrationsDir))
     .filter((f) => /^\d{4}_[a-z0-9_]+\.sql$/.test(f))
@@ -66,7 +66,7 @@ async function main() {
   console.log(`✅ FIRST UP complete: ${firstUpTables.length} tables created.`);
 
   // Step 3: DOWN (Rollback 0007-0000)
-  console.log('🔄 Executing DOWN: Applying rollbacks 0007-0000...');
+  console.log('🔄 Executing DOWN: Applying rollbacks 0008-0000...');
   const rollbacksDir = resolve('drizzle', 'rollbacks');
   const rollbackFiles = (await readdir(rollbacksDir))
     .filter((f) => /^\d{4}_[a-z0-9_]+_rollback\.sql$/.test(f))
@@ -81,7 +81,7 @@ async function main() {
   console.log(`✅ DOWN complete: ${downTables.length} tables remaining (empty schema verified).`);
 
   // Step 4: SECOND UP (0000-0007)
-  console.log('📦 Executing SECOND UP: Re-applying migrations 0000-0007...');
+  console.log('📦 Executing SECOND UP: Re-applying migrations 0000-0008...');
   for (const f of migrationFiles) {
     const sqlContent = await readFile(join(migrationsDir, f), 'utf8');
     await pool.query(sqlContent);

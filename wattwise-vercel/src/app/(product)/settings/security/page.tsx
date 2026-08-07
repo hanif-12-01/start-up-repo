@@ -1,0 +1,8 @@
+import { redirect } from 'next/navigation';
+import { SettingsTabs } from '@/components/product/SettingsTabs';
+import { SoftCard, WorkspaceHeader, WorkspacePage } from '@/components/product/WorkspaceUI';
+import { getOptionalSession } from '@/server/auth/session';
+import { SecurityForm } from '../SecurityForm';
+
+export const dynamic = 'force-dynamic';
+export default async function SecuritySettingsPage() { const session = await getOptionalSession(); if (!session?.user) redirect('/login'); return <WorkspacePage><WorkspaceHeader eyebrow="Pengaturan akun" title="Keamanan" description="Perbarui kata sandi dan keluarkan sesi lain ketika Anda mencurigai akses yang tidak dikenal." /><SettingsTabs active="/settings/security" /><div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]"><SoftCard><h2 className="mb-5 text-lg font-black text-emerald-950">Ubah kata sandi</h2><SecurityForm /></SoftCard><SoftCard><span aria-hidden="true" className="text-3xl">🛡️</span><h2 className="mt-4 text-lg font-black text-emerald-950">Status akun</h2><dl className="mt-5 space-y-3 text-sm"><div className="rounded-xl bg-[#f7f9f4] p-4"><dt className="text-xs text-slate-500">Email login</dt><dd className="mt-1 font-bold text-slate-800">{session.user.email}</dd></div><div className="rounded-xl bg-[#f7f9f4] p-4"><dt className="text-xs text-slate-500">Sesi saat ini</dt><dd className="mt-1 font-bold text-emerald-700">Aktif dan terlindungi</dd></div></dl><p className="mt-5 text-xs leading-5 text-slate-500">WattWise tidak pernah menampilkan kata sandi atau token sesi. Setelah kata sandi diubah, sesi lain akan dicabut.</p></SoftCard></div></WorkspacePage>; }

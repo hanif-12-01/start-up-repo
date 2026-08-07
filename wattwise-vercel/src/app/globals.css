@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f9f4;
+  --foreground: #17211b;
 }
 
 @theme inline {
@@ -12,17 +12,62 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: #86efac;
+  color: #064e3b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.product-shell [class*="bg-slate-950"],
+.product-shell [class*="bg-slate-900"] {
+  background-color: #f7f9f4 !important;
+}
+
+.product-shell [class*="bg-slate-800"] {
+  background-color: #ffffff !important;
+}
+
+.product-shell [class*="border-slate-800"],
+.product-shell [class*="border-slate-700"],
+.product-shell [class*="border-slate-600"] {
+  border-color: rgba(6, 78, 59, 0.14) !important;
+}
+
+.product-shell [class*="text-slate-100"],
+.product-shell [class*="text-slate-200"] {
+  color: #17211b !important;
+}
+
+.product-shell [class*="text-slate-300"],
+.product-shell [class*="text-slate-400"] {
+  color: #526158 !important;
+}
+
+.product-shell .report-print-root [class*="bg-slate-950"] {
+  background-color: #065f46 !important;
+}
+
+.product-shell .report-print-root [class*="text-slate-100"] {
+  color: #ffffff !important;
+}
+
+.product-shell .report-print-root [class*="text-slate-300"] {
+  color: #d1fae5 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 @media print {
@@ -33,6 +78,15 @@ body {
   body {
     background: #ffffff !important;
     color: #0f172a !important;
+  }
+
+  .product-shell-sidebar,
+  .product-shell-mobile {
+    display: none !important;
+  }
+
+  .product-shell > div:last-child {
+    padding-left: 0 !important;
   }
 
   .report-page {

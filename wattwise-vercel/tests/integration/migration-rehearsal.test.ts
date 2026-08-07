@@ -8,7 +8,7 @@ import {
 
 const { Pool } = pg;
 
-describe('Full Database Migration Up/Down/Up Rehearsal (0000–0007)', () => {
+describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
   let pool: pg.Pool;
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
 
@@ -52,6 +52,9 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0007)', () => {
     'inspection_item',
     'energy_action_plan',
     'action_outcome_evaluation',
+    'revenue_entry',
+    'appliance',
+    'user_preference',
   ];
 
   async function getPublicTableNames(): Promise<string[]> {
@@ -113,11 +116,13 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0007)', () => {
     const indexNames = idxRes.rows.map((r) => r.indexname);
     expect(indexNames).toContain('business_user_id_idx');
     expect(indexNames).toContain('diagnostic_session_business_created_idx');
+    expect(indexNames).toContain('revenue_entry_business_month_idx');
+    expect(indexNames).toContain('appliance_business_active_idx');
   }
 
-  it('STEP 1: Apply all forward migrations 0000–0007 (FIRST UP)', async () => {
+  it('STEP 1: Apply all forward migrations 0000–0008 (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBe(8); // 0000 to 0007
+    expect(forwardNames.length).toBe(9); // 0000 to 0008
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -127,8 +132,26 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0007)', () => {
     await assertFullSchemaDetails();
   });
 
-  it('STEP 2: Apply all rollback migrations 0007–0000 in reverse order (DOWN)', async () => {
+  it('STEP 1B: enforces workspace ownership and monthly uniqueness', async () => {
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('workspace-u1', 'Owner One', 'workspace-u1@example.test', true)`);
+    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('workspace-u2', 'Owner Two', 'workspace-u2@example.test', true)`);
+    await pool.query(`INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('workspace-b1', 'workspace-u1', 'Usaha Satu', 'LAUNDRY', 'LAUNDRY', 'ALL_IN')`);
+    await pool.query(`INSERT INTO "business" (id, user_id, name, business_type, segment, electrical_system) VALUES ('workspace-b2', 'workspace-u2', 'Usaha Dua', 'RETAIL', 'RETAIL', 'ALL_IN')`);
+    await pool.query(`INSERT INTO "revenue_entry" (id, business_id, period_month, amount_rupiah, input_mode) VALUES ('workspace-r1', 'workspace-b1', '2026-08-01', 25000000, 'EXACT')`);
+    await pool.query(`INSERT INTO "appliance" (id, business_id, name, category, power_watts, daily_hours, quantity, operating_days) VALUES ('workspace-a1', 'workspace-b1', 'Mesin Cuci', 'Mesin produksi', 500, 8, 2, 26)`);
+
+    const scoped = await pool.query(`SELECT re.id FROM revenue_entry re JOIN business b ON b.id = re.business_id WHERE b.user_id = $1`, ['workspace-u1']);
+    const isolated = await pool.query(`SELECT re.id FROM revenue_entry re JOIN business b ON b.id = re.business_id WHERE b.user_id = $1`, ['workspace-u2']);
+    expect(scoped.rows.map((row) => row.id)).toEqual(['workspace-r1']);
+    expect(isolated.rows).toHaveLength(0);
+
+    await expect(pool.query(`INSERT INTO "revenue_entry" (id, business_id, period_month, amount_rupiah, input_mode) VALUES ('workspace-r2', 'workspace-b1', '2026-08-01', 26000000, 'EXACT')`)).rejects.toThrow();
+    await expect(pool.query(`INSERT INTO "appliance" (id, business_id, name, category, quantity, operating_days) VALUES ('workspace-a2', 'workspace-b1', 'mesin cuci', 'Mesin produksi', 1, 30)`)).rejects.toThrow();
+  });
+
+  it('STEP 2: Apply all rollback migrations 0008–0000 in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0008_workspace_feature_parity_rollback.sql',
       '0007_action_outcome_evaluations_rollback.sql',
       '0006_energy_action_plans_rollback.sql',
       '0005_guided_inspections_rollback.sql',
@@ -148,7 +171,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0007)', () => {
     expect(remainingTables.length).toBe(0);
   });
 
-  it('STEP 3: Apply all forward migrations 0000–0007 a second time (SECOND UP)', async () => {
+  it('STEP 3: Apply all forward migrations 0000–0008 a second time (SECOND UP)', async () => {
     const forwardNames = listForwardMigrationNames();
 
     for (const name of forwardNames) {

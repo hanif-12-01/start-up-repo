@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { decimal, rupiah } from '@/lib/format';
 import { getOptionalSession } from '@/server/auth/session';
 import {
   MonthlyReportBusinessNotFoundError,
@@ -9,6 +10,7 @@ import {
   getMonthlyReportReadModel,
 } from '@/server/services/monthly-report.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { getDecisionSupport } from '@/server/services/workspace.service';
 import { PrintReportButton } from './PrintReportButton';
 
 export const dynamic = 'force-dynamic';
@@ -103,6 +105,19 @@ export default async function MonthlyReportPage({
     (option) => option.selected
   )?.id;
   if (!selectedBusinessId) notFound();
+  const support = await getDecisionSupport(userId, selectedBusinessId);
+  const reportRevenue = support.revenues.find(
+    (entry) => entry.periodMonth === `${report.reportMonth}-01`
+  ) ?? null;
+  const reportBill = support.bills.find(
+    (bill) => bill.periodEnd.slice(0, 7) === report.reportMonth
+  ) ?? null;
+  const reportRatio = reportRevenue && reportBill && reportRevenue.amountRupiah > 0n
+    ? (Number(reportBill.totalAmountRupiah) / Number(reportRevenue.amountRupiah)) * 100
+    : null;
+  const remainingRevenue = reportRevenue && reportBill
+    ? reportRevenue.amountRupiah - reportBill.totalAmountRupiah
+    : null;
   const selectedMonthIsAvailable = report.availableMonths.some(
     (month) => month.value === report.reportMonth
   );
@@ -133,7 +148,7 @@ export default async function MonthlyReportPage({
               <PrintReportButton />
               <Link
                 href={`/dashboard?businessId=${encodeURIComponent(selectedBusinessId)}`}
-                className="rounded-md border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-slate-800 focus:outline-2 focus:outline-offset-2 focus:outline-emerald-300"
+                className="rounded-md border border-white bg-white px-4 py-2.5 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 focus:outline-2 focus:outline-offset-2 focus:outline-emerald-300"
               >
                 Dashboard
               </Link>
@@ -221,6 +236,32 @@ export default async function MonthlyReportPage({
               </div>
             </div>
             <p className="text-sm text-slate-600">{report.monthSummary.dataCompletenessNote}</p>
+          </section>
+
+          <section className="report-section space-y-4">
+            <SectionTitle>Dampak ke Cash Flow</SectionTitle>
+            {reportRevenue ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Pendapatan bulan ini</p>
+                  <p className="mt-2 text-lg font-bold text-emerald-700">{rupiah.format(reportRevenue.amountRupiah)}</p>
+                  <p className="mt-1 text-xs text-slate-500">{reportRevenue.inputMode === 'EXACT' ? 'Angka tercatat' : 'Perkiraan pengguna'}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Rasio listrik</p>
+                  <p className="mt-2 text-lg font-bold">{reportRatio === null ? 'Belum tersedia' : `${decimal.format(reportRatio)}%`}</p>
+                  <p className="mt-1 text-xs text-slate-500">Porsi biaya listrik terhadap omzet</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Sisa setelah listrik</p>
+                  <p className="mt-2 text-lg font-bold">{remainingRevenue === null ? 'Belum tersedia' : rupiah.format(remainingRevenue)}</p>
+                  <p className="mt-1 text-xs text-slate-500">Bukan laba bersih</p>
+                </div>
+              </div>
+            ) : (
+              <EmptySection>Tambahkan pendapatan untuk {report.monthLabel} agar konteks cash flow dapat ditampilkan.</EmptySection>
+            )}
+            <p className="text-xs leading-5 text-slate-500">Sisa pendapatan setelah listrik belum memperhitungkan bahan baku, gaji, sewa, air, internet, pajak, dan biaya operasional lain.</p>
           </section>
 
           <section className="report-section space-y-4">

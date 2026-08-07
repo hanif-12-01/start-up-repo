@@ -5,3 +5,4 @@ export * from './diagnostics';
 export * from './inspections';
 export * from './action-plans';
 export * from './outcomes';
+export * from './workspace';
