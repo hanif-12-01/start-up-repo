@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Edit3 } from 'lucide-react';
+import { DeleteBillButton } from './DeleteBillButton';
 import { notFound, redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/LogoutButton';
 import { PageReveal } from '@/components/motion/PageReveal';
@@ -286,7 +288,20 @@ export default async function BillsPage({
                         {bill.kwh === null ? 'kWh tidak diisi' : `${formatDecimal(bill.kwh)} kWh`}
                       </p>
                     </div>
-                    <p className="font-semibold text-emerald-300">{rupiah.format(bill.totalAmountRupiah)}</p>
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
+                      <p className="font-semibold text-emerald-300">{rupiah.format(bill.totalAmountRupiah)}</p>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/bills/${bill.id}/edit`}
+                          className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          title="Edit tagihan"
+                          aria-label={`Edit tagihan ${periodLabel(bill)}`}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Link>
+                        <DeleteBillButton billId={bill.id} periodLabel={periodLabel(bill)} />
+                      </div>
+                    </div>
                   </article>
                 ))}
               </div>

@@ -1,6 +1,7 @@
 import {
   createBillForOwnedBusiness,
   deleteBillForOwnedBusiness,
+  findBillByIdForUser,
   findPreviousBillForUser,
   listBillsForUser,
   updateBillForOwnedBusiness,
@@ -35,6 +36,11 @@ export async function updateBill(
 export async function deleteBill(userId: string, billId: string) {
   if (!userId) throw new Error('UNAUTHENTICATED');
   return deleteBillForOwnedBusiness(userId, billId);
+}
+
+export async function getBillById(userId: string, billId: string) {
+  if (!userId) throw new Error('UNAUTHENTICATED');
+  return findBillByIdForUser(userId, billId);
 }
 
 export async function getBillOverview(userId: string, businessId?: string) {

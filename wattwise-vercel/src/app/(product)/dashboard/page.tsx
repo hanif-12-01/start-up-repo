@@ -95,7 +95,6 @@ export default async function DashboardPage({
   if (!selectedBusinessId) notFound();
   const support = await getDecisionSupport(userId, selectedBusinessId);
   const businessQuery = `?businessId=${encodeURIComponent(selectedBusinessId)}`;
-  const maxBill = Math.max(...support.bills.map((item) => Number(item.totalAmountRupiah)), 1);
   const latestOutcome = dashboard.outcomeSummaries[0] ?? null;
 
   return (

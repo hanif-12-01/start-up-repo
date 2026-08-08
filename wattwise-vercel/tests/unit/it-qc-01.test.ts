@@ -131,4 +131,32 @@ describe('IT-QC-01 Hardening & Model Readiness Unit Tests', () => {
       expect(analyzeLatestAnomaly(samplesHigh).status).toBe('Boros');
     });
   });
+
+  describe('Workstream H2: Analysis Recommendations Domain Contract', () => {
+    it('returns recommendations with required attributes priority, title, reason, limitation, nextAction', async () => {
+      const { generateAnalysisRecommendations } = await import('../../src/server/services/product-analysis');
+      const recs = generateAnalysisRecommendations({
+        anomalyStatus: 'Boros',
+        differencePercent: 25,
+        ratioPercent: 18,
+        predictionRisk: 'HIGH',
+        hasApplianceEstimates: false,
+        highestApplianceShare: 35,
+      });
+
+      expect(recs.length).toBeGreaterThan(0);
+      for (const rec of recs) {
+        expect(['TINGGI', 'SEDANG', 'RENDAH']).toContain(rec.priority);
+        expect(typeof rec.title).toBe('string');
+        expect(typeof rec.reason).toBe('string');
+        expect(typeof rec.limitation).toBe('string');
+        expect(typeof rec.nextAction).toBe('string');
+      }
+
+      const highAnomaly = recs.find((r) => r.id === 'rec-anomaly-high');
+      expect(highAnomaly?.priority).toBe('TINGGI');
+      expect(highAnomaly?.title).toContain('Lakukan Cek Kenaikan');
+      expect(highAnomaly?.nextAction).toContain('Mulai alur Cek Kenaikan');
+    });
+  });
 });

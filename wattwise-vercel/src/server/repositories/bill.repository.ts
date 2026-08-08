@@ -95,6 +95,29 @@ function mapBill(row: BillRow): BillRecord {
   };
 }
 
+export async function findBillByIdForUser(
+  userId: string,
+  billId: string
+): Promise<BillRecord | null> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query<BillRow>(
+      `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
+              eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end,
+              eb.kwh_source, eb.payment_method, eb.notes, eb.created_at, eb.updated_at
+         FROM electricity_bill eb
+         JOIN business b ON b.id = eb.business_id
+        WHERE eb.id = $1 AND b.user_id = $2
+        LIMIT 1`,
+      [billId, userId]
+    );
+    if (!result.rowCount) return null;
+    return mapBill(result.rows[0]);
+  } finally {
+    client.release();
+  }
+}
+
 async function findPrimaryOwnedBusiness(
   client: PoolClient,
   userId: string,
@@ -146,7 +169,18 @@ export async function createBillForOwnedBusiness(
     );
     if (overlap.rowCount) throw new OverlappingBillPeriodError();
 
-    const kwhSource = input.kwhSource ?? (input.meterStart && input.meterEnd ? 'METER_DERIVED' : input.kwh ? 'USER_ENTERED' : 'LEGACY_UNKNOWN');
+    const hasKwh = input.kwh !== undefined && input.kwh !== null && String(input.kwh).trim() !== '';
+    const hasMeters =
+      input.meterStart !== undefined &&
+      input.meterStart !== null &&
+      String(input.meterStart).trim() !== '' &&
+      input.meterEnd !== undefined &&
+      input.meterEnd !== null &&
+      String(input.meterEnd).trim() !== '';
+
+    const kwhSource =
+      input.kwhSource ??
+      (hasKwh ? 'USER_ENTERED' : hasMeters ? 'METER_DERIVED' : 'LEGACY_UNKNOWN');
 
     const result = await client.query<BillRow>(
       `INSERT INTO electricity_bill (
@@ -233,7 +267,18 @@ export async function updateBillForOwnedBusiness(
     );
     if (overlap.rowCount) throw new OverlappingBillPeriodError();
 
-    const kwhSource = input.kwhSource ?? (input.meterStart && input.meterEnd ? 'METER_DERIVED' : input.kwh ? 'USER_ENTERED' : 'LEGACY_UNKNOWN');
+    const hasKwh = input.kwh !== undefined && input.kwh !== null && String(input.kwh).trim() !== '';
+    const hasMeters =
+      input.meterStart !== undefined &&
+      input.meterStart !== null &&
+      String(input.meterStart).trim() !== '' &&
+      input.meterEnd !== undefined &&
+      input.meterEnd !== null &&
+      String(input.meterEnd).trim() !== '';
+
+    const kwhSource =
+      input.kwhSource ??
+      (hasKwh ? 'USER_ENTERED' : hasMeters ? 'METER_DERIVED' : 'LEGACY_UNKNOWN');
 
     const result = await client.query<BillRow>(
       `UPDATE electricity_bill

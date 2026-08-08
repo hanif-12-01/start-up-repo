@@ -1,5 +1,8 @@
 import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { env, isEntitlementsEnabled } from '@/config/env';
+import { getDb } from '@/server/db/client';
+import { business, revenueEntry } from '@/server/db/schema';
 import type { ActionPlanStatus } from '@/server/db/schema/action-plans';
 import type { DiagnosticStatus } from '@/server/db/schema/diagnostics';
 import {
@@ -138,6 +141,15 @@ export interface MonthlyReportReadModel {
     finishedAt: string | null;
     reviewTarget: string;
   }>;
+  revenueSummary: {
+    amountRupiahFormatted: string | null;
+    rawAmountRupiah: bigint | null;
+    ratioPercent: number | null;
+    remainingRupiah: bigint | null;
+    remainingRupiahFormatted: string | null;
+    inputModeLabel: string | null;
+    notes: string | null;
+  } | null;
   outcomeSummaries: Array<{
     baselinePeriod: string;
     followUpPeriod: string;
@@ -277,6 +289,29 @@ function actionFinishedAt(
   return action.completedAt ?? action.cancelledAt;
 }
 
+export async function getRevenueForOwnedBusinessMonth(
+  userId: string,
+  businessId: string,
+  reportMonth: string
+) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      revenue: revenueEntry,
+    })
+    .from(revenueEntry)
+    .innerJoin(business, eq(revenueEntry.businessId, business.id))
+    .where(
+      and(
+        eq(revenueEntry.businessId, businessId),
+        eq(business.userId, userId),
+        eq(revenueEntry.periodMonth, `${reportMonth}-01`)
+      )
+    )
+    .limit(1);
+  return row?.revenue ?? null;
+}
+
 export async function getMonthlyReportReadModel(
   userId: string,
   requestedBusinessId?: string,
@@ -359,6 +394,34 @@ export async function getMonthlyReportReadModel(
     actionStatuses,
     outcomeCount: outcomes.length,
   });
+  const reportRevenue = await getRevenueForOwnedBusinessMonth(
+    userId,
+    context.business.id,
+    reportMonth
+  );
+
+  const reportRatio =
+    reportRevenue && primaryBill && reportRevenue.amountRupiah > 0n
+      ? (Number(primaryBill.totalAmountRupiah) / Number(reportRevenue.amountRupiah)) * 100
+      : null;
+
+  const remainingRevenue =
+    reportRevenue && primaryBill
+      ? reportRevenue.amountRupiah - primaryBill.totalAmountRupiah
+      : null;
+
+  const revenueSummary = reportRevenue
+    ? {
+        amountRupiahFormatted: rupiah.format(reportRevenue.amountRupiah),
+        rawAmountRupiah: reportRevenue.amountRupiah,
+        ratioPercent: reportRatio !== null ? Number(reportRatio.toFixed(1)) : null,
+        remainingRupiah: remainingRevenue,
+        remainingRupiahFormatted: remainingRevenue !== null ? rupiah.format(remainingRevenue) : null,
+        inputModeLabel: reportRevenue.inputMode === 'EXACT' ? 'Angka tercatat' : 'Perkiraan',
+        notes: reportRevenue.notes ?? null,
+      }
+    : null;
+
   const businessQuery = `businessId=${encodeURIComponent(context.business.id)}`;
 
   return {
@@ -413,6 +476,7 @@ export async function getMonthlyReportReadModel(
           totalCost: rupiah.format(period.previousBill.totalAmountRupiah),
         }
       : null,
+    revenueSummary,
     billComparisonSummary:
       comparison && primaryBill && period.previousBill
         ? {

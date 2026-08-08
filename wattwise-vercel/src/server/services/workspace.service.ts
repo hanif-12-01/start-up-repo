@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import {
   appliance,
@@ -205,17 +205,25 @@ export async function applyApplianceTemplate(userId: string, businessId: string)
   if (!entitlements.limits.applianceTemplates) throw new Error('Template peralatan tersedia pada Pro Trial atau paket berbayar.');
   const items = TEMPLATE_CATALOG[context.business.segment] ?? TEMPLATE_CATALOG.OTHER;
   const db = getDb();
-  const existingTemplates = await db
-    .select({ name: appliance.name })
-    .from(appliance)
-    .where(and(eq(appliance.businessId, businessId), eq(appliance.dataSource, 'TEMPLATE')));
-  const existingNames = new Set(existingTemplates.map((e) => e.name));
-  for (const item of items) {
-    if (existingNames.has(item.name)) continue;
-    await db
-      .insert(appliance)
-      .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' });
-  }
+
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext('appliance_template_' || ${businessId}))`
+    );
+
+    const existingTemplates = await tx
+      .select({ name: appliance.name })
+      .from(appliance)
+      .where(and(eq(appliance.businessId, businessId), eq(appliance.dataSource, 'TEMPLATE')));
+
+    const existingNames = new Set(existingTemplates.map((e) => e.name));
+    for (const item of items) {
+      if (existingNames.has(item.name)) continue;
+      await tx
+        .insert(appliance)
+        .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' });
+    }
+  });
 }
 
 export async function setApplianceActive(userId: string, applianceId: string, isActive: boolean) {

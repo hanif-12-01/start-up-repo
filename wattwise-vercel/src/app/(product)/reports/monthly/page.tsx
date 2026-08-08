@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { decimal } from '@/lib/format';
 import { notFound, redirect } from 'next/navigation';
 import {
   Building2,
@@ -6,7 +7,6 @@ import {
   Download,
   LayoutDashboard,
 } from 'lucide-react';
-import { decimal, rupiah } from '@/lib/format';
 import { getOptionalSession } from '@/server/auth/session';
 import {
   MonthlyReportBusinessNotFoundError,
@@ -16,7 +16,6 @@ import {
   getMonthlyReportReadModel,
 } from '@/server/services/monthly-report.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
-import { getDecisionSupport } from '@/server/services/workspace.service';
 import { PrintReportButton } from './PrintReportButton';
 
 export const dynamic = 'force-dynamic';
@@ -111,19 +110,7 @@ export default async function MonthlyReportPage({
     (option) => option.selected
   )?.id;
   if (!selectedBusinessId) notFound();
-  const support = await getDecisionSupport(userId, selectedBusinessId);
-  const reportRevenue = support.revenues.find(
-    (entry) => entry.periodMonth === `${report.reportMonth}-01`
-  ) ?? null;
-  const reportBill = support.bills.find(
-    (bill) => bill.periodEnd.slice(0, 7) === report.reportMonth
-  ) ?? null;
-  const reportRatio = reportRevenue && reportBill && reportRevenue.amountRupiah > 0n
-    ? (Number(reportBill.totalAmountRupiah) / Number(reportRevenue.amountRupiah)) * 100
-    : null;
-  const remainingRevenue = reportRevenue && reportBill
-    ? reportRevenue.amountRupiah - reportBill.totalAmountRupiah
-    : null;
+
   const selectedMonthIsAvailable = report.availableMonths.some(
     (month) => month.value === report.reportMonth
   );
@@ -267,21 +254,21 @@ export default async function MonthlyReportPage({
           {/* Section 2 */}
           <section className="report-section space-y-4">
             <SectionTitle>Dampak ke Cash Flow</SectionTitle>
-            {reportRevenue ? (
+            {report.revenueSummary ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Pendapatan bulan ini</p>
-                  <p className="mt-2 text-lg font-black text-emerald-600 dark:text-emerald-400 print:text-emerald-800">{rupiah.format(reportRevenue.amountRupiah)}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{reportRevenue.inputMode === 'EXACT' ? 'Angka tercatat' : 'Perkiraan pengguna'}</p>
+                  <p className="mt-2 text-lg font-black text-emerald-600 dark:text-emerald-400 print:text-emerald-800">{report.revenueSummary.amountRupiahFormatted}</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{report.revenueSummary.inputModeLabel}</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Rasio listrik</p>
-                  <p className="mt-2 text-lg font-black">{reportRatio === null ? 'Belum tersedia' : `${decimal.format(reportRatio)}%`}</p>
+                  <p className="mt-2 text-lg font-black">{report.revenueSummary.ratioPercent === null ? 'Belum tersedia' : `${decimal.format(report.revenueSummary.ratioPercent)}%`}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">Porsi biaya listrik terhadap omzet</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Sisa setelah listrik</p>
-                  <p className="mt-2 text-lg font-black">{remainingRevenue === null ? 'Belum tersedia' : rupiah.format(remainingRevenue)}</p>
+                  <p className="mt-2 text-lg font-black">{report.revenueSummary.remainingRupiahFormatted ?? 'Belum tersedia'}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">Bukan laba bersih</p>
                 </div>
               </div>
