@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import { userPlan, business } from '@/server/db/schema/journey';
 
 export type JourneyStep = 'PLAN' | 'ONBOARDING' | 'BUSINESS' | 'COMPLETE';
 export type JourneyStatus = 'PLAN_REQUIRED' | 'ONBOARDING_REQUIRED' | 'BUSINESS_REQUIRED' | 'COMPLETE';
+type JourneyRow = Pick<typeof userPlan.$inferSelect, 'id' | 'userId' | 'plan' | 'trialStartsAt' | 'trialEndsAt' | 'idempotencyKey' | 'onboardingCompletedAt' | 'createdAt' | 'updatedAt'>;
 
 export const JOURNEY_ROUTES: Record<JourneyStep, string> = {
   PLAN: '/plan',
@@ -25,14 +26,14 @@ export class PlanTransitionForbiddenError extends Error {
 export async function resolveJourneyState(userId: string): Promise<{
   step: JourneyStep;
   status: JourneyStatus;
-  journey: typeof userPlan.$inferSelect | null;
+  journey: JourneyRow | null;
 }> {
   if (!userId) {
     return { step: 'PLAN', status: 'PLAN_REQUIRED', journey: null };
   }
 
   const db = getDb();
-  const plan = await db.select().from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
+  const plan = await db.select({ id: userPlan.id, userId: userPlan.userId, plan: userPlan.plan, trialStartsAt: userPlan.trialStartsAt, trialEndsAt: userPlan.trialEndsAt, idempotencyKey: userPlan.idempotencyKey, onboardingCompletedAt: userPlan.onboardingCompletedAt, createdAt: userPlan.createdAt, updatedAt: userPlan.updatedAt }).from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
 
   if (!plan.length) {
     return { step: 'PLAN', status: 'PLAN_REQUIRED', journey: null };
@@ -71,7 +72,7 @@ export async function selectPlan(
 
   const db = getDb();
 
-  const existing = await db.select().from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
+  const existing = await db.select({ id: userPlan.id, userId: userPlan.userId, plan: userPlan.plan, trialStartsAt: userPlan.trialStartsAt, trialEndsAt: userPlan.trialEndsAt, idempotencyKey: userPlan.idempotencyKey, onboardingCompletedAt: userPlan.onboardingCompletedAt, createdAt: userPlan.createdAt, updatedAt: userPlan.updatedAt }).from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
   if (existing.length) {
     const current = existing[0];
     if (current.plan === planType) {
@@ -88,13 +89,10 @@ export async function selectPlan(
   const trialStartsAt = planType === 'PRO_TRIAL' ? now : null;
   const trialEndsAt = planType === 'PRO_TRIAL' ? new Date(now.getTime() + TRIAL_DURATION_MS) : null;
 
-  await db.insert(userPlan).values({
-    userId,
-    plan: planType,
-    trialStartsAt,
-    trialEndsAt,
-    idempotencyKey: idempotencyKey || `plan_${userId}_${Date.now()}`,
-  });
+  await db.execute(sql`
+    INSERT INTO "user_plan" ("id", "user_id", "plan", "trial_starts_at", "trial_ends_at", "idempotency_key")
+    VALUES (${crypto.randomUUID()}, ${userId}, ${planType}, ${trialStartsAt}, ${trialEndsAt}, ${idempotencyKey || `plan_${userId}_${Date.now()}`})
+  `);
 
   return { plan: planType, trialEndsAt, alreadyExists: false };
 }
@@ -119,6 +117,6 @@ export async function completeOnboarding(userId: string): Promise<boolean> {
 export async function getUserPlan(userId: string) {
   if (!userId) return null;
   const db = getDb();
-  const rows = await db.select().from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
+  const rows = await db.select({ id: userPlan.id, userId: userPlan.userId, plan: userPlan.plan, trialStartsAt: userPlan.trialStartsAt, trialEndsAt: userPlan.trialEndsAt, idempotencyKey: userPlan.idempotencyKey, onboardingCompletedAt: userPlan.onboardingCompletedAt, createdAt: userPlan.createdAt, updatedAt: userPlan.updatedAt }).from(userPlan).where(eq(userPlan.userId, userId)).limit(1);
   return rows[0] ?? null;
 }

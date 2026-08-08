@@ -8,9 +8,21 @@ export interface CreateBusinessInput {
   name: string;
   businessType: string;
   city?: string;
+  province?: string;
+  address?: string;
   segment: string;
   electricalSystem: string;
   roomCount?: number;
+  occupiedRoomCount?: number;
+  employeeCount?: number;
+  operatingDaysPerMonth?: number;
+  customerType?: string;
+  powerVa?: number;
+  tariffRupiahPerKwh?: string;
+  paymentMethod?: string;
+  meterType?: string;
+  businessNotes?: string;
+  electricityNotes?: string;
 }
 
 export async function createBusiness(userId: string, input: CreateBusinessInput) {
@@ -50,9 +62,21 @@ export async function createBusiness(userId: string, input: CreateBusinessInput)
         name: input.name,
         businessType: input.businessType,
         city: input.city || null,
+        province: input.province || null,
+        address: input.address || null,
         segment: input.segment,
         electricalSystem: input.electricalSystem,
         roomCount: input.roomCount ?? null,
+        occupiedRoomCount: input.occupiedRoomCount ?? null,
+        employeeCount: input.employeeCount ?? null,
+        operatingDaysPerMonth: input.operatingDaysPerMonth ?? null,
+        customerType: input.customerType || null,
+        powerVa: input.powerVa ?? null,
+        tariffRupiahPerKwh: input.tariffRupiahPerKwh ?? null,
+        paymentMethod: input.paymentMethod || null,
+        meterType: input.meterType || null,
+        businessNotes: input.businessNotes || null,
+        electricityNotes: input.electricityNotes || null,
       })
       .returning();
 
@@ -82,4 +106,21 @@ export async function getBusinessById(sessionUserId: string, businessId: string)
 export async function getActiveBusinessById(sessionUserId: string, businessId: string) {
   const row = await getBusinessById(sessionUserId, businessId);
   return row?.isActive ? row : null;
+}
+
+export async function updateBusiness(userId: string, businessId: string, input: CreateBusinessInput) {
+  const db = getDb();
+  const [updated] = await db.update(business).set({
+    name: input.name, businessType: input.businessType, city: input.city || null,
+    province: input.province || null, address: input.address || null, segment: input.segment,
+    electricalSystem: input.electricalSystem, roomCount: input.roomCount ?? null,
+    occupiedRoomCount: input.occupiedRoomCount ?? null, employeeCount: input.employeeCount ?? null,
+    operatingDaysPerMonth: input.operatingDaysPerMonth ?? null, customerType: input.customerType || null,
+    powerVa: input.powerVa ?? null, tariffRupiahPerKwh: input.tariffRupiahPerKwh ?? null,
+    paymentMethod: input.paymentMethod || null, meterType: input.meterType || null,
+    businessNotes: input.businessNotes || null, electricityNotes: input.electricityNotes || null,
+    updatedAt: new Date(),
+  }).where(and(eq(business.id, businessId), eq(business.userId, userId), eq(business.isActive, true))).returning();
+  if (!updated) throw new Error('Usaha aktif tidak ditemukan');
+  return updated;
 }

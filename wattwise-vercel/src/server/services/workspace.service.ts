@@ -116,7 +116,12 @@ export async function updateBusinessStatus(userId: string, businessId: string, i
     .where(and(eq(business.id, businessId), eq(business.userId, userId)))
     .limit(1);
   if (!owned) throw new WorkspaceBusinessNotFoundError('Business not found');
-  await db.update(business).set({ isActive, updatedAt: new Date() }).where(eq(business.id, businessId));
+  if (isActive) {
+    const { getUserEntitlements } = await import('./entitlement.service');
+    const entitlements = await getUserEntitlements(userId);
+    if (!entitlements.canCreateBusiness) throw new Error('Batas usaha aktif untuk paket Anda telah tercapai.');
+  }
+  await db.update(business).set({ isActive, archivedAt: isActive ? null : new Date(), updatedAt: new Date() }).where(eq(business.id, businessId));
 }
 
 export async function listRevenueEntries(userId: string, requestedBusinessId?: string) {
@@ -135,6 +140,15 @@ export async function saveRevenueEntry(
 ) {
   await getWorkspaceContext(userId, input.businessId);
   const db = getDb();
+  const [existing] = await db.select({ id: revenueEntry.id }).from(revenueEntry).where(and(eq(revenueEntry.businessId, input.businessId), eq(revenueEntry.periodMonth, input.periodMonth))).limit(1);
+  if (!existing) {
+    const { getUserEntitlements } = await import('./entitlement.service');
+    const entitlements = await getUserEntitlements(userId);
+    if (entitlements.limits.maxRevenueEntries !== null) {
+      const rows = await db.select({ id: revenueEntry.id }).from(revenueEntry).where(eq(revenueEntry.businessId, input.businessId));
+      if (rows.length >= entitlements.limits.maxRevenueEntries) throw new Error('Batas 3 pendapatan paket Gratis telah tercapai.');
+    }
+  }
   await db
     .insert(revenueEntry)
     .values({ ...input, id: crypto.randomUUID(), updatedAt: new Date() })
@@ -164,11 +178,18 @@ export async function addAppliance(
   input: Omit<typeof appliance.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>
 ) {
   await getWorkspaceContext(userId, input.businessId);
+  const { getUserEntitlements } = await import('./entitlement.service');
+  const entitlements = await getUserEntitlements(userId);
+  const current = await getDb().select({ id: appliance.id }).from(appliance).where(eq(appliance.businessId, input.businessId));
+  if (entitlements.limits.maxAppliances !== null && current.length >= entitlements.limits.maxAppliances) throw new Error('Batas peralatan paket Gratis telah tercapai.');
   await getDb().insert(appliance).values({ ...input, id: crypto.randomUUID() });
 }
 
 export async function applyApplianceTemplate(userId: string, businessId: string) {
   const context = await getWorkspaceContext(userId, businessId);
+  const { getUserEntitlements } = await import('./entitlement.service');
+  const entitlements = await getUserEntitlements(userId);
+  if (!entitlements.limits.applianceTemplates) throw new Error('Template peralatan tersedia pada Pro Trial atau paket berbayar.');
   const items = TEMPLATE_CATALOG[context.business.segment] ?? TEMPLATE_CATALOG.OTHER;
   const db = getDb();
   for (const item of items) {
@@ -189,6 +210,20 @@ export async function setApplianceActive(userId: string, applianceId: string, is
     .limit(1);
   if (!owned) throw new WorkspaceBusinessNotFoundError('Appliance not found');
   await db.update(appliance).set({ isActive, updatedAt: new Date() }).where(eq(appliance.id, applianceId));
+}
+
+export async function updateAppliance(userId: string, applianceId: string, values: { name: string; category: string; powerWatts: number | null; dailyHours: string | null; quantity: number; operatingDays: number; notes: string | null }) {
+  const db = getDb();
+  const [owned] = await db.select({ id: appliance.id }).from(appliance).innerJoin(business, eq(appliance.businessId, business.id)).where(and(eq(appliance.id, applianceId), eq(business.userId, userId), eq(business.isActive, true))).limit(1);
+  if (!owned) throw new WorkspaceBusinessNotFoundError('Appliance not found');
+  await db.update(appliance).set({ ...values, updatedAt: new Date() }).where(eq(appliance.id, applianceId));
+}
+
+export async function deleteAppliance(userId: string, applianceId: string) {
+  const db = getDb();
+  const [owned] = await db.select({ id: appliance.id }).from(appliance).innerJoin(business, eq(appliance.businessId, business.id)).where(and(eq(appliance.id, applianceId), eq(business.userId, userId), eq(business.isActive, true))).limit(1);
+  if (!owned) throw new WorkspaceBusinessNotFoundError('Appliance not found');
+  await db.delete(appliance).where(eq(appliance.id, applianceId));
 }
 
 export async function getDecisionSupport(userId: string, requestedBusinessId?: string) {

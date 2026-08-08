@@ -46,6 +46,9 @@ export const createBillSchema = z
     totalAmountRupiah: amountSchema,
     kwh: optionalDecimalSchema('Pemakaian kWh', 1_000_000_000, 3),
     tariffRupiahPerKwh: optionalDecimalSchema('Tarif per kWh', 1_000_000_000, 2),
+    meterStart: optionalDecimalSchema('Meter awal', 1_000_000_000, 3),
+    meterEnd: optionalDecimalSchema('Meter akhir', 1_000_000_000, 3),
+    paymentMethod: z.preprocess((value) => value === '' ? undefined : value, z.string().max(80).optional()),
     notes: z.preprocess(
       (value) => (value === '' || value === null || value === undefined ? undefined : value),
       z.string().trim().max(1000, 'Catatan maksimal 1.000 karakter').optional()
@@ -59,6 +62,9 @@ export const createBillSchema = z
         path: ['periodEnd'],
         message: 'Tanggal akhir harus sama dengan atau setelah tanggal mulai',
       });
+    }
+    if (value.meterStart !== undefined && value.meterEnd !== undefined && Number(value.meterEnd) < Number(value.meterStart)) {
+      context.addIssue({ code: 'custom', path: ['meterEnd'], message: 'Meter akhir tidak boleh lebih kecil dari meter awal' });
     }
   });
 
