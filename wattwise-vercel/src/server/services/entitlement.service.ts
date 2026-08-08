@@ -2,12 +2,17 @@ import { eq, and, count } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import { userPlan, business } from '@/server/db/schema/journey';
 
-export type EffectivePlan = 'FREE' | 'TRIAL' | 'PRO';
+export type EffectivePlan = 'FREE' | 'TRIAL' | 'PRO' | 'BUSINESS';
 
 export interface PlanEntitlements {
   maxBusinesses: number;
   monthlyReportHistoryMonths: number;
   coreDiagnosticJourneyAllowed: boolean;
+  maxElectricityEntries: number | null;
+  maxRevenueEntries: number | null;
+  maxAppliances: number | null;
+  detailedAnalysis: boolean;
+  applianceTemplates: boolean;
 }
 
 export const ENTITLEMENT_POLICY_V1: Record<EffectivePlan, PlanEntitlements> = {
@@ -15,16 +20,41 @@ export const ENTITLEMENT_POLICY_V1: Record<EffectivePlan, PlanEntitlements> = {
     maxBusinesses: 1,
     monthlyReportHistoryMonths: 3, // Current month + 2 preceding months
     coreDiagnosticJourneyAllowed: true,
+    maxElectricityEntries: 3,
+    maxRevenueEntries: 3,
+    maxAppliances: 10,
+    detailedAnalysis: false,
+    applianceTemplates: false,
   },
   TRIAL: {
     maxBusinesses: 3,
     monthlyReportHistoryMonths: 24,
     coreDiagnosticJourneyAllowed: true,
+    maxElectricityEntries: null,
+    maxRevenueEntries: null,
+    maxAppliances: null,
+    detailedAnalysis: true,
+    applianceTemplates: true,
   },
   PRO: {
     maxBusinesses: 10,
     monthlyReportHistoryMonths: 24,
     coreDiagnosticJourneyAllowed: true,
+    maxElectricityEntries: null,
+    maxRevenueEntries: null,
+    maxAppliances: null,
+    detailedAnalysis: true,
+    applianceTemplates: true,
+  },
+  BUSINESS: {
+    maxBusinesses: 50,
+    monthlyReportHistoryMonths: 120,
+    coreDiagnosticJourneyAllowed: true,
+    maxElectricityEntries: null,
+    maxRevenueEntries: null,
+    maxAppliances: null,
+    detailedAnalysis: true,
+    applianceTemplates: true,
   },
 };
 
@@ -45,17 +75,23 @@ export async function getUserPlanRow(userId: string) {
   return rows[0] ?? null;
 }
 
+type PlanRowLike = Pick<typeof userPlan.$inferSelect, 'plan' | 'trialEndsAt'> & Partial<Pick<typeof userPlan.$inferSelect, 'status' | 'currentPeriodEndsAt'>>;
+
 export function resolveEffectivePlanFromRow(
-  planRow: typeof userPlan.$inferSelect | null,
+  planRow: PlanRowLike | null,
   now: Date = new Date()
 ): { effectivePlan: EffectivePlan; isTrialExpired: boolean; trialEndsAt: Date | null } {
   if (!planRow) {
     return { effectivePlan: 'FREE', isTrialExpired: false, trialEndsAt: null };
   }
 
+  if (planRow.status !== undefined && planRow.status !== 'ACTIVE') {
+    return { effectivePlan: 'FREE', isTrialExpired: planRow.plan === 'PRO_TRIAL', trialEndsAt: planRow.trialEndsAt };
+  }
+
   if (planRow.plan === 'PRO_TRIAL') {
     const trialEndsAt = planRow.trialEndsAt;
-    const isExpired = trialEndsAt ? now.getTime() > trialEndsAt.getTime() : false;
+    const isExpired = trialEndsAt ? now.getTime() >= trialEndsAt.getTime() : true;
     if (isExpired) {
       return { effectivePlan: 'FREE', isTrialExpired: true, trialEndsAt };
     }
@@ -63,7 +99,17 @@ export function resolveEffectivePlanFromRow(
   }
 
   if (planRow.plan === 'PRO') {
+    if (planRow.currentPeriodEndsAt && now.getTime() >= planRow.currentPeriodEndsAt.getTime()) {
+      return { effectivePlan: 'FREE', isTrialExpired: false, trialEndsAt: null };
+    }
     return { effectivePlan: 'PRO', isTrialExpired: false, trialEndsAt: null };
+  }
+
+  if (planRow.plan === 'BUSINESS') {
+    if (planRow.currentPeriodEndsAt && now.getTime() >= planRow.currentPeriodEndsAt.getTime()) {
+      return { effectivePlan: 'FREE', isTrialExpired: false, trialEndsAt: null };
+    }
+    return { effectivePlan: 'BUSINESS', isTrialExpired: false, trialEndsAt: null };
   }
 
   return { effectivePlan: 'FREE', isTrialExpired: false, trialEndsAt: null };
@@ -98,6 +144,11 @@ export async function getUserEntitlements(userId: string, now: Date = new Date()
       maxBusinesses: policy.maxBusinesses,
       monthlyReportHistoryMonths: policy.monthlyReportHistoryMonths,
       coreDiagnosticJourneyAllowed: policy.coreDiagnosticJourneyAllowed,
+      maxElectricityEntries: policy.maxElectricityEntries,
+      maxRevenueEntries: policy.maxRevenueEntries,
+      maxAppliances: policy.maxAppliances,
+      detailedAnalysis: policy.detailedAnalysis,
+      applianceTemplates: policy.applianceTemplates,
     },
     usage: {
       businessCount: activeBusinessCount,

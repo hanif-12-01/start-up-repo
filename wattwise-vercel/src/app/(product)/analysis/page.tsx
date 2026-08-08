@@ -1,0 +1,505 @@
+import Link from 'next/link';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Gauge,
+  Lightbulb,
+  LineChart,
+  LockKeyhole,
+  ReceiptText,
+  SlidersHorizontal,
+  TrendingUp,
+} from 'lucide-react';
+import { TrendChart, type TrendPoint } from '@/components/analysis/TrendChart';
+import {
+  BusinessSelector,
+  DataNotice,
+  EmptyState,
+  MetricCard,
+  SectionHeader,
+  SoftCard,
+  StatusBadge,
+  Surface,
+  WorkspaceHeader,
+  WorkspacePage,
+  primaryButton,
+} from '@/components/product/WorkspaceUI';
+import { decimal, formatMonth, rupiah } from '@/lib/format';
+import { requireWorkspacePage } from '@/server/services/workspace-page';
+import { getDecisionSupport } from '@/server/services/workspace.service';
+import { getUserEntitlements } from '@/server/services/entitlement.service';
+import { analyzeLatestAnomaly, calculateEfficiencyScore, predictUsage } from '@/server/services/product-analysis';
+import { Simulator } from '../predictions/Simulator';
+
+export const dynamic = 'force-dynamic';
+
+const tabs = [
+  ['overview', Gauge, 'Ringkasan'],
+  ['trend', LineChart, 'Tren'],
+  ['anomaly', AlertTriangle, 'Anomali'],
+  ['forecast', TrendingUp, 'Proyeksi'],
+  ['recommendations', Lightbulb, 'Rekomendasi'],
+  ['simulator', SlidersHorizontal, 'Simulasi'],
+] as const;
+
+export default async function AnalysisPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ businessId?: string | string[]; tab?: string | string[] }>;
+}) {
+  const query = await searchParams;
+  const requestedBusinessId = typeof query.businessId === 'string' ? query.businessId : undefined;
+  const requestedTab = typeof query.tab === 'string' ? query.tab : 'overview';
+  const activeTab = tabs.some(([key]) => key === requestedTab) ? requestedTab : 'overview';
+
+  const { userId } = await requireWorkspacePage(requestedBusinessId);
+  const [data, entitlements] = await Promise.all([
+    getDecisionSupport(userId, requestedBusinessId),
+    getUserEntitlements(userId),
+  ]);
+
+  const tariff = Number(data.business.tariffRupiahPerKwh ?? data.latestBill?.tariffRupiahPerKwh ?? 0) || null;
+
+  // Build samples array ordered chronologically
+  const samples = [...data.bills]
+    .reverse()
+    .map((bill) => ({
+      period: bill.periodEnd.slice(0, 7),
+      usageKwh: bill.kwh === null ? null : Number(bill.kwh),
+      billAmount: Number(bill.totalAmountRupiah),
+      tariff: bill.tariffRupiahPerKwh === null ? tariff : Number(bill.tariffRupiahPerKwh),
+    }));
+
+  const prediction = predictUsage(samples, tariff);
+  const anomaly = analyzeLatestAnomaly(samples);
+  const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
+  const totalEstimate = estimates.reduce((sum, item) => sum + (item.monthlyKwh ?? 0), 0);
+  const shares = estimates.map((item) => (totalEstimate > 0 ? ((item.monthlyKwh ?? 0) / totalEstimate) * 100 : 0));
+
+  // Authoritative Efficiency Score calculation
+  const score = calculateEfficiencyScore({
+    bill: data.latestBill ? Number(data.latestBill.totalAmountRupiah) : null,
+    revenue: data.matchingRevenue ? Number(data.matchingRevenue.amountRupiah) : null,
+    hasTariff: tariff !== null,
+    applianceShares: shares,
+  });
+
+  const ratio = data.ratio;
+  const businessQuery = `businessId=${encodeURIComponent(data.business.id)}`;
+
+  // Construct trend points for visualization
+  const trendPoints: TrendPoint[] = samples.map((s) => ({
+    period: s.period,
+    label: formatMonth(s.period),
+    usageKwh: s.usageKwh,
+    billAmount: s.billAmount,
+    tariff: s.tariff,
+    type: 'historical' as const,
+  }));
+
+  if (prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
+    const nextPeriod = 'Proyeksi';
+    trendPoints.push({
+      period: nextPeriod,
+      label: nextPeriod,
+      usageKwh: prediction.predictedUsageKwh,
+      billAmount: prediction.estimatedBill,
+      tariff,
+      type: 'forecast' as const,
+    });
+  }
+
+  // Generate priority recommendation actions
+  const recommendations = [
+    !data.latestBill && {
+      priority: 'Tinggi',
+      title: 'Catat tagihan terbaru',
+      detail: 'Tagihan diperlukan sebagai dasar perbandingan dan analisis biaya harian.',
+    },
+    !data.matchingRevenue && {
+      priority: 'Sedang',
+      title: 'Lengkapi pendapatan pada bulan yang sama',
+      detail: 'Pendapatan membantu memberi konteks rasio biaya listrik terhadap omzet.',
+    },
+    tariff === null && {
+      priority: 'Sedang',
+      title: 'Lengkapi tarif rata-rata per kWh',
+      detail: 'Tarif membantu mengubah pemakaian menjadi estimasi biaya aktual.',
+    },
+    ratio !== null && ratio > 10 && {
+      priority: ratio > 20 ? 'Tinggi' : 'Sedang',
+      title: 'Pantau rasio listrik terhadap pendapatan',
+      detail: `Porsi tercatat sekitar ${decimal.format(ratio)}%. Angka ini belum memperhitungkan biaya operasional lain.`,
+    },
+    estimates[0] && {
+      priority: 'Sedang',
+      title: `Tinjau pola pakai ${estimates[0].appliance.name}`,
+      detail: 'Prioritas berdasarkan daya, jumlah, dan jam pakai input; bukan pengukuran langsung sensor.',
+    },
+  ].filter(Boolean) as Array<{ priority: string; title: string; detail: string }>;
+
+  // Priority action recommendation
+  const primaryAction = !data.latestBill
+    ? {
+        title: 'Catat Tagihan Listrik Periode Terkini',
+        desc: 'Tagihan adalah fondasi utama untuk analisis tren dan deteksi anomali.',
+        href: `/bills?${businessQuery}`,
+        btnText: 'Tambah Tagihan',
+      }
+    : anomaly.status !== 'Normal' && anomaly.status !== 'Data belum cukup'
+      ? {
+          title: `Indikasi Perubahan Biaya (${anomaly.status})`,
+          desc: `Pemakaian tercatat naik ${decimal.format(Math.abs(anomaly.differencePercent ?? 0))}% dibanding baseline. Jalankan Cek Kenaikan untuk pemeriksaan terstruktur.`,
+          href: `/diagnostics?${businessQuery}`,
+          btnText: 'Jalankan Cek Kenaikan',
+        }
+      : {
+          title: 'Ruang Kerja Terorganisir Dengan Baik',
+          desc: 'Data tagihan Anda teratur. Anda dapat mensimulasikan tambahan peralatan atau meninjau laporan bulanan.',
+          href: `/predictions?${businessQuery}`,
+          btnText: 'Buka Simulator',
+        };
+
+  return (
+    <WorkspacePage>
+      <WorkspaceHeader
+        eyebrow="Pusat Analisis Intelegen"
+        title="Analisis Biaya & Pemakaian"
+        description="Satu tempat terpadu untuk membaca tren historis, indikasi anomali, proyeksi deterministik, rekomendasi prioritas, dan simulasi skenario."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <BusinessSelector businesses={data.businesses} selectedId={data.business.id} route="/analysis" />
+            <StatusBadge variant="primary" size="md">
+              {data.business.name}
+            </StatusBadge>
+          </div>
+        }
+      />
+
+      {/* Top KPI Telemetry Strip */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Tagihan Terakhir"
+          value={data.latestBill ? rupiah.format(Number(data.latestBill.totalAmountRupiah)) : '—'}
+          secondary={data.latestBill ? formatMonth(data.latestBill.periodEnd) : 'Belum ada data'}
+          icon={ReceiptText}
+        />
+        <MetricCard
+          label="Indikasi Anomali"
+          value={anomaly.status}
+          secondary={
+            anomaly.differencePercent === null
+              ? 'Butuh baseline 2 periode'
+              : `${anomaly.differencePercent >= 0 ? '+' : ''}${decimal.format(anomaly.differencePercent)}% dari baseline`
+          }
+          icon={Activity}
+          trend={
+            anomaly.differencePercent !== null
+              ? {
+                  value: `${anomaly.differencePercent >= 0 ? '+' : ''}${decimal.format(anomaly.differencePercent)}%`,
+                  isNegative: anomaly.differencePercent >= 15,
+                  isPositive: anomaly.differencePercent < 0,
+                }
+              : undefined
+          }
+        />
+        <MetricCard
+          label="Proyeksi Pemakaian"
+          value={
+            prediction.predictedUsageKwh === null
+              ? 'Belum ada'
+              : `${decimal.format(prediction.predictedUsageKwh)} kWh`
+          }
+          secondary={prediction.estimatedBill ? rupiah.format(prediction.estimatedBill) : `Keyakinan ${prediction.confidence ?? '—'}`}
+          icon={TrendingUp}
+        />
+        <MetricCard
+          label="Skor Efisiensi"
+          value={score.score !== null ? score.score : '—'}
+          secondary={`${score.label} · Keyakinan ${score.confidence}`}
+          icon={Gauge}
+        />
+      </section>
+
+      {/* Priority Action Banner */}
+      <Surface variant="elevated" className="border-l-4 border-l-[var(--primary)]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-6 w-6 text-[var(--primary)] shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--primary)]">
+                Langkah Prioritas Utama
+              </span>
+              <h2 className="text-lg font-black text-[var(--foreground)]">{primaryAction.title}</h2>
+              <p className="mt-1 text-xs text-[var(--muted)]">{primaryAction.desc}</p>
+            </div>
+          </div>
+          <Link href={primaryAction.href} className={primaryButton}>
+            {primaryAction.btnText}
+            <ChevronRight className="ml-1.5 h-4 w-4" />
+          </Link>
+        </div>
+      </Surface>
+
+      {/* Primary Visual Trend Area */}
+      <SoftCard>
+        <SectionHeader
+          title="Tren & Proyeksi Pemakaian Listrik"
+          description="Visualisasi perbandingan data tagihan tercatat historis dengan estimasi proyeksi deterministik."
+          badge={
+            <StatusBadge variant="info">
+              {samples.length} Periode Data
+            </StatusBadge>
+          }
+        />
+        <div className="mt-6">
+          <TrendChart points={trendPoints} metric="kwh" />
+        </div>
+      </SoftCard>
+
+      {/* Analysis Tabs Navigation */}
+      <nav aria-label="Bagian analisis" className="flex gap-1.5 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">
+        {tabs.map(([key, Icon, label]) => (
+          <Link
+            key={key}
+            href={`/analysis?${businessQuery}&tab=${key}`}
+            aria-current={activeTab === key ? 'page' : undefined}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+              activeTab === key
+                ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm'
+                : 'text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Surface variant="default">
+              <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-xs uppercase tracking-wider">
+                <LineChart className="h-4 w-4" />
+                Tren Historis
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                Menunjukkan pola biaya dan pemakaian berbasis tagihan bulanan yang telah Anda masukkan.
+              </p>
+            </Surface>
+            <Surface variant="default">
+              <div className="flex items-center gap-2 text-[var(--warning)] font-bold text-xs uppercase tracking-wider">
+                <AlertTriangle className="h-4 w-4" />
+                Sinyal Anomali
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                Indikasi awal jika biaya harian naik di atas baseline tinjauan, bukan bukti kerusakan alat.
+              </p>
+            </Surface>
+            <Surface variant="default">
+              <div className="flex items-center gap-2 text-[var(--info)] font-bold text-xs uppercase tracking-wider">
+                <TrendingUp className="h-4 w-4" />
+                Proyeksi Deterministik
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                Perhitungan matematis berbasis rata-rata bergerak dan tren linear tanpa AI generatif atau asumsi sembarangan.
+              </p>
+            </Surface>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: TREND TABLE */}
+      {activeTab === 'trend' && (
+        <SoftCard>
+          <SectionHeader
+            title="Riwayat Tagihan & Pemakaian"
+            description="Detail catatan tagihan listrik yang tersimpan pada akun Anda."
+            badge={<StatusBadge variant="neutral">{data.bills.length} Tagihan</StatusBadge>}
+          />
+          {samples.length === 0 ? (
+            <div className="mt-6">
+              <EmptyState
+                icon={ReceiptText}
+                title="Belum ada data tagihan"
+                description="Catat tagihan pertama Anda untuk mulai membentuk tren pemakaian."
+                href={`/bills?${businessQuery}`}
+                action="Tambah Tagihan"
+              />
+            </div>
+          ) : (
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wider text-[var(--muted)]">
+                    <th className="pb-3">Periode</th>
+                    <th className="pb-3">Tagihan (Rp)</th>
+                    <th className="pb-3">Pemakaian (kWh)</th>
+                    <th className="pb-3">Tarif (Rp/kWh)</th>
+                    <th className="pb-3">Kategori Data</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {[...data.bills].map((bill) => (
+                    <tr key={bill.id} className="hover:bg-[var(--surface-muted)]">
+                      <td className="py-4 font-bold text-[var(--foreground)]">{formatMonth(bill.periodEnd)}</td>
+                      <td className="py-4 font-black tabular-nums text-[var(--primary)]">
+                        {rupiah.format(bill.totalAmountRupiah)}
+                      </td>
+                      <td className="py-4 font-semibold tabular-nums text-[var(--foreground)]">
+                        {bill.kwh ? `${decimal.format(Number(bill.kwh))} kWh` : 'Tidak diisi'}
+                      </td>
+                      <td className="py-4 tabular-nums text-[var(--muted)]">
+                        {bill.tariffRupiahPerKwh ? rupiah.format(Number(bill.tariffRupiahPerKwh)) : '—'}
+                      </td>
+                      <td className="py-4">
+                        <StatusBadge variant="success" size="sm">Tercatat</StatusBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SoftCard>
+      )}
+
+      {/* TAB 3: ANOMALY */}
+      {activeTab === 'anomaly' && (
+        <SoftCard>
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-black text-[var(--foreground)]">{anomaly.status}</h2>
+                <StatusBadge variant={anomaly.status === 'Normal' ? 'success' : 'warning'}>
+                  {anomaly.status}
+                </StatusBadge>
+              </div>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">
+                {anomaly.differencePercent === null
+                  ? 'Tambahkan minimal satu periode historis tambahan untuk membentuk baseline pembandingan biaya harian.'
+                  : `Pemakaian periode terbaru ${
+                      anomaly.differencePercent >= 0 ? 'berada' : 'turun'
+                    } ${decimal.format(Math.abs(anomaly.differencePercent))}% dibanding rata-rata baseline (${decimal.format(
+                      anomaly.baseline ?? 0
+                    )} kWh).`}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <DataNotice title="Definisi Sinyal Anomali" variant="warning">
+              Ini adalah indikasi awal berbasis perbandingan data input Anda. Angka ini bukan diagnosis teknis, bukan bukti kerusakan peralatan, dan bukan klaim resmi PLN.
+            </DataNotice>
+          </div>
+        </SoftCard>
+      )}
+
+      {/* TAB 4: FORECAST */}
+      {activeTab === 'forecast' && (
+        <SoftCard>
+          {!entitlements.limits.detailedAnalysis && (
+            <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[var(--surface-muted)] p-4">
+              <LockKeyhole className="h-5 w-5 text-[var(--muted)] shrink-0" />
+              <p className="text-xs text-[var(--muted)]">
+                Paket Gratis menampilkan ringkasan proyeksi dasar. Detail historis panjang dan faktor musim tersedia pada Paket Pro.
+              </p>
+            </div>
+          )}
+          <SectionHeader title="Proyeksi Pemakaian Deterministik" description="Dihitung dari tren linear dan rata-rata bergerak berbobot data historis Anda." />
+          {prediction.hasPrediction ? (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Surface variant="muted">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Pemakaian</p>
+                <p className="mt-2 text-2xl font-black tabular-nums text-[var(--foreground)]">
+                  {decimal.format(prediction.predictedUsageKwh ?? 0)} kWh
+                </p>
+              </Surface>
+              <Surface variant="muted">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Tagihan</p>
+                <p className="mt-2 text-xl font-black tabular-nums text-[var(--foreground)]">
+                  {prediction.estimatedBill === null ? 'Tarif belum diisi' : rupiah.format(prediction.estimatedBill)}
+                </p>
+              </Surface>
+              <Surface variant="muted">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Risiko Kenaikan</p>
+                <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
+              </Surface>
+              <Surface variant="muted">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Keyakinan</p>
+                <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.confidence ?? 'Sedang'}</p>
+              </Surface>
+            </div>
+          ) : (
+            <div className="mt-5">
+              <EmptyState
+                icon={TrendingUp}
+                title="Belum dapat diproyeksikan"
+                description="Tambahkan minimal satu catatan dengan kWh atau kombinasi tagihan dan tarif untuk menghasilkan proyeksi."
+              />
+            </div>
+          )}
+          <p className="mt-5 text-xs text-[var(--muted)]">
+            Metode: {prediction.method ?? 'Belum tersedia'} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
+          </p>
+        </SoftCard>
+      )}
+
+      {/* TAB 5: RECOMMENDATIONS */}
+      {activeTab === 'recommendations' && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {recommendations.length ? (
+            recommendations.map((item, index) => (
+              <SoftCard key={item.title}>
+                <div className="flex items-center justify-between">
+                  <StatusBadge variant="primary">Prioritas {index + 1}</StatusBadge>
+                  <Lightbulb className="h-5 w-5 text-[var(--primary)]" />
+                </div>
+                <h3 className="mt-4 text-base font-extrabold text-[var(--foreground)]">{item.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{item.detail}</p>
+              </SoftCard>
+            ))
+          ) : (
+            <div className="md:col-span-3">
+              <EmptyState
+                icon={CheckCircle2}
+                title="Belum ada prioritas tambahan"
+                description="Data terkini Anda berada dalam kondisi baik dan tidak memicu aturan rekomendasi utama."
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 6: SIMULATOR */}
+      {activeTab === 'simulator' && (
+        <SoftCard>
+          <SectionHeader
+            title="Simulator Skenario Peralatan"
+            description="Simulasikan dampak biaya tambahan peralatan sebelum Anda membelinya. Perhitungan berjalan di browser tanpa mengubah data tersimpan."
+          />
+          <div className="mt-6">
+            <Simulator
+              baseBill={data.latestBill ? Number(data.latestBill.totalAmountRupiah) : null}
+              defaultTariff={tariff ?? 1444.7}
+              applianceOptions={data.appliances
+                .filter((item) => item.powerWatts !== null)
+                .map((item) => ({ name: item.name, powerWatts: item.powerWatts as number }))}
+            />
+          </div>
+        </SoftCard>
+      )}
+
+      {/* Data Notice Footer */}
+      <DataNotice title="Ketentuan & Transparansi Data WattWise AI">
+        Semua analisis, indikasi anomali, proyeksi, dan rekomendasi disusun berdasarkan data yang Anda masukkan. Hasil ini bukan pembacaan sensor langsung, bukan bukti kerusakan alat, dan tidak menggantikan pengukuran resmi PLN.
+      </DataNotice>
+    </WorkspacePage>
+  );
+}

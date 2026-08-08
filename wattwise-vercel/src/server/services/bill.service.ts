@@ -5,6 +5,7 @@ import {
 } from '@/server/repositories/bill.repository';
 import { compareBills } from '@/server/services/bill-comparison.service';
 import type { CreateBillInput } from '@/server/validation/bills';
+import { getUserEntitlements } from './entitlement.service';
 
 export async function createBill(
   userId: string,
@@ -12,6 +13,11 @@ export async function createBill(
   businessId?: string
 ) {
   if (!userId) throw new Error('UNAUTHENTICATED');
+  const entitlements = await getUserEntitlements(userId);
+  if (entitlements.limits.maxElectricityEntries !== null) {
+    const existing = await listBillsForUser(userId, businessId);
+    if (existing.length >= entitlements.limits.maxElectricityEntries) throw new Error('Batas 3 tagihan paket Gratis telah tercapai.');
+  }
   return createBillForOwnedBusiness(userId, input, businessId);
 }
 

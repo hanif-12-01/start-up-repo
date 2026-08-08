@@ -61,6 +61,8 @@ export const appliance = pgTable(
     quantity: integer('quantity').notNull().default(1),
     operatingDays: integer('operating_days').notNull().default(30),
     dataSource: text('data_source').notNull().default('MANUAL'),
+    confidence: text('confidence').notNull().default('USER_CUSTOM'),
+    notes: text('notes'),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

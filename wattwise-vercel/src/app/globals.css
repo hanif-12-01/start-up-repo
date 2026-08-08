@@ -1,21 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f9f4;
+  color-scheme: light;
+  --background: #f6f8f3;
   --foreground: #17211b;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #edf3e9;
+  --surface-strong: #dfead9;
+  --text-primary: #17211b;
+  --text-secondary: #5d6b62;
+  --text-tertiary: #87978c;
+  --muted: #5d6b62;
+  --border: rgba(20, 83, 55, 0.14);
+  --border-strong: rgba(20, 83, 55, 0.28);
+  --primary: #2f855a;
+  --primary-hover: #276d4b;
+  --primary-soft: #e7f5ec;
+  --primary-foreground: #ffffff;
+  --focus: #34a36f;
+  --focus-ring: #34a36f;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #b4233c;
+  --info: #0284c7;
+  --shadow: 0 22px 55px -38px rgba(18, 72, 48, 0.42);
+}
+
+html.dark {
+  color-scheme: dark;
+  --background: #101a15;
+  --foreground: #e7f1ea;
+  --surface: #17251d;
+  --surface-elevated: #1a2a21;
+  --surface-muted: #1d2f25;
+  --surface-strong: #294334;
+  --text-primary: #e7f1ea;
+  --text-secondary: #a7b7ac;
+  --text-tertiary: #6c7f71;
+  --muted: #a7b7ac;
+  --border: rgba(188, 221, 199, 0.16);
+  --border-strong: rgba(188, 221, 199, 0.32);
+  --primary: #4eaa76;
+  --primary-hover: #68bf8b;
+  --primary-soft: #193d2a;
+  --primary-foreground: #101a15;
+  --focus: #7bd49e;
+  --focus-ring: #7bd49e;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ff8091;
+  --info: #38bdf8;
+  --shadow: 0 24px 60px -35px rgba(0, 0, 0, 0.75);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.011em;
+}
+
+* { border-color: var(--border); }
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 70%, transparent);
+  outline-offset: 2px;
 }
 
 ::selection {
@@ -27,41 +84,55 @@ html {
   scroll-behavior: smooth;
 }
 
-.product-shell [class*="bg-slate-950"],
-.product-shell [class*="bg-slate-900"] {
-  background-color: #f7f9f4 !important;
+.product-shell { background: var(--background); color: var(--foreground); }
+
+/* ── Landing page dark-mode overrides ─────────────────────────────────────── */
+/* These selectors adapt light landing surfaces when dark theme is active.    */
+/* Dark sections (bg-[#0f1c15]) are intentionally dark in all themes.         */
+
+.dark .landing-theme-root {
+  background: var(--background);
+  color: var(--foreground);
 }
 
-.product-shell [class*="bg-slate-800"] {
-  background-color: #ffffff !important;
+/* Light section backgrounds → dark background */
+.dark .landing-theme-root [class*="bg-[#f7f9f4]"],
+.dark .landing-theme-root [class*="bg-[#edf4e8]"],
+.dark .landing-theme-root [class*="bg-[#e8f1e3]"],
+.dark .landing-theme-root [class*="bg-[#e8f2e3]"],
+.dark .landing-theme-root [class*="bg-[#e6f0e1]"] {
+  background-color: var(--background);
 }
 
-.product-shell [class*="border-slate-800"],
-.product-shell [class*="border-slate-700"],
-.product-shell [class*="border-slate-600"] {
-  border-color: rgba(6, 78, 59, 0.14) !important;
+/* Tinted green surfaces (light cards) → dark elevated surface */
+.dark .landing-theme-root [class*="bg-[#eef5ea]"],
+.dark .landing-theme-root [class*="bg-[#eef6ea]"],
+.dark .landing-theme-root [class*="bg-[#f2f7ee]"] {
+  background-color: var(--surface-elevated);
 }
 
-.product-shell [class*="text-slate-100"],
-.product-shell [class*="text-slate-200"] {
-  color: #17211b !important;
+/* White surfaces → dark elevated surface */
+.dark .landing-theme-root [class*="bg-white"] {
+  background-color: var(--surface-elevated);
 }
 
-.product-shell [class*="text-slate-300"],
-.product-shell [class*="text-slate-400"] {
-  color: #526158 !important;
+/* Emerald-50 soft surfaces → primary soft */
+.dark .landing-theme-root [class*="bg-emerald-50"] {
+  background-color: var(--primary-soft);
 }
 
-.product-shell .report-print-root [class*="bg-slate-950"] {
-  background-color: #065f46 !important;
+/* Heading text (emerald-950, slate-900/700) → foreground */
+.dark .landing-theme-root [class*="text-emerald-950"],
+.dark .landing-theme-root [class*="text-slate-900"],
+.dark .landing-theme-root [class*="text-slate-700"] {
+  color: var(--foreground);
 }
 
-.product-shell .report-print-root [class*="text-slate-100"] {
-  color: #ffffff !important;
-}
-
-.product-shell .report-print-root [class*="text-slate-300"] {
-  color: #d1fae5 !important;
+/* Body text (slate-600/500, emerald-900) → muted foreground */
+.dark .landing-theme-root [class*="text-slate-600"],
+.dark .landing-theme-root [class*="text-slate-500"],
+.dark .landing-theme-root [class*="text-emerald-900"] {
+  color: var(--muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

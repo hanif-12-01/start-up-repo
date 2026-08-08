@@ -11,6 +11,9 @@ export interface BillRecord {
   totalAmountRupiah: bigint;
   kwh: string | null;
   tariffRupiahPerKwh: string | null;
+  meterStart?: string | null;
+  meterEnd?: string | null;
+  paymentMethod?: string | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -25,6 +28,9 @@ interface BillRow {
   total_amount_rupiah: string;
   kwh: string | null;
   tariff_rupiah_per_kwh: string | null;
+  meter_start: string | null;
+  meter_end: string | null;
+  payment_method: string | null;
   notes: string | null;
   created_at: Date;
   updated_at: Date;
@@ -68,6 +74,9 @@ function mapBill(row: BillRow): BillRecord {
     totalAmountRupiah: BigInt(row.total_amount_rupiah),
     kwh: row.kwh,
     tariffRupiahPerKwh: row.tariff_rupiah_per_kwh,
+    meterStart: row.meter_start,
+    meterEnd: row.meter_end,
+    paymentMethod: row.payment_method,
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -129,11 +138,11 @@ export async function createBillForOwnedBusiness(
     const result = await client.query<BillRow>(
       `INSERT INTO electricity_bill (
          id, business_id, period_start, period_end, total_amount_rupiah,
-         kwh, tariff_rupiah_per_kwh, notes
+         kwh, tariff_rupiah_per_kwh, meter_start, meter_end, payment_method, notes
        )
-       VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8)
+       VALUES ($1, $2, $3::date, $4::date, $5, COALESCE($6, CASE WHEN $10::numeric IS NOT NULL AND $11::numeric IS NOT NULL THEN $11::numeric - $10::numeric END), $7, $10, $11, $12, $8)
        RETURNING id, business_id, $9::text AS business_name, period_start, period_end,
-         total_amount_rupiah, kwh, tariff_rupiah_per_kwh, notes, created_at, updated_at`,
+         total_amount_rupiah, kwh, tariff_rupiah_per_kwh, meter_start, meter_end, payment_method, notes, created_at, updated_at`,
       [
         crypto.randomUUID(),
         ownedBusiness.id,
@@ -144,6 +153,9 @@ export async function createBillForOwnedBusiness(
         input.tariffRupiahPerKwh ?? null,
         input.notes ?? null,
         ownedBusiness.name,
+        input.meterStart ?? null,
+        input.meterEnd ?? null,
+        input.paymentMethod ?? null,
       ]
     );
     await client.query('COMMIT');
@@ -163,7 +175,7 @@ export async function listBillsForUser(
   if (!userId) return [];
   const result = await getPool().query<BillRow>(
     `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
-            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.notes,
+            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.payment_method, eb.notes,
             eb.created_at, eb.updated_at
        FROM electricity_bill eb
        JOIN business b ON b.id = eb.business_id
@@ -182,7 +194,7 @@ export async function findPreviousBillForUser(
   if (!userId) return null;
   const result = await getPool().query<BillRow>(
     `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
-            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.notes,
+            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.payment_method, eb.notes,
             eb.created_at, eb.updated_at
        FROM electricity_bill eb
        JOIN business b ON b.id = eb.business_id

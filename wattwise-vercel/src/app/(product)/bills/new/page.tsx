@@ -5,6 +5,7 @@ import { getOptionalSession } from '@/server/auth/session';
 import { getActiveBusinessById, getBusinessesByUser } from '@/server/services/business.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { BillForm } from './BillForm';
+import { getBillOverview } from '@/server/services/bill.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +32,11 @@ export default async function NewBillPage({
     : businesses[0];
   if (requestedBusinessId && !currentBusiness) notFound();
   if (!currentBusiness) redirect('/businesses/new');
+  const overview = await getBillOverview(userId, currentBusiness.id);
 
   return (
-    <main className="min-h-screen bg-slate-900 p-4 text-slate-100 md:p-10">
-      <PageReveal className="mx-auto w-full max-w-2xl space-y-6 rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
+    <main className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] md:p-10">
+      <PageReveal className="mx-auto w-full max-w-2xl space-y-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
         <Reveal direction="down">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">{currentBusiness.name}</p>
@@ -46,7 +48,7 @@ export default async function NewBillPage({
           </div>
         </Reveal>
 
-        <BillForm businessId={currentBusiness.id} />
+        <BillForm businessId={currentBusiness.id} previousMeterEnd={overview.current?.meterEnd} />
       </PageReveal>
     </main>
   );

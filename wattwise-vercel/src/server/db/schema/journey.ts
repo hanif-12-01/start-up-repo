@@ -1,8 +1,9 @@
-import { pgTable, text, timestamp, integer, boolean, check, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, boolean, check, unique, numeric } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { user } from './auth';
 
 export const PLAN_TYPES = ['FREE', 'PRO_TRIAL'] as const;
+export const SUBSCRIPTION_PLAN_TYPES = ['FREE', 'PRO_TRIAL', 'PRO', 'BUSINESS'] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
 export const userPlan = pgTable(
@@ -17,6 +18,11 @@ export const userPlan = pgTable(
     plan: text('plan').notNull(),
     trialStartsAt: timestamp('trial_starts_at', { withTimezone: true }),
     trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+    trialUsedAt: timestamp('trial_used_at', { withTimezone: true }),
+    status: text('status').notNull().default('ACTIVE'),
+    currentPeriodStartsAt: timestamp('current_period_starts_at', { withTimezone: true }),
+    currentPeriodEndsAt: timestamp('current_period_ends_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     idempotencyKey: text('idempotency_key'),
     onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -25,7 +31,8 @@ export const userPlan = pgTable(
   (t) => [
     unique('user_plan_user_id_unique').on(t.userId),
     unique('user_plan_idempotency_key_unique').on(t.idempotencyKey),
-    check('user_plan_plan_check', sql`${t.plan} IN ('FREE', 'PRO_TRIAL')`),
+    check('user_plan_plan_check', sql`${t.plan} IN ('FREE', 'PRO_TRIAL', 'PRO', 'BUSINESS')`),
+    check('user_plan_status_check', sql`${t.status} IN ('ACTIVE', 'CANCELLED', 'EXPIRED')`),
     check(
       'user_plan_free_no_trial_check',
       sql`${t.plan} != 'FREE' OR (${t.trialStartsAt} IS NULL AND ${t.trialEndsAt} IS NULL)`
@@ -62,10 +69,23 @@ export const business = pgTable(
     name: text('name').notNull(),
     businessType: text('business_type').notNull(),
     city: text('city'),
+    province: text('province'),
+    address: text('address'),
     segment: text('segment').notNull(),
     electricalSystem: text('electrical_system').notNull(),
     roomCount: integer('room_count'),
+    occupiedRoomCount: integer('occupied_room_count'),
+    employeeCount: integer('employee_count'),
+    operatingDaysPerMonth: integer('operating_days_per_month'),
+    businessNotes: text('business_notes'),
+    customerType: text('customer_type'),
+    powerVa: integer('power_va'),
+    tariffRupiahPerKwh: numeric('tariff_rupiah_per_kwh', { precision: 15, scale: 2 }),
+    paymentMethod: text('payment_method'),
+    meterType: text('meter_type'),
+    electricityNotes: text('electricity_notes'),
     isActive: boolean('is_active').notNull().default(true),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

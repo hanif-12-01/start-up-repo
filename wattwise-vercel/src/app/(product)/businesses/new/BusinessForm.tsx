@@ -47,9 +47,9 @@ const ELECTRICAL_SYSTEMS = [
 ] as const;
 
 const inputClass =
-  'w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';
+  'w-full rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)] disabled:opacity-50';
 
-const labelClass = 'block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1';
+const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]';
 
 export function BusinessForm() {
   const [state, formAction, isPending] = useActionState(createBusinessAction, null);
@@ -66,7 +66,7 @@ export function BusinessForm() {
         </Reveal>
       )}
 
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} className="grid gap-4 md:grid-cols-2">
         <Reveal direction="up" delay={0.05}>
           <div>
             <label htmlFor="name" className={labelClass}>
@@ -76,6 +76,19 @@ export function BusinessForm() {
             {fieldErr('name') && <p className="text-xs text-red-400 mt-1">{fieldErr('name')}</p>}
           </div>
         </Reveal>
+
+        <label><span className={labelClass}>Provinsi</span><input name="province" className={inputClass} placeholder="Opsional"/></label>
+        <label><span className={labelClass}>Alamat</span><input name="address" className={inputClass} placeholder="Opsional"/></label>
+        <label><span className={labelClass}>Kamar/unit terisi</span><input name="occupiedRoomCount" type="number" min="0" className={inputClass}/></label>
+        <label><span className={labelClass}>Jumlah pegawai</span><input name="employeeCount" type="number" min="0" className={inputClass}/></label>
+        <label><span className={labelClass}>Hari operasi/bulan</span><input name="operatingDaysPerMonth" type="number" min="1" max="31" className={inputClass}/></label>
+        <label><span className={labelClass}>Golongan pelanggan</span><input name="customerType" className={inputClass} placeholder="Contoh: B2"/></label>
+        <label><span className={labelClass}>Daya terpasang (VA)</span><input name="powerVa" type="number" min="1" className={inputClass}/></label>
+        <label><span className={labelClass}>Tarif rata-rata/kWh</span><input name="tariffRupiahPerKwh" type="number" min="0" step="0.01" className={inputClass}/></label>
+        <label><span className={labelClass}>Metode pembayaran</span><input name="paymentMethod" className={inputClass} placeholder="Pascabayar/token"/></label>
+        <label><span className={labelClass}>Tipe meter</span><input name="meterType" className={inputClass} placeholder="Digital/analog"/></label>
+        <label className="md:col-span-2"><span className={labelClass}>Catatan usaha</span><textarea name="businessNotes" rows={2} className={inputClass}/></label>
+        <label className="md:col-span-2"><span className={labelClass}>Catatan profil listrik</span><textarea name="electricityNotes" rows={2} className={inputClass}/></label>
 
         <Reveal direction="up" delay={0.1}>
           <div>
@@ -142,7 +155,7 @@ export function BusinessForm() {
           </div>
         </Reveal>
 
-        <Reveal direction="up" delay={0.35}>
+        <Reveal direction="up" delay={0.35} className="md:col-span-2">
           <InteractiveMotion>
             <button
               type="submit"

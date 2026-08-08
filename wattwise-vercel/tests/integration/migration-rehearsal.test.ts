@@ -8,7 +8,7 @@ import {
 
 const { Pool } = pg;
 
-describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
+describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
   let pool: pg.Pool;
   const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
 
@@ -55,6 +55,9 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
     'revenue_entry',
     'appliance',
     'user_preference',
+    'billing_plan',
+    'sandbox_invoice',
+    'sandbox_payment',
   ];
 
   async function getPublicTableNames(): Promise<string[]> {
@@ -120,9 +123,9 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
     expect(indexNames).toContain('appliance_business_active_idx');
   }
 
-  it('STEP 1: Apply all forward migrations 0000–0008 (FIRST UP)', async () => {
+  it('STEP 1: Apply all forward migrations 0000–0009 (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBe(9); // 0000 to 0008
+    expect(forwardNames.length).toBe(10); // 0000 to 0009
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -149,8 +152,9 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
     await expect(pool.query(`INSERT INTO "appliance" (id, business_id, name, category, quantity, operating_days) VALUES ('workspace-a2', 'workspace-b1', 'mesin cuci', 'Mesin produksi', 1, 30)`)).rejects.toThrow();
   });
 
-  it('STEP 2: Apply all rollback migrations 0008–0000 in reverse order (DOWN)', async () => {
+  it('STEP 2: Apply all rollback migrations 0009–0000 in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0009_product_parity_rollback.sql',
       '0008_workspace_feature_parity_rollback.sql',
       '0007_action_outcome_evaluations_rollback.sql',
       '0006_energy_action_plans_rollback.sql',
@@ -171,7 +175,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0008)', () => {
     expect(remainingTables.length).toBe(0);
   });
 
-  it('STEP 3: Apply all forward migrations 0000–0008 a second time (SECOND UP)', async () => {
+  it('STEP 3: Apply all forward migrations 0000–0009 a second time (SECOND UP)', async () => {
     const forwardNames = listForwardMigrationNames();
 
     for (const name of forwardNames) {

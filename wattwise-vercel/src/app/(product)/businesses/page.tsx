@@ -21,8 +21,8 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         actions={<Link href="/businesses/new" className={primaryButton}>+ Tambah Usaha</Link>}
       />
 
-      {query.notice === 'keep-one-active' && <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">Sisakan minimal satu usaha aktif agar perjalanan WattWise tetap dapat digunakan.</div>}
-      {query.updated && <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Status usaha berhasil diperbarui.</div>}
+      {query.notice === 'keep-one-active' && <div role="alert" className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm font-semibold text-amber-600 dark:text-amber-400">Sisakan minimal satu usaha aktif agar perjalanan WattWise tetap dapat digunakan.</div>}
+      {query.updated && <div role="status" className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400">Status usaha berhasil diperbarui.</div>}
 
       {portfolio.length === 0 ? (
         <EmptyState icon="🏢" title="Belum ada usaha" description="Tambahkan usaha pertama untuk mulai mencatat tagihan dan menjalankan Cek Kenaikan." href="/businesses/new" action="Tambah Usaha" />
@@ -32,24 +32,25 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
             <SoftCard key={item.id} className={!item.isActive ? 'opacity-75' : ''}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span aria-hidden="true" className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-100 text-xl">🏢</span>
+                  <span aria-hidden="true" className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--primary-soft)] text-xl">🏢</span>
                   <div>
-                    <h2 className="text-lg font-extrabold text-emerald-950">{item.name}</h2>
-                    <p className="mt-1 text-sm text-slate-500">{businessSegmentLabel(item.segment)}{item.city ? ` · ${item.city}` : ''}</p>
+                    <h2 className="text-lg font-extrabold text-[var(--foreground)]">{item.name}</h2>
+                    <p className="mt-1 text-sm text-[var(--muted)]">{businessSegmentLabel(item.segment)}{item.city ? ` · ${item.city}` : ''}</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${item.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>{item.isActive ? 'Aktif' : 'Diarsipkan'}</span>
+                <span className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${item.isActive ? 'bg-[var(--primary-soft)] text-[var(--primary)]' : 'bg-[var(--surface-muted)] text-[var(--muted)]'}`}>{item.isActive ? 'Aktif' : 'Diarsipkan'}</span>
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-[#f7f9f4] p-4"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Tagihan terakhir</p><p className="mt-2 font-extrabold text-slate-900">{item.latestBill ? rupiah.format(item.latestBill.totalAmountRupiah) : 'Belum ada data'}</p></div>
-                <div className="rounded-2xl bg-[#f7f9f4] p-4"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sistem listrik</p><p className="mt-2 font-extrabold text-slate-900">{item.electricalSystem.replaceAll('_', ' ')}</p></div>
+                <div className="rounded-2xl bg-[var(--surface-muted)] p-4"><p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Tagihan terakhir</p><p className="mt-2 font-extrabold text-[var(--foreground)]">{item.latestBill ? rupiah.format(item.latestBill.totalAmountRupiah) : 'Belum ada data'}</p></div>
+                <div className="rounded-2xl bg-[var(--surface-muted)] p-4"><p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Sistem listrik</p><p className="mt-2 font-extrabold text-[var(--foreground)]">{item.electricalSystem.replaceAll('_', ' ')}</p></div>
               </div>
-              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-emerald-900/10 pt-4">
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
                 {item.isActive && <Link href={`/dashboard?businessId=${encodeURIComponent(item.id)}`} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Buka Dashboard</Link>}
+                {item.isActive && <Link href={`/businesses/${encodeURIComponent(item.id)}/edit`} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]">Edit Profil</Link>}
                 <form action={setBusinessStatusAction}>
                   <input type="hidden" name="businessId" value={item.id} />
                   <input type="hidden" name="status" value={item.isActive ? 'archived' : 'active'} />
-                  <button type="submit" className="rounded-xl border border-emerald-900/15 bg-white px-4 py-2 text-sm font-bold text-emerald-950 hover:bg-emerald-50">{item.isActive ? 'Arsipkan' : 'Pulihkan'}</button>
+                  <button type="submit" className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]">{item.isActive ? 'Arsipkan' : 'Pulihkan'}</button>
                 </form>
               </div>
             </SoftCard>

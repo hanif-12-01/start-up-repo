@@ -5,12 +5,13 @@ import { useActionState } from 'react';
 import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 import { Reveal } from '@/components/motion/Reveal';
 import { createBillAction } from './actions';
+import { MeterOcrInput } from './MeterOcrInput';
 
 const inputClass =
   'w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';
 const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-300';
 
-export function BillForm({ businessId }: { businessId: string }) {
+export function BillForm({ businessId, previousMeterEnd }: { businessId: string; previousMeterEnd?: string | null }) {
   const [state, formAction, isPending] = useActionState(createBillAction, null);
   const fieldError = (name: string) => state?.fieldErrors?.[name];
   const previousValue = (name: string) => state?.values?.[name] ?? '';
@@ -125,6 +126,14 @@ export function BillForm({ businessId }: { businessId: string }) {
           <p className="-mt-3 text-xs text-slate-500">
             WattWise tidak menebak kWh atau tarif dari total tagihan. Kolom kosong akan tetap kosong.
           </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><label htmlFor="meterStart" className={labelClass}>Meter awal</label><input id="meterStart" name="meterStart" type="number" min="0" step="0.001" defaultValue={previousValue('meterStart') || previousMeterEnd || ''} className={inputClass} placeholder="Opsional"/>{fieldError('meterStart') && <p className="mt-1 text-xs text-red-400">{fieldError('meterStart')}</p>}</div>
+            <div><label htmlFor="meterEnd" className={labelClass}>Meter akhir</label><input id="meterEnd" name="meterEnd" type="number" min="0" step="0.001" defaultValue={previousValue('meterEnd')} className={inputClass} placeholder="Opsional"/>{fieldError('meterEnd') && <p className="mt-1 text-xs text-red-400">{fieldError('meterEnd')}</p>}</div>
+          </div>
+          <p className="-mt-3 text-xs text-slate-500">Jika kWh kosong dan kedua meter diisi, pemakaian dihitung dari meter akhir − meter awal. Meter awal diprefill dari catatan akhir terbaru jika tersedia.</p>
+          <MeterOcrInput targetInputId="meterEnd" />
+          <div><label htmlFor="paymentMethod" className={labelClass}>Metode pembayaran</label><select id="paymentMethod" name="paymentMethod" defaultValue={previousValue('paymentMethod')} className={inputClass}><option value="">Tidak diisi</option><option value="POSTPAID">Pascabayar</option><option value="PREPAID">Token/prabayar</option><option value="OTHER">Lainnya</option></select></div>
 
           <div>
             <label htmlFor="notes" className={labelClass}>
