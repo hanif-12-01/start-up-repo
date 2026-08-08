@@ -19,12 +19,17 @@ export const auth = betterAuth({
   },
   secret: env.BETTER_AUTH_SECRET || 'dev_fallback_secret_32_characters_minimum_length_required_for_auth',
   baseURL: env.BETTER_AUTH_URL || 'http://localhost:3000',
-  trustedOrigins: [
+  trustedOrigins: Array.from(new Set([
     env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
     'http://wattwise-prod-server:3000',
-  ],
+    ...(process.env.PORT ? [`http://localhost:${process.env.PORT}`, `http://127.0.0.1:${process.env.PORT}`] : []),
+  ].filter(Boolean))),
   advanced: {
     cookiePrefix: 'wattwise',
   },
