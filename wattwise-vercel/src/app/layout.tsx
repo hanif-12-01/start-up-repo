@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { ThemeBootstrap } from '@/components/ThemeBootstrap';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -15,8 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" data-scroll-behavior="smooth" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#f7f9f4] text-slate-900 font-sans">
+    <html lang="id" data-scroll-behavior="smooth" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] font-sans">
+        <ThemeBootstrap />
         {children}
       </body>
     </html>

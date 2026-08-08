@@ -31,6 +31,9 @@ export async function createBillAction(
     totalAmountRupiah: String(formData.get('totalAmountRupiah') ?? ''),
     kwh: String(formData.get('kwh') ?? ''),
     tariffRupiahPerKwh: String(formData.get('tariffRupiahPerKwh') ?? ''),
+    meterStart: String(formData.get('meterStart') ?? ''),
+    meterEnd: String(formData.get('meterEnd') ?? ''),
+    paymentMethod: String(formData.get('paymentMethod') ?? ''),
     notes: String(formData.get('notes') ?? ''),
   };
   const businessId = String(formData.get('businessId') ?? '');

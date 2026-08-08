@@ -12,15 +12,15 @@ export default async function NewBusinessPage() {
   if (!sessionResult?.user) redirect('/login');
 
   const step = await resolveJourneyStep(sessionResult.user.id);
-  if (step !== 'BUSINESS') redirect(getJourneyRedirect(step));
+  if (step !== 'BUSINESS' && step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-100 p-4">
-      <PageReveal className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-6">
+    <main className="min-h-screen bg-[var(--background)] p-4 py-10 text-[var(--foreground)]">
+      <PageReveal className="mx-auto w-full max-w-4xl space-y-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow)] md:p-8">
         <Reveal direction="down">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">Profil Usaha</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--primary)]">Profil Usaha</h1>
+            <p className="text-sm text-[var(--muted)]">
               Buat profil usaha atau properti Anda. Data ini digunakan untuk analisis tagihan listrik.
             </p>
           </div>

@@ -146,6 +146,7 @@ export default async function MonthlyReportPage({
             </div>
             <div className="report-print-hide flex flex-wrap gap-3">
               <PrintReportButton />
+              <a href={`/api/reports/monthly.csv?businessId=${encodeURIComponent(selectedBusinessId)}&month=${encodeURIComponent(report.reportMonth)}`} className="rounded-md border border-emerald-200 px-4 py-2.5 text-sm font-semibold text-emerald-100 hover:bg-emerald-900 focus:outline-2 focus:outline-offset-2 focus:outline-emerald-300">Unduh CSV</a>
               <Link
                 href={`/dashboard?businessId=${encodeURIComponent(selectedBusinessId)}`}
                 className="rounded-md border border-white bg-white px-4 py-2.5 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 focus:outline-2 focus:outline-offset-2 focus:outline-emerald-300"

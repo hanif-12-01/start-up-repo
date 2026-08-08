@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export function WorkspacePage({ children }: { children: React.ReactNode }) {
-  return <main className="min-h-screen bg-[#f7f9f4] px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl space-y-7">{children}</div></main>;
+  return <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-10 lg:py-9"><div className="mx-auto max-w-7xl space-y-7">{children}</div></main>;
 }
 
 export function WorkspaceHeader({ eyebrow, title, description, actions }: {
@@ -11,11 +11,11 @@ export function WorkspaceHeader({ eyebrow, title, description, actions }: {
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-5 border-b border-emerald-900/10 pb-6 md:flex-row md:items-end md:justify-between">
+    <header className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 md:flex-row md:items-end md:justify-between">
       <div className="max-w-3xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-700">{eyebrow}</p>
-        <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-emerald-950 sm:text-4xl">{title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">{description}</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">{eyebrow}</p>
+        <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] sm:text-4xl">{title}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)] sm:text-base">{description}</p>
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </header>
@@ -29,10 +29,10 @@ export function BusinessSelector({ businesses, selectedId, route }: {
 }) {
   if (businesses.length < 2) return null;
   return (
-    <form action={route} method="get" className="flex items-end gap-2 rounded-2xl border border-emerald-900/10 bg-white p-3 shadow-sm">
+    <form action={route} method="get" className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
       <label className="block">
         <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Usaha aktif</span>
-        <select name="businessId" defaultValue={selectedId} className="min-w-48 rounded-lg border border-emerald-900/15 bg-[#fbfcfa] px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select name="businessId" defaultValue={selectedId} className="min-w-48 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
           {businesses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </label>
@@ -42,11 +42,11 @@ export function BusinessSelector({ businesses, selectedId, route }: {
 }
 
 export function SoftCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-emerald-900/10 bg-white p-5 shadow-[0_18px_45px_-32px_rgba(6,78,59,0.35)] sm:p-6 ${className}`}>{children}</section>;
+  return <section className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)] sm:p-6 ${className}`}>{children}</section>;
 }
 
 export function EmptyState({ icon, title, description, href, action }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   href?: string;

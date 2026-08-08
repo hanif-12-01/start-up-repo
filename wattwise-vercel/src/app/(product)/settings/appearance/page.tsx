@@ -3,7 +3,15 @@ import { SettingsTabs } from '@/components/product/SettingsTabs';
 import { SoftCard, WorkspaceHeader, WorkspacePage } from '@/components/product/WorkspaceUI';
 import { getOptionalSession } from '@/server/auth/session';
 import { getUserSettings } from '@/server/services/workspace.service';
-import { updateAppearanceAction } from '../actions';
+import { AppearanceForm } from './AppearanceForm';
 
 export const dynamic = 'force-dynamic';
-export default async function AppearanceSettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) { const session = await getOptionalSession(); if (!session?.user) redirect('/login'); const settings = await getUserSettings(session.user.id); const query = await searchParams; const prefs = settings.preferences; const choices = [['SYSTEM', '🖥️', 'Ikuti perangkat', 'Mengikuti preferensi tampilan sistem.'], ['LIGHT', '☀️', 'Terang nyaman', 'Latar netral dengan aksen hijau menengah.'], ['DARK', '🌙', 'Gelap', 'Preferensi gelap untuk pengembangan tema berikutnya.']] as const; return <WorkspacePage><WorkspaceHeader eyebrow="Pengaturan akun" title="Tampilan" description="WattWise memakai identitas go-green dengan hijau menengah, kontras nyaman, dan fokus yang tetap terlihat." /><SettingsTabs active="/settings/appearance" />{query.saved && <div role="status" className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Preferensi tampilan berhasil disimpan.</div>}<SoftCard><form action={updateAppearanceAction}><input type="hidden" name="billAlerts" value={String(prefs.billAlerts)} /><input type="hidden" name="monthlyDigest" value={String(prefs.monthlyDigest)} /><input type="hidden" name="actionReminders" value={String(prefs.actionReminders)} /><div className="grid gap-4 md:grid-cols-3">{choices.map(([value, icon, title, text]) => <label key={value} className="cursor-pointer rounded-2xl border border-emerald-900/10 p-5 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50"><input type="radio" name="appearance" value={value} defaultChecked={prefs.appearance === value} className="sr-only" /><span className="text-2xl" aria-hidden="true">{icon}</span><strong className="mt-4 block text-emerald-950">{title}</strong><span className="mt-2 block text-xs leading-5 text-slate-500">{text}</span></label>)}</div><button className="mt-6 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-emerald-700">Simpan Tampilan</button></form></SoftCard></WorkspacePage>; }
+
+export default async function AppearanceSettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+  const session = await getOptionalSession();
+  if (!session?.user) redirect('/login');
+  const [settings, query] = await Promise.all([getUserSettings(session.user.id), searchParams]);
+  const prefs = settings.preferences;
+  const appearance = prefs.appearance === 'LIGHT' || prefs.appearance === 'DARK' ? prefs.appearance : 'SYSTEM';
+  return <WorkspacePage><WorkspaceHeader eyebrow="Pengaturan akun" title="Tampilan" description="Preferensi disimpan di akun dan disinkronkan ke cookie browser agar tema benar sejak render pertama tanpa kilatan warna."/><SettingsTabs active="/settings/appearance"/>{query.saved && <div role="status" className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">Preferensi tampilan berhasil disimpan.</div>}<SoftCard><AppearanceForm appearance={appearance} billAlerts={prefs.billAlerts} monthlyDigest={prefs.monthlyDigest} actionReminders={prefs.actionReminders}/></SoftCard></WorkspacePage>;
+}

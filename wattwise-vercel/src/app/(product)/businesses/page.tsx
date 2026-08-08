@@ -46,6 +46,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
               </div>
               <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-emerald-900/10 pt-4">
                 {item.isActive && <Link href={`/dashboard?businessId=${encodeURIComponent(item.id)}`} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Buka Dashboard</Link>}
+                {item.isActive && <Link href={`/businesses/${encodeURIComponent(item.id)}/edit`} className="rounded-xl border border-emerald-900/15 bg-white px-4 py-2 text-sm font-bold text-emerald-950 hover:bg-emerald-50">Edit Profil</Link>}
                 <form action={setBusinessStatusAction}>
                   <input type="hidden" name="businessId" value={item.id} />
                   <input type="hidden" name="status" value={item.isActive ? 'archived' : 'active'} />
