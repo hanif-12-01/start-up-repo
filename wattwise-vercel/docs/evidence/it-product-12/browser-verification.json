@@ -1,0 +1,107 @@
+{
+  "verifiedAt": "2026-08-08T09:51:16.526Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "syntheticAccount": "it-product-12-1786182633965@example.test",
+  "results": [
+    {
+      "check": "landing value proposition",
+      "status": "PASS"
+    },
+    {
+      "check": "landing desktop screenshot",
+      "status": "PASS"
+    },
+    {
+      "check": "mobile landing identity",
+      "status": "PASS"
+    },
+    {
+      "check": "landing mobile screenshot",
+      "status": "PASS"
+    },
+    {
+      "check": "registration hydration",
+      "status": "PASS"
+    },
+    {
+      "check": "registration and auth session",
+      "status": "PASS"
+    },
+    {
+      "check": "dashboard summary",
+      "status": "PASS"
+    },
+    {
+      "check": "onboarding through dashboard",
+      "status": "PASS"
+    },
+    {
+      "check": "analysis center",
+      "status": "PASS"
+    },
+    {
+      "check": "analysis simulator tab",
+      "status": "PASS"
+    },
+    {
+      "check": "plan management",
+      "status": "PASS"
+    },
+    {
+      "check": "sandbox billing disclosure",
+      "status": "PASS"
+    },
+    {
+      "check": "browser-local meter OCR",
+      "status": "PASS"
+    },
+    {
+      "check": "OCR privacy disclosure",
+      "status": "PASS"
+    },
+    {
+      "check": "persisted dark appearance",
+      "status": "PASS"
+    },
+    {
+      "check": "dashboard dark theme",
+      "status": "PASS"
+    },
+    {
+      "check": "dark landing content",
+      "status": "PASS"
+    },
+    {
+      "check": "landing dark theme",
+      "status": "PASS"
+    },
+    {
+      "check": "responsive routes at 360x800",
+      "status": "PASS"
+    },
+    {
+      "check": "responsive routes at 768x1024",
+      "status": "PASS"
+    },
+    {
+      "check": "responsive routes at 1280x900",
+      "status": "PASS"
+    },
+    {
+      "check": "responsive routes at 1440x900",
+      "status": "PASS"
+    },
+    {
+      "check": "mobile navigation content",
+      "status": "PASS"
+    },
+    {
+      "check": "mobile navigation drawer",
+      "status": "PASS"
+    },
+    {
+      "check": "uncaught browser exceptions",
+      "status": "PASS"
+    }
+  ]
+}
