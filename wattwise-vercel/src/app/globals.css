@@ -146,18 +146,28 @@ html {
     margin: 12mm;
   }
 
-  body {
+  html,
+  body,
+  html.dark,
+  html.dark body,
+  .product-shell,
+  .report-page,
+  .report-print-root {
     background: #ffffff !important;
     color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .product-shell-sidebar,
-  .product-shell-mobile {
+  .product-shell-mobile,
+  .report-print-hide {
     display: none !important;
   }
 
   .product-shell > div:last-child {
     padding-left: 0 !important;
+    padding-top: 0 !important;
   }
 
   .report-page {
@@ -172,15 +182,38 @@ html {
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
   }
 
-  .report-print-hide {
-    display: none !important;
+  html.dark .report-print-root header {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  html.dark .report-print-root header * {
+    color: #0f172a !important;
+  }
+
+  html.dark .report-print-root div,
+  html.dark .report-print-root article,
+  html.dark .report-print-root section,
+  html.dark .report-print-root aside,
+  html.dark .report-print-root table,
+  html.dark .report-print-root thead,
+  html.dark .report-print-root tbody,
+  html.dark .report-print-root tr,
+  html.dark .report-print-root th,
+  html.dark .report-print-root td {
+    background-color: transparent !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
   }
 
   .report-section,
   .report-section article,
-  .report-section table {
+  .report-section tr {
     break-inside: avoid;
   }
 

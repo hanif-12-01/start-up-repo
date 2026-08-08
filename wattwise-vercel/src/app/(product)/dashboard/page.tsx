@@ -165,7 +165,85 @@ export default async function DashboardPage({
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Riwayat biaya</p><h2 className="mt-1 text-xl font-black">Tren tagihan tercatat</h2></div><Link href={`/bills${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)]">Lihat semua →</Link></div>
             {support.bills.length === 0
               ? <p className="mt-6 rounded-2xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">Belum ada tagihan untuk ditampilkan.</p>
-              : <div className="mt-8"><div className="flex h-52 items-end gap-2 sm:gap-4" role="img" aria-label="Grafik tagihan bulanan">{[...support.bills].reverse().map((bill) => { const height = Math.max(12, Number(bill.totalAmountRupiah) / maxBill * 100); return <div key={bill.id} className="group flex min-w-0 flex-1 flex-col items-center justify-end gap-2"><span className="hidden text-[10px] font-bold text-[var(--primary)] group-hover:block sm:block">{rupiah.format(bill.totalAmountRupiah)}</span><div className="w-full max-w-14 rounded-t-xl bg-gradient-to-t from-emerald-700 to-emerald-400 transition hover:from-emerald-800" style={{ height: `${height}%` }} /><span className="max-w-full truncate text-[10px] font-bold text-[var(--muted)]">{formatMonth(bill.periodEnd).split(' ')[0].slice(0, 3)}</span></div>; })}</div><p className="mt-5 text-xs leading-5 text-[var(--muted)]">Grafik menggunakan total biaya yang dimasukkan pengguna. Bandingkan biaya per hari ketika panjang periode berbeda.</p></div>}
+              : (() => {
+                  const W = 560; const H = 200;
+                  const padL = 12; const padR = 12; const padT = 36; const padB = 32;
+                  const chartW = W - padL - padR;
+                  const chartH = H - padT - padB;
+                  const bills = [...support.bills].reverse();
+                  const minVal = Math.min(...bills.map((b) => Number(b.totalAmountRupiah)));
+                  const maxVal = Math.max(...bills.map((b) => Number(b.totalAmountRupiah)));
+                  const valRange = maxVal - minVal || 1;
+                  const getX = (i: number) => padL + (bills.length === 1 ? chartW / 2 : (i / (bills.length - 1)) * chartW);
+                  const getY = (v: number) => padT + chartH - ((v - minVal) / valRange) * chartH;
+                  const pts = bills.map((b, i) => ({ x: getX(i), y: getY(Number(b.totalAmountRupiah)), b }));
+                  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ');
+                  const areaPath = `M ${pts[0].x} ${padT + chartH} L ${pts.map((p) => `${p.x} ${p.y}`).join(' L ')} L ${pts.at(-1)!.x} ${padT + chartH} Z`;
+                  return (
+                    <div className="mt-4">
+                      <svg
+                        viewBox={`0 0 ${W} ${H}`}
+                        className="w-full h-auto"
+                        role="img"
+                        aria-label="Grafik tren tagihan bulanan"
+                        style={{ overflow: 'visible' }}
+                      >
+                        <defs>
+                          <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#059669" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="#059669" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {[0, 0.5, 1].map((t) => (
+                          <line
+                            key={t}
+                            x1={padL} x2={W - padR}
+                            y1={padT + chartH * (1 - t)} y2={padT + chartH * (1 - t)}
+                            stroke="currentColor" strokeOpacity="0.1" strokeWidth="1"
+                            className="text-[var(--foreground)]"
+                          />
+                        ))}
+                        <path d={areaPath} fill="url(#lineArea)" />
+                        <polyline
+                          points={polyline}
+                          fill="none"
+                          stroke="#059669"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        {pts.map((p, i) => (
+                          <g key={bills[i].id}>
+                            <text
+                              x={p.x} y={p.y - 10}
+                              textAnchor="middle"
+                              fontSize="9"
+                              fontWeight="700"
+                              fill="#059669"
+                            >
+                              {rupiah.format(bills[i].totalAmountRupiah)}
+                            </text>
+                            <circle cx={p.x} cy={p.y} r="4" fill="#059669" stroke="white" strokeWidth="2" />
+                            <text
+                              x={p.x} y={padT + chartH + 18}
+                              textAnchor="middle"
+                              fontSize="10"
+                              fontWeight="600"
+                              fill="currentColor"
+                              className="text-[var(--muted)]"
+                              opacity="0.7"
+                            >
+                              {formatMonth(bills[i].periodEnd).split(' ')[0].slice(0, 3)}
+                            </text>
+                          </g>
+                        ))}
+                      </svg>
+                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                        Grafik menggunakan total biaya yang dimasukkan pengguna. Bandingkan biaya per hari ketika panjang periode berbeda.
+                      </p>
+                    </div>
+                  );
+                })()}
           </SoftCard>
 
           <SoftCard>
