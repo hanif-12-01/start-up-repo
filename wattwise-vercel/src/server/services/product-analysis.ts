@@ -1,8 +1,58 @@
+export type UsageSource = 'USER_ENTERED' | 'METER_DERIVED' | 'BILL_TARIFF_DERIVED' | 'LEGACY_UNKNOWN';
+
 export interface UsageSample {
   period: string;
   usageKwh: number | null;
   billAmount: number;
   tariff: number | null;
+  usageSource?: UsageSource;
+  isEstimated?: boolean;
+}
+
+export function buildUsageSamplesFromBills(
+  bills: Array<{
+    periodEnd: string;
+    kwh: string | null;
+    totalAmountRupiah: bigint;
+    tariffRupiahPerKwh: string | null;
+    kwhSource?: string | null;
+  }>
+): UsageSample[] {
+  return bills
+    .map((bill) => {
+      const period = bill.periodEnd.slice(0, 7);
+      const kwhNum = bill.kwh !== null ? Number(bill.kwh) : null;
+      const billAmount = Number(bill.totalAmountRupiah);
+      const tariffNum = bill.tariffRupiahPerKwh !== null ? Number(bill.tariffRupiahPerKwh) : null;
+      let usageSource: UsageSource;
+      let isEstimated = false;
+
+      if (kwhNum !== null && kwhNum > 0) {
+        if (bill.kwhSource === 'METER_DERIVED') {
+          usageSource = 'METER_DERIVED';
+        } else if (bill.kwhSource === 'USER_ENTERED') {
+          usageSource = 'USER_ENTERED';
+        } else {
+          usageSource = 'LEGACY_UNKNOWN';
+        }
+      } else if (tariffNum !== null && tariffNum > 0) {
+        usageSource = 'BILL_TARIFF_DERIVED';
+        isEstimated = true;
+      } else {
+        usageSource = 'LEGACY_UNKNOWN';
+        isEstimated = true;
+      }
+
+      return {
+        period,
+        usageKwh: kwhNum,
+        billAmount,
+        tariff: tariffNum,
+        usageSource,
+        isEstimated,
+      };
+    })
+    .sort((a, b) => a.period.localeCompare(b.period));
 }
 
 export interface PredictionResult {

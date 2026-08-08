@@ -28,6 +28,7 @@ export const electricityBill = pgTable(
     tariffRupiahPerKwh: numeric('tariff_rupiah_per_kwh', { precision: 15, scale: 2 }),
     meterStart: numeric('meter_start', { precision: 15, scale: 3 }),
     meterEnd: numeric('meter_end', { precision: 15, scale: 3 }),
+    kwhSource: text('kwh_source').notNull().default('LEGACY_UNKNOWN'),
     paymentMethod: text('payment_method'),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -42,6 +43,10 @@ export const electricityBill = pgTable(
     check(
       'electricity_bill_tariff_check',
       sql`${t.tariffRupiahPerKwh} IS NULL OR ${t.tariffRupiahPerKwh} >= 0`
+    ),
+    check(
+      'electricity_bill_kwh_source_check',
+      sql`${t.kwhSource} IN ('USER_ENTERED', 'METER_DERIVED', 'LEGACY_UNKNOWN')`
     ),
   ]
 );

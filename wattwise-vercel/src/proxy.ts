@@ -2,7 +2,24 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { sanitizeCorrelationId } from '@/server/logger';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/setup', '/plan', '/onboarding', '/businesses'];
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/analysis',
+  '/anomalies',
+  '/predictions',
+  '/recommendations',
+  '/bills',
+  '/revenue',
+  '/appliances',
+  '/businesses',
+  '/diagnostics',
+  '/reports',
+  '/plans',
+  '/plan',
+  '/setup',
+  '/onboarding',
+  '/settings',
+];
 
 function hasSessionCookie(request: NextRequest): boolean {
   return (
@@ -38,5 +55,24 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/setup/:path*', '/plan/:path*', '/onboarding/:path*', '/businesses/:path*', '/login', '/register'],
+  matcher: [
+    '/dashboard/:path*',
+    '/analysis/:path*',
+    '/anomalies/:path*',
+    '/predictions/:path*',
+    '/recommendations/:path*',
+    '/bills/:path*',
+    '/revenue/:path*',
+    '/appliances/:path*',
+    '/businesses/:path*',
+    '/diagnostics/:path*',
+    '/reports/:path*',
+    '/plans/:path*',
+    '/plan/:path*',
+    '/setup/:path*',
+    '/onboarding/:path*',
+    '/settings/:path*',
+    '/login',
+    '/register',
+  ],
 };

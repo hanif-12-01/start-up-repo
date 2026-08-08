@@ -13,6 +13,7 @@ export interface BillRecord {
   tariffRupiahPerKwh: string | null;
   meterStart?: string | null;
   meterEnd?: string | null;
+  kwhSource?: 'USER_ENTERED' | 'METER_DERIVED' | 'LEGACY_UNKNOWN';
   paymentMethod?: string | null;
   notes: string | null;
   createdAt: Date;
@@ -30,6 +31,7 @@ interface BillRow {
   tariff_rupiah_per_kwh: string | null;
   meter_start: string | null;
   meter_end: string | null;
+  kwh_source?: string | null;
   payment_method: string | null;
   notes: string | null;
   created_at: Date;
@@ -57,6 +59,15 @@ export class OverlappingBillPeriodError extends Error {
   }
 }
 
+export class ReferencedBillLockedError extends Error {
+  constructor() {
+    super(
+      'Tagihan ini sudah digunakan dalam riwayat pemeriksaan dan tidak dapat diubah atau dihapus agar hasil pemeriksaan lama tetap konsisten.'
+    );
+    this.name = 'ReferencedBillLockedError';
+  }
+}
+
 function mapBill(row: BillRow): BillRecord {
   const dateString = (value: string | Date) => {
     if (typeof value === 'string') return value;
@@ -76,6 +87,7 @@ function mapBill(row: BillRow): BillRecord {
     tariffRupiahPerKwh: row.tariff_rupiah_per_kwh,
     meterStart: row.meter_start,
     meterEnd: row.meter_end,
+    kwhSource: (row.kwh_source as BillRecord['kwhSource']) ?? 'LEGACY_UNKNOWN',
     paymentMethod: row.payment_method,
     notes: row.notes,
     createdAt: row.created_at,
@@ -103,7 +115,7 @@ async function findPrimaryOwnedBusiness(
 
 export async function createBillForOwnedBusiness(
   userId: string,
-  input: CreateBillInput,
+  input: CreateBillInput & { kwhSource?: 'USER_ENTERED' | 'METER_DERIVED' | 'LEGACY_UNKNOWN' },
   requestedBusinessId?: string
 ): Promise<BillRecord> {
   const client = await getPool().connect();
@@ -112,7 +124,6 @@ export async function createBillForOwnedBusiness(
     const ownedBusiness = await findPrimaryOwnedBusiness(client, userId, requestedBusinessId);
     if (!ownedBusiness) throw new BillBusinessNotFoundError();
 
-    // Serialize writes per business so concurrent requests cannot pass the overlap check together.
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [ownedBusiness.id]);
 
     const duplicate = await client.query(
@@ -135,14 +146,16 @@ export async function createBillForOwnedBusiness(
     );
     if (overlap.rowCount) throw new OverlappingBillPeriodError();
 
+    const kwhSource = input.kwhSource ?? (input.meterStart && input.meterEnd ? 'METER_DERIVED' : input.kwh ? 'USER_ENTERED' : 'LEGACY_UNKNOWN');
+
     const result = await client.query<BillRow>(
       `INSERT INTO electricity_bill (
          id, business_id, period_start, period_end, total_amount_rupiah,
-         kwh, tariff_rupiah_per_kwh, meter_start, meter_end, payment_method, notes
+         kwh, tariff_rupiah_per_kwh, meter_start, meter_end, kwh_source, payment_method, notes
        )
-       VALUES ($1, $2, $3::date, $4::date, $5, COALESCE($6, CASE WHEN $10::numeric IS NOT NULL AND $11::numeric IS NOT NULL THEN $11::numeric - $10::numeric END), $7, $10, $11, $12, $8)
+       VALUES ($1, $2, $3::date, $4::date, $5, COALESCE($6, CASE WHEN $10::numeric IS NOT NULL AND $11::numeric IS NOT NULL THEN $11::numeric - $10::numeric END), $7, $10, $11, $13, $12, $8)
        RETURNING id, business_id, $9::text AS business_name, period_start, period_end,
-         total_amount_rupiah, kwh, tariff_rupiah_per_kwh, meter_start, meter_end, payment_method, notes, created_at, updated_at`,
+         total_amount_rupiah, kwh, tariff_rupiah_per_kwh, meter_start, meter_end, kwh_source, payment_method, notes, created_at, updated_at`,
       [
         crypto.randomUUID(),
         ownedBusiness.id,
@@ -156,10 +169,141 @@ export async function createBillForOwnedBusiness(
         input.meterStart ?? null,
         input.meterEnd ?? null,
         input.paymentMethod ?? null,
+        kwhSource,
       ]
     );
     await client.query('COMMIT');
     return mapBill(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateBillForOwnedBusiness(
+  userId: string,
+  billId: string,
+  input: CreateBillInput & { kwhSource?: 'USER_ENTERED' | 'METER_DERIVED' | 'LEGACY_UNKNOWN' }
+): Promise<BillRecord> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const existingResult = await client.query<BillRow>(
+      `SELECT eb.id, eb.business_id, b.name AS business_name
+         FROM electricity_bill eb
+         JOIN business b ON b.id = eb.business_id
+        WHERE eb.id = $1 AND b.user_id = $2
+        LIMIT 1`,
+      [billId, userId]
+    );
+    if (!existingResult.rowCount) throw new BillBusinessNotFoundError();
+    const existing = existingResult.rows[0];
+
+    const referenced = await client.query(
+      `SELECT 1
+         FROM diagnostic_session
+        WHERE electricity_bill_id = $1 OR comparison_bill_id = $1
+        LIMIT 1`,
+      [billId]
+    );
+    if (referenced.rowCount) throw new ReferencedBillLockedError();
+
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [existing.business_id]);
+
+    const duplicate = await client.query(
+      `SELECT 1
+         FROM electricity_bill
+        WHERE business_id = $1 AND period_start = $2::date AND period_end = $3::date AND id <> $4
+        LIMIT 1`,
+      [existing.business_id, input.periodStart, input.periodEnd, billId]
+    );
+    if (duplicate.rowCount) throw new DuplicateBillPeriodError();
+
+    const overlap = await client.query(
+      `SELECT 1
+         FROM electricity_bill
+        WHERE business_id = $1
+          AND period_start <= $3::date
+          AND period_end >= $2::date
+          AND id <> $4
+        LIMIT 1`,
+      [existing.business_id, input.periodStart, input.periodEnd, billId]
+    );
+    if (overlap.rowCount) throw new OverlappingBillPeriodError();
+
+    const kwhSource = input.kwhSource ?? (input.meterStart && input.meterEnd ? 'METER_DERIVED' : input.kwh ? 'USER_ENTERED' : 'LEGACY_UNKNOWN');
+
+    const result = await client.query<BillRow>(
+      `UPDATE electricity_bill
+          SET period_start = $1::date,
+              period_end = $2::date,
+              total_amount_rupiah = $3,
+              kwh = COALESCE($4, CASE WHEN $8::numeric IS NOT NULL AND $9::numeric IS NOT NULL THEN $9::numeric - $8::numeric END),
+              tariff_rupiah_per_kwh = $5,
+              meter_start = $8,
+              meter_end = $9,
+              kwh_source = $10,
+              payment_method = $11,
+              notes = $6,
+              updated_at = NOW()
+        WHERE id = $7
+        RETURNING id, business_id, $12::text AS business_name, period_start, period_end,
+                  total_amount_rupiah, kwh, tariff_rupiah_per_kwh, meter_start, meter_end, kwh_source, payment_method, notes, created_at, updated_at`,
+      [
+        input.periodStart,
+        input.periodEnd,
+        input.totalAmountRupiah,
+        input.kwh ?? null,
+        input.tariffRupiahPerKwh ?? null,
+        input.notes ?? null,
+        billId,
+        input.meterStart ?? null,
+        input.meterEnd ?? null,
+        kwhSource,
+        input.paymentMethod ?? null,
+        existing.business_name,
+      ]
+    );
+    await client.query('COMMIT');
+    return mapBill(result.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteBillForOwnedBusiness(
+  userId: string,
+  billId: string
+): Promise<void> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const existingResult = await client.query<{ id: string; business_id: string }>(
+      `SELECT eb.id, eb.business_id
+         FROM electricity_bill eb
+         JOIN business b ON b.id = eb.business_id
+        WHERE eb.id = $1 AND b.user_id = $2
+        LIMIT 1`,
+      [billId, userId]
+    );
+    if (!existingResult.rowCount) throw new BillBusinessNotFoundError();
+
+    const referenced = await client.query(
+      `SELECT 1
+         FROM diagnostic_session
+        WHERE electricity_bill_id = $1 OR comparison_bill_id = $1
+        LIMIT 1`,
+      [billId]
+    );
+    if (referenced.rowCount) throw new ReferencedBillLockedError();
+
+    await client.query('DELETE FROM electricity_bill WHERE id = $1', [billId]);
+    await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -175,7 +319,7 @@ export async function listBillsForUser(
   if (!userId) return [];
   const result = await getPool().query<BillRow>(
     `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
-            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.payment_method, eb.notes,
+            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.kwh_source, eb.payment_method, eb.notes,
             eb.created_at, eb.updated_at
        FROM electricity_bill eb
        JOIN business b ON b.id = eb.business_id
@@ -194,7 +338,7 @@ export async function findPreviousBillForUser(
   if (!userId) return null;
   const result = await getPool().query<BillRow>(
     `SELECT eb.id, eb.business_id, b.name AS business_name, eb.period_start, eb.period_end,
-            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.payment_method, eb.notes,
+            eb.total_amount_rupiah, eb.kwh, eb.tariff_rupiah_per_kwh, eb.meter_start, eb.meter_end, eb.kwh_source, eb.payment_method, eb.notes,
             eb.created_at, eb.updated_at
        FROM electricity_bill eb
        JOIN business b ON b.id = eb.business_id

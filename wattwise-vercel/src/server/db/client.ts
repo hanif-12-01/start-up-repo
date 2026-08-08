@@ -1,6 +1,6 @@
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-import { env } from '@/config/env';
+import { env, validateProductionEnv } from '@/config/env';
 import * as schema from './schema';
 
 const { Pool } = pg;
@@ -11,6 +11,7 @@ declare global {
 }
 
 export function getPool(): pg.Pool {
+  validateProductionEnv(env);
   const dbUrl = env.DATABASE_URL || 'postgresql://build_noop:build_noop@127.0.0.1:5432/build_noop';
 
   if (!globalThis.__dbPool) {

@@ -64,7 +64,7 @@ Untuk menjaga ekspektasi dan integritas hukum produk, WattWise AI secara tegas *
 
 ## 7. MVP Scope
 Fitur minimal yang harus diimplementasikan pada versi awal (MVP) meliputi:
-1. **Autentikasi Pengguna**: Login, registrasi, verifikasi email, dan pengaturan profil.
+1. **Autentikasi Pengguna**: Login, registrasi email + password, dan pengaturan profil. (Verifikasi email otomatis & Google Auth ditunda secara eksplisit ke fase Post-MVP Public Onboarding).
 2. **Onboarding Terpandu**: Alur awal pengenalan aplikasi dan pengisian profil bisnis pertama bagi user baru.
 3. **Manajemen Usaha (Business Profile)**: Pencatatan identitas bisnis, alamat, dan segmentasi tipe bisnis aktif.
 4. **Pencatatan Listrik Bulanan (Electricity Entries)**: Input periodik tagihan listrik (Rupiah), kWh, stand meter awal/akhir, dan tarif per kWh.
@@ -89,7 +89,7 @@ flowchart TD
     H --> I[Lihat Skor Efisiensi & Terapkan Tindakan Hemat]
 ```
 
-1. **Registrasi**: User baru mendaftar menggunakan email atau Google Auth.
+1. **Registrasi**: User baru mendaftar menggunakan email & password. (Google Auth & verifikasi email otomatis disiapkan untuk fase Post-MVP Public Onboarding).
 2. **Onboarding**: User dipandu mengisi nama bisnis, kota operasional, jenis bisnis (misal: Kos/Properti), dan tarif dasar listrik.
 3. **Pencatatan Data Bulanan**: User menginput tagihan listrik terakhir dan total pendapatan kotor bulan berjalan.
 4. **Penyusunan Peralatan**: User memilih opsi "Terapkan Templat Kos" untuk memunculkan daftar peralatan default (AC, Kulkas, Lampu, Pompa Air), lalu menyesuaikan daya Watt dan rata-rata durasi pakainya.

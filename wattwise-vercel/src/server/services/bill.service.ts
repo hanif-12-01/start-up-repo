@@ -1,7 +1,9 @@
 import {
   createBillForOwnedBusiness,
+  deleteBillForOwnedBusiness,
   findPreviousBillForUser,
   listBillsForUser,
+  updateBillForOwnedBusiness,
 } from '@/server/repositories/bill.repository';
 import { compareBills } from '@/server/services/bill-comparison.service';
 import type { CreateBillInput } from '@/server/validation/bills';
@@ -19,6 +21,20 @@ export async function createBill(
     if (existing.length >= entitlements.limits.maxElectricityEntries) throw new Error('Batas 3 tagihan paket Gratis telah tercapai.');
   }
   return createBillForOwnedBusiness(userId, input, businessId);
+}
+
+export async function updateBill(
+  userId: string,
+  billId: string,
+  input: CreateBillInput
+) {
+  if (!userId) throw new Error('UNAUTHENTICATED');
+  return updateBillForOwnedBusiness(userId, billId, input);
+}
+
+export async function deleteBill(userId: string, billId: string) {
+  if (!userId) throw new Error('UNAUTHENTICATED');
+  return deleteBillForOwnedBusiness(userId, billId);
 }
 
 export async function getBillOverview(userId: string, businessId?: string) {

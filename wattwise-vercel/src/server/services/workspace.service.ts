@@ -185,6 +185,19 @@ export async function addAppliance(
   await getDb().insert(appliance).values({ ...input, id: crypto.randomUUID() });
 }
 
+export async function deleteRevenueEntry(userId: string, revenueId: string) {
+  const db = getDb();
+  const [owned] = await db
+    .select({ id: revenueEntry.id, businessId: revenueEntry.businessId })
+    .from(revenueEntry)
+    .innerJoin(business, eq(revenueEntry.businessId, business.id))
+    .where(and(eq(revenueEntry.id, revenueId), eq(business.userId, userId)))
+    .limit(1);
+  if (!owned) throw new WorkspaceBusinessNotFoundError('Pendapatan tidak ditemukan atau bukan milik Anda.');
+  await db.delete(revenueEntry).where(eq(revenueEntry.id, revenueId));
+  return owned.businessId;
+}
+
 export async function applyApplianceTemplate(userId: string, businessId: string) {
   const context = await getWorkspaceContext(userId, businessId);
   const { getUserEntitlements } = await import('./entitlement.service');
@@ -192,11 +205,16 @@ export async function applyApplianceTemplate(userId: string, businessId: string)
   if (!entitlements.limits.applianceTemplates) throw new Error('Template peralatan tersedia pada Pro Trial atau paket berbayar.');
   const items = TEMPLATE_CATALOG[context.business.segment] ?? TEMPLATE_CATALOG.OTHER;
   const db = getDb();
+  const existingTemplates = await db
+    .select({ name: appliance.name })
+    .from(appliance)
+    .where(and(eq(appliance.businessId, businessId), eq(appliance.dataSource, 'TEMPLATE')));
+  const existingNames = new Set(existingTemplates.map((e) => e.name));
   for (const item of items) {
+    if (existingNames.has(item.name)) continue;
     await db
       .insert(appliance)
-      .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' })
-      .onConflictDoNothing();
+      .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' });
   }
 }
 
