@@ -3,26 +3,43 @@ import { hashPassword } from 'better-auth/crypto';
 import { getDb } from '@/server/db/client';
 import * as schema from '@/server/db/schema';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
+import { getMonthlyReportReadModel } from '@/server/services/monthly-report.service';
 
 export function isDemoEnvironmentAllowed(): { allowed: boolean; reason?: string } {
   const vercelEnv = process.env.VERCEL_ENV;
   const nodeEnv = process.env.NODE_ENV;
   const qaDemoEnabled = process.env.QA_DEMO_ENABLED;
-  const qaDemoAllowProd = process.env.QA_DEMO_ALLOW_PROD;
 
+  // Unconditional refusal for Vercel Production
   if (vercelEnv === 'production') {
     return { allowed: false, reason: 'VERCEL_ENV is set to production. QA Demo provisioning refused.' };
   }
 
-  if (qaDemoAllowProd === 'true' && vercelEnv === 'production') {
-    return { allowed: false, reason: 'Unconditional refusal to provision QA Demo in production.' };
+  // Vercel Preview requires explicit opt-in QA_DEMO_ENABLED === 'true'
+  if (vercelEnv === 'preview') {
+    if (qaDemoEnabled === 'true') {
+      return { allowed: true };
+    }
+    return { allowed: false, reason: 'VERCEL_ENV is preview but QA_DEMO_ENABLED is not set to true.' };
   }
 
-  if (nodeEnv === 'production' && qaDemoEnabled !== 'true') {
-    return { allowed: false, reason: 'NODE_ENV is production and QA_DEMO_ENABLED is not set to true.' };
+  // If VERCEL_ENV is set to any unrecognized value in production-like runtime -> DENY
+  if (vercelEnv && vercelEnv !== 'development' && vercelEnv !== 'test' && vercelEnv !== 'preview') {
+    return { allowed: false, reason: `Unrecognized VERCEL_ENV=${vercelEnv}. QA Demo provisioning refused.` };
   }
 
-  return { allowed: true };
+  // Non-Vercel local development or test runtime -> ALLOW
+  if (nodeEnv === 'development' || nodeEnv === 'test') {
+    return { allowed: true };
+  }
+
+  // Non-Vercel NODE_ENV === 'production' without recognized Vercel Preview context -> DENY
+  if (nodeEnv === 'production') {
+    return { allowed: false, reason: 'NODE_ENV is production and non-Vercel runtime detected. QA Demo provisioning refused.' };
+  }
+
+  // Default fallback for unknown environments -> DENY
+  return { allowed: false, reason: 'Unknown or unapproved environment runtime. QA Demo provisioning refused.' };
 }
 
 export function getDemoCredentials(): { email: string; password?: string } {
@@ -89,22 +106,29 @@ export async function seedQaDemoAccount(options?: QaDemoSeedOptions): Promise<{
     // Acquire PostgreSQL advisory transaction lock for concurrency safety
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('wattwise_qa_demo_provisioning_lock', 0))`);
 
-    // 1. Better Auth User & Account setup
+    // 1. Better Auth User & Account setup with Demo Identity Invariant Protection (GAP 2)
     const existingUsers = await tx.select().from(schema.user).where(sql`${schema.user.email} = ${email}`).limit(1);
     let userId: string;
 
     const hashedPassword = await hashPassword(password);
 
     if (existingUsers.length > 0) {
-      userId = existingUsers[0].id;
-      // Update name & verification status
+      const userRow = existingUsers[0];
+      // Hijack Protection: verify that matched existing user is a recognized QA Demo identity
+      const isDemoIdentity = userRow.name === 'WattWise QA Demo' && userRow.id.startsWith('user-qa-demo-');
+      if (!isDemoIdentity) {
+        throw new Error(`QA Demo provisioning refused: configured email (${email}) belongs to a non-demo user.`);
+      }
+
+      userId = userRow.id;
+      // Update verification status & timestamp
       await tx.update(schema.user).set({
         name: 'WattWise QA Demo',
         emailVerified: true,
         updatedAt: new Date(),
       }).where(sql`${schema.user.id} = ${userId}`);
 
-      // Upsert account password
+      // Upsert account credential password
       const existingAccounts = await tx.select().from(schema.account)
         .where(sql`${schema.account.userId} = ${userId} AND ${schema.account.providerId} = 'credential'`)
         .limit(1);
@@ -227,7 +251,7 @@ export async function seedQaDemoAccount(options?: QaDemoSeedOptions): Promise<{
       });
     }
 
-    // 4. Clear existing domain data for this business to ensure deterministic seed
+    // 4. Business-Scoped Cleanup for Kos Melati Demo ONLY (GAP 3)
     await tx.delete(schema.actionOutcomeEvaluation).where(
       sql`action_plan_id IN (SELECT id FROM energy_action_plan WHERE business_id = ${businessId})`
     );
@@ -279,20 +303,21 @@ export async function seedQaDemoAccount(options?: QaDemoSeedOptions): Promise<{
       let kwhSource: 'USER_ENTERED' | 'METER_DERIVED' | 'LEGACY_UNKNOWN' = 'USER_ENTERED';
       let notes = 'Data sintetis QA WattWise AI. Bukan tagihan resmi PLN.';
 
-      // Provenance mix logic
+      // Provenance mix logic with corrected raw null-kWh semantics (GAP 7)
       if (i === 0) {
         kwhSource = 'LEGACY_UNKNOWN';
-      } else if (i === 1) {
-        kwhSource = 'USER_ENTERED';
-        kwhValue = null; // BILL_TARIFF_DERIVED resolution
-      } else if (i === 2) {
-        // Zero usage period
+      } else if (i === 9) {
+        // Month 10: BILL_TARIFF_DERIVED fixture within latest 12 bills (kwh = null, raw source = LEGACY_UNKNOWN)
+        kwhSource = 'LEGACY_UNKNOWN';
+        kwhValue = null;
+      } else if (i === 10) {
+        // Month 11: Zero usage period within latest 12 bills (kwh = '0.000', raw source = USER_ENTERED)
         kwhSource = 'USER_ENTERED';
         usageKwh = 0;
         kwhValue = '0.000';
         totalAmountRupiah = BigInt(50000);
         notes = 'Kos libur semester / zero usage (Data sintetis QA WattWise AI)';
-      } else if (i >= 8 && i <= 11) {
+      } else if (i >= 4 && i <= 8) {
         kwhSource = 'METER_DERIVED';
         const mStart = baseMeter + cumulativeKwh;
         const mEnd = mStart + usageKwh;
@@ -420,48 +445,53 @@ export async function resetQaDemoAccount(options?: QaDemoSeedOptions): Promise<v
 
   const { email } = getDemoCredentials();
   const db = getDb();
+  const anchorMonth = options?.anchorMonth || getMonthString(new Date());
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('wattwise_qa_demo_provisioning_lock', 0))`);
 
     const users = await tx.select().from(schema.user).where(sql`${schema.user.email} = ${email}`).limit(1);
     if (users.length > 0) {
-      const userId = users[0].id;
+      const userRow = users[0];
+      // Reset Identity Guard: Verify strong demo user identity (GAP 3)
+      const isDemoIdentity = userRow.name === 'WattWise QA Demo' && userRow.id.startsWith('user-qa-demo-');
+      if (!isDemoIdentity) {
+        throw new Error(`QA Demo reset refused: configured email (${email}) belongs to a non-demo user.`);
+      }
 
-      // Delete domain records for demo user ONLY
-      await tx.delete(schema.actionOutcomeEvaluation).where(
-        sql`action_plan_id IN (SELECT id FROM energy_action_plan WHERE business_id IN (SELECT id FROM business WHERE user_id = ${userId}))`
-      );
-      await tx.delete(schema.energyActionPlan).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.inspectionItem).where(
-        sql`plan_id IN (SELECT id FROM inspection_plan WHERE business_id IN (SELECT id FROM business WHERE user_id = ${userId}))`
-      );
-      await tx.delete(schema.inspectionPlan).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.diagnosticCandidate).where(
-        sql`diagnostic_session_id IN (SELECT id FROM diagnostic_session WHERE business_id IN (SELECT id FROM business WHERE user_id = ${userId}))`
-      );
-      await tx.delete(schema.diagnosticSession).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.appliance).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.revenueEntry).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.electricityBill).where(
-        sql`business_id IN (SELECT id FROM business WHERE user_id = ${userId})`
-      );
-      await tx.delete(schema.business).where(sql`user_id = ${userId}`);
+      const userId = userRow.id;
+
+      // Find exact Kos Melati Demo business ID
+      const demoBusinesses = await tx.select().from(schema.business)
+        .where(sql`${schema.business.userId} = ${userId} AND ${schema.business.name} = 'Kos Melati Demo'`)
+        .limit(1);
+
+      if (demoBusinesses.length > 0) {
+        const demoBusinessId = demoBusinesses[0].id;
+
+        // Business-Scoped Cleanup for Kos Melati Demo ONLY
+        await tx.delete(schema.actionOutcomeEvaluation).where(
+          sql`action_plan_id IN (SELECT id FROM energy_action_plan WHERE business_id = ${demoBusinessId})`
+        );
+        await tx.delete(schema.energyActionPlan).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.inspectionItem).where(
+          sql`plan_id IN (SELECT id FROM inspection_plan WHERE business_id = ${demoBusinessId})`
+        );
+        await tx.delete(schema.inspectionPlan).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.diagnosticCandidate).where(
+          sql`diagnostic_session_id IN (SELECT id FROM diagnostic_session WHERE business_id = ${demoBusinessId})`
+        );
+        await tx.delete(schema.diagnosticSession).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.appliance).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.revenueEntry).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.electricityBill).where(sql`business_id = ${demoBusinessId}`);
+        await tx.delete(schema.business).where(sql`id = ${demoBusinessId}`);
+      }
     }
   });
 
-  // Reseed synthetic dataset
-  await seedQaDemoAccount(options);
+  // Reseed deterministic synthetic dataset
+  await seedQaDemoAccount({ anchorMonth });
 }
 
 export interface QaDemoCheckResult {
@@ -480,12 +510,19 @@ export interface QaDemoCheckResult {
     referencedBillCount: number;
     unreferencedBillCount: number;
     diagnosticSessionCount: number;
-    historicalReportMonthsAvailable: number;
+    historicalReportReady: boolean;
+    historicalReportMonth?: string;
+    historicalRevenueReady: boolean;
     anomalyStatus?: string;
+    anomalyExpectedBoros: boolean;
   };
 }
 
-export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
+export async function checkQaDemoAccount(options?: { anchorMonth?: string }): Promise<QaDemoCheckResult> {
+  if (process.env.MONTHLY_REPORTS_ENABLED === undefined) {
+    process.env.MONTHLY_REPORTS_ENABLED = 'true';
+  }
+
   const envGuard = isDemoEnvironmentAllowed();
   if (!envGuard.allowed) {
     return {
@@ -504,13 +541,16 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
         referencedBillCount: 0,
         unreferencedBillCount: 0,
         diagnosticSessionCount: 0,
-        historicalReportMonthsAvailable: 0,
+        historicalReportReady: false,
+        historicalRevenueReady: false,
+        anomalyExpectedBoros: false,
       },
     };
   }
 
   const { email } = getDemoCredentials();
   const db = getDb();
+  const anchorMonth = options?.anchorMonth || getMonthString(new Date());
 
   const users = await db.select().from(schema.user).where(sql`${schema.user.email} = ${email}`).limit(1);
   if (users.length === 0) {
@@ -530,19 +570,49 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
         referencedBillCount: 0,
         unreferencedBillCount: 0,
         diagnosticSessionCount: 0,
-        historicalReportMonthsAvailable: 0,
+        historicalReportReady: false,
+        historicalRevenueReady: false,
+        anomalyExpectedBoros: false,
       },
     };
   }
 
-  const userId = users[0].id;
+  const userRow = users[0];
+  const isDemoIdentity = userRow.name === 'WattWise QA Demo' && userRow.id.startsWith('user-qa-demo-');
+  if (!isDemoIdentity) {
+    return {
+      ready: false,
+      reason: `Configured email (${email}) belongs to a non-demo user.`,
+      details: {
+        userExists: true,
+        accountExists: false,
+        businessExists: false,
+        businessActive: false,
+        onboardingCompleted: false,
+        planReady: false,
+        billCount: 0,
+        revenueCount: 0,
+        applianceCount: 0,
+        referencedBillCount: 0,
+        unreferencedBillCount: 0,
+        diagnosticSessionCount: 0,
+        historicalReportReady: false,
+        historicalRevenueReady: false,
+        anomalyExpectedBoros: false,
+      },
+    };
+  }
+
+  const userId = userRow.id;
 
   const accounts = await db.select().from(schema.account)
     .where(sql`${schema.account.userId} = ${userId} AND ${schema.account.providerId} = 'credential'`)
     .limit(1);
 
   const plans = await db.select().from(schema.userPlan).where(sql`${schema.userPlan.userId} = ${userId}`).limit(1);
-  const businesses = await db.select().from(schema.business).where(sql`${schema.business.userId} = ${userId} AND ${schema.business.name} = 'Kos Melati Demo'`).limit(1);
+  const businesses = await db.select().from(schema.business)
+    .where(sql`${schema.business.userId} = ${userId} AND ${schema.business.name} = 'Kos Melati Demo'`)
+    .limit(1);
 
   if (businesses.length === 0) {
     return {
@@ -561,7 +631,9 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
         referencedBillCount: 0,
         unreferencedBillCount: 0,
         diagnosticSessionCount: 0,
-        historicalReportMonthsAvailable: 0,
+        historicalReportReady: false,
+        historicalRevenueReady: false,
+        anomalyExpectedBoros: false,
       },
     };
   }
@@ -590,6 +662,28 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
     anomalyStatus = undefined;
   }
 
+  const anomalyExpectedBoros = anomalyStatus === 'Boros';
+
+  // Historical Report Actual Service Verification (GAP 6)
+  let historicalReportReady = false;
+  let historicalRevenueReady = false;
+  const historicalMonthStr = subMonthsStr(anchorMonth, 4); // Month 14
+
+  try {
+    const historicalReport = await getMonthlyReportReadModel(userId, businessId, historicalMonthStr);
+    if (
+      historicalReport &&
+      historicalReport.primaryBillSummary !== null &&
+      historicalReport.revenueSummary !== null
+    ) {
+      historicalReportReady = true;
+      historicalRevenueReady = true;
+    }
+  } catch {
+    historicalReportReady = false;
+    historicalRevenueReady = false;
+  }
+
   const ready =
     accounts.length > 0 &&
     plans.length > 0 &&
@@ -601,10 +695,25 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
     appliances.length >= 6 &&
     referencedBillCount >= 1 &&
     unreferencedBillCount >= 1 &&
-    diagSessions.length >= 1;
+    diagSessions.length >= 1 &&
+    anomalyExpectedBoros &&
+    historicalReportReady &&
+    historicalRevenueReady;
+
+  let reason: string | undefined;
+  if (!ready) {
+    if (!anomalyExpectedBoros) {
+      reason = `Demo anomaly scenario drifted from expected Boros state (current: ${anomalyStatus || 'undefined'}).`;
+    } else if (!historicalReportReady) {
+      reason = `Historical report for ${historicalMonthStr} failed to resolve.`;
+    } else {
+      reason = `Demo account components incomplete.`;
+    }
+  }
 
   return {
     ready,
+    reason,
     details: {
       userExists: true,
       accountExists: accounts.length > 0,
@@ -618,8 +727,11 @@ export async function checkQaDemoAccount(): Promise<QaDemoCheckResult> {
       referencedBillCount,
       unreferencedBillCount,
       diagnosticSessionCount: diagSessions.length,
-      historicalReportMonthsAvailable: bills.length,
+      historicalReportReady,
+      historicalReportMonth: historicalMonthStr,
+      historicalRevenueReady,
       anomalyStatus,
+      anomalyExpectedBoros,
     },
   };
 }

@@ -2,7 +2,7 @@
 
 ## 1. Overview & Purpose
 
-This runbook documents the **WattWise QA Demo Account Provisioning System** (`IT-QC-DEMO-01`).
+This runbook documents the **WattWise QA Demo Account Provisioning System** (`IT-QC-DEMO-01B`).
 
 The QA Demo Account provides a deterministic, safe, pre-populated synthetic dataset designed to make manual UI/UX acceptance testing, product demonstrations, and regression testing fast and repeatable.
 
@@ -10,22 +10,26 @@ The QA Demo Account provides a deterministic, safe, pre-populated synthetic data
 
 ## 2. Strict Environment Safety Rules
 
-- **Production Refusal**: The demo provisioning system **refuses to run** in actual Production (`VERCEL_ENV=production` or `NODE_ENV=production`).
-- **No Unconditional Overrides**: Setting override flags while target is a Production database will be unconditionally rejected.
-- **Supported Environments**: `development`, `test`, `preview`, `staging`.
-- **No Public API / Build Triggers**: Provisioning is NOT exposed as an unauthenticated HTTP API and NEVER executes automatically during `next build` or server startup.
+- **Local Development** (`NODE_ENV=development`): **ALLOWED**
+- **Test Environment** (`NODE_ENV=test`): **ALLOWED**
+- **Vercel Preview** (`VERCEL_ENV=preview`): **ALLOWED ONLY WHEN `QA_DEMO_ENABLED=true`** is explicitly configured. Without this flag, provisioning is DENIED.
+- **Vercel Production** (`VERCEL_ENV=production`): **ALWAYS DENIED UNCONDITIONALLY**. There are NO flags or overrides capable of bypassing this refusal.
+- **Non-Vercel Production** (`NODE_ENV=production`): **DENIED BY DEFAULT**. Refuses execution if a recognized Preview context is not present.
+
+> [!CAUTION]
+> No override flag exists or is supported to allow demo seeding or resetting in Production. The environment guard fails closed by default.
 
 ---
 
 ## 3. Required Environment Variables
 
-To provision or reset the QA Demo Account, configure the following environment variables:
+To provision, check, or reset the QA Demo Account, configure the following environment variables:
 
 | Variable | Requirement | Description |
 | :--- | :--- | :--- |
 | `QA_DEMO_EMAIL` | Optional | Email address for the QA Demo account. Defaults to `qa-demo@wattwise.test` if omitted. |
-| `QA_DEMO_PASSWORD` | Required when seeding | Strong test password (minimum 8 characters). **DO NOT COMMIT TO GIT.** |
-| `QA_DEMO_ENABLED` | Optional | Explicit opt-in flag required when provisioning in Vercel Preview environments. |
+| `QA_DEMO_PASSWORD` | Required when seeding | Strong test password (minimum 8 characters). **DO NOT COMMIT TO GIT OR LOG TO CONSOLE.** |
+| `QA_DEMO_ENABLED` | Required for Preview | Explicit opt-in flag required when provisioning in Vercel Preview environments (`QA_DEMO_ENABLED=true`). |
 
 ---
 
@@ -42,19 +46,28 @@ npm run qa:demo:seed
 ```bash
 npm run qa:demo:reset
 ```
-- Restores the QA Demo account to its initial deterministic baseline state.
-- Operates **strictly** on the matched `QA_DEMO_EMAIL` user domain records. Other database users remain untouched.
+- Restores `Kos Melati Demo` to its initial deterministic baseline state.
+- **Reset Identity Safety**: Verifies that the configured `QA_DEMO_EMAIL` user has strong QA Demo identity (`name === 'WattWise QA Demo'` and ID prefix `user-qa-demo-`). Refuses reset if configured email belongs to a normal user.
+- **Business-Scoped Isolation**: Destructive reset deletes and replaces **ONLY** records belonging to `Kos Melati Demo`. Unrelated businesses owned by the same user or other database users remain completely untouched.
 
 ### C. Check Demo Readiness
 ```bash
 npm run qa:demo:check
 ```
 - Inspects database readiness without mutating state.
-- Verifies account existence, Better Auth credentials, business status, 18-month bill/revenue history, appliance profile, referenced vs unreferenced bill availability, and authoritative anomaly state.
+- Verifies account existence, Better Auth credentials, business status, 18-month bill/revenue history, appliance profile, referenced vs unreferenced bill availability, historical monthly report service resolution, and authoritative anomaly state (`Boros`).
 
 ---
 
-## 5. Synthetic Dataset Composition
+## 5. Better Auth Login Integration Verification
+
+- **Better Auth Compatibility**: Better Auth native credential hash (`hashPassword` from `better-auth/crypto`) is generated during seeding.
+- **Live Auth Integration**: Verified via `auth.api.signInEmail({ body: { email, password }, headers: new Headers() })`.
+- **Authentication Guarantee**: Real email/password sign-in succeeds at `/login` and returns a valid user session. Invalid passwords are rejected.
+
+---
+
+## 6. Synthetic Dataset Composition
 
 The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 occupied) contains:
 
@@ -66,8 +79,8 @@ The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 
 2. **kWh Provenance Mix**:
    - `USER_ENTERED` (direct kWh)
    - `METER_DERIVED` (with valid `meterStart` and `meterEnd`)
-   - `LEGACY_UNKNOWN` (stored kWh fixture)
-   - `BILL_TARIFF_DERIVED` (bill without stored kWh but with tariff)
+   - `LEGACY_UNKNOWN` (stored null-kWh fixture)
+   - `BILL_TARIFF_DERIVED` (bill with `kwh = null` and valid tariff, resolving to `isEstimated = true` in read model)
    - Zero-usage period (valid `0.000` kWh period)
 3. **18 Months Revenue Entries**:
    - Matching monthly revenue (~15,000,000 to 18,000,000 IDR) enabling non-zero electricity/revenue ratio, cash-flow context, and historical report verification.
@@ -80,7 +93,7 @@ The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 
 
 ---
 
-## 6. Prohibited Uses
+## 7. Prohibited Uses
 
 > [!CAUTION]
 > **QA Demo synthetic data must NOT be used for:**
@@ -93,7 +106,7 @@ The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 
 
 ---
 
-## 7. Manual QA Acceptance Flow
+## 8. Manual QA Acceptance Flow
 
 1. Set `QA_DEMO_EMAIL` and `QA_DEMO_PASSWORD` in your local environment.
 2. Run `npm run qa:demo:seed`.

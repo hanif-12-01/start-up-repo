@@ -1,16 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
-import { verifyPassword } from 'better-auth/crypto';
 import { applyAllForwardMigrations } from '../helpers/migrations';
+import { auth } from '@/server/auth';
 import {
   seedQaDemoAccount,
   resetQaDemoAccount,
   checkQaDemoAccount,
 } from '@/server/services/qa-demo-provisioning.service';
+import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
+import { getMonthlyReportReadModel } from '@/server/services/monthly-report.service';
 
 const { Pool } = pg;
 
-describe('QA Demo Provisioning Integration Tests', () => {
+describe('QA Demo Provisioning Integration Tests (IT-QC-DEMO-01B Hardened)', () => {
   let pool: pg.Pool;
   const dbUrl = process.env.DATABASE_URL || 'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
   const originalEnv = { ...process.env };
@@ -41,126 +43,220 @@ describe('QA Demo Provisioning Integration Tests', () => {
     process.env.DATABASE_URL = dbUrl;
     process.env.QA_DEMO_EMAIL = 'qa-integration@wattwise.test';
     process.env.QA_DEMO_PASSWORD = 'TestPassword123!_QaDemo';
+    process.env.MONTHLY_REPORTS_ENABLED = 'true';
     delete process.env.VERCEL_ENV;
+    delete process.env.QA_DEMO_ENABLED;
     (process.env as Record<string, string | undefined>).NODE_ENV = 'test';
 
-    await pool.query('DELETE FROM action_outcome_evaluation');
-    await pool.query('DELETE FROM energy_action_plan');
-    await pool.query('DELETE FROM inspection_item');
-    await pool.query('DELETE FROM inspection_plan');
-    await pool.query('DELETE FROM diagnostic_candidate');
-    await pool.query('DELETE FROM diagnostic_session');
-    await pool.query('DELETE FROM appliance');
-    await pool.query('DELETE FROM revenue_entry');
-    await pool.query('DELETE FROM electricity_bill');
-    await pool.query('DELETE FROM business');
-    await pool.query('DELETE FROM user_plan');
-    await pool.query('DELETE FROM session');
-    await pool.query('DELETE FROM account');
-    await pool.query('DELETE FROM "user"');
+    await pool.query(`
+      DO $$ BEGIN
+        DELETE FROM action_outcome_evaluation;
+        DELETE FROM energy_action_plan;
+        DELETE FROM inspection_item;
+        DELETE FROM inspection_plan;
+        DELETE FROM diagnostic_candidate;
+        DELETE FROM diagnostic_session;
+        DELETE FROM appliance;
+        DELETE FROM revenue_entry;
+        DELETE FROM electricity_bill;
+        DELETE FROM business;
+        DELETE FROM user_plan;
+        DELETE FROM session;
+        DELETE FROM account;
+        DELETE FROM "user";
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;
+    `);
   });
 
-  it('unconditionally refuses provisioning when VERCEL_ENV is production and leaves database untouched', async () => {
-    process.env.VERCEL_ENV = 'production';
+  describe('GAP 1: Strict Environment Fail-Closed Integrations', () => {
+    it('unconditionally refuses provisioning when VERCEL_ENV is production and leaves database untouched', async () => {
+      process.env.VERCEL_ENV = 'production';
 
-    await expect(seedQaDemoAccount()).rejects.toThrow('QA Demo provisioning rejected');
+      await expect(seedQaDemoAccount()).rejects.toThrow('QA Demo provisioning rejected');
 
-    const userRes = await pool.query('SELECT count(*) FROM "user"');
-    expect(parseInt(userRes.rows[0].count, 10)).toBe(0);
-  });
-
-  it('creates a Better Auth-compatible user and account with verifiable password hash', async () => {
-    const res = await seedQaDemoAccount();
-    expect(res.email).toBe('qa-integration@wattwise.test');
-
-    const userRes = await pool.query('SELECT * FROM "user" WHERE email = $1', [res.email]);
-    expect(userRes.rows.length).toBe(1);
-    expect(userRes.rows[0].name).toBe('WattWise QA Demo');
-    expect(userRes.rows[0].email_verified).toBe(true);
-
-    const accRes = await pool.query('SELECT * FROM account WHERE user_id = $1 AND provider_id = $2', [
-      res.userId,
-      'credential',
-    ]);
-    expect(accRes.rows.length).toBe(1);
-    expect(accRes.rows[0].password).toBeDefined();
-
-    const isPasswordValid = await verifyPassword({
-      password: 'TestPassword123!_QaDemo',
-      hash: accRes.rows[0].password,
+      const userRes = await pool.query('SELECT count(*) FROM "user"');
+      expect(parseInt(userRes.rows[0].count, 10)).toBe(0);
     });
-    expect(isPasswordValid).toBe(true);
+
+    it('denies provisioning in Vercel preview when QA_DEMO_ENABLED is missing', async () => {
+      process.env.VERCEL_ENV = 'preview';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+      delete process.env.QA_DEMO_ENABLED;
+
+      await expect(seedQaDemoAccount()).rejects.toThrow('QA_DEMO_ENABLED is not set to true');
+
+      const userRes = await pool.query('SELECT count(*) FROM "user"');
+      expect(parseInt(userRes.rows[0].count, 10)).toBe(0);
+    });
+
+    it('allows provisioning in Vercel preview when QA_DEMO_ENABLED=true', async () => {
+      process.env.VERCEL_ENV = 'preview';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+      process.env.QA_DEMO_ENABLED = 'true';
+
+      const res = await seedQaDemoAccount();
+      expect(res.email).toBe('qa-integration@wattwise.test');
+    });
+
+    it('denies provisioning in non-Vercel NODE_ENV=production runtime', async () => {
+      delete process.env.VERCEL_ENV;
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+
+      await expect(seedQaDemoAccount()).rejects.toThrow('non-Vercel runtime detected');
+    });
   });
 
-  it('provisions 18 consecutive months of bills and revenue with provenance mix and PRO_TRIAL plan', async () => {
-    const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
+  describe('GAP 2: Non-Demo User Hijack Protection', () => {
+    it('refuses provisioning when configured email belongs to a normal non-demo user and preserves database', async () => {
+      // Seed normal user with email matching configured QA_DEMO_EMAIL
+      await pool.query(
+        `INSERT INTO "user" (id, name, email, email_verified) VALUES ('user-real-preview-01', 'Real Preview User', $1, true)`,
+        ['qa-integration@wattwise.test']
+      );
 
-    const billRes = await pool.query('SELECT * FROM electricity_bill WHERE business_id = $1 ORDER BY period_start ASC', [
-      res.businessId,
-    ]);
-    expect(billRes.rows.length).toBe(18);
+      await expect(seedQaDemoAccount()).rejects.toThrow('belongs to a non-demo user');
 
-    const revRes = await pool.query('SELECT * FROM revenue_entry WHERE business_id = $1 ORDER BY period_month ASC', [
-      res.businessId,
-    ]);
-    expect(revRes.rows.length).toBe(18);
+      // Verify normal user untouched
+      const userRes = await pool.query('SELECT * FROM "user" WHERE id = $1', ['user-real-preview-01']);
+      expect(userRes.rows[0].name).toBe('Real Preview User');
 
-    // Verify provenance mix
-    const sources = billRes.rows.map((r) => r.kwh_source);
-    expect(sources).toContain('LEGACY_UNKNOWN');
-    expect(sources).toContain('USER_ENTERED');
-    expect(sources).toContain('METER_DERIVED');
-
-    // Verify zero usage bill
-    const zeroBill = billRes.rows.find((r) => r.kwh === '0.000');
-    expect(zeroBill).toBeDefined();
-    expect(zeroBill.total_amount_rupiah).toBe('50000');
-
-    // Verify PRO_TRIAL plan
-    const planRes = await pool.query('SELECT * FROM user_plan WHERE user_id = $1', [res.userId]);
-    expect(planRes.rows[0].plan).toBe('PRO_TRIAL');
-    expect(planRes.rows[0].status).toBe('ACTIVE');
+      const bizRes = await pool.query('SELECT count(*) FROM business WHERE user_id = $1', ['user-real-preview-01']);
+      expect(parseInt(bizRes.rows[0].count, 10)).toBe(0);
+    });
   });
 
-  it('provisions referenced bill locked by diagnostic session and unreferenced editable bills', async () => {
-    const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
+  describe('GAP 3: Business-Scoped Reset & Isolation', () => {
+    it('resets Kos Melati Demo but preserves second manually created QA business owned by demo user', async () => {
+      const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
 
-    const check = await checkQaDemoAccount();
-    expect(check.ready).toBe(true);
-    expect(check.details.referencedBillCount).toBe(2); // Month 14 & Month 13 comparison
-    expect(check.details.unreferencedBillCount).toBe(16);
-    expect(check.details.diagnosticSessionCount).toBe(1);
-    expect(check.details.anomalyStatus).toBe('Boros');
+      // Create second manual business owned by demo user
+      await pool.query(
+        `INSERT INTO business (id, user_id, name, business_type, segment, electrical_system)
+         VALUES ('biz-second-qa', $1, 'Second Manual QA Business', 'KOS_PROPERTY', 'KOS', 'ALL_IN')`,
+        [res.userId]
+      );
+
+      // Perform reset
+      await resetQaDemoAccount({ anchorMonth: '2026-08' });
+
+      // Verify Kos Melati Demo reset & ready
+      const check = await checkQaDemoAccount({ anchorMonth: '2026-08' });
+      expect(check.ready).toBe(true);
+
+      // Verify second manual business preserved
+      const secondBizRes = await pool.query('SELECT * FROM business WHERE id = $1', ['biz-second-qa']);
+      expect(secondBizRes.rows.length).toBe(1);
+      expect(secondBizRes.rows[0].name).toBe('Second Manual QA Business');
+    });
+
+    it('refuses reset when configured email belongs to a normal non-demo user', async () => {
+      await pool.query(
+        `INSERT INTO "user" (id, name, email, email_verified) VALUES ('user-real-02', 'Real User Two', $1, true)`,
+        ['qa-integration@wattwise.test']
+      );
+
+      await expect(resetQaDemoAccount()).rejects.toThrow('belongs to a non-demo user');
+
+      const userRes = await pool.query('SELECT * FROM "user" WHERE id = $1', ['user-real-02']);
+      expect(userRes.rows[0].name).toBe('Real User Two');
+    });
   });
 
-  it('guarantees sequential and concurrent idempotency without creating duplicate rows', async () => {
-    await seedQaDemoAccount({ anchorMonth: '2026-08' });
-    await seedQaDemoAccount({ anchorMonth: '2026-08' }); // Second call
+  describe('GAP 4: Real Promise.all Concurrent Idempotency', () => {
+    it('executes concurrent seed calls safely with pg_advisory_xact_lock resulting in exact count assertions', async () => {
+      await Promise.all([
+        seedQaDemoAccount({ anchorMonth: '2026-08' }),
+        seedQaDemoAccount({ anchorMonth: '2026-08' }),
+        seedQaDemoAccount({ anchorMonth: '2026-08' }),
+      ]);
 
-    const check = await checkQaDemoAccount();
-    expect(check.ready).toBe(true);
-    expect(check.details.billCount).toBe(18);
-    expect(check.details.revenueCount).toBe(18);
-    expect(check.details.applianceCount).toBe(7);
+      const check = await checkQaDemoAccount({ anchorMonth: '2026-08' });
+      expect(check.ready).toBe(true);
+      expect(check.details.billCount).toBe(18);
+      expect(check.details.revenueCount).toBe(18);
+      expect(check.details.applianceCount).toBe(7);
+      expect(check.details.diagnosticSessionCount).toBe(1);
+    });
   });
 
-  it('resets demo account cleanly without affecting other users data', async () => {
-    // Seed foreign user
-    await pool.query(`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u-other', 'Other User', 'other@example.test', true)`);
-    await pool.query(`INSERT INTO business (id, user_id, name, business_type, segment, electrical_system) VALUES ('b-other', 'u-other', 'Other Biz', 'KOS_PROPERTY', 'KOS', 'ALL_IN')`);
+  describe('GAP 5: Real Better Auth Sign-In Integration', () => {
+    it('proves that Better Auth accepts sign-in with configured email and password', async () => {
+      await seedQaDemoAccount();
 
-    // Seed demo
-    await seedQaDemoAccount({ anchorMonth: '2026-08' });
+      const authResult = await auth.api.signInEmail({
+        body: {
+          email: 'qa-integration@wattwise.test',
+          password: 'TestPassword123!_QaDemo',
+        },
+        headers: new Headers(),
+      });
 
-    // Reset demo
-    await resetQaDemoAccount({ anchorMonth: '2026-08' });
+      expect(authResult).toBeDefined();
+      expect(authResult.user).toBeDefined();
+      expect(authResult.user.email).toBe('qa-integration@wattwise.test');
+      expect(authResult.user.name).toBe('WattWise QA Demo');
+    });
 
-    // Verify demo ready
-    const check = await checkQaDemoAccount();
-    expect(check.ready).toBe(true);
+    it('rejects sign-in attempt with wrong password', async () => {
+      await seedQaDemoAccount();
 
-    // Verify foreign business unaffected
-    const otherBiz = await pool.query('SELECT * FROM business WHERE id = $1', ['b-other']);
-    expect(otherBiz.rows.length).toBe(1);
+      await expect(
+        auth.api.signInEmail({
+          body: {
+            email: 'qa-integration@wattwise.test',
+            password: 'WrongPassword123!',
+          },
+          headers: new Headers(),
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('GAP 6 & 7: Provenance & Historical Report Readiness', () => {
+    it('stores kwh=null with LEGACY_UNKNOWN and derives BILL_TARIFF_DERIVED in read model', async () => {
+      const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
+
+      // Verify raw database row for Month 10 (i=9)
+      const billsRes = await pool.query(
+        `SELECT * FROM electricity_bill WHERE business_id = $1 ORDER BY period_start ASC`,
+        [res.businessId]
+      );
+      const month10Bill = billsRes.rows[9];
+      expect(month10Bill.kwh).toBeNull();
+      expect(month10Bill.kwh_source).toBe('LEGACY_UNKNOWN');
+
+      // Verify read model resolution
+      const analysisModel = await getProductAnalysisReadModel(res.userId, res.businessId);
+      const derivedSample = analysisModel.samples.find((s) => s.usageSource === 'BILL_TARIFF_DERIVED');
+      expect(derivedSample).toBeDefined();
+      expect(derivedSample?.isEstimated).toBe(true);
+
+      // Verify zero usage sample (Month 11, i=10)
+      const zeroSample = analysisModel.samples.find((s) => s.usageKwh === 0);
+      expect(zeroSample).toBeDefined();
+      expect(zeroSample?.usageSource).toBe('USER_ENTERED');
+      expect(zeroSample?.isEstimated).toBe(false);
+    });
+
+    it('resolves historical report with cash-flow context and enforces Boros anomaly state in check', async () => {
+      const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
+
+      // Verify historical report service for Month 14 (2026-04)
+      const historicalReport = await getMonthlyReportReadModel(res.userId, res.businessId, '2026-04');
+      expect(historicalReport).toBeDefined();
+      expect(historicalReport.primaryBillSummary).toBeDefined();
+      expect(historicalReport.primaryBillSummary?.totalCost).toBeDefined();
+      expect(historicalReport.revenueSummary).not.toBeNull();
+
+      // Verify qa:demo:check
+      const check = await checkQaDemoAccount({ anchorMonth: '2026-08' });
+      expect(check.ready).toBe(true);
+      expect(check.details.historicalReportReady).toBe(true);
+      expect(check.details.historicalReportMonth).toBe('2026-04');
+      expect(check.details.historicalRevenueReady).toBe(true);
+      expect(check.details.anomalyStatus).toBe('Boros');
+      expect(check.details.anomalyExpectedBoros).toBe(true);
+    });
   });
 });

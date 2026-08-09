@@ -14,6 +14,7 @@ async function run() {
     if (!check.ready) {
       process.exit(1);
     }
+    process.exit(0);
   } catch (err) {
     console.error(`[QA Demo Check] ERROR: ${(err as Error).message}`);
     process.exit(1);

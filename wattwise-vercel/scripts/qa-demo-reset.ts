@@ -10,6 +10,7 @@ async function run() {
 
     const check = await checkQaDemoAccount();
     console.log(`[QA Demo Reset] Readiness Check: ${check.ready ? 'READY' : 'NOT READY'}`);
+    process.exit(0);
   } catch (err) {
     console.error(`[QA Demo Reset] ERROR: ${(err as Error).message}`);
     process.exit(1);
