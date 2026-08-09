@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import pg from 'pg';
 import { applyAllForwardMigrations } from '../helpers/migrations';
 import { createBillForOwnedBusiness, updateBillForOwnedBusiness, deleteBillForOwnedBusiness, ReferencedBillLockedError } from '../../src/server/repositories/bill.repository';
 import { deleteRevenueEntry, applyApplianceTemplate } from '../../src/server/services/workspace.service';
 import { getMonthlyReportReadModel } from '../../src/server/services/monthly-report.service';
 import { GET as csvRouteGET } from '../../src/app/api/reports/monthly.csv/route';
+import * as sessionModule from '../../src/server/auth/session';
 
 const { Pool } = pg;
 const dbUrl =
@@ -17,12 +18,15 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
   beforeAll(async () => {
     process.env.MONTHLY_REPORTS_ENABLED = 'true';
     pool = new Pool({ connectionString: dbUrl, connectionTimeoutMillis: 5000 });
-    await pool.query('DROP TABLE IF EXISTS "business" CASCADE');
-    await pool.query('DROP TABLE IF EXISTS "user_plan" CASCADE');
-    await pool.query('DROP TABLE IF EXISTS "verification" CASCADE');
-    await pool.query('DROP TABLE IF EXISTS "account" CASCADE');
-    await pool.query('DROP TABLE IF EXISTS "session" CASCADE');
-    await pool.query('DROP TABLE IF EXISTS "user" CASCADE');
+    await pool.query(`
+      DO $$ DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+          EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+        END LOOP;
+      END $$;
+    `);
     await applyAllForwardMigrations(pool);
   });
 
@@ -64,9 +68,78 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
 
   describe('GAP 1 & 11: CSV Route Integration & Security', () => {
     it('rejects unauthenticated CSV request with 401', async () => {
+      vi.spyOn(sessionModule, 'getOptionalSession').mockResolvedValueOnce(null);
       const request = new Request('http://localhost:3000/api/reports/monthly.csv?businessId=b1&month=2026-08');
       const response = await csvRouteGET(request);
       expect(response.status).toBe(401);
+      vi.restoreAllMocks();
+    });
+
+    it('processes authenticated owned business CSV export with complete headers, body & formula safety', async () => {
+      await seedUser('u1', 'u1@example.test');
+      await seedUser('u2', 'u2@example.test');
+      await seedBusiness('b1', 'u1', '=SUM(1,1) Usaha');
+      await seedBusiness('b2', 'u2', 'Usaha Dua (Rahasia)');
+
+      await createBillForOwnedBusiness('u1', {
+        periodStart: '2026-01-01',
+        periodEnd: '2026-01-31',
+        totalAmountRupiah: BigInt(1200000),
+        kwh: '500.000',
+      }, 'b1');
+
+      vi.spyOn(sessionModule, 'getOptionalSession').mockResolvedValue({
+        session: { id: 's1', userId: 'u1', expiresAt: new Date(Date.now() + 86400000), token: 't1', createdAt: new Date(), updatedAt: new Date(), ipAddress: null, userAgent: null },
+        user: { id: 'u1', email: 'u1@example.test', name: 'User One', emailVerified: true, createdAt: new Date(), updatedAt: new Date(), image: null },
+      });
+
+      const reqOk = new Request('http://localhost:3000/api/reports/monthly.csv?businessId=b1&month=2026-01');
+      const resOk = await csvRouteGET(reqOk);
+      expect(resOk.status).toBe(200);
+      expect(resOk.headers.get('content-type')).toContain('text/csv');
+      expect(resOk.headers.get('content-disposition')).toContain('attachment; filename="wattwise-laporan-sum-1-1-usaha-2026-01.csv"');
+      expect(resOk.headers.get('cache-control')).toBe('private, no-store');
+      expect(resOk.headers.get('x-content-type-options')).toBe('nosniff');
+
+      const bodyText = await resOk.text();
+      expect(bodyText).toContain('WattWise AI - Laporan Listrik Usaha');
+      expect(bodyText).toContain('2026-01');
+      expect(bodyText).not.toContain('Usaha Dua (Rahasia)');
+      expect(bodyText).toContain("'=SUM(1,1) Usaha");
+
+      // Foreign businessId -> 404
+      const reqForeign = new Request('http://localhost:3000/api/reports/monthly.csv?businessId=b2&month=2026-01');
+      const resForeign = await csvRouteGET(reqForeign);
+      expect(resForeign.status).toBe(404);
+
+      // Invalid month -> 404
+      const reqInvalidMonth = new Request('http://localhost:3000/api/reports/monthly.csv?businessId=b1&month=invalid-month');
+      const resInvalidMonth = await csvRouteGET(reqInvalidMonth);
+      expect(resInvalidMonth.status).toBe(404);
+
+      vi.restoreAllMocks();
+    });
+
+    it('rejects historical report outside user entitlement with 403', async () => {
+      process.env.ENTITLEMENTS_ENABLED = 'true';
+      await seedUser('u1', 'u1@example.test');
+      await seedBusiness('b1', 'u1', 'Usaha Satu');
+
+      await pool.query(
+        `INSERT INTO electricity_bill (id, business_id, period_start, period_end, total_amount_rupiah, kwh_source)
+         VALUES ('old-bill', 'b1', '2025-01-01', '2025-01-31', 1000000, 'USER_ENTERED')`
+      );
+
+      vi.spyOn(sessionModule, 'getOptionalSession').mockResolvedValue({
+        session: { id: 's1', userId: 'u1', expiresAt: new Date(Date.now() + 86400000), token: 't1', createdAt: new Date(), updatedAt: new Date(), ipAddress: null, userAgent: null },
+        user: { id: 'u1', email: 'u1@example.test', name: 'User One', emailVerified: true, createdAt: new Date(), updatedAt: new Date(), image: null },
+      });
+
+      const reqOutside = new Request('http://localhost:3000/api/reports/monthly.csv?businessId=b1&month=2025-01');
+      const resOutside = await csvRouteGET(reqOutside);
+      expect(resOutside.status).toBe(403);
+
+      vi.restoreAllMocks();
     });
   });
 

@@ -71,6 +71,43 @@ describe('IT-QC-01 Hardening & Model Readiness Unit Tests', () => {
         isEstimated: false,
       });
     });
+
+    it('correctly handles zero kWh for USER_ENTERED and METER_DERIVED without discarding provenance', () => {
+      const zeroSamples = buildUsageSamplesFromBills([
+        {
+          periodEnd: '2026-05-31',
+          kwh: '0.000',
+          totalAmountRupiah: 50000n,
+          tariffRupiahPerKwh: '1444.70',
+          kwhSource: 'USER_ENTERED',
+        },
+        {
+          periodEnd: '2026-06-30',
+          kwh: '0.000',
+          totalAmountRupiah: 50000n,
+          tariffRupiahPerKwh: '1444.70',
+          kwhSource: 'METER_DERIVED',
+        },
+      ]);
+
+      expect(zeroSamples).toHaveLength(2);
+      expect(zeroSamples[0]).toEqual({
+        period: '2026-05',
+        usageKwh: 0,
+        billAmount: 50000,
+        tariff: 1444.7,
+        usageSource: 'USER_ENTERED',
+        isEstimated: false,
+      });
+      expect(zeroSamples[1]).toEqual({
+        period: '2026-06',
+        usageKwh: 0,
+        billAmount: 50000,
+        tariff: 1444.7,
+        usageSource: 'METER_DERIVED',
+        isEstimated: false,
+      });
+    });
   });
 
   describe('Workstream C: Production Environment Fail-Closed', () => {

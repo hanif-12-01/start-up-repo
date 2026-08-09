@@ -261,7 +261,7 @@ export async function getDecisionSupport(userId: string, requestedBusinessId?: s
     db.select().from(appliance).where(and(eq(appliance.businessId, context.business.id), eq(appliance.isActive, true))).orderBy(asc(appliance.name)),
   ]);
 
-  const anomalies = bills.slice(0, -1).map((current, index) => {
+  const dailyCostComparisons = bills.slice(0, -1).map((current, index) => {
     const previous = bills[index + 1];
     const currentDaily = Number(current.totalAmountRupiah) / daysInclusive(current.periodStart, current.periodEnd);
     const previousDaily = Number(previous.totalAmountRupiah) / daysInclusive(previous.periodStart, previous.periodEnd);
@@ -288,7 +288,7 @@ export async function getDecisionSupport(userId: string, requestedBusinessId?: s
     revenues,
     appliances,
     applianceEstimates,
-    anomalies,
+    dailyCostComparisons,
     latestBill,
     matchingRevenue,
     ratio,

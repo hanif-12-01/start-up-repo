@@ -27,7 +27,7 @@ export function buildUsageSamplesFromBills(
       let usageSource: UsageSource;
       let isEstimated = false;
 
-      if (kwhNum !== null && kwhNum > 0) {
+      if (kwhNum !== null && Number.isFinite(kwhNum)) {
         if (bill.kwhSource === 'METER_DERIVED') {
           usageSource = 'METER_DERIVED';
         } else if (bill.kwhSource === 'USER_ENTERED') {
@@ -35,6 +35,7 @@ export function buildUsageSamplesFromBills(
         } else {
           usageSource = 'LEGACY_UNKNOWN';
         }
+        isEstimated = false;
       } else if (tariffNum !== null && tariffNum > 0) {
         usageSource = 'BILL_TARIFF_DERIVED';
         isEstimated = true;

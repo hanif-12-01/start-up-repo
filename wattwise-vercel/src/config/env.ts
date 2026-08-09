@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const booleanFlag = z
   .preprocess((val) => val === 'true' || val === true, z.boolean())
   .default(false);
 
 // In production, DATABASE_URL and BETTER_AUTH_SECRET are strictly required.
-// In development/test, they fall back to empty string / defaults so the build
+// In development/test/build phase, they fall back to empty string / defaults so the build
 // and unit-test suite can run without a live database.
 const databaseUrlSchema = z.string().min(1, 'DATABASE_URL must not be empty');
 const authSecretSchema = z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters');
@@ -37,6 +38,18 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+export function isProductionBuild(): boolean {
+  return (
+    process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD ||
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_EXECUTION_DATA_COLLECTION_BUILD === '1'
+  );
+}
+
+export function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === 'production' && !isProductionBuild();
+}
+
 export function sanitizeEnvError(error: z.ZodError): string {
   // Format error safely without logging secret string contents
   const issueSummaries = error.issues.map(
@@ -57,11 +70,13 @@ export function parseEnv(input: Record<string, string | undefined>): Env {
 
 /**
  * Validates that all production-required variables are present and well-formed.
- * Called once at server startup. Throws with a sanitized message (no secret values).
+ * Called once at server startup or DB pool access. Throws with a sanitized message (no secret values).
+ * During Next.js production build phase, validation is skipped so compilation succeeds without live credentials.
  * Never call this in client-side code.
  */
 export function validateProductionEnv(parsed: Env): void {
   if (parsed.NODE_ENV !== 'production') return;
+  if (isProductionBuild()) return;
 
   const errors: string[] = [];
 

@@ -25,6 +25,7 @@ import {
 } from '@/server/services/dashboard.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { getDecisionSupport } from '@/server/services/workspace.service';
+import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
 
 export const dynamic = 'force-dynamic';
@@ -93,7 +94,11 @@ export default async function DashboardPage({
 
   const selectedBusinessId = dashboard.businessSummary.options.find((item) => item.selected)?.id;
   if (!selectedBusinessId) notFound();
-  const support = await getDecisionSupport(userId, selectedBusinessId);
+  const [support, analysisReadModel] = await Promise.all([
+    getDecisionSupport(userId, selectedBusinessId),
+    getProductAnalysisReadModel(userId, selectedBusinessId),
+  ]);
+  const anomaly = analysisReadModel.anomaly;
   const businessQuery = `?businessId=${encodeURIComponent(selectedBusinessId)}`;
   const latestOutcome = dashboard.outcomeSummaries[0] ?? null;
 
@@ -145,10 +150,29 @@ export default async function DashboardPage({
           </nav>
         </section>
 
-        {support.anomalies.length > 0 && (
-          <Link href={`/anomalies${businessQuery}`} className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 transition hover:bg-amber-100 sm:flex-row sm:items-center sm:justify-between">
-            <span className="flex items-start gap-3"><TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" /><span><strong className="block text-sm">Ada periode yang perlu ditinjau</strong><span className="mt-1 block text-xs leading-5">{support.anomalies.length} perubahan biaya harian melewati ambang indikasi 15%.</span></span></span>
-            <span className="text-xs font-extrabold">Lihat indikasi →</span>
+        {anomaly.hasData && (anomaly.status === 'Perlu Dicek' || anomaly.status === 'Boros') && (
+          <Link
+            href={`/analysis?businessId=${encodeURIComponent(selectedBusinessId)}&tab=anomaly`}
+            className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center sm:justify-between ${
+              anomaly.status === 'Boros'
+                ? 'border-amber-400 bg-amber-100/80 text-amber-950 hover:bg-amber-100'
+                : 'border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
+            }`}
+          >
+            <span className="flex items-start gap-3">
+              <TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+              <span>
+                <strong className="block text-sm">
+                  {anomaly.status === 'Boros' ? 'Indikasi pemakaian boros' : 'Pemakaian perlu ditinjau'}
+                </strong>
+                <span className="mt-1 block text-xs leading-5">
+                  {anomaly.status === 'Boros'
+                    ? `Terdeteksi kenaikan pemakaian signifikan sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`
+                    : `Terdeteksi kenaikan pemakaian indikatif sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`}
+                </span>
+              </span>
+            </span>
+            <span className="text-xs font-extrabold text-amber-900">Lihat analisis indikasi →</span>
           </Link>
         )}
 
