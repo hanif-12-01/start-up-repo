@@ -50,11 +50,11 @@ export default async function DiagnosticSessionPage({
   } catch (error) {
     if (error instanceof DiagnosticsUnavailableError) {
       return (
-        <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
-          <section className="mx-auto max-w-2xl rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
-            <h1 className="text-xl font-semibold text-amber-300">Pemeriksaan belum tersedia</h1>
-            <p className="mt-2 text-sm text-amber-100/80">{error.message}</p>
-            <Link href="/bills" className="mt-5 inline-block text-sm font-semibold text-cyan-300">
+        <main className="min-h-screen bg-[var(--surface)] p-5 text-[var(--foreground)] md:p-10">
+          <section className="mx-auto max-w-2xl rounded-xl border border-[var(--warning-border)]/70 bg-[var(--warning-surface)]/30 p-6">
+            <h1 className="text-xl font-semibold text-[var(--warning)]">Pemeriksaan belum tersedia</h1>
+            <p className="mt-2 text-sm text-[var(--warning)]/80">{error.message}</p>
+            <Link href="/bills" className="mt-5 inline-block text-sm font-semibold text-[var(--info)]">
               Kembali ke tagihan
             </Link>
           </section>
@@ -68,36 +68,36 @@ export default async function DiagnosticSessionPage({
   const { session, nextQuestion } = view;
 
   return (
-    <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
+    <main className="min-h-screen bg-[var(--surface)] p-5 text-[var(--foreground)] md:p-10">
       <PageReveal className="mx-auto max-w-3xl space-y-6">
         <Reveal direction="down">
-          <header className="border-b border-slate-800 pb-5">
-            <Link href="/bills" className="text-sm font-semibold text-cyan-300 hover:text-cyan-200">
+          <header className="border-b border-[var(--border)] pb-5">
+            <Link href="/bills" className="text-sm font-semibold text-[var(--info)] hover:text-[var(--info)]">
               ← Kembali ke tagihan
             </Link>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
               Cek kenaikan · Kos
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">Kumpulkan konteks periode</h1>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
               Jawaban Anda membantu menyusun konteks. Tahap ini belum menetapkan penyebab atau diagnosis.
             </p>
           </header>
         </Reveal>
 
         <Reveal direction="up">
-          <section className="grid gap-4 rounded-xl border border-slate-700 bg-slate-800 p-5 sm:grid-cols-2">
+          <section className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-5 sm:grid-cols-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Periode yang diperiksa</p>
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Periode yang diperiksa</p>
               <p className="mt-2 font-semibold">{periodLabel(session.currentBill)}</p>
-              <p className="mt-1 text-sm text-emerald-300">
+              <p className="mt-1 text-sm text-[var(--primary)]">
                 {rupiah.format(session.currentBill.totalAmountRupiah)}
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Periode pembanding</p>
+              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Periode pembanding</p>
               <p className="mt-2 font-semibold">{periodLabel(session.comparisonBill)}</p>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-[var(--foreground)]">
                 {rupiah.format(session.comparisonBill.totalAmountRupiah)}
               </p>
             </div>
@@ -106,24 +106,24 @@ export default async function DiagnosticSessionPage({
 
         {view.completed ? (
           <Reveal direction="up">
-            <section className="rounded-xl border border-emerald-700 bg-emerald-950/30 p-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+            <section className="rounded-xl border border-[var(--primary)] bg-[var(--primary-soft)] p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">
                 Konteks tersimpan
               </p>
               <h2 className="mt-2 text-2xl font-semibold">Questionnaire selesai</h2>
-              <p className="mt-3 text-sm leading-relaxed text-emerald-100/80">
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]/80">
                 Jawaban Anda sudah tersimpan. WattWise dapat menyusun maksimal tiga bagian
                 prioritas berdasarkan jawaban dan data tagihan yang tersedia.
               </p>
               {session.status === 'CLOSED' ? (
                 <div className="mt-5">
-                  <p className="font-semibold text-emerald-200">Sesi Cek Kenaikan Selesai</p>
-                  <p className="mt-2 text-sm text-emerald-100/70">
+                  <p className="font-semibold text-[var(--primary)]">Sesi Cek Kenaikan Selesai</p>
+                  <p className="mt-2 text-sm text-[var(--muted)]/70">
                     Data tersimpan dan tetap dapat dibaca. Sesi ini tidak menerima perubahan baru.
                   </p>
                   <Link
                     href={`/diagnostics/${encodeURIComponent(session.id)}/results`}
-                    className="mt-4 inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                    className="mt-4 inline-flex rounded-md bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)]"
                   >
                     Lihat hasil tersimpan
                   </Link>
@@ -136,12 +136,12 @@ export default async function DiagnosticSessionPage({
         ) : (
           nextQuestion && (
             <Reveal direction="up">
-              <section className="rounded-xl border border-cyan-800/70 bg-cyan-950/20 p-6">
-                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+              <section className="rounded-xl border border-[var(--info-border)]/70 bg-[var(--info-surface)]/20 p-6">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--info)]">
                   {view.answeredCount + 1} dari maksimal {view.maximumQuestionCount} pertanyaan
                 </p>
                 <h2 className="mt-3 text-xl font-semibold leading-relaxed">{nextQuestion.prompt}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
                   {nextQuestion.helpText}
                 </p>
                 <AnswerForm

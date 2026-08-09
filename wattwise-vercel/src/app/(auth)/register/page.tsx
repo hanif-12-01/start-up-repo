@@ -1,12 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, ArrowRight, Check } from 'lucide-react';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { PasswordInput } from '@/components/auth/PasswordInput';
+import {
+  fieldClass,
+  helpTextClass,
+  labelClass,
+  primaryButton,
+} from '@/components/product/WorkspaceUI';
 import { authClient } from '@/server/auth/client';
-import { PageReveal } from '@/components/motion/PageReveal';
-import { Reveal } from '@/components/motion/Reveal';
-import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,139 +22,122 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
 
     if (!name.trim() || !email.trim() || !password) {
-      setError('Mohon isi semua bidang yang diperlukan.');
+      setError('Data akun belum lengkap. Isi nama, email, dan kata sandi sebelum melanjutkan.');
       return;
     }
-
     if (password.length < 8) {
-      setError('Kata sandi minimal 8 karakter.');
+      setError('Kata sandi terlalu pendek. Gunakan sedikitnya 8 karakter, lalu coba kembali.');
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await authClient.signUp.email({
+      const response = await authClient.signUp.email({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
-
-      if (res.error) {
-        setError(res.error.message || 'Pendaftaran gagal. Silakan coba lagi.');
-        setLoading(false);
-      } else {
-        router.push('/plan');
+      if (response.error) {
+        const message = (response.error.message ?? '').toLocaleLowerCase('id');
+        setError(
+          message.includes('exist') || message.includes('registered') || message.includes('terdaftar')
+            ? 'Email ini sudah terdaftar. Masuk dengan akun tersebut atau gunakan alamat email lain.'
+            : 'Akun belum dapat dibuat. Periksa kembali data Anda, lalu coba lagi beberapa saat lagi.',
+        );
+        return;
       }
+      router.push('/plan');
+      router.refresh();
     } catch {
-      setError('Terjadi kesalahan pada sistem. Silakan coba lagi.');
+      setError('Layanan pendaftaran tidak merespons. Periksa koneksi Anda, tunggu sebentar, lalu coba lagi.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-100 p-4">
-      <PageReveal className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-6">
-        <Reveal direction="down">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">WattWise AI</h1>
-            <p className="text-sm text-slate-400">Daftar akun baru untuk memulai pemantauan energi.</p>
-          </div>
-        </Reveal>
+    <AuthShell
+      eyebrow="Mulai tanpa perangkat tambahan"
+      title="Buat ruang kerja WattWise"
+      description="Daftarkan akun, pilih jenis usaha, lalu mulai dari satu tagihan listrik yang sudah Anda miliki."
+    >
+      {error && (
+        <div id="register-error" role="alert" className="mb-5 flex gap-3 rounded-xl border border-[var(--danger-border)] bg-[var(--danger-surface)] p-4 text-sm leading-6 text-[var(--danger)]">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
 
-        {error && (
-          <Reveal direction="up" duration={0.2}>
-            <div role="alert" className="p-3 bg-red-950/80 border border-red-800 rounded-md text-sm text-red-200">
-              {error}
-            </div>
-          </Reveal>
-        )}
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={loading}>
+        <div>
+          <label htmlFor="name" className={labelClass}>Nama lengkap</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            disabled={loading}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={fieldClass}
+            placeholder="Nama Anda"
+            autoComplete="name"
+            aria-describedby={error ? 'register-error' : undefined}
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <Reveal direction="up" delay={0.05}>
-            <div>
-              <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Nama Lengkap
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                disabled={loading}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                placeholder="Nama Anda"
-              />
-            </div>
-          </Reveal>
+        <div>
+          <label htmlFor="email" className={labelClass}>Alamat email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            disabled={loading}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={fieldClass}
+            placeholder="nama@usaha.com"
+            autoComplete="email"
+            inputMode="email"
+            aria-describedby={error ? 'register-error' : undefined}
+          />
+        </div>
 
-          <Reveal direction="up" delay={0.1}>
-            <div>
-              <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Alamat Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                disabled={loading}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                placeholder="nama@perusahaan.com"
-              />
-            </div>
-          </Reveal>
+        <div>
+          <label htmlFor="password" className={labelClass}>Kata sandi</label>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            disabled={loading}
+            placeholder="Minimal 8 karakter"
+            autoComplete="new-password"
+            describedBy="password-help"
+          />
+          <p id="password-help" className={helpTextClass}>
+            <Check className="mr-1 inline h-3.5 w-3.5 text-[var(--success)]" aria-hidden="true" />
+            Gunakan sedikitnya 8 karakter yang mudah Anda ingat dan sulit ditebak.
+          </p>
+        </div>
 
-          <Reveal direction="up" delay={0.15}>
-            <div>
-              <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Kata Sandi
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                disabled={loading}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                placeholder="Minimal 8 karakter"
-              />
-            </div>
-          </Reveal>
+        <button type="submit" disabled={loading} className={`${primaryButton} w-full`}>
+          {loading ? 'Membuat akun...' : 'Buat akun dan lanjutkan'}
+          {!loading && <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />}
+        </button>
+      </form>
 
-          <Reveal direction="up" delay={0.2}>
-            <InteractiveMotion>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50"
-              >
-                {loading ? 'Memproses...' : 'Daftar Akun'}
-              </button>
-            </InteractiveMotion>
-          </Reveal>
-        </form>
-
-        <Reveal direction="up" delay={0.25}>
-          <div className="text-center text-xs text-slate-400">
-            Sudah memiliki akun?{' '}
-            <Link href="/login" className="text-emerald-400 hover:underline font-medium">
-              Masuk di sini
-            </Link>
-          </div>
-        </Reveal>
-      </PageReveal>
-    </main>
+      <p className="mt-7 text-center text-sm text-[var(--muted)]">
+        Sudah memiliki akun?{' '}
+        <Link href="/login" className="font-bold text-[var(--primary)] underline-offset-4 hover:underline">
+          Masuk di sini
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

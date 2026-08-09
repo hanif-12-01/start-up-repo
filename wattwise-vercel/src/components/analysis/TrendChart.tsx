@@ -1,14 +1,21 @@
 'use client';
 
-import { decimal, formatMonth, rupiah } from '@/lib/format';
+import { useId } from 'react';
+import { decimal, formatMonthCompact, rupiah } from '@/lib/format';
 
 export interface TrendPoint {
-  period: string; // e.g. '2026-05'
-  label: string;  // e.g. 'Mei 2026'
+  period: string;
+  label: string;
   usageKwh: number | null;
   billAmount: number | null;
   tariff: number | null;
   type: 'historical' | 'derived' | 'forecast';
+}
+
+type Metric = 'kwh' | 'rupiah';
+
+function formatValue(value: number, metric: Metric) {
+  return metric === 'kwh' ? `${decimal.format(value)} kWh` : rupiah.format(value);
 }
 
 export function TrendChart({
@@ -16,222 +23,273 @@ export function TrendChart({
   metric = 'kwh',
 }: {
   points: TrendPoint[];
-  metric?: 'kwh' | 'rupiah';
+  metric?: Metric;
 }) {
-  if (!points || points.length === 0) {
+  const titleId = useId();
+  const descriptionId = useId();
+
+  if (!points.length) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] text-sm text-[var(--muted)]">
+      <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] px-5 text-center text-sm text-[var(--muted)]">
         Belum cukup data untuk grafik tren. Tambahkan minimal satu tagihan.
       </div>
     );
   }
 
+  const getPointValue = (point: TrendPoint) =>
+    metric === 'kwh' ? point.usageKwh : point.billAmount;
   const values = points
-    .map((p) => (metric === 'kwh' ? p.usageKwh : p.billAmount))
-    .filter((v): v is number => v !== null && Number.isFinite(v));
+    .map(getPointValue)
+    .filter((value): value is number => value !== null && Number.isFinite(value));
 
-  const maxVal = Math.max(...values, 10);
-  const minVal = Math.min(...values, 0);
-  const range = maxVal - minVal || 1;
+  if (!values.length) {
+    return (
+      <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] px-5 text-center text-sm text-[var(--muted)]">
+        Nilai pemakaian belum tersedia. Lengkapi kWh atau tarif pada tagihan untuk menampilkan grafik.
+      </div>
+    );
+  }
 
-  // SVG viewport dimensions
-  const svgWidth = 640;
-  const svgHeight = 200;
-  const paddingX = 40;
-  const paddingTop = 20;
-  const paddingBottom = 40;
-  const chartW = svgWidth - paddingX * 2;
-  const chartH = svgHeight - paddingTop - paddingBottom;
+  const rawMax = Math.max(...values);
+  const rawMin = Math.min(...values);
+  const rawRange = rawMax - rawMin;
+  const domainPadding = rawRange > 0 ? rawRange * 0.12 : Math.max(rawMax * 0.12, 1);
+  const minValue = rawMin === 0 ? 0 : Math.max(0, rawMin - domainPadding);
+  const maxValue = rawMax + domainPadding;
+  const valueRange = maxValue - minValue || 1;
 
-  const getX = (index: number) => {
-    if (points.length === 1) return svgWidth / 2;
-    return paddingX + (index / (points.length - 1)) * chartW;
-  };
+  const svgWidth = 760;
+  const svgHeight = 320;
+  const paddingLeft = 76;
+  const paddingRight = 24;
+  const paddingTop = 46;
+  const paddingBottom = 68;
+  const chartWidth = svgWidth - paddingLeft - paddingRight;
+  const chartHeight = svgHeight - paddingTop - paddingBottom;
+  const getX = (index: number) =>
+    points.length === 1
+      ? paddingLeft + chartWidth / 2
+      : paddingLeft + (index / (points.length - 1)) * chartWidth;
+  const getY = (value: number) =>
+    paddingTop + chartHeight - ((value - minValue) / valueRange) * chartHeight;
 
-  const getY = (val: number | null) => {
-    if (val === null) return svgHeight - paddingBottom;
-    const norm = (val - minVal) / range;
-    return svgHeight - paddingBottom - norm * chartH;
-  };
-
-  // Group points into continuous paths based on type
-  const pointCoords = points.map((p, idx) => {
-    const val = metric === 'kwh' ? p.usageKwh : p.billAmount;
+  const coordinates = points.map((point, index) => {
+    const value = getPointValue(point);
     return {
-      x: getX(idx),
-      y: getY(val),
-      val,
-      point: p,
+      point,
+      value,
+      x: getX(index),
+      y: value === null ? null : getY(value),
     };
   });
-
-  // Create SVG path strings for historical solid line vs forecast dashed line
-  const histCoords = pointCoords.filter((c) => c.point.type !== 'forecast');
-  const forecastCoords = pointCoords.filter((c) => c.point.type === 'forecast');
-
-  let histPath = '';
-  if (histCoords.length > 0) {
-    histPath = `M ${histCoords[0].x} ${histCoords[0].y}` + histCoords.slice(1).map((c) => ` L ${c.x} ${c.y}`).join('');
-  }
-
-  let forecastPath = '';
-  if (forecastCoords.length > 0 && histCoords.length > 0) {
-    const lastHist = histCoords.at(-1)!;
-    forecastPath = `M ${lastHist.x} ${lastHist.y}` + forecastCoords.map((c) => ` L ${c.x} ${c.y}`).join('');
-  }
+  const plottedCoordinates = coordinates.filter(
+    (coordinate): coordinate is typeof coordinate & { value: number; y: number } =>
+      coordinate.value !== null && coordinate.y !== null && Number.isFinite(coordinate.value),
+  );
+  const historicalCoordinates = plottedCoordinates.filter(
+    (coordinate) => coordinate.point.type !== 'forecast',
+  );
+  const forecastCoordinates = plottedCoordinates.filter(
+    (coordinate) => coordinate.point.type === 'forecast',
+  );
+  const pathFor = (items: typeof plottedCoordinates) =>
+    items.length
+      ? `M ${items[0].x} ${items[0].y}${items.slice(1).map((item) => ` L ${item.x} ${item.y}`).join('')}`
+      : '';
+  const historicalPath = pathFor(historicalCoordinates);
+  const forecastPath =
+    forecastCoordinates.length && historicalCoordinates.length
+      ? pathFor([historicalCoordinates.at(-1)!, ...forecastCoordinates])
+      : '';
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-[500px]">
-        <svg
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full h-auto text-[var(--foreground)] font-sans"
-          role="img"
-          aria-label={`Grafik tren ${metric === 'kwh' ? 'pemakaian kWh' : 'biaya Rupiah'}`}
-        >
-          <title>{`Grafik tren ${metric === 'kwh' ? 'pemakaian (kWh)' : 'biaya (Rp)'}`}</title>
-          <desc>Visualisasi tren historis dan estimasi proyeksi pemakaian listrik.</desc>
-
-          {/* Grid lines */}
-          <line
-            x1={paddingX}
-            y1={paddingTop}
-            x2={svgWidth - paddingX}
-            y2={paddingTop}
-            stroke="var(--border)"
-            strokeDasharray="4 4"
-          />
-          <line
-            x1={paddingX}
-            y1={paddingTop + chartH / 2}
-            x2={svgWidth - paddingX}
-            y2={paddingTop + chartH / 2}
-            stroke="var(--border)"
-            strokeDasharray="4 4"
-          />
-          <line
-            x1={paddingX}
-            y1={svgHeight - paddingBottom}
-            x2={svgWidth - paddingX}
-            y2={svgHeight - paddingBottom}
-            stroke="var(--border)"
-          />
-
-          {/* Max/Min Value Labels */}
-          <text
-            x={paddingX - 6}
-            y={paddingTop + 4}
-            textAnchor="end"
-            className="text-[10px] font-bold fill-[var(--muted)] tabular-nums"
+    <figure className="w-full">
+      <div
+        className="overflow-x-auto pb-2 focus-visible:rounded-xl"
+        tabIndex={0}
+        aria-label="Area grafik dapat digulir horizontal pada layar kecil"
+      >
+        <div className="min-w-[680px]">
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="h-auto w-full font-sans text-[var(--foreground)]"
+            role="img"
+            aria-labelledby={`${titleId} ${descriptionId}`}
           >
-            {metric === 'kwh' ? `${decimal.format(maxVal)} kWh` : rupiah.format(maxVal)}
-          </text>
-          <text
-            x={paddingX - 6}
-            y={svgHeight - paddingBottom + 4}
-            textAnchor="end"
-            className="text-[10px] font-bold fill-[var(--muted)] tabular-nums"
-          >
-            {metric === 'kwh' ? `${decimal.format(minVal)} kWh` : rupiah.format(minVal)}
-          </text>
+            <title id={titleId}>
+              {`Grafik tren ${metric === 'kwh' ? 'pemakaian dalam kWh' : 'biaya dalam Rupiah'}`}
+            </title>
+            <desc id={descriptionId}>
+              Data tercatat memakai garis utuh. Estimasi matematis berikutnya memakai garis putus-putus.
+            </desc>
 
-          {/* Historical Solid Line */}
-          {histPath && (
-            <path
-              d={histPath}
-              fill="none"
-              stroke="var(--primary)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Forecast Dashed Line */}
-          {forecastPath && (
-            <path
-              d={forecastPath}
-              fill="none"
-              stroke="var(--primary)"
-              strokeWidth="2.5"
-              strokeDasharray="6 4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Points & Labels */}
-          {pointCoords.map((c, idx) => {
-            const isForecast = c.point.type === 'forecast';
-            const isDerived = c.point.type === 'derived';
-
-            return (
-              <g key={`${c.point.period}-${idx}`}>
-                {/* Vertical guideline */}
-                <line
-                  x1={c.x}
-                  y1={paddingTop}
-                  x2={c.x}
-                  y2={svgHeight - paddingBottom}
-                  stroke="var(--border)"
-                  strokeDasharray="2 2"
-                  opacity="0.5"
-                />
-
-                {/* Point circle */}
-                <circle
-                  cx={c.x}
-                  cy={c.y}
-                  r={isForecast ? 5 : 4}
-                  fill={isForecast ? 'var(--background)' : isDerived ? 'var(--muted)' : 'var(--primary)'}
-                  stroke="var(--primary)"
-                  strokeWidth="2"
-                />
-
-                {/* Period X-Axis Label */}
-                <text
-                  x={c.x}
-                  y={svgHeight - paddingBottom + 18}
-                  textAnchor="middle"
-                  className="text-[11px] font-bold fill-[var(--foreground)]"
-                >
-                  {formatMonth(c.point.period)}
-                </text>
-
-                {/* Value Label above point */}
-                {c.val !== null && (
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+              const y = paddingTop + chartHeight * ratio;
+              const value = maxValue - valueRange * ratio;
+              return (
+                <g key={ratio}>
+                  <line
+                    x1={paddingLeft}
+                    y1={y}
+                    x2={svgWidth - paddingRight}
+                    y2={y}
+                    stroke="var(--chart-grid)"
+                    strokeDasharray={ratio === 1 ? undefined : '4 5'}
+                  />
                   <text
-                    x={c.x}
-                    y={c.y - 10}
-                    textAnchor="middle"
-                    className={`text-[10px] font-black tabular-nums ${
-                      isForecast
-                        ? 'fill-[var(--primary)]'
-                        : isDerived
-                          ? 'fill-[var(--muted)]'
-                          : 'fill-[var(--foreground)]'
-                    }`}
+                    x={paddingLeft - 12}
+                    y={y + 4}
+                    textAnchor="end"
+                    className="fill-[var(--muted)] text-[10px] font-semibold tabular-nums"
                   >
-                    {metric === 'kwh' ? `${decimal.format(c.val)} kWh` : rupiah.format(c.val)}
+                    {formatValue(value, metric)}
                   </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              );
+            })}
+
+            {historicalPath && (
+              <path
+                d={historicalPath}
+                fill="none"
+                stroke="var(--chart-series-primary)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+            {forecastPath && (
+              <path
+                d={forecastPath}
+                fill="none"
+                stroke="var(--chart-series-forecast)"
+                strokeWidth="2.5"
+                strokeDasharray="7 5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+
+            {coordinates.map((coordinate, index) => {
+              const isForecast = coordinate.point.type === 'forecast';
+              const isDerived = coordinate.point.type === 'derived';
+              const showValue =
+                coordinate.value !== null &&
+                (index === 0 || index === coordinates.length - 1 || isForecast);
+              return (
+                <g key={`${coordinate.point.period}-${coordinate.point.type}-${index}`}>
+                  <line
+                    x1={coordinate.x}
+                    y1={paddingTop}
+                    x2={coordinate.x}
+                    y2={svgHeight - paddingBottom}
+                    stroke="var(--chart-grid)"
+                    strokeDasharray="2 5"
+                    opacity="0.7"
+                  />
+                  {coordinate.value !== null && coordinate.y !== null && (
+                    <circle
+                      cx={coordinate.x}
+                      cy={coordinate.y}
+                      r={isForecast ? 5 : 4}
+                      fill={
+                        isForecast
+                          ? 'var(--surface)'
+                          : isDerived
+                            ? 'var(--chart-series-derived)'
+                            : 'var(--chart-series-primary)'
+                      }
+                      stroke={
+                        isForecast
+                          ? 'var(--chart-series-forecast)'
+                          : 'var(--chart-series-primary)'
+                      }
+                      strokeWidth="2.5"
+                    >
+                      <title>{`${coordinate.point.label}: ${formatValue(coordinate.value, metric)}`}</title>
+                    </circle>
+                  )}
+                  <text
+                    x={coordinate.x}
+                    y={svgHeight - paddingBottom + 24}
+                    textAnchor="middle"
+                    className="fill-[var(--muted)] text-[10px] font-semibold"
+                  >
+                    {isForecast ? 'Estimasi' : formatMonthCompact(coordinate.point.period)}
+                  </text>
+                  {showValue && coordinate.y !== null && coordinate.value !== null && (
+                    <text
+                      x={coordinate.x}
+                      y={coordinate.y - 12}
+                      textAnchor="middle"
+                      className={`text-[10px] font-extrabold tabular-nums ${
+                        isForecast
+                          ? 'fill-[var(--chart-series-forecast)]'
+                          : isDerived
+                            ? 'fill-[var(--chart-series-derived)]'
+                            : 'fill-[var(--foreground)]'
+                      }`}
+                    >
+                      {formatValue(coordinate.value, metric)}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-5 text-xs text-[var(--muted)] border-t border-[var(--border)] pt-3">
-        <div className="flex items-center gap-2">
-          <span className="h-0.5 w-4 bg-[var(--primary)] rounded-full inline-block" />
-          <span className="font-semibold">Data Tagihan Tercatat</span>
+      <figcaption className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-0.5 w-5 rounded-full bg-[var(--chart-series-primary)]" aria-hidden="true" />
+          <span className="font-semibold">Data tagihan tercatat</span>
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-0.5 w-5 border-b-2 border-dashed border-[var(--chart-series-forecast)]" aria-hidden="true" />
+          <span className="font-semibold">Estimasi matematis berikutnya</span>
+        </span>
+        {coordinates.some((coordinate) => coordinate.value === null) && (
+          <span>Periode tanpa nilai tidak digambar sebagai titik nol.</span>
+        )}
+      </figcaption>
+
+      <details className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-bold text-[var(--foreground)]">
+          Lihat data grafik dalam tabel
+        </summary>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left text-xs">
+            <thead className="text-[var(--muted)]">
+              <tr className="border-b border-[var(--border)]">
+                <th className="py-2 pr-4">Periode</th>
+                <th className="py-2 pr-4">Nilai</th>
+                <th className="py-2">Jenis data</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {points.map((point) => {
+                const value = getPointValue(point);
+                return (
+                  <tr key={`${point.period}-${point.type}`}>
+                    <td className="py-2 pr-4 font-semibold text-[var(--foreground)]">{point.label}</td>
+                    <td className="py-2 pr-4 tabular-nums text-[var(--foreground)]">
+                      {value === null ? 'Tidak tersedia' : formatValue(value, metric)}
+                    </td>
+                    <td className="py-2 text-[var(--muted)]">
+                      {point.type === 'forecast'
+                        ? 'Estimasi matematis'
+                        : point.type === 'derived'
+                          ? 'Nilai turunan'
+                          : 'Tercatat'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="h-0.5 w-4 border-b-2 border-dashed border-[var(--primary)] inline-block" />
-          <span className="font-semibold">Proyeksi Skenario</span>
-        </div>
-      </div>
-    </div>
+      </details>
+    </figure>
   );
 }

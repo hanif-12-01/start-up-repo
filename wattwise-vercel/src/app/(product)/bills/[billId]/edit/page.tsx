@@ -26,14 +26,14 @@ export default async function EditBillPage({
 
   return (
     <main className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] md:p-10">
-      <PageReveal className="mx-auto w-full max-w-2xl space-y-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
+      <PageReveal className="mx-auto w-full max-w-2xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-medium)]">
         <Reveal direction="down">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
               {bill.businessName}
             </p>
-            <h1 className="text-2xl font-bold tracking-tight">Edit tagihan listrik</h1>
-            <p className="text-sm leading-relaxed text-slate-400">
+            <h1 className="text-2xl font-black tracking-tight">Edit tagihan listrik</h1>
+            <p className="text-sm leading-relaxed text-[var(--muted)]">
               Perbarui data tagihan. Jika tagihan terhubung dengan riwayat Cek Kenaikan, perubahan akan dikunci demi konsistensi.
             </p>
           </div>

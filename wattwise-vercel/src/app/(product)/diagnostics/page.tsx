@@ -89,22 +89,22 @@ export default async function DiagnosticsPage({
       />
 
       {/* Main Status & Hero Card */}
-      <SoftCard className="relative overflow-hidden border-emerald-900/15 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white shadow-xl">
-        <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl" aria-hidden="true" />
+      <SoftCard className="relative overflow-hidden border-[var(--border-strong)]/15 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white shadow-xl">
+        <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[var(--primary)]/15 blur-3xl" aria-hidden="true" />
         <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <div className="flex items-center gap-2">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-500/20 text-emerald-300 backdrop-blur-md">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--primary)]/20 text-[var(--primary)] backdrop-blur-md">
                 <Gauge className="h-5 w-5" aria-hidden="true" />
               </span>
-              <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold text-emerald-300">
+              <span className="rounded-full bg-[var(--primary)]/15 px-3 py-1 text-xs font-bold text-[var(--primary)]">
                 Status Sesi Diagnostik
               </span>
             </div>
             <h2 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">
               {nextAction.label}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-emerald-100/80">
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted)]/80">
               Cek Kenaikan menyusun alur evaluasi terstruktur berbasis perbandingan tagihan aktual dan konteks usaha Anda.
             </p>
           </div>
@@ -117,7 +117,7 @@ export default async function DiagnosticsPage({
             ) : (
               <Link
                 href={nextAction.href}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-emerald-950 shadow-md transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-emerald-950 shadow-md transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
               >
                 <span>{nextAction.label}</span>
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -240,7 +240,7 @@ export default async function DiagnosticsPage({
               {dashboard.actionPlanSummaries.map((action) => (
                 <article
                   key={action.title}
-                  className="rounded-2xl border border-emerald-900/10 bg-[var(--primary-soft)] p-4"
+                  className="rounded-2xl border border-[var(--border-strong)]/10 bg-[var(--primary-soft)] p-4"
                 >
                   <h3 className="font-extrabold text-[var(--foreground)]">{action.title}</h3>
                   <p className="mt-1 text-xs font-bold text-[var(--primary)]">

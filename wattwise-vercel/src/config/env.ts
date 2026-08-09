@@ -62,7 +62,7 @@ export function parseEnv(input: Record<string, string | undefined>): Env {
   const result = envSchema.safeParse(input);
   if (!result.success) {
     const safeErrorMessage = sanitizeEnvError(result.error);
-    console.error('❌ Environment validation failed');
+    console.error('Environment validation failed');
     throw new Error(safeErrorMessage);
   }
   return result.data;

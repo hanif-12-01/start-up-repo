@@ -6,10 +6,9 @@ import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 import { Reveal } from '@/components/motion/Reveal';
 import type { BillRecord } from '@/server/repositories/bill.repository';
 import { updateBillAction } from '../../actions';
+import { fieldClass, labelClass, primaryButton, secondaryButton } from '@/components/product/WorkspaceUI';
 
-const inputClass =
-  'w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';
-const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-300';
+const inputClass = fieldClass;
 
 export function BillEditForm({ bill }: { bill: BillRecord }) {
   const updateActionWithId = updateBillAction.bind(null, bill.id);
@@ -23,7 +22,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
     <>
       {state?.error && (
         <Reveal direction="up" duration={0.2}>
-          <div role="alert" className="rounded-md border border-rose-800 bg-rose-950/80 p-3 text-xs leading-relaxed text-rose-200">
+          <div role="alert" className="rounded-xl border border-[var(--danger-border)] bg-[var(--danger-surface)] p-3 text-xs leading-relaxed text-[var(--danger)]">
             {state.error}
           </div>
         </Reveal>
@@ -34,7 +33,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="periodStart" className={labelClass}>
-                Awal periode <span className="text-red-400">*</span>
+                Awal periode <span className="text-[var(--danger)]">*</span>
               </label>
               <input
                 id="periodStart"
@@ -44,11 +43,11 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
                 defaultValue={previousValue('periodStart', bill.periodStart)}
                 className={inputClass}
               />
-              {fieldError('periodStart') && <p className="mt-1 text-xs text-red-400">{fieldError('periodStart')}</p>}
+              {fieldError('periodStart') && <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('periodStart')}</p>}
             </div>
             <div>
               <label htmlFor="periodEnd" className={labelClass}>
-                Akhir periode <span className="text-red-400">*</span>
+                Akhir periode <span className="text-[var(--danger)]">*</span>
               </label>
               <input
                 id="periodEnd"
@@ -58,13 +57,13 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
                 defaultValue={previousValue('periodEnd', bill.periodEnd)}
                 className={inputClass}
               />
-              {fieldError('periodEnd') && <p className="mt-1 text-xs text-red-400">{fieldError('periodEnd')}</p>}
+              {fieldError('periodEnd') && <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('periodEnd')}</p>}
             </div>
           </div>
 
           <div>
             <label htmlFor="totalAmountRupiah" className={labelClass}>
-              Total tagihan (Rupiah) <span className="text-red-400">*</span>
+              Total tagihan (Rupiah) <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               id="totalAmountRupiah"
@@ -77,7 +76,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
               className={inputClass}
             />
             {fieldError('totalAmountRupiah') && (
-              <p className="mt-1 text-xs text-red-400">{fieldError('totalAmountRupiah')}</p>
+              <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('totalAmountRupiah')}</p>
             )}
           </div>
 
@@ -95,7 +94,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
                 defaultValue={previousValue('kwh', bill.kwh ?? '')}
                 className={inputClass}
               />
-              {fieldError('kwh') && <p className="mt-1 text-xs text-red-400">{fieldError('kwh')}</p>}
+              {fieldError('kwh') && <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('kwh')}</p>}
             </div>
             <div>
               <label htmlFor="tariffRupiahPerKwh" className={labelClass}>
@@ -111,7 +110,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
                 className={inputClass}
               />
               {fieldError('tariffRupiahPerKwh') && (
-                <p className="mt-1 text-xs text-red-400">{fieldError('tariffRupiahPerKwh')}</p>
+                <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('tariffRupiahPerKwh')}</p>
               )}
             </div>
           </div>
@@ -176,14 +175,14 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
               defaultValue={previousValue('notes', bill.notes ?? '')}
               className={inputClass}
             />
-            {fieldError('notes') && <p className="mt-1 text-xs text-red-400">{fieldError('notes')}</p>}
+            {fieldError('notes') && <p className="mt-1 text-xs text-[var(--danger)]">{fieldError('notes')}</p>}
           </div>
         </fieldset>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Link
             href={`/bills?businessId=${encodeURIComponent(bill.businessId)}`}
-            className="rounded-md border border-slate-600 px-4 py-2.5 text-center text-sm font-semibold text-slate-200 hover:bg-slate-700"
+            className={secondaryButton}
           >
             Batal
           </Link>
@@ -191,7 +190,7 @@ export function BillEditForm({ bill }: { bill: BillRecord }) {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full rounded-md bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 sm:w-auto"
+              className={`${primaryButton} w-full sm:w-auto`}
             >
               {isPending ? 'Simpan...' : 'Simpan Perubahan'}
             </button>

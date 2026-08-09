@@ -73,10 +73,10 @@ export default async function AnalysisPage({
   }));
 
   if (prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
-    const nextPeriod = 'Proyeksi';
+    const nextPeriod = 'forecast-next';
     trendPoints.push({
       period: nextPeriod,
-      label: nextPeriod,
+      label: 'Estimasi periode berikutnya',
       usageKwh: prediction.predictedUsageKwh,
       billAmount: prediction.estimatedBill,
       tariff,
@@ -111,8 +111,8 @@ export default async function AnalysisPage({
   return (
     <WorkspacePage>
       <WorkspaceHeader
-        eyebrow="Pusat Analisis Intelegen"
-        title="Analisis Biaya & Pemakaian"
+        eyebrow="Pusat analisis"
+        title="Analisis biaya dan pemakaian"
         description="Satu tempat terpadu untuk membaca tren historis, indikasi anomali, proyeksi deterministik, rekomendasi prioritas, dan simulasi skenario."
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -318,7 +318,7 @@ export default async function AnalysisPage({
       {activeTab === 'anomaly' && (
         <SoftCard>
           <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--warning-surface)]/15 text-amber-600 dark:text-[var(--warning)] shrink-0">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>

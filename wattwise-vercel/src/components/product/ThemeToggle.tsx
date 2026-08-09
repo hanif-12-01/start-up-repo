@@ -7,6 +7,15 @@ type Appearance = 'SYSTEM' | 'LIGHT' | 'DARK';
 
 const emptySubscribe = () => () => {};
 
+function subscribeToTheme(callback: () => void) {
+  window.addEventListener('storage', callback);
+  window.addEventListener('ww-theme-change', callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener('ww-theme-change', callback);
+  };
+}
+
 function getThemeSnapshot(): Appearance {
   if (typeof window === 'undefined') return 'SYSTEM';
   return (localStorage.getItem('ww-theme') as Appearance | null) || 'SYSTEM';
@@ -26,7 +35,7 @@ function getServerMountedSnapshot(): boolean {
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const mounted = useSyncExternalStore(emptySubscribe, getMountedSnapshot, getServerMountedSnapshot);
-  const theme = useSyncExternalStore(emptySubscribe, getThemeSnapshot, getServerSnapshot);
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerSnapshot);
 
   const changeTheme = (next: Appearance) => {
     localStorage.setItem('ww-theme', next);
@@ -34,7 +43,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     const dark = next === 'DARK' || (next === 'SYSTEM' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.dataset.themePreference = next;
-    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('ww-theme-change'));
   };
 
   if (!mounted) return <div className={`h-8 w-24 rounded-lg bg-[var(--surface-muted)] ${className}`} aria-hidden="true" />;

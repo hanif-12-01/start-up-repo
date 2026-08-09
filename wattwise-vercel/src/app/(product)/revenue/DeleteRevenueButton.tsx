@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, TriangleAlert } from 'lucide-react';
 import { deleteRevenueAction } from './actions';
 
 interface DeleteRevenueButtonProps {
@@ -44,7 +44,7 @@ export function DeleteRevenueButton({ revenueId, monthLabel }: DeleteRevenueButt
       <button
         type="button"
         onClick={openModal}
-        className="rounded-lg p-2 text-[var(--muted)] hover:bg-rose-500/10 hover:text-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500"
+        className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--danger-surface)] hover:text-[var(--danger)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
         title="Hapus data pendapatan bulan ini"
         aria-label={`Hapus pendapatan ${monthLabel}`}
       >
@@ -54,12 +54,12 @@ export function DeleteRevenueButton({ revenueId, monthLabel }: DeleteRevenueButt
       <dialog
         ref={dialogRef}
         onCancel={closeModal}
-        className="backdrop:bg-slate-950/80 fixed inset-0 z-50 m-auto max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 text-[var(--foreground)] shadow-2xl"
+        className="fixed inset-0 z-50 m-auto max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 text-[var(--foreground)] shadow-[var(--shadow-medium)] backdrop:bg-[var(--overlay)]"
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-xl text-rose-500">
-              ⚠️
+            <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--danger-surface)] text-[var(--danger)]">
+              <TriangleAlert className="h-5 w-5" />
             </span>
             <div>
               <h3 className="text-lg font-bold text-[var(--foreground)]">
@@ -72,7 +72,7 @@ export function DeleteRevenueButton({ revenueId, monthLabel }: DeleteRevenueButt
           </div>
 
           {error && (
-            <div role="alert" className="rounded-lg border border-rose-800 bg-rose-950/80 p-3 text-xs leading-relaxed text-rose-200">
+            <div role="alert" className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-surface)] p-3 text-xs leading-relaxed text-[var(--danger)]">
               {error}
             </div>
           )}
@@ -90,7 +90,7 @@ export function DeleteRevenueButton({ revenueId, monthLabel }: DeleteRevenueButt
               type="button"
               disabled={isPending}
               onClick={handleDelete}
-              className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
+              className="rounded-xl bg-[var(--danger)] px-4 py-2.5 text-sm font-bold text-white hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:opacity-50"
             >
               {isPending ? 'Menghapus...' : 'Hapus'}
             </button>

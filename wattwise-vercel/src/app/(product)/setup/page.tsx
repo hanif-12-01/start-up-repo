@@ -26,55 +26,55 @@ export default async function SetupPage() {
   const trialEnd = plan?.trialEndsAt ? new Date(plan.trialEndsAt).toLocaleDateString('id-ID') : null;
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-6 md:p-12">
+    <main className="min-h-screen bg-[var(--surface)] text-[var(--foreground)] p-6 md:p-12">
       <PageReveal className="max-w-3xl mx-auto space-y-8">
         <Reveal direction="down">
-          <header className="flex items-center justify-between border-b border-slate-800 pb-6">
+          <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-emerald-400">WattWise AI</h1>
-              <p className="text-sm text-slate-400">Setup selesai — siap digunakan</p>
+              <h1 className="text-3xl font-bold tracking-tight text-[var(--primary)]">WattWise AI</h1>
+              <p className="text-sm text-[var(--muted)]">Setup selesai — siap digunakan</p>
             </div>
             <LogoutButton />
           </header>
         </Reveal>
 
         <Reveal direction="up" delay={0.1}>
-          <section className="bg-emerald-950/30 border border-emerald-700/50 rounded-xl p-6 space-y-2">
-            <h2 className="text-xl font-semibold text-emerald-400">Profil usaha berhasil dibuat</h2>
-            <p className="text-sm text-slate-300">Semua langkah awal telah selesai. Anda siap menggunakan WattWise.</p>
+          <section className="bg-[var(--primary-soft)] border border-[var(--primary)]/50 rounded-xl p-6 space-y-2">
+            <h2 className="text-xl font-semibold text-[var(--primary)]">Profil usaha berhasil dibuat</h2>
+            <p className="text-sm text-[var(--foreground)]">Semua langkah awal telah selesai. Anda siap menggunakan WattWise.</p>
           </section>
         </Reveal>
 
         <Reveal direction="up" delay={0.15}>
-          <section className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-200">Ringkasan Setup</h2>
+          <section className="bg-[var(--surface-muted)] border border-[var(--border)] rounded-xl p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Ringkasan Setup</h2>
             <StaggerGroup className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                <span className="block text-xs font-semibold text-slate-400 uppercase">Paket</span>
-                <span className="text-slate-100 font-medium">{planLabel}</span>
-                {trialEnd && <span className="block text-xs text-slate-500 mt-1">Berakhir: {trialEnd}</span>}
+              <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Paket</span>
+                <span className="text-[var(--foreground)] font-medium">{planLabel}</span>
+                {trialEnd && <span className="block text-xs text-[var(--muted)] mt-1">Berakhir: {trialEnd}</span>}
               </div>
-              <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                <span className="block text-xs font-semibold text-slate-400 uppercase">Onboarding</span>
-                <span className="text-emerald-400 font-medium">Selesai</span>
+              <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Onboarding</span>
+                <span className="text-[var(--primary)] font-medium">Selesai</span>
               </div>
               {biz && (
                 <>
-                  <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                    <span className="block text-xs font-semibold text-slate-400 uppercase">Nama Usaha</span>
-                    <span className="text-slate-100 font-medium">{biz.name}</span>
+                  <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                    <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Nama Usaha</span>
+                    <span className="text-[var(--foreground)] font-medium">{biz.name}</span>
                   </div>
-                  <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                    <span className="block text-xs font-semibold text-slate-400 uppercase">Tipe</span>
-                    <span className="text-slate-100 font-medium">{biz.businessType}</span>
+                  <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                    <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Tipe</span>
+                    <span className="text-[var(--foreground)] font-medium">{biz.businessType}</span>
                   </div>
-                  <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                    <span className="block text-xs font-semibold text-slate-400 uppercase">Segmen</span>
-                    <span className="text-slate-100 font-medium">{biz.segment}</span>
+                  <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                    <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Segmen</span>
+                    <span className="text-[var(--foreground)] font-medium">{biz.segment}</span>
                   </div>
-                  <div className="p-3 bg-slate-900 rounded-md border border-slate-700">
-                    <span className="block text-xs font-semibold text-slate-400 uppercase">Sistem Listrik</span>
-                    <span className="text-slate-100 font-medium">{biz.electricalSystem}</span>
+                  <div className="p-3 bg-[var(--surface)] rounded-md border border-[var(--border)]">
+                    <span className="block text-xs font-semibold text-[var(--muted)] uppercase">Sistem Listrik</span>
+                    <span className="text-[var(--foreground)] font-medium">{biz.electricalSystem}</span>
                   </div>
                 </>
               )}
@@ -83,15 +83,15 @@ export default async function SetupPage() {
         </Reveal>
 
         <Reveal direction="up" delay={0.25}>
-          <section className="space-y-4 rounded-xl border border-emerald-800/80 bg-emerald-950/30 p-6">
-            <h2 className="text-lg font-semibold text-emerald-300">Mulai dari tagihan listrik Anda</h2>
-            <p className="text-sm leading-relaxed text-emerald-100/80">
+          <section className="space-y-4 rounded-xl border border-[var(--border-strong)]/80 bg-[var(--primary-soft)] p-6">
+            <h2 className="text-lg font-semibold text-[var(--primary)]">Mulai dari tagihan listrik Anda</h2>
+            <p className="text-sm leading-relaxed text-[var(--muted)]/80">
               Masukkan total tagihan dan periodenya. kWh, tarif, dan catatan dapat ditambahkan bila tersedia.
               Setelah ada dua periode terpisah, WattWise membandingkan biaya harian tanpa mengklaim penyebabnya.
             </p>
             <Link
               href="/bills/new"
-              className="inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+              className="inline-block rounded-md bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--primary)]"
             >
               Masukkan Tagihan Pertama
             </Link>

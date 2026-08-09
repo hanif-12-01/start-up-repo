@@ -44,23 +44,23 @@ export default async function ActionSelectionPage({
   const resultsPath = `/diagnostics/${encodeURIComponent(sessionId)}/results`;
 
   return (
-    <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
+    <main className="min-h-screen bg-[var(--surface)] p-5 text-[var(--foreground)] md:p-10">
       <PageReveal className="mx-auto max-w-3xl space-y-6">
         <Reveal direction="down">
-          <header className="border-b border-slate-800 pb-5">
-            <Link href={inspectionPath} className="text-sm font-semibold text-cyan-300 hover:text-cyan-200 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300">
+          <header className="border-b border-[var(--border)] pb-5">
+            <Link href={inspectionPath} className="text-sm font-semibold text-[var(--info)] hover:text-[var(--info)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)]">
               ← Kembali ke hasil pemeriksaan
             </Link>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Rencana Hemat</p>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">Rencana Hemat</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">Pilih tindakan yang aman</h1>
-            <p className="mt-3 text-sm text-slate-400">Sumber: {view.context.candidateTitle}</p>
+            <p className="mt-3 text-sm text-[var(--muted)]">Sumber: {view.context.candidateTitle}</p>
           </header>
         </Reveal>
 
         <Reveal direction="up">
-          <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Hasil pemeriksaan</p>
-            <p className="mt-2 font-semibold text-slate-100">
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-5">
+            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Hasil pemeriksaan</p>
+            <p className="mt-2 font-semibold text-[var(--foreground)]">
               {view.context.inspectionResult
                 ? INSPECTION_ANSWER_LABELS[view.context.inspectionResult]
                 : ''}
@@ -70,12 +70,12 @@ export default async function ActionSelectionPage({
 
         {view.options.length === 0 ? (
           <Reveal direction="up">
-            <section className="rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
-              <h2 className="font-semibold text-amber-200">Tanda yang diperiksa belum ditemukan.</h2>
-              <p className="mt-2 text-sm text-amber-100/80">
+            <section className="rounded-xl border border-[var(--warning-border)]/70 bg-[var(--warning-surface)]/30 p-6">
+              <h2 className="font-semibold text-[var(--warning)]">Tanda yang diperiksa belum ditemukan.</h2>
+              <p className="mt-2 text-sm text-[var(--warning)]/80">
                 Pertimbangkan untuk memeriksa kandidat lain sebelum membuat Rencana Hemat.
               </p>
-              <Link href={resultsPath} className="mt-4 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300">
+              <Link href={resultsPath} className="mt-4 inline-flex text-sm font-semibold text-[var(--info)] hover:text-[var(--info)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)]">
                 Periksa Kandidat Lain
               </Link>
             </section>
@@ -92,9 +92,9 @@ export default async function ActionSelectionPage({
         )}
 
         <Reveal direction="up">
-          <section className="rounded-xl border border-cyan-900/80 bg-cyan-950/20 p-5">
-            <h2 className="font-semibold text-cyan-200">Batas Rencana Hemat</h2>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">{ACTION_PLAN_DISCLAIMER}</p>
+          <section className="rounded-xl border border-[var(--info-border)]/80 bg-[var(--info-surface)]/20 p-5">
+            <h2 className="font-semibold text-[var(--info)]">Batas Rencana Hemat</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{ACTION_PLAN_DISCLAIMER}</p>
           </section>
         </Reveal>
       </PageReveal>

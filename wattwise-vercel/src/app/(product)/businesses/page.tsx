@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Building2 } from 'lucide-react';
 import { businessSegmentLabel, rupiah } from '@/lib/format';
 import { EmptyState, SoftCard, WorkspaceHeader, WorkspacePage, primaryButton } from '@/components/product/WorkspaceUI';
 import { requireWorkspacePage } from '@/server/services/workspace-page';
@@ -21,18 +22,18 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         actions={<Link href="/businesses/new" className={primaryButton}>+ Tambah Usaha</Link>}
       />
 
-      {query.notice === 'keep-one-active' && <div role="alert" className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm font-semibold text-amber-600 dark:text-amber-400">Sisakan minimal satu usaha aktif agar perjalanan WattWise tetap dapat digunakan.</div>}
-      {query.updated && <div role="status" className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400">Status usaha berhasil diperbarui.</div>}
+      {query.notice === 'keep-one-active' && <div role="alert" className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-surface)] p-4 text-sm font-semibold text-[var(--warning)]">Sisakan minimal satu usaha aktif agar perjalanan WattWise tetap dapat digunakan.</div>}
+      {query.updated && <div role="status" className="rounded-2xl border border-[var(--success-border)] bg-[var(--success-surface)] p-4 text-sm font-semibold text-[var(--success)]">Status usaha berhasil diperbarui.</div>}
 
       {portfolio.length === 0 ? (
-        <EmptyState icon="🏢" title="Belum ada usaha" description="Tambahkan usaha pertama untuk mulai mencatat tagihan dan menjalankan Cek Kenaikan." href="/businesses/new" action="Tambah Usaha" />
+        <EmptyState icon={Building2} title="Belum ada usaha" description="Tambahkan usaha pertama untuk mulai mencatat tagihan dan menjalankan Cek Kenaikan." href="/businesses/new" action="Tambah Usaha" />
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           {portfolio.map((item) => (
             <SoftCard key={item.id} className={!item.isActive ? 'opacity-75' : ''}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span aria-hidden="true" className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--primary-soft)] text-xl">🏢</span>
+                  <span aria-hidden="true" className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]"><Building2 className="h-5 w-5" /></span>
                   <div>
                     <h2 className="text-lg font-extrabold text-[var(--foreground)]">{item.name}</h2>
                     <p className="mt-1 text-sm text-[var(--muted)]">{businessSegmentLabel(item.segment)}{item.city ? ` · ${item.city}` : ''}</p>
@@ -45,7 +46,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
                 <div className="rounded-2xl bg-[var(--surface-muted)] p-4"><p className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Sistem listrik</p><p className="mt-2 font-extrabold text-[var(--foreground)]">{item.electricalSystem.replaceAll('_', ' ')}</p></div>
               </div>
               <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
-                {item.isActive && <Link href={`/dashboard?businessId=${encodeURIComponent(item.id)}`} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Buka Dashboard</Link>}
+                {item.isActive && <Link href={`/dashboard?businessId=${encodeURIComponent(item.id)}`} className={primaryButton}>Buka Dashboard</Link>}
                 {item.isActive && <Link href={`/businesses/${encodeURIComponent(item.id)}/edit`} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]">Edit Profil</Link>}
                 <form action={setBusinessStatusAction}>
                   <input type="hidden" name="businessId" value={item.id} />

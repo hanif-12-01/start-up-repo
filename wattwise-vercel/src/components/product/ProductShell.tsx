@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
@@ -29,7 +29,7 @@ const groups: Array<{ label: string; items: Item[] }> = [
     label: 'UTAMA',
     items: [
       { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard },
-      { href: '/analysis', label: 'Analisa', icon: ChartNoAxesCombined },
+      { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined },
     ],
   },
   {
@@ -95,19 +95,42 @@ export function ProductShell({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = 'hidden';
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') setMenuOpen(false);
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.body.style.overflow = '';
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }
+    if (!menuOpen) return;
+
+    document.body.style.overflow = 'hidden';
+    const trigger = menuButtonRef.current;
+    const drawer = drawerRef.current;
+    const focusable = drawer?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.[0]?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab' || !focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+      trigger?.focus();
+    };
   }, [menuOpen]);
 
   if (shellBypass.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
@@ -119,7 +142,7 @@ export function ProductShell({
   const sidebar = (
     <aside className="flex h-full w-[256px] flex-col border-r border-[var(--border)] bg-[var(--surface-muted)] px-3.5 py-4 text-[var(--foreground)]">
       <Link href="/dashboard" onClick={close} className="flex items-center gap-2.5 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] rounded-xl">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-white shadow-sm">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-subtle)]">
           <Bolt className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
@@ -182,6 +205,7 @@ export function ProductShell({
           WattWise AI
         </Link>
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-expanded={menuOpen}
@@ -194,14 +218,20 @@ export function ProductShell({
       </header>
 
       {menuOpen && (
-        <div id="product-mobile-menu" className="fixed inset-0 z-50 lg:hidden">
+        <div
+          id="product-mobile-menu"
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigasi produk"
+        >
           <button
             type="button"
             aria-label="Tutup menu"
             onClick={close}
-            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+            className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-xs"
           />
-          <div className="absolute inset-y-0 left-0 z-10 shadow-2xl">{sidebar}</div>
+          <div ref={drawerRef} className="absolute inset-y-0 left-0 z-10 shadow-[var(--shadow-medium)]">{sidebar}</div>
           <button
             type="button"
             onClick={close}

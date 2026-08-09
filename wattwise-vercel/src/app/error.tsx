@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { TriangleAlert } from 'lucide-react';
 
 export default function ErrorPage({
   error,
@@ -16,16 +17,16 @@ export default function ErrorPage({
 
   return (
     <main className="flex-1 flex flex-col justify-center items-center px-4 py-16 text-center max-w-lg mx-auto">
-      <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xl mb-4">
-        !
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--warning-surface)] text-[var(--warning)]">
+        <TriangleAlert className="h-6 w-6" aria-hidden="true" />
       </div>
-      <h2 className="text-2xl font-bold text-slate-100 mb-2">Terjadi Kendala Sistem</h2>
-      <p className="text-sm text-slate-400 mb-6">
+      <h2 className="mb-2 text-2xl font-bold text-[var(--foreground)]">Terjadi kendala sistem</h2>
+      <p className="mb-6 text-sm text-[var(--muted)]">
         Sistem mengalami gangguan sementara. Tidak ada data sensitif yang terpengaruh. Silakan coba muat ulang halaman.
       </p>
       <button
         onClick={() => reset()}
-        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition"
+        className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
       >
         Coba Lagi
       </button>

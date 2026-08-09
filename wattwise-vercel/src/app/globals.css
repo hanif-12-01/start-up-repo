@@ -2,56 +2,94 @@
 
 :root {
   color-scheme: light;
-  --background: #f6f8f3;
-  --foreground: #17211b;
-  --surface: #ffffff;
+  --background: #f4f7f2;
+  --foreground: #15221a;
+  --surface: #fbfdfb;
   --surface-elevated: #ffffff;
-  --surface-muted: #edf3e9;
-  --surface-strong: #dfead9;
-  --text-primary: #17211b;
-  --text-secondary: #5d6b62;
-  --text-tertiary: #87978c;
-  --muted: #5d6b62;
-  --border: rgba(20, 83, 55, 0.14);
-  --border-strong: rgba(20, 83, 55, 0.28);
-  --primary: #2f855a;
-  --primary-hover: #276d4b;
-  --primary-soft: #e7f5ec;
+  --surface-muted: #eaf1e8;
+  --surface-strong: #dce8da;
+  --text-primary: #15221a;
+  --text-secondary: #536459;
+  --text-tertiary: #728178;
+  --muted: #536459;
+  --border: rgba(28, 72, 47, 0.16);
+  --border-strong: rgba(28, 72, 47, 0.3);
+  --primary: #287b55;
+  --primary-hover: #1f6746;
+  --primary-soft: #def1e5;
   --primary-foreground: #ffffff;
-  --focus: #34a36f;
-  --focus-ring: #34a36f;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #b4233c;
-  --info: #0284c7;
-  --shadow: 0 22px 55px -38px rgba(18, 72, 48, 0.42);
+  --focus: #23845b;
+  --focus-ring: #23845b;
+  --success: #237a4b;
+  --success-surface: #e1f3e7;
+  --success-border: #9dcfb0;
+  --warning: #955b09;
+  --warning-surface: #fff1cf;
+  --warning-border: #e6c26e;
+  --danger: #a33246;
+  --danger-surface: #fbe6e9;
+  --danger-border: #e3a5af;
+  --info: #256b8f;
+  --info-surface: #e2f0f7;
+  --info-border: #9fc9dc;
+  --control-background: #ffffff;
+  --control-disabled: #e6ece5;
+  --overlay: rgba(10, 24, 16, 0.58);
+  --chart-grid: rgba(33, 83, 53, 0.18);
+  --chart-series-primary: #2d8a5d;
+  --chart-series-forecast: #2f6fb0;
+  --chart-series-derived: #6e7f75;
+  --landing-inverse: #122019;
+  --landing-inverse-muted: #b9c9bf;
+  --shadow-subtle: 0 1px 2px rgba(18, 52, 32, 0.08);
+  --shadow-medium: 0 16px 40px -28px rgba(18, 52, 32, 0.42);
+  --shadow: var(--shadow-medium);
 }
 
 html.dark {
   color-scheme: dark;
-  --background: #101a15;
-  --foreground: #e7f1ea;
-  --surface: #17251d;
-  --surface-elevated: #1a2a21;
-  --surface-muted: #1d2f25;
-  --surface-strong: #294334;
-  --text-primary: #e7f1ea;
-  --text-secondary: #a7b7ac;
-  --text-tertiary: #6c7f71;
-  --muted: #a7b7ac;
-  --border: rgba(188, 221, 199, 0.16);
-  --border-strong: rgba(188, 221, 199, 0.32);
-  --primary: #4eaa76;
-  --primary-hover: #68bf8b;
-  --primary-soft: #193d2a;
-  --primary-foreground: #101a15;
-  --focus: #7bd49e;
-  --focus-ring: #7bd49e;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #ff8091;
-  --info: #38bdf8;
-  --shadow: 0 24px 60px -35px rgba(0, 0, 0, 0.75);
+  --background: #101914;
+  --foreground: #edf4ef;
+  --surface: #16241b;
+  --surface-elevated: #1a2a20;
+  --surface-muted: #203227;
+  --surface-strong: #2b4535;
+  --text-primary: #edf4ef;
+  --text-secondary: #b2c1b7;
+  --text-tertiary: #87998d;
+  --muted: #b2c1b7;
+  --border: rgba(202, 227, 209, 0.16);
+  --border-strong: rgba(202, 227, 209, 0.3);
+  --primary: #63c18b;
+  --primary-hover: #78d29c;
+  --primary-soft: #1c422d;
+  --primary-foreground: #0d1b12;
+  --focus: #80d8a3;
+  --focus-ring: #80d8a3;
+  --success: #72d298;
+  --success-surface: #1a3b29;
+  --success-border: #356d4b;
+  --warning: #f0bd5d;
+  --warning-surface: #3b2e16;
+  --warning-border: #715827;
+  --danger: #ff9aa9;
+  --danger-surface: #42232a;
+  --danger-border: #77404a;
+  --info: #7fc6e7;
+  --info-surface: #193544;
+  --info-border: #35667c;
+  --control-background: #142019;
+  --control-disabled: #26352b;
+  --overlay: rgba(2, 8, 5, 0.72);
+  --chart-grid: rgba(205, 229, 212, 0.16);
+  --chart-series-primary: #62c28a;
+  --chart-series-forecast: #83afe9;
+  --chart-series-derived: #a2b1a7;
+  --landing-inverse: #0d1711;
+  --landing-inverse-muted: #b6c7bc;
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-medium: 0 18px 44px -28px rgba(0, 0, 0, 0.72);
+  --shadow: var(--shadow-medium);
 }
 
 @theme inline {
@@ -76,8 +114,8 @@ body {
 }
 
 ::selection {
-  background: #86efac;
-  color: #064e3b;
+  background: var(--primary-soft);
+  color: var(--foreground);
 }
 
 html {
@@ -86,58 +124,18 @@ html {
 
 .product-shell { background: var(--background); color: var(--foreground); }
 
-/* ── Landing page dark-mode overrides ─────────────────────────────────────── */
-/* These selectors adapt light landing surfaces when dark theme is active.    */
-/* Dark sections (bg-[#0f1c15]) are intentionally dark in all themes.         */
-
-.dark .landing-theme-root {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-/* Light section backgrounds → dark background */
-.dark .landing-theme-root [class*="bg-[#f7f9f4]"],
-.dark .landing-theme-root [class*="bg-[#edf4e8]"],
-.dark .landing-theme-root [class*="bg-[#e8f1e3]"],
-.dark .landing-theme-root [class*="bg-[#e8f2e3]"],
-.dark .landing-theme-root [class*="bg-[#e6f0e1]"] {
-  background-color: var(--background);
-}
-
-/* Tinted green surfaces (light cards) → dark elevated surface */
-.dark .landing-theme-root [class*="bg-[#eef5ea]"],
-.dark .landing-theme-root [class*="bg-[#eef6ea]"],
-.dark .landing-theme-root [class*="bg-[#f2f7ee]"] {
-  background-color: var(--surface-elevated);
-}
-
-/* White surfaces → dark elevated surface */
-.dark .landing-theme-root [class*="bg-white"] {
-  background-color: var(--surface-elevated);
-}
-
-/* Emerald-50 soft surfaces → primary soft */
-.dark .landing-theme-root [class*="bg-emerald-50"] {
-  background-color: var(--primary-soft);
-}
-
-/* Heading text (emerald-950, slate-900/700) → foreground */
-.dark .landing-theme-root [class*="text-emerald-950"],
-.dark .landing-theme-root [class*="text-slate-900"],
-.dark .landing-theme-root [class*="text-slate-700"] {
-  color: var(--foreground);
-}
-
-/* Body text (slate-600/500, emerald-900) → muted foreground */
-.dark .landing-theme-root [class*="text-slate-600"],
-.dark .landing-theme-root [class*="text-slate-500"],
-.dark .landing-theme-root [class*="text-emerald-900"] {
-  color: var(--muted);
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
