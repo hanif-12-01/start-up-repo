@@ -519,9 +519,31 @@ export interface QaDemoCheckResult {
 }
 
 export async function checkQaDemoAccount(options?: { anchorMonth?: string }): Promise<QaDemoCheckResult> {
-  if (process.env.MONTHLY_REPORTS_ENABLED === undefined) {
-    process.env.MONTHLY_REPORTS_ENABLED = 'true';
+  // Refuse to mutate caller environment. If MONTHLY_REPORTS_ENABLED is not 'true', report NOT READY.
+  if (process.env.MONTHLY_REPORTS_ENABLED !== 'true') {
+    return {
+      ready: false,
+      reason: `MONTHLY_REPORTS_ENABLED is not enabled. Historical report check requires MONTHLY_REPORTS_ENABLED=true.`,
+      details: {
+        userExists: false,
+        accountExists: false,
+        businessExists: false,
+        businessActive: false,
+        onboardingCompleted: false,
+        planReady: false,
+        billCount: 0,
+        revenueCount: 0,
+        applianceCount: 0,
+        referencedBillCount: 0,
+        unreferencedBillCount: 0,
+        diagnosticSessionCount: 0,
+        historicalReportReady: false,
+        historicalRevenueReady: false,
+        anomalyExpectedBoros: false,
+      },
+    };
   }
+
 
   const envGuard = isDemoEnvironmentAllowed();
   if (!envGuard.allowed) {

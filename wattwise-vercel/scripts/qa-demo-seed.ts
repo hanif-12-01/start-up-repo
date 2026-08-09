@@ -11,6 +11,10 @@ async function run() {
 
     const check = await checkQaDemoAccount();
     console.log(`[QA Demo Seed] Readiness Check: ${check.ready ? 'READY' : 'NOT READY'}`);
+    if (!check.ready) {
+      console.error(`[QA Demo Seed] READINESS CHECK FAILED: ${check.reason || 'unknown reason'}`);
+      process.exit(1);
+    }
     process.exit(0);
   } catch (err) {
     console.error(`[QA Demo Seed] ERROR: ${(err as Error).message}`);

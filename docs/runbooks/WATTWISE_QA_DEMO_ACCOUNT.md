@@ -56,14 +56,15 @@ npm run qa:demo:check
 ```
 - Inspects database readiness without mutating state.
 - Verifies account existence, Better Auth credentials, business status, 18-month bill/revenue history, appliance profile, referenced vs unreferenced bill availability, historical monthly report service resolution, and authoritative anomaly state (`Boros`).
+- **Requires `MONTHLY_REPORTS_ENABLED=true`** to be set in the environment before calling. If the flag is absent or `false`, the check reports `NOT READY` immediately without querying the database.
 
 ---
 
 ## 5. Better Auth Login Integration Verification
 
 - **Better Auth Compatibility**: Better Auth native credential hash (`hashPassword` from `better-auth/crypto`) is generated during seeding.
-- **Live Auth Integration**: Verified via `auth.api.signInEmail({ body: { email, password }, headers: new Headers() })`.
-- **Authentication Guarantee**: Real email/password sign-in succeeds at `/login` and returns a valid user session. Invalid passwords are rejected.
+- **Server-Side Auth Test**: Verified server-side only via `auth.api.signInEmail({ body: { email, password }, headers: new Headers() })`. This call exercises the full Better Auth credential verification flow without opening a browser.
+- **Authentication Guarantee**: The server-side sign-in call succeeds with valid credentials and returns a valid user/session object. Invalid passwords are rejected. Browser login at `/login` is verified separately during manual QA acceptance.
 
 ---
 
@@ -88,8 +89,8 @@ The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 
    - 6 `TEMPLATE` appliances (AC, Pompa Air, Lampu Koridor, Kulkas, WiFi, CCTV).
    - 1 `MANUAL` (`USER_ENTERED`) appliance (Mesin Cuci Tambahan) verifying template/manual isolation.
 5. **Bill Correction & Diagnostic Lock Fixture**:
-   - 1 completed `diagnostic_session` referencing Month 14 bill (`ReferencedBillLockedError` testing).
-   - 16 unreferenced bills (Month 18 and others) open for manual edit, delete, and starting new Cek Kenaikan diagnostic sessions.
+   - 1 completed `diagnostic_session` referencing **2 bills**: the target Month 14 bill (`electricityBillId`) and the comparison Month 13 bill (`comparisonBillId`) — enabling `ReferencedBillLockedError` testing.
+   - **16 unreferenced bills** (Month 18 and others) open for manual edit, delete, and starting new Cek Kenaikan diagnostic sessions.
 
 ---
 
@@ -108,7 +109,14 @@ The provisioned demo business (**Kos Melati Demo**, segment `KOS`, 20 rooms, 16 
 
 ## 8. Manual QA Acceptance Flow
 
-1. Set `QA_DEMO_EMAIL` and `QA_DEMO_PASSWORD` in your local environment.
+1. Set the following in your local shell (or `.env.local`):
+   ```bash
+   NODE_ENV=development
+   MONTHLY_REPORTS_ENABLED=true
+   QA_DEMO_EMAIL=qa-demo@wattwise.test
+   QA_DEMO_PASSWORD=<strong-test-password>
+   DATABASE_URL=<local-postgres-connection-string>
+   ```
 2. Run `npm run qa:demo:seed`.
 3. Open `http://localhost:3000/login`.
 4. Log in using `QA_DEMO_EMAIL` and `QA_DEMO_PASSWORD`.

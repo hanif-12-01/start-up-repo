@@ -1,8 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   isDemoEnvironmentAllowed,
   getDemoCredentials,
+  checkQaDemoAccount,
 } from '@/server/services/qa-demo-provisioning.service';
+
+// Mock the DB client so checkQaDemoAccount can be tested without a real DB
+vi.mock('@/server/db/client', () => ({
+  getDb: vi.fn(),
+}));
 
 describe('QA Demo Provisioning Unit Tests (IT-QC-DEMO-01B Hardened)', () => {
   const originalEnv = { ...process.env };
@@ -96,4 +102,29 @@ describe('QA Demo Provisioning Unit Tests (IT-QC-DEMO-01B Hardened)', () => {
       expect(creds.password).toBe('SecretTestPassword123!');
     });
   });
+
+  describe('MONTHLY_REPORTS_ENABLED guard in checkQaDemoAccount', () => {
+    it('returns NOT READY immediately when MONTHLY_REPORTS_ENABLED is unset', async () => {
+      delete process.env.MONTHLY_REPORTS_ENABLED;
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
+      delete process.env.VERCEL_ENV;
+      const result = await checkQaDemoAccount();
+      expect(result.ready).toBe(false);
+      expect(result.reason).toContain('MONTHLY_REPORTS_ENABLED is not enabled');
+      // Must NOT have mutated the env var
+      expect(process.env.MONTHLY_REPORTS_ENABLED).toBeUndefined();
+    });
+
+    it('returns NOT READY immediately when MONTHLY_REPORTS_ENABLED=false', async () => {
+      process.env.MONTHLY_REPORTS_ENABLED = 'false';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
+      delete process.env.VERCEL_ENV;
+      const result = await checkQaDemoAccount();
+      expect(result.ready).toBe(false);
+      expect(result.reason).toContain('MONTHLY_REPORTS_ENABLED is not enabled');
+      // Must NOT have changed the flag value
+      expect(process.env.MONTHLY_REPORTS_ENABLED).toBe('false');
+    });
+  });
 });
+
