@@ -19,7 +19,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
-    "test:integration": "node scripts/run-with-postgres.js vitest run tests/integration"
+    "test:integration": "node scripts/run-with-postgres.js vitest run tests/integration",
+    "qa:demo:seed": "tsx scripts/qa-demo-seed.ts",
+    "qa:demo:reset": "tsx scripts/qa-demo-reset.ts",
+    "qa:demo:check": "tsx scripts/qa-demo-check.ts"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
