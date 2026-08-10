@@ -27,19 +27,25 @@ def main() -> None:
 
     evidence = build_dataset_release_evidence(data_root=data_root_dir)
 
-    manifest_path = (
+    target_manifest_path = (
+        repo_root
+        / "docs"
+        / "ml"
+        / "datasets"
+        / "AI_DATA_RECOVERY_01_VERIFIED_AUTHORITATIVE_RELEASE.json"
+    )
+    legacy_manifest_path = (
         repo_root
         / "docs"
         / "ml"
         / "datasets"
         / "AI_DATA_01G_VERIFIED_REAL_DATASET_RELEASE.json"
     )
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(
-        json.dumps(evidence, indent=2, sort_keys=True, default=str) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Successfully generated verified release manifest at {manifest_path}")
+    target_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_bytes = json.dumps(evidence, indent=2, sort_keys=True, default=str) + "\n"
+    target_manifest_path.write_text(manifest_bytes, encoding="utf-8")
+    legacy_manifest_path.write_text(manifest_bytes, encoding="utf-8")
+    print(f"Successfully generated verified release manifest at {target_manifest_path}")
     print(f"Dataset Release Fingerprint: {evidence['dataset_release_fingerprint']}")
 
 
