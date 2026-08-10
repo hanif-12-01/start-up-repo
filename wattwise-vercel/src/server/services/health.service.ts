@@ -15,6 +15,7 @@ export interface DatabaseHealthResult {
   timestamp: string;
   provider: 'neon-postgresql';
   configured: boolean;
+  schemaCompatible?: boolean;
   message?: string;
 }
 
@@ -23,6 +24,8 @@ export interface ReleaseInfoResult {
   version: string;
   target: 'vercel';
   region: string;
+  environment: string;
+  gitSha: string;
   timestamp: string;
 }
 
@@ -54,6 +57,7 @@ export class HealthCheckService {
           timestamp: new Date().toISOString(),
           provider: 'neon-postgresql',
           configured: false,
+          schemaCompatible: false,
         },
         httpStatus: 200,
       };
@@ -63,29 +67,45 @@ export class HealthCheckService {
       const pool = getPool();
       const start = Date.now();
 
-      // Enforce 3000ms timeout for readiness database ping
-      const queryPromise = pool.query('SELECT 1;');
+      // Enforce 3000ms timeout for readiness database ping & schema readiness validation
+      const queryPromise = pool.query(`
+        SELECT 1 AS ping,
+          (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_plan' AND column_name = 'trial_used_at' LIMIT 1) IS NOT NULL AS has_user_plan_trial,
+          (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_plan' AND column_name = 'status' LIMIT 1) IS NOT NULL AS has_user_plan_status,
+          (SELECT 1 FROM information_schema.columns WHERE table_name = 'electricity_bill' AND column_name = 'kwh_source' LIMIT 1) IS NOT NULL AS has_bill_kwh_source;
+      `);
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Readiness database ping timed out after 3000ms')), READINESS_DB_TIMEOUT_MS)
       );
 
-      await Promise.race([queryPromise, timeoutPromise]);
+      const res = await Promise.race([queryPromise, timeoutPromise]);
       const durationMs = Date.now() - start;
 
-      logger.info('Database health check: ok', {
+      const row = res.rows[0];
+      const schemaCompatible = Boolean(
+        row && row.has_user_plan_trial && row.has_user_plan_status && row.has_bill_kwh_source
+      );
+
+      const status = schemaCompatible ? 'ok' : 'error';
+      const httpStatus = schemaCompatible ? 200 : 503;
+
+      logger.info('Database health check', {
         correlationId,
-        event: 'health.db.ok',
+        event: schemaCompatible ? 'health.db.ok' : 'health.db.schema_incompatible',
         durationMs,
+        schemaCompatible,
       });
 
       return {
         result: {
-          status: 'ok',
+          status,
           timestamp: new Date().toISOString(),
           provider: 'neon-postgresql',
           configured: true,
+          schemaCompatible,
+          ...(schemaCompatible ? {} : { message: 'Database schema incompatible' }),
         },
-        httpStatus: 200,
+        httpStatus,
       };
     } catch (err) {
       // Log real error server-side; return safe message to caller without leaking DB host, credentials, or stack trace
@@ -100,6 +120,7 @@ export class HealthCheckService {
           timestamp: new Date().toISOString(),
           provider: 'neon-postgresql',
           configured: true,
+          schemaCompatible: false,
           message: 'Database connection failed',
         },
         httpStatus: 503,
@@ -108,11 +129,19 @@ export class HealthCheckService {
   }
 
   public static getReleaseInfo(): ReleaseInfoResult {
+    const gitSha =
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
+      process.env.GIT_COMMIT_SHA ||
+      'ce7349b93b2737da165a1f7269abbf3987162df7';
+
     return {
       name: 'wattwise-vercel',
       version: '0.1.0',
       target: 'vercel',
       region: process.env.VERCEL_REGION || 'sin1',
+      environment: process.env.VERCEL_ENV || env.NODE_ENV || 'development',
+      gitSha,
       timestamp: new Date().toISOString(),
     };
   }

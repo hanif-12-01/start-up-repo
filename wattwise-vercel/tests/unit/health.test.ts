@@ -34,11 +34,13 @@ describe('HealthCheckService', () => {
     expect([200, 503]).toContain(httpStatus);
   });
 
-  it('should return release information for Vercel target', () => {
+  it('should return release information for Vercel target including gitSha and environment', () => {
     const release = HealthCheckService.getReleaseInfo();
     expect(release.name).toBe('wattwise-vercel');
     expect(release.target).toBe('vercel');
     expect(release.region).toBe('sin1');
+    expect(release).toHaveProperty('gitSha');
+    expect(release).toHaveProperty('environment');
   });
 
   it('should include a valid ISO timestamp in all health results', () => {

@@ -17,18 +17,19 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   const correlationId = request.headers.get('x-correlation-id') ?? undefined;
-  const { result } = await HealthCheckService.getDatabaseHealth(correlationId);
+  const { result, httpStatus } = await HealthCheckService.getDatabaseHealth(correlationId);
 
-  const ready = result.status === 'ok';
+  const ready = result.status === 'ok' && result.schemaCompatible !== false;
 
   return NextResponse.json(
     {
       status: ready ? 'ready' : 'not-ready',
       database: result.status,
+      schemaCompatible: result.schemaCompatible ?? false,
       timestamp: new Date().toISOString(),
     },
     {
-      status: ready ? 200 : 503,
+      status: ready ? 200 : (httpStatus || 503),
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },
