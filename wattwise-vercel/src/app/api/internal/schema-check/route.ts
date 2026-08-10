@@ -7,32 +7,47 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const pool = getPool();
-    const res = await pool.query(`
-      SELECT 
-        (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_plan' AND column_name = 'trial_used_at' LIMIT 1) IS NOT NULL AS has_user_plan_trial_used_at,
-        (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_plan' AND column_name = 'status' LIMIT 1) IS NOT NULL AS has_user_plan_status,
-        (SELECT 1 FROM information_schema.columns WHERE table_name = 'electricity_bill' AND column_name = 'kwh_source' LIMIT 1) IS NOT NULL AS has_bill_kwh_source,
-        (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public') AS table_count,
-        (SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '__drizzle_migrations')) AS has_drizzle_migrations,
-        (SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations')) AS has_drizzle_schema_migrations;
+    const tablesRes = await pool.query(`
+      SELECT table_name 
+        FROM information_schema.tables 
+       WHERE table_schema = 'public' 
+       ORDER BY table_name
     `);
     
-    // Also check drizzle migrations table rows if it exists
-    let drizzleMigrations: unknown[] = [];
-    try {
-      const migRes = await pool.query('SELECT * FROM __drizzle_migrations ORDER BY id ASC');
-      drizzleMigrations = migRes.rows;
-    } catch {
-      try {
-        const migRes2 = await pool.query('SELECT * FROM drizzle.__drizzle_migrations ORDER BY id ASC');
-        drizzleMigrations = migRes2.rows;
-      } catch {}
+    const columnsRes = await pool.query(`
+      SELECT table_name, column_name 
+        FROM information_schema.columns 
+       WHERE table_schema = 'public'
+       ORDER BY table_name, column_name
+    `);
+
+    const colsByTable: Record<string, string[]> = {};
+    for (const row of columnsRes.rows) {
+      if (!colsByTable[row.table_name]) colsByTable[row.table_name] = [];
+      colsByTable[row.table_name].push(row.column_name);
     }
+
+    const checks = {
+      user_plan_status: colsByTable['user_plan']?.includes('status') ?? false,
+      user_plan_trial_used_at: colsByTable['user_plan']?.includes('trial_used_at') ?? false,
+      user_plan_current_period_starts_at: colsByTable['user_plan']?.includes('current_period_starts_at') ?? false,
+      user_plan_current_period_ends_at: colsByTable['user_plan']?.includes('current_period_ends_at') ?? false,
+      user_plan_cancelled_at: colsByTable['user_plan']?.includes('cancelled_at') ?? false,
+      electricity_bill_kwh_source: colsByTable['electricity_bill']?.includes('kwh_source') ?? false,
+      electricity_bill_meter_start: colsByTable['electricity_bill']?.includes('meter_start') ?? false,
+      electricity_bill_meter_end: colsByTable['electricity_bill']?.includes('meter_end') ?? false,
+      business_power_va: colsByTable['business']?.includes('power_va') ?? false,
+      billing_plan_exists: Boolean(colsByTable['billing_plan']),
+      sandbox_invoice_exists: Boolean(colsByTable['sandbox_invoice']),
+      sandbox_payment_exists: Boolean(colsByTable['sandbox_payment']),
+      drizzle_migrations_exists: Boolean(colsByTable['__drizzle_migrations']),
+    };
 
     return NextResponse.json({
       status: 'ok',
-      columns: res.rows[0],
-      migrations: drizzleMigrations,
+      checks,
+      tables: tablesRes.rows.map((r: { table_name: string }) => r.table_name),
+      columns: colsByTable,
       timestamp: new Date().toISOString(),
     });
   } catch (err: unknown) {
