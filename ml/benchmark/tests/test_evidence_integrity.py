@@ -85,7 +85,7 @@ def _setup_mock_data_root(root: Path) -> None:
                 "dataset_key": "london_smartmeter",
                 "publisher": "UK Power Networks",
                 "version": "2011-2014",
-                "licence": "OGL v3.0",
+                "licence": "Creative Commons Attribution",
                 "validation": {"status": "PASS"},
                 "source_files": [{"role": "raw_electricity", "path": str(london_raw)}],
             },

@@ -188,6 +188,19 @@ def normalize_bdg2(
         axis=1,
     )
     panel["unit_conversion_method"] = "bdg2_hourly_kwh_sum_monthly_sum"
+    panel["dataset_provenance"] = "PUBLIC"
+    panel["measurement_method"] = "SMART_METER"
+    panel["wattwise_usage_source"] = "LEGACY_UNKNOWN"
+    panel["domain"] = "PUBLIC_COMMERCIAL"
+    panel["schema_version"] = "2.0"
+    panel["source_granularity"] = "hourly"
+    panel["coverage_ratio"] = panel["monthly_completeness_ratio"]
+    panel["is_synthetic"] = False
+    panel["training_eligible"] = True
+    panel["validation_eligible"] = True
+    panel["final_evaluation_eligible"] = True
+    panel["source_license"] = "CC BY 4.0"
+    panel["source_version"] = "v1.0"
     panel["quality_flag"] = "PASS"
     panel["license_classification"] = BDG2_LICENSE_CLASSIFICATION
     panel = panel.drop(
@@ -212,6 +225,7 @@ def normalize_bdg2(
         for column in ["primaryspaceusage", "sqm", "timezone", "industry"]
     }
     audit: dict[str, Any] = {
+        "status": "PASSED",
         "dataset_source": "bdg2",
         "raw_rows": raw_row_count,
         "successfully_parsed_rows": len(timestamps),
@@ -244,6 +258,10 @@ def normalize_bdg2(
             == int(panel["entity_id"].nunique()) + len(excluded_entities),
         },
         "normalized_months": len(panel),
+        "fixture_used": False,
+        "fixture_rows": 0,
+        "mock_rows": 0,
+        "synthetic_rows": 0,
         "metadata_rows": len(metadata),
         "metadata_coverage": metadata_coverage,
         "timezones": sorted(matched["timezone"].dropna().unique().tolist()),

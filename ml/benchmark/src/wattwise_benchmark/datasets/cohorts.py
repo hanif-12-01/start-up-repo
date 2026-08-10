@@ -17,6 +17,7 @@ class DatasetCohort:
     allowed_dataset_provenances: tuple[str, ...]
     allowed_measurement_methods: tuple[str, ...]
     allowed_domains: tuple[str, ...]
+    availability_status: str = "AVAILABLE_WHEN_INPUTS_VERIFIED"
 
 
 COHORT_REGISTRY: dict[str, DatasetCohort] = {
@@ -31,6 +32,7 @@ COHORT_REGISTRY: dict[str, DatasetCohort] = {
         allowed_dataset_provenances=("PUBLIC",),
         allowed_measurement_methods=("UTILITY_METER", "SMART_METER"),
         allowed_domains=("PUBLIC_RESIDENTIAL_COMMERCIAL", "PUBLIC_COMMERCIAL"),
+        availability_status="INCOMPLETE_IF_UCI_MISSING",
     ),
     "MEASURED_PUBLIC": DatasetCohort(
         id="MEASURED_PUBLIC",
@@ -90,6 +92,45 @@ COHORT_REGISTRY: dict[str, DatasetCohort] = {
             "PUBLIC_COMMERCIAL",
             "PUBLIC_RESIDENTIAL",
         ),
+    ),
+    "MEASURED_COMMERCIAL_AVAILABLE": DatasetCohort(
+        id="MEASURED_COMMERCIAL_AVAILABLE",
+        name="Available Measured Commercial Panel",
+        description="Verified available commercial physical-meter data from BDG2.",
+        included_dataset_ids=("bdg2",),
+        allowed_dataset_provenances=("PUBLIC",),
+        allowed_measurement_methods=("SMART_METER",),
+        allowed_domains=("PUBLIC_COMMERCIAL",),
+    ),
+    "RESIDENTIAL_PROXY_AVAILABLE": DatasetCohort(
+        id="RESIDENTIAL_PROXY_AVAILABLE",
+        name="Available Residential Proxy Panel",
+        description="Verified available London household smart-meter proxy data.",
+        included_dataset_ids=("london_smartmeter",),
+        allowed_dataset_provenances=("PUBLIC",),
+        allowed_measurement_methods=("SMART_METER",),
+        allowed_domains=("PUBLIC_RESIDENTIAL",),
+    ),
+    "SIMULATED_COMMERCIAL_AVAILABLE": DatasetCohort(
+        id="SIMULATED_COMMERCIAL_AVAILABLE",
+        name="Available Simulated Commercial Panel",
+        description="Verified deterministic NREL ComStock simulation subset.",
+        included_dataset_ids=("nrel_comstock",),
+        allowed_dataset_provenances=("PUBLIC",),
+        allowed_measurement_methods=("MODELED_SIMULATION",),
+        allowed_domains=("PUBLIC_COMMERCIAL",),
+    ),
+    "ALL_AVAILABLE_PUBLIC_RESEARCH": DatasetCohort(
+        id="ALL_AVAILABLE_PUBLIC_RESEARCH",
+        name="All Available Public Research Panel",
+        description=(
+            "All currently verified public research data; measured and simulated "
+            "tracks remain separately reported."
+        ),
+        included_dataset_ids=("bdg2", "london_smartmeter", "nrel_comstock"),
+        allowed_dataset_provenances=("PUBLIC",),
+        allowed_measurement_methods=("SMART_METER", "MODELED_SIMULATION"),
+        allowed_domains=("PUBLIC_COMMERCIAL", "PUBLIC_RESIDENTIAL"),
     ),
 }
 

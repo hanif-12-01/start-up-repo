@@ -11,7 +11,7 @@ from wattwise_benchmark.acquisition.manifest import validate_manifest
 from wattwise_benchmark.config import sha256_file, stable_json
 from wattwise_benchmark.ingestion import (
     normalize_bdg2,
-    normalize_london_smartmeter,
+    normalize_london_smartmeter_csv,
     normalize_nrel_comstock,
     normalize_uci,
 )
@@ -131,17 +131,14 @@ def _normalize_dataset_item(
 
     if key == "london_smartmeter":
         source_path = Path(item["source_files"][0]["path"])
-        df_raw = pd.read_csv(source_path)
-        records = normalize_london_smartmeter(df_raw)
+        records, audit = normalize_london_smartmeter_csv(
+            source_path,
+            completeness_threshold=completeness_threshold,
+        )
         panel = pd.DataFrame([r.as_record() for r in records]) if records else pd.DataFrame()
         if not panel.empty:
             panel = add_consecutive_month_index(panel)
-        audit = {
-            "dataset_key": "london_smartmeter",
-            "source_sha256": sha256_file(source_path),
-            "normalized_records": len(records),
-            "status": "PASSED",
-        }
+        audit["source_sha256"] = sha256_file(source_path)
         return panel, audit
 
     if key == "nrel_comstock":

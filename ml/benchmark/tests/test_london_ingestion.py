@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
 from wattwise_benchmark.contracts import DatasetProvenance, MeasurementMethod, WattWiseDomain
-from wattwise_benchmark.ingestion.london import expected_half_hourly_observations, normalize_london_smartmeter
+from wattwise_benchmark.ingestion.london import (
+    LONDON_LICENSE,
+    expected_half_hourly_observations,
+    normalize_london_smartmeter,
+    normalize_london_smartmeter_csv,
+)
 
 
 def test_london_expected_observations_month_aware() -> None:
@@ -44,8 +51,88 @@ def test_normalize_london_smartmeter_empty_and_missing_cols() -> None:
     assert normalize_london_smartmeter(pd.DataFrame()) == []
 
     df_invalid = pd.DataFrame({"LCLid": ["1"], "timestamp": ["2023-01-01"]})
-    with pytest.raises(ValueError, match="DataFrame missing required London SmartMeter columns"):
+    with pytest.raises(ValueError, match="missing required semantic column 'usage'"):
         normalize_london_smartmeter(df_invalid)
+
+
+def test_london_authoritative_schema_aliases_and_boundary_whitespace() -> None:
+    timestamps = pd.date_range("2013-01-01", periods=1488, freq="30min")
+    source = pd.DataFrame(
+        {
+            "LCLid": ["MAC000010"] * 1488,
+            "DateTime": timestamps,
+            "KWH/hh (per half hour) ": [0.25] * 1488,
+        }
+    )
+
+    records = normalize_london_smartmeter(source)
+
+    assert len(records) == 1
+    assert records[0].usage_kwh == 372.0
+    assert records[0].source_license == LONDON_LICENSE
+
+
+@pytest.mark.parametrize(
+    "extra_column,values,semantic",
+    [
+        ("timestamp", ["2013-01-01"], "timestamp"),
+        ("KWH/hh", [0.5], "usage"),
+    ],
+)
+def test_london_conflicting_aliases_fail_closed(
+    extra_column: str,
+    values: list[object],
+    semantic: str,
+) -> None:
+    source = pd.DataFrame(
+        {
+            "LCLid": ["MAC000010"],
+            "DateTime": ["2013-01-01"],
+            "KWH/hh (per half hour)": [0.25],
+            extra_column: values,
+        }
+    )
+
+    with pytest.raises(ValueError, match=f"conflicting aliases.*'{semantic}'"):
+        normalize_london_smartmeter(source)
+
+
+@pytest.mark.parametrize("missing", ["LCLid", "DateTime", "KWH/hh (per half hour)"])
+def test_london_missing_semantic_aliases_fail_closed(missing: str) -> None:
+    source = pd.DataFrame(
+        {
+            "LCLid": ["MAC000010"],
+            "DateTime": ["2013-01-01"],
+            "KWH/hh (per half hour)": [0.25],
+        }
+    ).drop(columns=missing)
+
+    with pytest.raises(ValueError, match="missing required semantic column"):
+        normalize_london_smartmeter(source)
+
+
+def test_london_streaming_combines_entity_month_across_chunks(tmp_path: Path) -> None:
+    source_path = tmp_path / "london.csv"
+    source = pd.DataFrame(
+        {
+            "LCLid": ["MAC000011"] * 1488,
+            "DateTime": pd.date_range("2013-01-01", periods=1488, freq="30min"),
+            "KWH/hh (per half hour)": [0.5] * 1488,
+        }
+    )
+    source.to_csv(source_path, index=False)
+
+    records, audit = normalize_london_smartmeter_csv(source_path, chunksize=500)
+
+    assert len(records) == 1
+    assert records[0].usage_kwh == 744.0
+    assert records[0].observation_count == 1488
+    assert audit["chunks_processed"] == 3
+    assert audit["schema_aliases"] == {
+        "entity": "LCLid",
+        "timestamp": "DateTime",
+        "usage": "KWH/hh (per half hour)",
+    }
 
 
 def test_normalize_london_smartmeter_valid_zero_and_missing() -> None:

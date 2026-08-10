@@ -81,13 +81,22 @@ DATASET_REGISTRY: dict[str, DatasetEntry] = {
     "london_smartmeter": DatasetEntry(
         id="london_smartmeter",
         name="London SmartMeter Energy Consumption",
-        publisher="UK Power Networks / Kaggle",
-        source="https://www.kaggle.com/datasets/jeanmache/london-smartmeter",
-        landing_page="https://data.london.gov.uk/dataset/smartmeter-energy-use-data-in-london-households",
-        download_method="Kaggle API / Direct download",
+        publisher="UK Power Networks / Greater London Authority",
+        source=(
+            "https://data.london.gov.uk/dataset/"
+            "smartmeter-energy-consumption-data-in-london-households-vqm0d/"
+        ),
+        landing_page=(
+            "https://data.london.gov.uk/dataset/"
+            "smartmeter-energy-consumption-data-in-london-households-vqm0d/"
+        ),
+        download_method="London Datastore official ZIP archive",
         version="2011-2014",
-        license="Open Government Licence v3.0",
-        license_evidence="UK London Datastore OGL v3.0 statement",
+        license="Creative Commons Attribution",
+        license_evidence=(
+            "Current official London Datastore dataset metadata labels the licence "
+            "Creative Commons Attribution; version not stated"
+        ),
         commercial_use=True,
         redistribution=True,
         country="GBR",

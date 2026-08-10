@@ -11,7 +11,7 @@ from wattwise_benchmark.config import sha256_file
 EXPECTED = {
     "uci_eld": {"doi": "10.24432/C58C86", "licence": "CC BY 4.0"},
     "bdg2": {"doi": "10.5281/zenodo.3887306", "licence": "CC BY 4.0"},
-    "london_smartmeter": {"licence": "OGL v3.0"},
+    "london_smartmeter": {"licence": "Creative Commons Attribution"},
     "nrel_comstock": {"licence": "CC BY 4.0"},
 }
 

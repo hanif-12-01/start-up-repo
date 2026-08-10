@@ -99,7 +99,7 @@ def build_combined_audit(
             bool(value.get("canonical_provenance_verified")) for value in provenance.values()
         ),
         "license_verified": all(
-            value.get("license") in {"CC BY 4.0", "Open Government Licence v3.0", "OGL v3.0"}
+            value.get("license") in {"CC BY 4.0", "Creative Commons Attribution"}
             for value in provenance.values()
         ),
         "target_leakage_detected": False,

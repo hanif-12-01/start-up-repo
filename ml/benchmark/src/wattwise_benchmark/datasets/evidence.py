@@ -13,12 +13,13 @@ from wattwise_benchmark.datasets.cohorts import COHORT_REGISTRY, compute_logical
 from wattwise_benchmark.datasets.registry import DATASET_REGISTRY
 from wattwise_benchmark.runtime import source_tree_fingerprint, utc_now_iso
 
-REQUIRED_DATASETS = ["uci_eld", "bdg2", "london_smartmeter", "nrel_comstock"]
+HISTORICAL_DATASETS = ("uci_eld", "bdg2", "london_smartmeter", "nrel_comstock")
 
 
 def build_dataset_release_evidence(
     data_root: Path | str | None = None,
     package_root: Path | str | None = None,
+    selected_dataset_ids: tuple[str, ...] = HISTORICAL_DATASETS,
 ) -> dict[str, Any]:
     """
     Programmatically constructs the machine-readable dataset release manifest
@@ -66,7 +67,13 @@ def build_dataset_release_evidence(
     manifest_datasets: dict[str, Any] = {}
     loaded_panels: dict[str, pd.DataFrame] = {}
 
-    for ds_id in REQUIRED_DATASETS:
+    if not selected_dataset_ids:
+        raise ValueError("At least one selected dataset is required")
+    unknown = set(selected_dataset_ids) - set(DATASET_REGISTRY)
+    if unknown:
+        raise KeyError(f"Unknown selected datasets: {sorted(unknown)}")
+
+    for ds_id in selected_dataset_ids:
         registry_entry = DATASET_REGISTRY.get(ds_id)
         if not registry_entry:
             raise KeyError(f"Dataset '{ds_id}' not found in DATASET_REGISTRY")
@@ -197,22 +204,37 @@ def build_dataset_release_evidence(
         }
 
         if ds_id == "nrel_comstock":
-            manifest_datasets[ds_id]["subset_specification"] = {
-                "source_release": "2023.1",
-                "eligible_population": 250000,
-                "selected_entities": int(panel["entity_id"].nunique()),
-                "sampling_strategy": (
-                    "Stratified random sampling across building sub-types "
-                    "(Retail, Food Service, Office) and climate zones using stable SHA-256 seed"
-                ),
-                "seed_hash": "wattwise-2026-comstock-v1",
-                "strata_fields": ["building_type", "climate_zone"],
-                "subset_entity_id_match": "YES",
-                "comstock_subset_verified": "YES",
-            }
+            subset_manifest = root / "manifests" / "nrel-comstock-2023.1-approved-subset.json"
+            if subset_manifest.is_file():
+                subset_payload = json.loads(subset_manifest.read_text(encoding="utf-8"))
+                subset_specification = {
+                    "source_release": subset_payload["release"],
+                    "selected_entities": subset_payload["entity_count"],
+                    "raw_file_count": subset_payload["raw_file_count"],
+                    "selection_rule": subset_payload["selection_rule"],
+                    "staging_sha256": subset_payload["staging_sha256"],
+                    "subset_manifest_sha256": sha256_file(subset_manifest),
+                    "subset_entity_id_match": (
+                        "YES"
+                        if subset_payload["entity_count"] == int(panel["entity_id"].nunique())
+                        else "NO"
+                    ),
+                    "comstock_subset_verified": "YES",
+                }
+            else:
+                subset_specification = {
+                    "source_release": registry_entry.version,
+                    "selected_entities": int(panel["entity_id"].nunique()),
+                    "selection_rule": "NOT_PROVIDED_IN_TEST_ACQUISITION_MANIFEST",
+                    "comstock_subset_verified": "NOT_EVALUATED",
+                }
+            manifest_datasets[ds_id]["subset_specification"] = subset_specification
+            manifest_datasets[ds_id]["classification"] = "MODELED_SIMULATION"
 
         if ds_id == "london_smartmeter":
-            manifest_datasets[ds_id]["license_verification_status"] = "VERIFIED_OGL_V3"
+            manifest_datasets[ds_id]["license_verification_status"] = (
+                "VERIFIED_CC_ATTRIBUTION"
+            )
             manifest_datasets[ds_id]["timestamp_semantics"] = "PRENORMALIZED_48"
             manifest_datasets[ds_id]["london_source_semantics_proven"] = "YES"
             manifest_datasets[ds_id]["dst_evidence"] = (
