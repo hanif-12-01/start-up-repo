@@ -102,13 +102,30 @@ def compute_logical_dataset_sha256(df: pd.DataFrame) -> str:
     if df.empty:
         return hashlib.sha256(b"EMPTY_PANEL").hexdigest()
 
-    cols = ["dataset_source", "entity_id", "period_month", "usage_kwh"]
-    work = df[cols].copy()
+    stable_cols = [
+        "dataset_source",
+        "entity_id",
+        "period_month",
+        "usage_kwh",
+        "dataset_provenance",
+        "measurement_method",
+        "domain",
+        "coverage_ratio",
+    ]
+    present_cols = [c for c in stable_cols if c in df.columns]
+    work = df[present_cols].copy()
+
     work["period_month"] = pd.to_datetime(work["period_month"]).dt.strftime("%Y-%m-%d")
-    work["usage_kwh"] = work["usage_kwh"].round(4)
-    sorted_df = work.sort_values(
-        ["dataset_source", "entity_id", "period_month"]
-    ).reset_index(drop=True)
+    work["usage_kwh"] = work["usage_kwh"].astype(float).round(4)
+    if "coverage_ratio" in work.columns:
+        work["coverage_ratio"] = work["coverage_ratio"].astype(float).round(4)
+
+    for c in present_cols:
+        if work[c].dtype == object:
+            work[c] = work[c].fillna("")
+
+    sort_cols = [c for c in ["dataset_source", "entity_id", "period_month"] if c in work.columns]
+    sorted_df = work.sort_values(sort_cols).reset_index(drop=True)
 
     records = sorted_df.to_dict(orient="records")
     serialized = stable_json(records)

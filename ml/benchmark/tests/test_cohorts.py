@@ -23,20 +23,36 @@ def test_cohort_registry_definitions() -> None:
     assert "MODELED_SIMULATION" not in baseline.allowed_measurement_methods
 
 
-def test_compute_logical_dataset_sha256() -> None:
+def test_compute_logical_dataset_sha256_stability_and_sensitivity() -> None:
     df = pd.DataFrame({
         "dataset_source": ["uci_eld", "uci_eld"],
         "entity_id": ["MT_001", "MT_002"],
         "period_month": ["2011-01-01", "2011-01-01"],
         "usage_kwh": [100.5, 200.25],
+        "dataset_provenance": ["PUBLIC", "PUBLIC"],
+        "measurement_method": ["UTILITY_METER", "UTILITY_METER"],
+        "domain": ["PUBLIC_RESIDENTIAL_COMMERCIAL", "PUBLIC_RESIDENTIAL_COMMERCIAL"],
+        "coverage_ratio": [1.0, 1.0],
     })
     hash1 = compute_logical_dataset_sha256(df)
     assert len(hash1) == 64
 
-    # Reordering rows should produce the exact same logical hash
+    # 1. Row order changed -> SAME logical hash
     df_reordered = df.iloc[::-1].reset_index(drop=True)
-    hash2 = compute_logical_dataset_sha256(df_reordered)
-    assert hash1 == hash2
+    hash_reordered = compute_logical_dataset_sha256(df_reordered)
+    assert hash1 == hash_reordered
+
+    # 2. Material usage value changed -> DIFFERENT logical hash
+    df_diff_usage = df.copy()
+    df_diff_usage.loc[0, "usage_kwh"] = 999.99
+    hash_diff_usage = compute_logical_dataset_sha256(df_diff_usage)
+    assert hash1 != hash_diff_usage
+
+    # 3. Domain or provenance changed -> DIFFERENT logical hash
+    df_diff_domain = df.copy()
+    df_diff_domain.loc[0, "domain"] = "PUBLIC_COMMERCIAL"
+    hash_diff_domain = compute_logical_dataset_sha256(df_diff_domain)
+    assert hash1 != hash_diff_domain
 
 
 def test_validate_cohort_assertions() -> None:
