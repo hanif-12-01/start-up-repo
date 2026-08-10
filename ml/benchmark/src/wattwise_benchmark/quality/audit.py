@@ -5,26 +5,25 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from wattwise_benchmark.contracts import ProductPhase, product_phase
+from wattwise_benchmark.contracts import ProductPhase
 from wattwise_benchmark.ingestion.common import KEY_COLUMNS, validate_monthly
 
 
 def _phase_counts(panel: pd.DataFrame) -> dict[str, int]:
-    counts = {phase.value: 0 for phase in ProductPhase}
-    h00 = 0
-    h01_02 = 0
-    ordered = panel.sort_values(KEY_COLUMNS)
-    for _, entity in ordered.groupby(["dataset_source", "entity_id"], sort=False):
-        for _, run in entity.groupby(entity["consecutive_month_index"].eq(1).cumsum(), sort=False):
-            for history_count in range(len(run)):
-                counts[product_phase(history_count).value] += 1
-                if history_count == 0:
-                    h00 += 1
-                elif history_count <= 2:
-                    h01_02 += 1
-    counts["H00"] = h00
-    counts["H01_02"] = h01_02
-    return counts
+    history_counts = panel["consecutive_month_index"].to_numpy(dtype="int64") - 1
+    h00 = int((history_counts == 0).sum())
+    h01_02 = int(((history_counts >= 1) & (history_counts <= 2)).sum())
+    h03_05 = int(((history_counts >= 3) & (history_counts <= 5)).sum())
+    h06_12 = int(((history_counts >= 6) & (history_counts <= 12)).sum())
+    h13_plus = int((history_counts >= 13).sum())
+    return {
+        ProductPhase.H00_02.value: h00 + h01_02,
+        ProductPhase.H03_05.value: h03_05,
+        ProductPhase.H06_12.value: h06_12,
+        ProductPhase.H13_PLUS.value: h13_plus,
+        "H00": h00,
+        "H01_02": h01_02,
+    }
 
 
 def _source_summary(panel: pd.DataFrame, source_audit: dict[str, Any]) -> dict[str, Any]:

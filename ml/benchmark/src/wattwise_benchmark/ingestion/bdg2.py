@@ -26,37 +26,43 @@ def excluded_entity_accounting(
     invalid_usage: pd.Series,
     completeness_threshold: float,
 ) -> list[dict[str, Any]]:
+    df = pd.DataFrame({
+        "entity_id": panel["entity_id"],
+        "excluded": excluded.to_numpy(),
+        "incomplete": incomplete.to_numpy(),
+        "negative_month": negative_month.to_numpy(),
+        "invalid_usage": invalid_usage.to_numpy(),
+    })
+    agg = df.groupby("entity_id", sort=True).agg(
+        source_months=("excluded", "count"),
+        excluded_count=("excluded", "sum"),
+        incomplete_months=("incomplete", "sum"),
+        negative_months=("negative_month", "sum"),
+        invalid_usage_months=("invalid_usage", "sum"),
+    ).reset_index()
+
+    fully_excluded = agg[agg["excluded_count"] == agg["source_months"]]
     rows: list[dict[str, Any]] = []
-    for entity_id, entity in panel.groupby("entity_id", sort=True):
-        indexes = entity.index
-        if bool((~excluded.loc[indexes]).any()):
-            continue
-        source_months = len(indexes)
-        incomplete_months = int(incomplete.loc[indexes].sum())
-        negative_months = int(negative_month.loc[indexes].sum())
-        invalid_usage_months = int(invalid_usage.loc[indexes].sum())
+    for row in fully_excluded.itertuples(index=False):
+        entity_id, source_months, _, incomplete_months, negative_months, invalid_usage_months = row
         if incomplete_months == source_months:
-            reason = (
-                "NO_MONTH_AT_OR_ABOVE_"
-                f"{completeness_threshold:.6f}_COMPLETENESS_THRESHOLD"
-            )
+            reason = f"NO_MONTH_AT_OR_ABOVE_{completeness_threshold:.6f}_COMPLETENESS_THRESHOLD"
         elif negative_months == source_months:
             reason = "ALL_MONTHS_CONTAIN_NEGATIVE_OBSERVATIONS"
         elif invalid_usage_months == source_months:
             reason = "ALL_MONTHS_HAVE_INVALID_AGGREGATED_USAGE"
         else:
             reason = "NO_MONTH_PASSES_COMBINED_MONTHLY_QUALITY_GATES"
-        rows.append(
-            {
-                "entity_id": str(entity_id),
-                "exclusion_reason": reason,
-                "source_months": source_months,
-                "incomplete_months": incomplete_months,
-                "negative_months": negative_months,
-                "invalid_usage_months": invalid_usage_months,
-            }
-        )
+        rows.append({
+            "entity_id": str(entity_id),
+            "exclusion_reason": reason,
+            "source_months": int(source_months),
+            "incomplete_months": int(incomplete_months),
+            "negative_months": int(negative_months),
+            "invalid_usage_months": int(invalid_usage_months),
+        })
     return rows
+
 
 
 def normalize_bdg2(

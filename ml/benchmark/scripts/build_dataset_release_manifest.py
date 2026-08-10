@@ -1,24 +1,14 @@
 from __future__ import annotations
 
-import json
+import sys
 from pathlib import Path
 
-from wattwise_benchmark.datasets.evidence import build_dataset_release_evidence
+repo_root = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(repo_root / "scripts"))
 
-
-def main() -> None:
-    repo_root = Path(__file__).resolve().parent.parent.parent.parent
-    manifest_path = repo_root / "docs" / "ml" / "datasets" / "AI_DATA_01D_DATASET_RELEASE_MANIFEST.json"
-
-    evidence = build_dataset_release_evidence()
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(
-        json.dumps(evidence, indent=2, sort_keys=True, default=str) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Successfully generated release manifest at {manifest_path}")
-    print(f"Dataset Release Fingerprint: {evidence['dataset_release_fingerprint']}")
-
+from build_dataset_release_manifest import main
 
 if __name__ == "__main__":
     main()
+
+6
