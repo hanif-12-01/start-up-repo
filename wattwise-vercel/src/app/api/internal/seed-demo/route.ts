@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       await pool.query(
         `INSERT INTO user_plan (id, user_id, plan, status, trial_starts_at, trial_ends_at, onboarding_completed_at, created_at, updated_at)
          VALUES ($1, $2, 'PRO_TRIAL', 'ACTIVE', $3, $4, $3, $3, $3)
-         ON CONFLICT (id) DO UPDATE SET plan = 'PRO_TRIAL', status = 'ACTIVE', trial_ends_at = $4, onboarding_completed_at = $3, updated_at = $3`,
+         ON CONFLICT (user_id) DO UPDATE SET plan = 'PRO_TRIAL', status = 'ACTIVE', trial_ends_at = $4, onboarding_completed_at = $3, updated_at = $3`,
         [`plan-prod-demo-0${idx + 1}`, actualUserId, now, thirtyDays]
       );
 
