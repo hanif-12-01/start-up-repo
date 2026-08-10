@@ -11,6 +11,8 @@ from wattwise_benchmark.config import sha256_file
 EXPECTED = {
     "uci_eld": {"doi": "10.24432/C58C86", "licence": "CC BY 4.0"},
     "bdg2": {"doi": "10.5281/zenodo.3887306", "licence": "CC BY 4.0"},
+    "london_smartmeter": {"licence": "OGL v3.0"},
+    "nrel_comstock": {"licence": "CC BY 4.0"},
 }
 
 
@@ -41,12 +43,16 @@ def validate_manifest(path: Path, verify_files: bool = True) -> dict[str, Any]:
     if not isinstance(datasets, list):
         raise ValueError("datasets must be a list")
     by_key = {item.get("dataset_key"): item for item in datasets}
-    if set(by_key) != set(EXPECTED):
-        raise ValueError("manifest must contain exactly UCI ELD and BDG2")
-    for key, expected in EXPECTED.items():
-        item = by_key[key]
-        if item.get("doi") != expected["doi"] or item.get("licence") != expected["licence"]:
-            raise ValueError(f"canonical identity mismatch for {key}")
+    if not {"uci_eld", "bdg2"}.issubset(set(by_key)):
+        raise ValueError("manifest must contain at least baseline datasets UCI ELD and BDG2")
+    for key, item in by_key.items():
+        if key not in EXPECTED:
+            raise ValueError(f"unrecognized dataset key: {key}")
+        expected = EXPECTED[key]
+        if "doi" in expected and item.get("doi") != expected["doi"]:
+            raise ValueError(f"canonical DOI mismatch for {key}")
+        if item.get("licence") != expected["licence"]:
+            raise ValueError(f"canonical license mismatch for {key}")
         if item.get("validation", {}).get("status") != "PASS":
             raise ValueError(f"validation is not PASS for {key}")
         archive = item.get("archive", {})

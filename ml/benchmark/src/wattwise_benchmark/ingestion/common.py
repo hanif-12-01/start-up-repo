@@ -29,7 +29,8 @@ def validate_monthly(panel: pd.DataFrame) -> None:
     months = pd.to_datetime(panel["period_month"], errors="coerce")
     if months.isna().any() or (months.dt.day != 1).any():
         raise ValueError("period_month must be a calendar month start")
-    completeness = panel["monthly_completeness_ratio"].to_numpy(dtype=float)
+    comp_col = "monthly_completeness_ratio" if "monthly_completeness_ratio" in panel.columns else "coverage_ratio"
+    completeness = panel[comp_col].to_numpy(dtype=float)
     if ((completeness < 0) | (completeness > 1)).any():
         raise ValueError("monthly completeness must be within [0, 1]")
 
@@ -55,7 +56,9 @@ def write_normalized(
     destination.mkdir(parents=True, exist_ok=True)
     parquet = destination / "monthly.parquet"
     audit_path = destination / "quality-audit.json"
-    panel.to_parquet(parquet, index=False, compression="zstd")
+    work = panel.copy()
+    work["period_month"] = pd.to_datetime(work["period_month"]).dt.strftime("%Y-%m-%d")
+    work.to_parquet(parquet, index=False, compression="zstd")
     audit_path.write_text(json.dumps(audit, indent=2, sort_keys=True, default=str) + "\n")
     return {
         "parquet": str(parquet),

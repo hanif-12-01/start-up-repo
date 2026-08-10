@@ -100,7 +100,8 @@ def build_combined_audit(
             bool(value.get("canonical_provenance_verified")) for value in provenance.values()
         ),
         "license_verified": all(
-            value.get("license") == "CC BY 4.0" for value in provenance.values()
+            value.get("license") in {"CC BY 4.0", "Open Government Licence v3.0", "OGL v3.0"}
+            for value in provenance.values()
         ),
         "target_leakage_detected": False,
     }
@@ -120,8 +121,8 @@ def build_combined_audit(
             "normalized_entity_count": int(
                 combined[["dataset_source", "entity_id"]].drop_duplicates().shape[0]
             ),
-            "first_month": combined["period_month"].min().date().isoformat(),
-            "last_month": combined["period_month"].max().date().isoformat(),
+            "first_month": pd.to_datetime(combined["period_month"]).min().strftime("%Y-%m-%d"),
+            "last_month": pd.to_datetime(combined["period_month"]).max().strftime("%Y-%m-%d"),
             "duplicate_entity_months": int(combined.duplicated(KEY_COLUMNS).sum()),
             "phase_target_counts": _phase_counts(combined),
             "excluded_months": int(

@@ -137,6 +137,7 @@ class CanonicalMonthlyRecordV2:
     validation_eligible: bool = True
     final_evaluation_eligible: bool = True
     quality_flags: tuple[str, ...] = ("PASS",)
+    unit_conversion_method: str = "NATIVE_KWH"
     source_license: str = "CC BY 4.0"
     source_version: str = "v1.0"
 
@@ -147,4 +148,6 @@ class CanonicalMonthlyRecordV2:
             raise ValueError("coverage_ratio must be between 0.0 and 1.0")
 
     def as_record(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["monthly_completeness_ratio"] = self.coverage_ratio
+        return data

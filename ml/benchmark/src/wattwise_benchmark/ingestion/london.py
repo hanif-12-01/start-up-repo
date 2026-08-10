@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import calendar
+from datetime import datetime
+
 import pandas as pd
 
 from wattwise_benchmark.contracts import (
@@ -11,10 +14,15 @@ from wattwise_benchmark.contracts import (
 )
 
 
+def expected_half_hourly_observations(year: int, month: int) -> int:
+    days = calendar.monthrange(year, month)[1]
+    return days * 48
+
+
 def normalize_london_smartmeter(df: pd.DataFrame) -> list[CanonicalMonthlyRecordV2]:
     """
     Normalizes London SmartMeter half-hourly kWh observations into canonical monthly records.
-    Ensures domain is strictly PUBLIC_RESIDENTIAL and measurement_method is SMART_METER.
+    Ensures month-aware coverage calculations, preserves numeric zero, and handles invalid values.
     """
     records: list[CanonicalMonthlyRecordV2] = []
     if df.empty:
@@ -27,36 +35,50 @@ def normalize_london_smartmeter(df: pd.DataFrame) -> list[CanonicalMonthlyRecord
 
     work = df.copy()
     work["timestamp"] = pd.to_datetime(work["timestamp"], errors="coerce")
-    work["kwh"] = pd.to_numeric(work["KWH/hh"], errors="coerce").fillna(0.0)
+    work["kwh_raw"] = pd.to_numeric(work["KWH/hh"], errors="coerce")
     work = work.dropna(subset=["timestamp"])
 
     work["period_month"] = work["timestamp"].dt.strftime("%Y-%m-01")
     grouped = work.groupby(["LCLid", "period_month"])
 
-    for (entity_id, period_month), group in grouped:
-        monthly_kwh = float(group["kwh"].sum())
-        obs_count = len(group)
-        # Expected half-hourly observations in 30-day month = 30 * 48 = 1440
-        expected_obs = 1440
-        coverage = min(1.0, obs_count / expected_obs)
+    for (entity_id, period_month_str), group in grouped:
+        dt = datetime.strptime(str(period_month_str), "%Y-%m-%d")
+        expected_obs = expected_half_hourly_observations(dt.year, dt.month)
 
-        if coverage < 0.90 or monthly_kwh < 0.0:
+        valid_mask = group["kwh_raw"].notna() & (group["kwh_raw"] >= 0.0)
+        valid_series = group.loc[valid_mask, "kwh_raw"]
+        valid_obs_count = len(valid_series)
+        invalid_obs_count = len(group) - valid_obs_count
+
+        coverage = min(1.0, valid_obs_count / expected_obs)
+        monthly_kwh = float(valid_series.sum()) if valid_obs_count > 0 else 0.0
+
+        flags: list[str] = ["PASS"]
+        if invalid_obs_count > 0:
+            flags.append("INVALID_USAGE")
+        if monthly_kwh == 0.0 and valid_obs_count > 0:
+            flags.append("ZERO_USAGE")
+        if coverage < 0.90:
+            flags.append("LOW_COVERAGE")
+
+        if coverage < 0.90 or monthly_kwh < 0.0 or valid_obs_count == 0:
             continue
 
         records.append(
             CanonicalMonthlyRecordV2(
                 dataset_source="london_smartmeter",
                 entity_id=str(entity_id),
-                period_month=str(period_month),
+                period_month=str(period_month_str),
                 usage_kwh=round(monthly_kwh, 4),
                 dataset_provenance=DatasetProvenance.PUBLIC,
                 measurement_method=MeasurementMethod.SMART_METER,
                 wattwise_usage_source=WattWiseUsageSource.LEGACY_UNKNOWN,
                 domain=WattWiseDomain.PUBLIC_RESIDENTIAL,
                 source_granularity="30min",
-                observation_count=obs_count,
+                observation_count=valid_obs_count,
                 expected_observation_count=expected_obs,
                 coverage_ratio=round(coverage, 4),
+                quality_flags=tuple(flags),
                 source_license="Open Government Licence v3.0",
                 source_version="2011-2014",
             )

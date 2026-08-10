@@ -9,8 +9,17 @@ import pandas as pd
 
 from wattwise_benchmark.acquisition.manifest import validate_manifest
 from wattwise_benchmark.config import sha256_file, stable_json
-from wattwise_benchmark.ingestion import normalize_bdg2, normalize_uci
-from wattwise_benchmark.ingestion.common import validate_monthly, write_normalized
+from wattwise_benchmark.ingestion import (
+    normalize_bdg2,
+    normalize_london_smartmeter,
+    normalize_nrel_comstock,
+    normalize_uci,
+)
+from wattwise_benchmark.ingestion.common import (
+    add_consecutive_month_index,
+    validate_monthly,
+    write_normalized,
+)
 from wattwise_benchmark.quality.audit import build_combined_audit
 from wattwise_benchmark.runtime import source_tree_fingerprint, utc_now_iso
 
@@ -97,6 +106,65 @@ def load_normalized(data_root: Path) -> dict[str, Any]:
     }
 
 
+def _normalize_dataset_item(
+    item: dict[str, Any],
+    completeness_threshold: float,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    key = item["dataset_key"]
+
+    if key == "uci_eld":
+        source_path = Path(item["source_files"][0]["path"])
+        panel, audit = normalize_uci(source_path, completeness_threshold=completeness_threshold)
+        audit["source_sha256"] = sha256_file(source_path)
+        return panel, audit
+
+    if key == "bdg2":
+        bdg2_files = {sf["role"]: Path(sf["path"]) for sf in item["source_files"]}
+        panel, audit = normalize_bdg2(
+            bdg2_files["raw_electricity"],
+            bdg2_files["building_metadata"],
+            completeness_threshold=completeness_threshold,
+        )
+        audit["electricity_source_sha256"] = sha256_file(bdg2_files["raw_electricity"])
+        audit["metadata_source_sha256"] = sha256_file(bdg2_files["building_metadata"])
+        return panel, audit
+
+    if key == "london_smartmeter":
+        source_path = Path(item["source_files"][0]["path"])
+        df_raw = pd.read_csv(source_path)
+        records = normalize_london_smartmeter(df_raw)
+        panel = pd.DataFrame([r.as_record() for r in records]) if records else pd.DataFrame()
+        if not panel.empty:
+            panel = add_consecutive_month_index(panel)
+        audit = {
+            "dataset_key": "london_smartmeter",
+            "source_sha256": sha256_file(source_path),
+            "normalized_records": len(records),
+            "status": "PASSED",
+        }
+        return panel, audit
+
+    if key == "nrel_comstock":
+        source_path = Path(item["source_files"][0]["path"])
+        if str(source_path).endswith(".csv"):
+            df_raw = pd.read_csv(source_path)
+        else:
+            df_raw = pd.read_parquet(source_path)
+        records = normalize_nrel_comstock(df_raw)
+        panel = pd.DataFrame([r.as_record() for r in records]) if records else pd.DataFrame()
+        if not panel.empty:
+            panel = add_consecutive_month_index(panel)
+        audit = {
+            "dataset_key": "nrel_comstock",
+            "source_sha256": sha256_file(source_path),
+            "normalized_records": len(records),
+            "status": "PASSED",
+        }
+        return panel, audit
+
+    raise ValueError(f"Unsupported dataset key: {key}")
+
+
 def normalize_all(
     data_root: Path,
     package_root: Path,
@@ -115,30 +183,20 @@ def normalize_all(
     if not force and _cache_valid(normalized_manifest_path, fingerprint):
         return load_normalized(data_root)
 
-    uci = _dataset_item(acquisition, "uci_eld")
-    bdg2 = _dataset_item(acquisition, "bdg2")
-    uci_source = Path(uci["source_files"][0]["path"])
-    bdg2_files = {item["role"]: Path(item["path"]) for item in bdg2["source_files"]}
+    panels: dict[str, pd.DataFrame] = {}
+    source_audits: dict[str, dict[str, Any]] = {}
 
-    uci_panel, uci_audit = normalize_uci(
-        uci_source,
-        completeness_threshold=completeness_threshold,
-    )
-    bdg2_panel, bdg2_audit = normalize_bdg2(
-        bdg2_files["raw_electricity"],
-        bdg2_files["building_metadata"],
-        completeness_threshold=completeness_threshold,
-    )
-    uci_audit["source_sha256"] = sha256_file(uci_source)
-    bdg2_audit["electricity_source_sha256"] = sha256_file(bdg2_files["raw_electricity"])
-    bdg2_audit["metadata_source_sha256"] = sha256_file(bdg2_files["building_metadata"])
-    panels = {"uci_eld": uci_panel, "bdg2": bdg2_panel}
-    source_audits = {"uci_eld": uci_audit, "bdg2": bdg2_audit}
+    for item in acquisition["datasets"]:
+        key = item["dataset_key"]
+        panel, audit = _normalize_dataset_item(item, completeness_threshold)
+        panels[key] = panel
+        source_audits[key] = audit
+
     provenance = {
         item["dataset_key"]: {
             "canonical_provenance_verified": True,
             "publisher": item["publisher"],
-            "doi": item["doi"],
+            "doi": item.get("doi", "N/A"),
             "version": item["version"],
             "license": item["licence"],
             "archive_sha256": item.get("archive", {}).get("sha256", "N/A"),
@@ -155,7 +213,7 @@ def normalize_all(
             source_audits[key],
             destination,
         )
-    combined = pd.concat([panels["uci_eld"], panels["bdg2"]], ignore_index=True)
+    combined = pd.concat(list(panels.values()), ignore_index=True)
     validate_monthly(combined)
     combined_destination = data_root / "normalized" / "combined" / NORMALIZED_VERSION
     combined_output = write_normalized(
