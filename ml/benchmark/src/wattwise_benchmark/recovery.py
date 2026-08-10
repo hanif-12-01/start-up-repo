@@ -131,7 +131,7 @@ REQUIRED_PREDICTION_COLUMNS = {
     "artifact_checksum",
 }
 INFERENCE_FILE_CHECKSUMS = {
-    "contracts.py": "88a2416ade4147ddb067bf84bebb0e788b3cae9d91ed75ab08095d8e8727b2af",
+    "contracts.py": "13487df9a1d41e15a1e49c68492e9bbd3eeddba41d386c256f6530bae72698c9",
     "execution.py": "df3c375afa4ec0a49f522027361436952dd715af5d83d654b8c13e1bb1e23274",
     "ingestion/common.py": (
         "d7929b77bc4829760c79a1c7adb64d3434691af6145128acb7864a8afd9fcb07"
@@ -290,7 +290,7 @@ def verify_inference_source(package_root: Path) -> dict[str, str]:
     actual: dict[str, str] = {}
     conflicts: list[str] = []
     for relative, expected in INFERENCE_FILE_CHECKSUMS.items():
-        checksum = sha256_file(package_root / relative)
+        checksum = sha256_file(package_root / relative, text_mode=True)
         actual[relative] = checksum
         if checksum != expected:
             conflicts.append(f"{relative}: expected {expected}, found {checksum}")

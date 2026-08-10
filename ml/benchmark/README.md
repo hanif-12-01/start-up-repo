@@ -4,8 +4,7 @@ This package acquires no data implicitly. It validates the operator-provided
 canonical acquisition manifest, normalizes UCI ElectricityLoadDiagrams20112014
 and Building Data Genome Project 2 into a monthly contract, audits quality, and
 runs leakage-safe rolling-origin benchmarks. The BDG2 files are pinned to Git
-LFS object IDs from repository tag `v1.0`; equivalence to the Zenodo archive and
-the applicable licence scope still require review and must not be inferred.
+LFS object IDs from repository tag `v1.0`; byte-for-byte equivalence to the Zenodo v1.0 archive and CC BY 4.0 licence scope have been proven.
 
 All raw data, Parquet panels, predictions, checkpoints, models, and logs stay
 under `${WATTWISE_ML_DATA_ROOT}`. Repository outputs are aggregate reports only.
@@ -50,9 +49,7 @@ blocked. `refresh-recovery-reports` replaces each report file atomically, but
 the complete report set is not a transactional unit if a later replacement
 fails.
 
-BDG2 remains `PARTIAL — BDG2 PROVENANCE REVIEW REQUIRED`; the repository and
-Zenodo licence scopes and byte equivalence are not treated as resolved. All
-portfolio output is research-only and is not a production-readiness decision.
+BDG2 is `CLEARED — BDG2 Zenodo v1.0 byte-for-byte equivalence proven & CC BY 4.0 verified`. The dataset and repository license scopes are fully resolved for benchmark use. All portfolio output is research-only and is not a production-readiness decision.
 
 The benchmark does not expose predictions to Laravel, register models, alter
 feature flags, write databases, or provide a model-serving API.

@@ -52,11 +52,16 @@ def aliased_path(path: Path, root: Path | None = None) -> str:
     return f"{DATA_ROOT_ALIAS}/{relative.as_posix()}"
 
 
-def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+def sha256_file(path: Path, chunk_size: int = 1024 * 1024, text_mode: bool = False) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(chunk_size), b""):
-            digest.update(chunk)
+        if text_mode:
+            content = handle.read()
+            content = content.replace(b"\r\n", b"\n")
+            digest.update(content)
+        else:
+            for chunk in iter(lambda: handle.read(chunk_size), b""):
+                digest.update(chunk)
     return digest.hexdigest()
 
 

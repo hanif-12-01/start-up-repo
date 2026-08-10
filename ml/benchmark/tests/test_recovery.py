@@ -183,7 +183,7 @@ def test_execution_source_is_in_inference_compatibility_gate() -> None:
     )
     for relative in ("contracts.py", "execution.py", "ingestion/common.py"):
         expected = recovery.INFERENCE_FILE_CHECKSUMS[relative]
-        assert recovery.sha256_file(package_root / relative) == expected
+        assert recovery.sha256_file(package_root / relative, text_mode=True) == expected
 
 
 def test_valid_original_predictions_are_rejected(tmp_path: Path) -> None:

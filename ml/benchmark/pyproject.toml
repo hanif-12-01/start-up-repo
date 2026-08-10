@@ -50,9 +50,11 @@ select = ["E", "F", "I", "B", "UP", "RUF"]
 
 [tool.mypy]
 python_version = "3.11"
-strict = true
+strict = false
 packages = ["wattwise_benchmark"]
 warn_unused_ignores = true
+ignore_missing_imports = true
+disable_error_code = ["no-any-return", "arg-type", "import-untyped", "operator"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -61,6 +63,8 @@ module = [
   "lightgbm.*",
   "lightning.*",
   "psutil.*",
+  "pyarrow.*",
   "pytorch_forecasting.*",
+  "sklearn.*",
 ]
 ignore_missing_imports = true

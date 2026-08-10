@@ -332,8 +332,8 @@ def select_top_four(
         )
     baseline_row = baseline.iloc[0]
     if baseline_row["gate_status"] != "PASS":
-        reasons = baseline_row.get("gate_reasons", [])
-        detail = "; ".join(str(reason) for reason in reasons)
+        gate_reasons = baseline_row.get("gate_reasons", [])
+        detail = "; ".join(str(reason) for reason in gate_reasons)
         raise PortfolioConstructionError(
             "mandatory deterministic fallback failed its portfolio gate: "
             f"{detail or 'unspecified gate failure'}"
