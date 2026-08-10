@@ -15,15 +15,15 @@ export default function GlobalError({
 
   return (
     <html lang="id">
-      <body className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
+      <body className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] p-4 text-[var(--foreground)]">
         <div className="text-center max-w-md">
-          <h1 className="text-3xl font-bold text-slate-100 mb-2">Terjadi Kendala Kritis</h1>
-          <p className="text-slate-400 text-sm mb-6">
+          <h1 className="mb-2 text-3xl font-bold">Aplikasi belum dapat dimuat</h1>
+          <p className="mb-6 text-sm text-[var(--muted)]">
             Aplikasi mengalami masalah tingkat global. Silakan segarkan halaman.
           </p>
           <button
             onClick={() => reset()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-500 transition"
+            className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
           >
             Segarkan Halaman
           </button>

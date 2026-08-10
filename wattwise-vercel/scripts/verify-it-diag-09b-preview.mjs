@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createHmac } from 'node:crypto';
-import { mkdir, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 const PREVIEW_URL = 'https://wattwise-ai-preview-kffe8q6p6-clara3.vercel.app';
@@ -343,7 +343,7 @@ async function runBrowserVerification(bypassSecret) {
     });
 
     await cdp.send('Page.navigate', { url: `${PREVIEW_URL}${path}` });
-    const docState = await waitForDocument(cdp, expectedText);
+    await waitForDocument(cdp, expectedText);
 
     if (screenshotFilename) {
       const scr = await cdp.send('Page.captureScreenshot', { format: 'png' });

@@ -28,9 +28,8 @@ import {
 } from '@/components/product/WorkspaceUI';
 import { decimal, formatMonth, rupiah } from '@/lib/format';
 import { requireWorkspacePage } from '@/server/services/workspace-page';
-import { getDecisionSupport } from '@/server/services/workspace.service';
 import { getUserEntitlements } from '@/server/services/entitlement.service';
-import { analyzeLatestAnomaly, calculateEfficiencyScore, predictUsage } from '@/server/services/product-analysis';
+import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { Simulator } from '../predictions/Simulator';
 
 export const dynamic = 'force-dynamic';
@@ -55,38 +54,12 @@ export default async function AnalysisPage({
   const activeTab = tabs.some(([key]) => key === requestedTab) ? requestedTab : 'overview';
 
   const { userId } = await requireWorkspacePage(requestedBusinessId);
-  const [data, entitlements] = await Promise.all([
-    getDecisionSupport(userId, requestedBusinessId),
+  const [analysisModel, entitlements] = await Promise.all([
+    getProductAnalysisReadModel(userId, requestedBusinessId),
     getUserEntitlements(userId),
   ]);
 
-  const tariff = Number(data.business.tariffRupiahPerKwh ?? data.latestBill?.tariffRupiahPerKwh ?? 0) || null;
-
-  // Build samples array ordered chronologically
-  const samples = [...data.bills]
-    .reverse()
-    .map((bill) => ({
-      period: bill.periodEnd.slice(0, 7),
-      usageKwh: bill.kwh === null ? null : Number(bill.kwh),
-      billAmount: Number(bill.totalAmountRupiah),
-      tariff: bill.tariffRupiahPerKwh === null ? tariff : Number(bill.tariffRupiahPerKwh),
-    }));
-
-  const prediction = predictUsage(samples, tariff);
-  const anomaly = analyzeLatestAnomaly(samples);
-  const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
-  const totalEstimate = estimates.reduce((sum, item) => sum + (item.monthlyKwh ?? 0), 0);
-  const shares = estimates.map((item) => (totalEstimate > 0 ? ((item.monthlyKwh ?? 0) / totalEstimate) * 100 : 0));
-
-  // Authoritative Efficiency Score calculation
-  const score = calculateEfficiencyScore({
-    bill: data.latestBill ? Number(data.latestBill.totalAmountRupiah) : null,
-    revenue: data.matchingRevenue ? Number(data.matchingRevenue.amountRupiah) : null,
-    hasTariff: tariff !== null,
-    applianceShares: shares,
-  });
-
-  const ratio = data.ratio;
+  const { data, tariff, samples, prediction, anomaly, efficiency: score, recommendations } = analysisModel;
   const businessQuery = `businessId=${encodeURIComponent(data.business.id)}`;
 
   // Construct trend points for visualization
@@ -100,10 +73,10 @@ export default async function AnalysisPage({
   }));
 
   if (prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
-    const nextPeriod = 'Proyeksi';
+    const nextPeriod = 'forecast-next';
     trendPoints.push({
       period: nextPeriod,
-      label: nextPeriod,
+      label: 'Estimasi periode berikutnya',
       usageKwh: prediction.predictedUsageKwh,
       billAmount: prediction.estimatedBill,
       tariff,
@@ -111,34 +84,7 @@ export default async function AnalysisPage({
     });
   }
 
-  // Generate priority recommendation actions
-  const recommendations = [
-    !data.latestBill && {
-      priority: 'Tinggi',
-      title: 'Catat tagihan terbaru',
-      detail: 'Tagihan diperlukan sebagai dasar perbandingan dan analisis biaya harian.',
-    },
-    !data.matchingRevenue && {
-      priority: 'Sedang',
-      title: 'Lengkapi pendapatan pada bulan yang sama',
-      detail: 'Pendapatan membantu memberi konteks rasio biaya listrik terhadap omzet.',
-    },
-    tariff === null && {
-      priority: 'Sedang',
-      title: 'Lengkapi tarif rata-rata per kWh',
-      detail: 'Tarif membantu mengubah pemakaian menjadi estimasi biaya aktual.',
-    },
-    ratio !== null && ratio > 10 && {
-      priority: ratio > 20 ? 'Tinggi' : 'Sedang',
-      title: 'Pantau rasio listrik terhadap pendapatan',
-      detail: `Porsi tercatat sekitar ${decimal.format(ratio)}%. Angka ini belum memperhitungkan biaya operasional lain.`,
-    },
-    estimates[0] && {
-      priority: 'Sedang',
-      title: `Tinjau pola pakai ${estimates[0].appliance.name}`,
-      detail: 'Prioritas berdasarkan daya, jumlah, dan jam pakai input; bukan pengukuran langsung sensor.',
-    },
-  ].filter(Boolean) as Array<{ priority: string; title: string; detail: string }>;
+
 
   // Priority action recommendation
   const primaryAction = !data.latestBill
@@ -165,8 +111,8 @@ export default async function AnalysisPage({
   return (
     <WorkspacePage>
       <WorkspaceHeader
-        eyebrow="Pusat Analisis Intelegen"
-        title="Analisis Biaya & Pemakaian"
+        eyebrow="Pusat analisis"
+        title="Analisis biaya dan pemakaian"
         description="Satu tempat terpadu untuk membaca tren historis, indikasi anomali, proyeksi deterministik, rekomendasi prioritas, dan simulasi skenario."
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -372,7 +318,7 @@ export default async function AnalysisPage({
       {activeTab === 'anomaly' && (
         <SoftCard>
           <div className="flex items-start gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--warning-surface)]/15 text-amber-600 dark:text-[var(--warning)] shrink-0">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
@@ -455,14 +401,20 @@ export default async function AnalysisPage({
       {activeTab === 'recommendations' && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recommendations.length ? (
-            recommendations.map((item, index) => (
-              <SoftCard key={item.title}>
+            recommendations.map((item) => (
+              <SoftCard key={item.id}>
                 <div className="flex items-center justify-between">
-                  <StatusBadge variant="primary">Prioritas {index + 1}</StatusBadge>
+                  <StatusBadge variant={item.priority === 'TINGGI' ? 'warning' : 'primary'}>
+                    Prioritas {item.priority}
+                  </StatusBadge>
                   <Lightbulb className="h-5 w-5 text-[var(--primary)]" />
                 </div>
                 <h3 className="mt-4 text-base font-extrabold text-[var(--foreground)]">{item.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{item.detail}</p>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{item.reason}</p>
+                <p className="mt-2 text-xs italic text-[var(--muted)]">{item.limitation}</p>
+                <div className="mt-4 border-t border-[var(--border)] pt-3">
+                  <p className="text-xs font-semibold text-[var(--primary)]">Rekomendasi tindakan: {item.nextAction}</p>
+                </div>
               </SoftCard>
             ))
           ) : (

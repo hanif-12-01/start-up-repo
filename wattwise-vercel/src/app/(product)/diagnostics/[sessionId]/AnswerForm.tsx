@@ -29,16 +29,16 @@ export function AnswerForm({
             value={option.code}
             autoFocus={index === 0}
             disabled={pending}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-left text-sm font-semibold text-slate-100 hover:border-cyan-400 hover:bg-slate-700 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-400 disabled:cursor-wait disabled:opacity-60"
+            className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-3 text-left text-sm font-semibold text-[var(--foreground)] hover:border-[var(--info)] hover:bg-[var(--surface-strong)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)] disabled:cursor-wait disabled:opacity-60"
           >
             {pending ? 'Menyimpan…' : option.label}
           </button>
         ))}
       </div>
-      <p id="answer-help" className="mt-3 text-xs text-slate-500">
+      <p id="answer-help" className="mt-3 text-xs text-[var(--muted)]">
         Jawaban disimpan per langkah. Jawaban yang sudah tersimpan tidak dapat diubah dalam sesi ini.
       </p>
-      <p className="mt-3 text-sm text-rose-300" aria-live="polite">
+      <p className="mt-3 text-sm text-[var(--danger)]" aria-live="polite">
         {state?.error}
       </p>
     </form>

@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { businessSegmentLabel, decimal, formatMonth, rupiah } from '@/lib/format';
+import { TrendChart, type TrendPoint } from '@/components/analysis/TrendChart';
 import { SoftCard, secondaryButton } from '@/components/product/WorkspaceUI';
 import { getOptionalSession } from '@/server/auth/session';
 import {
@@ -25,6 +26,7 @@ import {
 } from '@/server/services/dashboard.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { getDecisionSupport } from '@/server/services/workspace.service';
+import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
 
 export const dynamic = 'force-dynamic';
@@ -52,15 +54,15 @@ function KpiCard({
   accent?: boolean;
 }) {
   return (
-    <article className={`rounded-3xl border p-5 ${accent ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)]'}`}>
+    <article className={`rounded-2xl border p-5 ${accent ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]' : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)]'}`}>
       <div className="flex items-center justify-between">
         <span aria-hidden="true" className={`grid h-10 w-10 place-items-center rounded-2xl ${accent ? 'bg-white/15' : 'bg-[var(--primary-soft)]'}`}>
           <Icon className="h-5 w-5" />
         </span>
-        <span className={`text-[10px] font-extrabold uppercase tracking-[0.14em] ${accent ? 'text-emerald-100' : 'text-[var(--muted)]'}`}>{label}</span>
+        <span className={`text-[10px] font-extrabold uppercase tracking-[0.14em] ${accent ? 'opacity-80' : 'text-[var(--muted)]'}`}>{label}</span>
       </div>
       <p className="mt-5 text-2xl font-black tracking-tight">{value}</p>
-      <p className={`mt-2 text-xs leading-5 ${accent ? 'text-emerald-100' : 'text-[var(--muted)]'}`}>{note}</p>
+      <p className={`mt-2 text-xs leading-5 ${accent ? 'opacity-80' : 'text-[var(--muted)]'}`}>{note}</p>
     </article>
   );
 }
@@ -93,10 +95,21 @@ export default async function DashboardPage({
 
   const selectedBusinessId = dashboard.businessSummary.options.find((item) => item.selected)?.id;
   if (!selectedBusinessId) notFound();
-  const support = await getDecisionSupport(userId, selectedBusinessId);
+  const [support, analysisReadModel] = await Promise.all([
+    getDecisionSupport(userId, selectedBusinessId),
+    getProductAnalysisReadModel(userId, selectedBusinessId),
+  ]);
+  const anomaly = analysisReadModel.anomaly;
   const businessQuery = `?businessId=${encodeURIComponent(selectedBusinessId)}`;
-  const maxBill = Math.max(...support.bills.map((item) => Number(item.totalAmountRupiah)), 1);
   const latestOutcome = dashboard.outcomeSummaries[0] ?? null;
+  const billTrendPoints: TrendPoint[] = [...support.bills].reverse().map((bill) => ({
+    period: bill.periodEnd,
+    label: formatMonth(bill.periodEnd),
+    usageKwh: bill.kwh === null ? null : Number(bill.kwh),
+    billAmount: Number(bill.totalAmountRupiah),
+    tariff: bill.tariffRupiahPerKwh === null ? null : Number(bill.tariffRupiahPerKwh),
+    type: 'historical',
+  }));
 
   return (
     <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-10 lg:py-9">
@@ -120,36 +133,54 @@ export default async function DashboardPage({
                     {dashboard.businessSummary.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </label>
-                <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-bold text-white">Pilih</button>
+                <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-bold text-[var(--primary-foreground)]">Pilih</button>
               </form>
             )}
             <Link href="/businesses" className={secondaryButton}>Kelola Usaha</Link>
           </div>
         </header>
 
-        <section className="relative overflow-hidden rounded-[2rem] bg-emerald-950 p-6 text-white shadow-[0_30px_80px_-50px_rgba(6,78,59,0.9)] sm:p-8">
-          <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl" aria-hidden="true" />
+        <section className="relative overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 sm:p-8">
           <div className="relative grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-300">Langkah berikutnya</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Langkah berikutnya</p>
               <h2 className="mt-3 max-w-3xl text-2xl font-black tracking-tight sm:text-3xl">{dashboard.nextAction.label}</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-100/75">Satu tindakan utama dipilih dari progres data dan perjalanan Cek Kenaikan Anda. Dashboard tidak membuat prediksi atau menetapkan penyebab.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">Satu tindakan utama dipilih dari progres data dan perjalanan Cek Kenaikan Anda. Dashboard tidak menetapkan penyebab.</p>
             </div>
             <div>
               {dashboard.nextAction.kind === 'START_DIAGNOSTIC'
                 ? <StartDiagnosticButton electricityBillId={dashboard.nextAction.electricityBillId} resumable={false} />
-                : <Link href={dashboard.nextAction.href} className="inline-flex rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-emerald-900 hover:bg-emerald-50">{dashboard.nextAction.label} →</Link>}
+                : <Link href={dashboard.nextAction.href} className="inline-flex rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]">{dashboard.nextAction.label} →</Link>}
             </div>
           </div>
-          <nav aria-label="Tautan pendukung" className="relative mt-6 flex flex-wrap gap-4 border-t border-white/10 pt-4">
-            {dashboard.secondaryLinks.map((item) => <Link key={item.label} href={item.href} className="text-xs font-bold text-emerald-100 underline decoration-emerald-500 underline-offset-4 hover:text-white">{item.label}</Link>)}
+          <nav aria-label="Tautan pendukung" className="relative mt-6 flex flex-wrap gap-4 border-t border-[var(--border)] pt-4">
+            {dashboard.secondaryLinks.map((item) => <Link key={item.label} href={item.href} className="text-xs font-bold text-[var(--primary)] underline decoration-[var(--primary)]/50 underline-offset-4 hover:text-[var(--primary-hover)]">{item.label}</Link>)}
           </nav>
         </section>
 
-        {support.anomalies.length > 0 && (
-          <Link href={`/anomalies${businessQuery}`} className="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 transition hover:bg-amber-100 sm:flex-row sm:items-center sm:justify-between">
-            <span className="flex items-start gap-3"><TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" /><span><strong className="block text-sm">Ada periode yang perlu ditinjau</strong><span className="mt-1 block text-xs leading-5">{support.anomalies.length} perubahan biaya harian melewati ambang indikasi 15%.</span></span></span>
-            <span className="text-xs font-extrabold">Lihat indikasi →</span>
+        {anomaly.hasData && (anomaly.status === 'Perlu Dicek' || anomaly.status === 'Boros') && (
+          <Link
+            href={`/analysis?businessId=${encodeURIComponent(selectedBusinessId)}&tab=anomaly`}
+            className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center sm:justify-between ${
+              anomaly.status === 'Boros'
+                ? 'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)] hover:brightness-95'
+                : 'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)] hover:brightness-95'
+            }`}
+          >
+            <span className="flex items-start gap-3">
+              <TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+              <span>
+                <strong className="block text-sm">
+                  {anomaly.status === 'Boros' ? 'Indikasi pemakaian boros' : 'Pemakaian perlu ditinjau'}
+                </strong>
+                <span className="mt-1 block text-xs leading-5">
+                  {anomaly.status === 'Boros'
+                    ? `Terdeteksi kenaikan pemakaian signifikan sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`
+                    : `Terdeteksi kenaikan pemakaian indikatif sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`}
+                </span>
+              </span>
+            </span>
+            <span className="text-xs font-extrabold text-[var(--warning)]">Lihat analisis indikasi →</span>
           </Link>
         )}
 
@@ -165,85 +196,7 @@ export default async function DashboardPage({
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Riwayat biaya</p><h2 className="mt-1 text-xl font-black">Tren tagihan tercatat</h2></div><Link href={`/bills${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)]">Lihat semua →</Link></div>
             {support.bills.length === 0
               ? <p className="mt-6 rounded-2xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">Belum ada tagihan untuk ditampilkan.</p>
-              : (() => {
-                  const W = 560; const H = 200;
-                  const padL = 12; const padR = 12; const padT = 36; const padB = 32;
-                  const chartW = W - padL - padR;
-                  const chartH = H - padT - padB;
-                  const bills = [...support.bills].reverse();
-                  const minVal = Math.min(...bills.map((b) => Number(b.totalAmountRupiah)));
-                  const maxVal = Math.max(...bills.map((b) => Number(b.totalAmountRupiah)));
-                  const valRange = maxVal - minVal || 1;
-                  const getX = (i: number) => padL + (bills.length === 1 ? chartW / 2 : (i / (bills.length - 1)) * chartW);
-                  const getY = (v: number) => padT + chartH - ((v - minVal) / valRange) * chartH;
-                  const pts = bills.map((b, i) => ({ x: getX(i), y: getY(Number(b.totalAmountRupiah)), b }));
-                  const polyline = pts.map((p) => `${p.x},${p.y}`).join(' ');
-                  const areaPath = `M ${pts[0].x} ${padT + chartH} L ${pts.map((p) => `${p.x} ${p.y}`).join(' L ')} L ${pts.at(-1)!.x} ${padT + chartH} Z`;
-                  return (
-                    <div className="mt-4">
-                      <svg
-                        viewBox={`0 0 ${W} ${H}`}
-                        className="w-full h-auto"
-                        role="img"
-                        aria-label="Grafik tren tagihan bulanan"
-                        style={{ overflow: 'visible' }}
-                      >
-                        <defs>
-                          <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#059669" stopOpacity="0.25" />
-                            <stop offset="100%" stopColor="#059669" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        {[0, 0.5, 1].map((t) => (
-                          <line
-                            key={t}
-                            x1={padL} x2={W - padR}
-                            y1={padT + chartH * (1 - t)} y2={padT + chartH * (1 - t)}
-                            stroke="currentColor" strokeOpacity="0.1" strokeWidth="1"
-                            className="text-[var(--foreground)]"
-                          />
-                        ))}
-                        <path d={areaPath} fill="url(#lineArea)" />
-                        <polyline
-                          points={polyline}
-                          fill="none"
-                          stroke="#059669"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        {pts.map((p, i) => (
-                          <g key={bills[i].id}>
-                            <text
-                              x={p.x} y={p.y - 10}
-                              textAnchor="middle"
-                              fontSize="9"
-                              fontWeight="700"
-                              fill="#059669"
-                            >
-                              {rupiah.format(bills[i].totalAmountRupiah)}
-                            </text>
-                            <circle cx={p.x} cy={p.y} r="4" fill="#059669" stroke="white" strokeWidth="2" />
-                            <text
-                              x={p.x} y={padT + chartH + 18}
-                              textAnchor="middle"
-                              fontSize="10"
-                              fontWeight="600"
-                              fill="currentColor"
-                              className="text-[var(--muted)]"
-                              opacity="0.7"
-                            >
-                              {formatMonth(bills[i].periodEnd).split(' ')[0].slice(0, 3)}
-                            </text>
-                          </g>
-                        ))}
-                      </svg>
-                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                        Grafik menggunakan total biaya yang dimasukkan pengguna. Bandingkan biaya per hari ketika panjang periode berbeda.
-                      </p>
-                    </div>
-                  );
-                })()}
+              : <div className="mt-4"><TrendChart points={billTrendPoints} metric="rupiah" /></div>}
           </SoftCard>
 
           <SoftCard>

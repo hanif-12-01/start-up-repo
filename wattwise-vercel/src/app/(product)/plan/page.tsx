@@ -15,12 +15,12 @@ export default async function PlanPage() {
   if (step !== 'PLAN') redirect(getJourneyRedirect(step));
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-100 p-4">
-      <PageReveal className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-6">
+    <main className="min-h-screen flex items-center justify-center bg-[var(--surface)] text-[var(--foreground)] p-4">
+      <PageReveal className="w-full max-w-lg bg-[var(--surface-muted)] border border-[var(--border)] rounded-xl p-6 shadow-xl space-y-6">
         <Reveal direction="down">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">Pilih Paket</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--primary)]">Pilih Paket</h1>
+            <p className="text-sm text-[var(--muted)]">
               Pilih cara memulai WattWise. Anda bisa langsung menggunakan versi gratis atau mencoba fitur lengkap selama 30 hari.
             </p>
           </div>
@@ -29,7 +29,7 @@ export default async function PlanPage() {
         <PlanChoiceForm />
 
         <Reveal direction="up" delay={0.2}>
-          <p className="text-xs text-slate-500 text-center leading-relaxed">
+          <p className="text-xs text-[var(--muted)] text-center leading-relaxed">
             WattWise bukan aplikasi resmi PLN, bukan pengganti PLN Mobile, dan bukan alat ukur listrik resmi.
           </p>
         </Reveal>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { decimal } from '@/lib/format';
 import { notFound, redirect } from 'next/navigation';
 import {
   Building2,
@@ -6,7 +7,6 @@ import {
   Download,
   LayoutDashboard,
 } from 'lucide-react';
-import { decimal, rupiah } from '@/lib/format';
 import { getOptionalSession } from '@/server/auth/session';
 import {
   MonthlyReportBusinessNotFoundError,
@@ -16,7 +16,6 @@ import {
   getMonthlyReportReadModel,
 } from '@/server/services/monthly-report.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
-import { getDecisionSupport } from '@/server/services/workspace.service';
 import { PrintReportButton } from './PrintReportButton';
 
 export const dynamic = 'force-dynamic';
@@ -80,7 +79,7 @@ export default async function MonthlyReportPage({
     if (error instanceof MonthlyReportHistoryGatedError) {
       return (
         <main className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4 text-[var(--foreground)]">
-          <div className="w-full max-w-md space-y-4 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 text-center shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 text-center shadow-[var(--shadow-medium)]">
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
               WattWise AI · Entitlement
             </p>
@@ -95,7 +94,7 @@ export default async function MonthlyReportPage({
             <div className="pt-2 flex justify-center">
               <Link
                 href="/reports/monthly"
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--focus)]"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)]"
               >
                 Lihat Bulan Tersedia
               </Link>
@@ -111,26 +110,14 @@ export default async function MonthlyReportPage({
     (option) => option.selected
   )?.id;
   if (!selectedBusinessId) notFound();
-  const support = await getDecisionSupport(userId, selectedBusinessId);
-  const reportRevenue = support.revenues.find(
-    (entry) => entry.periodMonth === `${report.reportMonth}-01`
-  ) ?? null;
-  const reportBill = support.bills.find(
-    (bill) => bill.periodEnd.slice(0, 7) === report.reportMonth
-  ) ?? null;
-  const reportRatio = reportRevenue && reportBill && reportRevenue.amountRupiah > 0n
-    ? (Number(reportBill.totalAmountRupiah) / Number(reportRevenue.amountRupiah)) * 100
-    : null;
-  const remainingRevenue = reportRevenue && reportBill
-    ? reportRevenue.amountRupiah - reportBill.totalAmountRupiah
-    : null;
+
   const selectedMonthIsAvailable = report.availableMonths.some(
     (month) => month.value === report.reportMonth
   );
 
   return (
     <main className="report-page min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] md:px-8 lg:py-10">
-      <article className="report-print-root mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-xl print:shadow-none print:border-none print:rounded-none">
+      <article className="report-print-root mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-medium)] print:rounded-none print:border-none print:shadow-none">
         {/* Header */}
         <header className="border-b border-[var(--border)] bg-[var(--surface)] px-6 py-7 md:px-9 print:bg-white print:text-slate-900 print:border-slate-300">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -147,7 +134,7 @@ export default async function MonthlyReportPage({
               <p className="mt-1 text-sm text-[var(--muted)] print:text-slate-600">
                 {report.businessSummary.segment} · {report.monthLabel}
               </p>
-              <span className="mt-4 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 print:border-emerald-700 print:bg-emerald-50 print:text-emerald-800">
+              <span className="mt-4 inline-flex rounded-full border border-[var(--success-border)] bg-[var(--success-surface)] px-3 py-1 text-xs font-extrabold text-[var(--success)] print:border-emerald-700 print:bg-emerald-50 print:text-emerald-800">
                 {report.reportCompleteness.label}
               </span>
             </div>
@@ -157,7 +144,7 @@ export default async function MonthlyReportPage({
               <PrintReportButton />
               <a
                 href={`/api/reports/monthly.csv?businessId=${encodeURIComponent(selectedBusinessId)}&month=${encodeURIComponent(report.reportMonth)}`}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-sm font-extrabold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)] hover:border-emerald-500/40"
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2.5 text-sm font-extrabold text-[var(--foreground)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--primary-soft)]"
               >
                 <Download className="h-4 w-4 text-[var(--primary)]" />
                 <span>Unduh CSV</span>
@@ -197,7 +184,7 @@ export default async function MonthlyReportPage({
               </label>
               <button
                 type="submit"
-                className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-white hover:opacity-90"
+                className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
               >
                 Tampilkan
               </button>
@@ -227,7 +214,7 @@ export default async function MonthlyReportPage({
             </label>
             <button
               type="submit"
-              className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-white hover:opacity-90"
+              className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
             >
               Tampilkan
             </button>
@@ -246,7 +233,7 @@ export default async function MonthlyReportPage({
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                 <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Total biaya</p>
-                <p className="mt-2 text-lg font-black text-emerald-600 dark:text-emerald-400 print:text-emerald-800">
+                <p className="mt-2 text-lg font-black text-[var(--primary)] print:text-emerald-800">
                   {report.monthSummary.totalCost}
                 </p>
               </div>
@@ -267,21 +254,21 @@ export default async function MonthlyReportPage({
           {/* Section 2 */}
           <section className="report-section space-y-4">
             <SectionTitle>Dampak ke Cash Flow</SectionTitle>
-            {reportRevenue ? (
+            {report.revenueSummary ? (
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Pendapatan bulan ini</p>
-                  <p className="mt-2 text-lg font-black text-emerald-600 dark:text-emerald-400 print:text-emerald-800">{rupiah.format(reportRevenue.amountRupiah)}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{reportRevenue.inputMode === 'EXACT' ? 'Angka tercatat' : 'Perkiraan pengguna'}</p>
+                  <p className="mt-2 text-lg font-black text-[var(--primary)] print:text-emerald-800">{report.revenueSummary.amountRupiahFormatted}</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{report.revenueSummary.inputModeLabel}</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Rasio listrik</p>
-                  <p className="mt-2 text-lg font-black">{reportRatio === null ? 'Belum tersedia' : `${decimal.format(reportRatio)}%`}</p>
+                  <p className="mt-2 text-lg font-black">{report.revenueSummary.ratioPercent === null ? 'Belum tersedia' : `${decimal.format(report.revenueSummary.ratioPercent)}%`}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">Porsi biaya listrik terhadap omzet</p>
                 </div>
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                   <p className="text-xs uppercase font-extrabold tracking-wide text-[var(--muted)]">Sisa setelah listrik</p>
-                  <p className="mt-2 text-lg font-black">{remainingRevenue === null ? 'Belum tersedia' : rupiah.format(remainingRevenue)}</p>
+                  <p className="mt-2 text-lg font-black">{report.revenueSummary.remainingRupiahFormatted ?? 'Belum tersedia'}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">Bukan laba bersih</p>
                 </div>
               </div>
@@ -318,7 +305,7 @@ export default async function MonthlyReportPage({
                         <td className="p-3.5 font-bold">
                           {bill.period}
                           {bill.isPrimary && (
-                            <span className="ml-2 inline-flex rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 print:bg-emerald-100 print:text-emerald-800">
+                            <span className="ml-2 inline-flex rounded-full bg-[var(--success-surface)] px-2.5 py-0.5 text-xs font-extrabold text-[var(--success)] print:bg-emerald-100 print:text-emerald-800">
                               Tagihan utama laporan
                             </span>
                           )}
@@ -340,7 +327,7 @@ export default async function MonthlyReportPage({
           <section className="report-section space-y-4">
             <SectionTitle>Perbandingan Tagihan Utama</SectionTitle>
             {report.billComparisonSummary ? (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+              <div className="rounded-2xl border border-[var(--success-border)] bg-[var(--success-surface)] p-5">
                 <h3 className="font-extrabold text-[var(--foreground)]">{report.billComparisonSummary.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
                   {report.billComparisonSummary.detail}
@@ -453,7 +440,7 @@ export default async function MonthlyReportPage({
             {report.outcomeSummaries.length > 0 ? (
               <div className="space-y-3">
                 {report.outcomeSummaries.map((outcome) => (
-                  <article key={`${outcome.baselinePeriod}-${outcome.followUpPeriod}`} className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+                  <article key={`${outcome.baselinePeriod}-${outcome.followUpPeriod}`} className="rounded-2xl border border-[var(--success-border)] bg-[var(--success-surface)] p-5">
                     <h3 className="font-extrabold text-[var(--foreground)]">{outcome.overallOutcomeLabel}</h3>
                     <p className="mt-1 text-xs text-[var(--muted)]">{outcome.safeExplanation}</p>
                     <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
@@ -473,8 +460,8 @@ export default async function MonthlyReportPage({
           </section>
 
           {/* Section 10 */}
-          <aside className="report-section rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-[var(--foreground)]" aria-label="Catatan laporan">
-            <h2 className="font-black text-amber-600 dark:text-amber-400">Catatan penting</h2>
+          <aside className="report-section rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-surface)] p-5 text-[var(--foreground)]" aria-label="Catatan laporan">
+            <h2 className="font-black text-[var(--warning)]">Catatan penting</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-xs leading-relaxed text-[var(--muted)]">
               {report.safeCaveats.map((caveat) => <li key={caveat}>{caveat}</li>)}
             </ul>

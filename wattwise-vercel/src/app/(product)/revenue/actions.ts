@@ -26,3 +26,14 @@ export async function saveRevenueAction(formData: FormData) {
   revalidatePath('/dashboard');
   redirect(`/revenue?businessId=${encodeURIComponent(businessId)}&saved=1`);
 }
+
+export async function deleteRevenueAction(formData: FormData) {
+  const userId = await requireUserId();
+  const revenueId = String(formData.get('revenueId') ?? '');
+  if (!revenueId) throw new Error('ID Pendapatan tidak valid');
+  const { deleteRevenueEntry } = await import('@/server/services/workspace.service');
+  const businessId = await deleteRevenueEntry(userId, revenueId);
+  revalidatePath('/revenue');
+  revalidatePath('/dashboard');
+  redirect(`/revenue?businessId=${encodeURIComponent(businessId)}&deleted=1`);
+}

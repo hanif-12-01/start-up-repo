@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import {
   appliance,
@@ -185,6 +185,19 @@ export async function addAppliance(
   await getDb().insert(appliance).values({ ...input, id: crypto.randomUUID() });
 }
 
+export async function deleteRevenueEntry(userId: string, revenueId: string) {
+  const db = getDb();
+  const [owned] = await db
+    .select({ id: revenueEntry.id, businessId: revenueEntry.businessId })
+    .from(revenueEntry)
+    .innerJoin(business, eq(revenueEntry.businessId, business.id))
+    .where(and(eq(revenueEntry.id, revenueId), eq(business.userId, userId)))
+    .limit(1);
+  if (!owned) throw new WorkspaceBusinessNotFoundError('Pendapatan tidak ditemukan atau bukan milik Anda.');
+  await db.delete(revenueEntry).where(eq(revenueEntry.id, revenueId));
+  return owned.businessId;
+}
+
 export async function applyApplianceTemplate(userId: string, businessId: string) {
   const context = await getWorkspaceContext(userId, businessId);
   const { getUserEntitlements } = await import('./entitlement.service');
@@ -192,12 +205,25 @@ export async function applyApplianceTemplate(userId: string, businessId: string)
   if (!entitlements.limits.applianceTemplates) throw new Error('Template peralatan tersedia pada Pro Trial atau paket berbayar.');
   const items = TEMPLATE_CATALOG[context.business.segment] ?? TEMPLATE_CATALOG.OTHER;
   const db = getDb();
-  for (const item of items) {
-    await db
-      .insert(appliance)
-      .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' })
-      .onConflictDoNothing();
-  }
+
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext('appliance_template_' || ${businessId}))`
+    );
+
+    const existingTemplates = await tx
+      .select({ name: appliance.name })
+      .from(appliance)
+      .where(and(eq(appliance.businessId, businessId), eq(appliance.dataSource, 'TEMPLATE')));
+
+    const existingNames = new Set(existingTemplates.map((e) => e.name));
+    for (const item of items) {
+      if (existingNames.has(item.name)) continue;
+      await tx
+        .insert(appliance)
+        .values({ ...item, id: crypto.randomUUID(), businessId, dataSource: 'TEMPLATE' });
+    }
+  });
 }
 
 export async function setApplianceActive(userId: string, applianceId: string, isActive: boolean) {
@@ -235,7 +261,7 @@ export async function getDecisionSupport(userId: string, requestedBusinessId?: s
     db.select().from(appliance).where(and(eq(appliance.businessId, context.business.id), eq(appliance.isActive, true))).orderBy(asc(appliance.name)),
   ]);
 
-  const anomalies = bills.slice(0, -1).map((current, index) => {
+  const dailyCostComparisons = bills.slice(0, -1).map((current, index) => {
     const previous = bills[index + 1];
     const currentDaily = Number(current.totalAmountRupiah) / daysInclusive(current.periodStart, current.periodEnd);
     const previousDaily = Number(previous.totalAmountRupiah) / daysInclusive(previous.periodStart, previous.periodEnd);
@@ -262,7 +288,7 @@ export async function getDecisionSupport(userId: string, requestedBusinessId?: s
     revenues,
     appliances,
     applianceEstimates,
-    anomalies,
+    dailyCostComparisons,
     latestBill,
     matchingRevenue,
     ratio,

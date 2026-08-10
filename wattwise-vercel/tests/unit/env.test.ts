@@ -39,12 +39,33 @@ describe('validateProductionEnv', () => {
     expect(() => validateProductionEnv(parsed)).not.toThrow();
   });
 
-  it('should throw in production when DATABASE_URL is absent', () => {
-    const parsed = parseEnv({
-      NODE_ENV: 'production',
-      BETTER_AUTH_SECRET: 'a-very-long-secret-that-is-at-least-32-chars-long',
-    });
-    expect(() => validateProductionEnv(parsed)).toThrow('DATABASE_URL: required in production');
+  it('should not throw in production BUILD phase even without DATABASE_URL and BETTER_AUTH_SECRET', () => {
+    const origPhase = process.env.NEXT_PHASE;
+    try {
+      process.env.NEXT_PHASE = 'phase-production-build';
+      const parsed = parseEnv({ NODE_ENV: 'production' });
+      expect(() => validateProductionEnv(parsed)).not.toThrow();
+    } finally {
+      if (origPhase !== undefined) {
+        process.env.NEXT_PHASE = origPhase;
+      } else {
+        delete process.env.NEXT_PHASE;
+      }
+    }
+  });
+
+  it('should throw in production RUNTIME when DATABASE_URL is absent', () => {
+    const origPhase = process.env.NEXT_PHASE;
+    try {
+      delete process.env.NEXT_PHASE;
+      const parsed = parseEnv({
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: 'a-very-long-secret-that-is-at-least-32-chars-long',
+      });
+      expect(() => validateProductionEnv(parsed)).toThrow('DATABASE_URL: required in production');
+    } finally {
+      if (origPhase !== undefined) process.env.NEXT_PHASE = origPhase;
+    }
   });
 
   it('should throw in production when BETTER_AUTH_SECRET is too short', () => {

@@ -60,7 +60,7 @@ export function BusinessForm() {
     <>
       {state?.error && (
         <Reveal direction="up" duration={0.2}>
-          <div role="alert" className="p-3 bg-red-950/80 border border-red-800 rounded-md text-sm text-red-200">
+          <div role="alert" className="p-3 bg-[var(--danger-surface)]/80 border border-[var(--danger-border)] rounded-md text-sm text-[var(--danger)]">
             {state.error}
           </div>
         </Reveal>
@@ -70,10 +70,10 @@ export function BusinessForm() {
         <Reveal direction="up" delay={0.05}>
           <div>
             <label htmlFor="name" className={labelClass}>
-              Nama Usaha <span className="text-red-400">*</span>
+              Nama Usaha <span className="text-[var(--danger)]">*</span>
             </label>
             <input id="name" name="name" type="text" required disabled={isPending} className={inputClass} placeholder="Contoh: Kos Pak Budi" />
-            {fieldErr('name') && <p className="text-xs text-red-400 mt-1">{fieldErr('name')}</p>}
+            {fieldErr('name') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('name')}</p>}
           </div>
         </Reveal>
 
@@ -93,7 +93,7 @@ export function BusinessForm() {
         <Reveal direction="up" delay={0.1}>
           <div>
             <label htmlFor="businessType" className={labelClass}>
-              Tipe Usaha <span className="text-red-400">*</span>
+              Tipe Usaha <span className="text-[var(--danger)]">*</span>
             </label>
             <select id="businessType" name="businessType" required disabled={isPending} className={inputClass} defaultValue="">
               <option value="" disabled>Pilih tipe usaha</option>
@@ -101,14 +101,14 @@ export function BusinessForm() {
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
-            {fieldErr('businessType') && <p className="text-xs text-red-400 mt-1">{fieldErr('businessType')}</p>}
+            {fieldErr('businessType') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('businessType')}</p>}
           </div>
         </Reveal>
 
         <Reveal direction="up" delay={0.15}>
           <div>
             <label htmlFor="segment" className={labelClass}>
-              Segmen <span className="text-red-400">*</span>
+              Segmen <span className="text-[var(--danger)]">*</span>
             </label>
             <select id="segment" name="segment" required disabled={isPending} className={inputClass} defaultValue="">
               <option value="" disabled>Pilih segmen</option>
@@ -116,14 +116,14 @@ export function BusinessForm() {
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-            {fieldErr('segment') && <p className="text-xs text-red-400 mt-1">{fieldErr('segment')}</p>}
+            {fieldErr('segment') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('segment')}</p>}
           </div>
         </Reveal>
 
         <Reveal direction="up" delay={0.2}>
           <div>
             <label htmlFor="electricalSystem" className={labelClass}>
-              Sistem Listrik <span className="text-red-400">*</span>
+              Sistem Listrik <span className="text-[var(--danger)]">*</span>
             </label>
             <select id="electricalSystem" name="electricalSystem" required disabled={isPending} className={inputClass} defaultValue="">
               <option value="" disabled>Pilih sistem listrik</option>
@@ -131,7 +131,7 @@ export function BusinessForm() {
                 <option key={e.value} value={e.value}>{e.label}</option>
               ))}
             </select>
-            {fieldErr('electricalSystem') && <p className="text-xs text-red-400 mt-1">{fieldErr('electricalSystem')}</p>}
+            {fieldErr('electricalSystem') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('electricalSystem')}</p>}
           </div>
         </Reveal>
 
@@ -141,7 +141,7 @@ export function BusinessForm() {
               Kota
             </label>
             <input id="city" name="city" type="text" disabled={isPending} className={inputClass} placeholder="Contoh: Bandung" />
-            {fieldErr('city') && <p className="text-xs text-red-400 mt-1">{fieldErr('city')}</p>}
+            {fieldErr('city') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('city')}</p>}
           </div>
         </Reveal>
 
@@ -151,7 +151,7 @@ export function BusinessForm() {
               Jumlah Kamar / Unit
             </label>
             <input id="roomCount" name="roomCount" type="number" min="0" max="10000" disabled={isPending} className={inputClass} placeholder="Opsional" />
-            {fieldErr('roomCount') && <p className="text-xs text-red-400 mt-1">{fieldErr('roomCount')}</p>}
+            {fieldErr('roomCount') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('roomCount')}</p>}
           </div>
         </Reveal>
 
@@ -160,7 +160,7 @@ export function BusinessForm() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50"
+              className="w-full py-2.5 bg-[var(--primary)] hover:bg-[var(--primary)] text-white font-semibold rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--surface)] disabled:opacity-50"
             >
               {isPending ? 'Menyimpan...' : 'Simpan Profil Usaha'}
             </button>

@@ -18,7 +18,7 @@ export function StartDiagnosticButton({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-wait disabled:opacity-60"
+        className="rounded-md bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] disabled:cursor-wait disabled:opacity-60"
       >
         {pending
           ? 'Membuka pemeriksaan…'
@@ -26,7 +26,7 @@ export function StartDiagnosticButton({
             ? 'Lanjutkan Cek Kenaikan'
             : 'Cek Kenaikan'}
       </button>
-      <p className="mt-2 text-sm text-rose-300" aria-live="polite">
+      <p className="mt-2 text-sm text-[var(--danger)]" aria-live="polite">
         {state?.error}
       </p>
     </form>

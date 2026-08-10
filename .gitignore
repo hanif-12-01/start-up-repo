@@ -61,6 +61,8 @@ ML/data/
 !docs/ml/benchmarks/*.csv
 !docs/ml/datasets/*.csv
 !docs/ml/qualification/*.csv
+!**/monthly.csv/
+!**/monthly.csv/**
 
 # typescript
 *.tsbuildinfo

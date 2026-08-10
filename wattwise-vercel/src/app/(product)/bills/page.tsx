@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import { Edit3, Plus } from 'lucide-react';
+import { DeleteBillButton } from './DeleteBillButton';
 import { notFound, redirect } from 'next/navigation';
-import { LogoutButton } from '@/components/LogoutButton';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
 import { getOptionalSession } from '@/server/auth/session';
@@ -10,6 +11,7 @@ import { getActiveBusinessById, getBusinessesByUser } from '@/server/services/bu
 import { getDiagnosticEntryState } from '@/server/services/diagnostic.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
+import { primaryButton, secondaryButton } from '@/components/product/WorkspaceUI';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,44 +95,44 @@ export default async function BillsPage({
     : null;
 
   return (
-    <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
-      <PageReveal className="mx-auto max-w-5xl space-y-8">
+    <main className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] sm:p-6 lg:p-10">
+      <PageReveal className="mx-auto max-w-7xl space-y-7">
         <Reveal direction="down">
-          <header className="flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <header className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">WattWise AI</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight">Tagihan listrik</h1>
-              <p className="mt-2 text-sm text-slate-400">Perbandingan berbasis data yang Anda masukkan.</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Data biaya listrik</p>
+              <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Tagihan listrik</h1>
+              <p className="mt-3 text-sm text-[var(--muted)]">Catat periode dan bandingkan biaya berdasarkan data yang Anda masukkan.</p>
             </div>
             <div className="flex items-center gap-3">
               <Link
                 href={`/bills/new${businessQuery}`}
-                className="rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                className={primaryButton}
               >
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 Tambah Tagihan
               </Link>
               <Link
                 href={`/dashboard${businessQuery}`}
-                className="rounded-md border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                className={secondaryButton}
               >
                 Dashboard
               </Link>
-              <LogoutButton />
             </div>
           </header>
         </Reveal>
 
         {!current && (
           <Reveal direction="up">
-            <section className="rounded-xl border border-emerald-800/70 bg-emerald-950/30 p-8 text-center">
-              <h2 className="text-xl font-semibold text-emerald-300">Belum ada tagihan</h2>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
+            <section className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-8 text-center">
+              <h2 className="text-xl font-extrabold">Belum ada tagihan</h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
                 Masukkan tagihan pertama untuk menyimpan baseline biaya. WattWise tidak akan menebak kWh,
                 tarif, atau penyebab perubahan.
               </p>
               <Link
                 href={`/bills/new${businessQuery}`}
-                className="mt-5 inline-block rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500"
+                className={`${primaryButton} mt-5`}
               >
                 Masukkan Tagihan Pertama
               </Link>
@@ -140,24 +142,24 @@ export default async function BillsPage({
 
         {current && (
           <Reveal direction="up">
-            <section className="grid gap-4 rounded-xl border border-slate-700 bg-slate-800 p-6 md:grid-cols-3">
+            <section className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 md:grid-cols-3">
               <div className="md:col-span-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Periode terbaru</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Periode terbaru</p>
                 <h2 className="mt-1 text-xl font-semibold">{periodLabel(current)}</h2>
-                <p className="mt-1 text-sm text-slate-400">{current.businessName}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{current.businessName}</p>
               </div>
-              <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                <p className="text-xs uppercase text-slate-500">Total tagihan</p>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                <p className="text-xs uppercase text-[var(--muted)]">Total tagihan</p>
                 <p className="mt-2 text-xl font-semibold">{rupiah.format(current.totalAmountRupiah)}</p>
               </div>
-              <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                <p className="text-xs uppercase text-slate-500">Pemakaian</p>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                <p className="text-xs uppercase text-[var(--muted)]">Pemakaian</p>
                 <p className="mt-2 text-xl font-semibold">
                   {current.kwh === null ? 'Tidak diisi' : `${formatDecimal(current.kwh)} kWh`}
                 </p>
               </div>
-              <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                <p className="text-xs uppercase text-slate-500">Tarif per kWh</p>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                <p className="text-xs uppercase text-[var(--muted)]">Tarif per kWh</p>
                 <p className="mt-2 text-xl font-semibold">
                   {current.tariffRupiahPerKwh === null
                     ? 'Tidak diisi'
@@ -170,9 +172,9 @@ export default async function BillsPage({
 
         {current && !previous && (
           <Reveal direction="up">
-            <section className="rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
-              <h2 className="font-semibold text-amber-300">Satu periode sudah tersimpan</h2>
-              <p className="mt-2 text-sm leading-relaxed text-amber-100/80">
+            <section className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-surface)] p-6">
+              <h2 className="font-semibold text-[var(--warning)]">Satu periode sudah tersimpan</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--warning)]">
                 Tambahkan periode berikutnya yang tidak bertumpang tindih agar perbandingan biaya
                 harian tersedia. Anda memerlukan satu periode pembanding sebelum dapat memilih Cek
                 Kenaikan.
@@ -183,38 +185,38 @@ export default async function BillsPage({
 
         {comparison && previous && (
           <Reveal direction="up">
-            <section className="space-y-5 rounded-xl border border-cyan-800/70 bg-cyan-950/20 p-6">
+            <section className="space-y-5 rounded-2xl border border-[var(--info-border)] bg-[var(--info-surface)] p-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Dibanding periode sebelumnya</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--info)]">Dibanding periode sebelumnya</p>
                 <h2 className="mt-1 text-xl font-semibold">{comparison.wording.title}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">{comparison.wording.detail}</p>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">{comparison.wording.detail}</p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-4">
-                  <p className="text-xs uppercase text-slate-500">Total biaya</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <p className="text-xs uppercase text-[var(--muted)]">Total biaya</p>
                   <p className="mt-2 text-lg font-semibold">{rupiah.format(comparison.totalCost.current)}</p>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--muted)]">
                     Sebelumnya {rupiah.format(comparison.totalCost.previous)} ·{' '}
                     {rupiahChangeLabel(comparison.totalCost.difference, comparison.totalCost.percentage, 'Rupiah')}
                   </p>
                 </div>
-                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-4">
-                  <p className="text-xs uppercase text-slate-500">Biaya per hari</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <p className="text-xs uppercase text-[var(--muted)]">Biaya per hari</p>
                   <p className="mt-2 text-lg font-semibold">{rupiah.format(comparison.dailyCost.current)}</p>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--muted)]">
                     Sebelumnya {rupiah.format(comparison.dailyCost.previous)} ·{' '}
                     {rupiahChangeLabel(comparison.dailyCost.difference, comparison.dailyCost.percentage, 'Rupiah/hari')}
                   </p>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-[var(--muted)]">
                     Dinormalisasi dari {comparison.currentDays} hari dan {comparison.previousDays} hari.
                   </p>
                 </div>
-                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-4">
-                  <p className="text-xs uppercase text-slate-500">Total kWh</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <p className="text-xs uppercase text-[var(--muted)]">Total kWh</p>
                   {comparison.totalKwh ? (
                     <>
                       <p className="mt-2 text-lg font-semibold">{formatDecimal(comparison.totalKwh.current)} kWh</p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-[var(--muted)]">
                         Sebelumnya {formatDecimal(comparison.totalKwh.previous)} kWh ·{' '}
                         {decimalChangeLabel(
                           comparison.totalKwh.difference,
@@ -224,32 +226,32 @@ export default async function BillsPage({
                       </p>
                     </>
                   ) : (
-                    <p className="mt-2 text-sm text-slate-300">
+                    <p className="mt-2 text-sm text-[var(--muted)]">
                       Tidak tersedia karena salah satu periode tidak memiliki data kWh.
                     </p>
                   )}
                 </div>
-                <div className="rounded-lg border border-slate-700 bg-slate-900/80 p-4">
-                  <p className="text-xs uppercase text-slate-500">kWh per hari</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <p className="text-xs uppercase text-[var(--muted)]">kWh per hari</p>
                   {comparison.dailyKwh ? (
                     <>
                       <p className="mt-2 text-lg font-semibold">{formatDecimal(comparison.dailyKwh.current)} kWh</p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-[var(--muted)]">
                         Sebelumnya {formatDecimal(comparison.dailyKwh.previous)} kWh ·{' '}
                         {decimalChangeLabel(comparison.dailyKwh.difference, comparison.dailyKwh.percentage, 'kWh/hari')}
                       </p>
                     </>
                   ) : (
-                    <p className="mt-2 text-sm text-slate-300">
+                    <p className="mt-2 text-sm text-[var(--muted)]">
                       Tidak tersedia karena salah satu periode tidak memiliki data kWh.
                     </p>
                   )}
                 </div>
               </div>
-              <p className="text-xs text-slate-500">Periode pembanding: {periodLabel(previous)}</p>
+              <p className="text-xs text-[var(--muted)]">Periode pembanding: {periodLabel(previous)}</p>
               {diagnosticEntry?.kind === 'READY' && (
-                <div className="border-t border-cyan-900/70 pt-1">
-                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300">
+                <div className="border-t border-[var(--info-border)] pt-1">
+                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
                     Jawab questionnaire singkat untuk menyimpan konteks perubahan pada periode terbaru.
                     Tahap ini tidak menetapkan diagnosis.
                   </p>
@@ -260,12 +262,12 @@ export default async function BillsPage({
                 </div>
               )}
               {diagnosticEntry?.kind === 'UNSUPPORTED_SEGMENT' && (
-                <p className="border-t border-cyan-900/70 pt-4 text-sm text-amber-300">
+                <p className="border-t border-[var(--info-border)] pt-4 text-sm text-[var(--warning)]">
                   {diagnosticEntry.message}
                 </p>
               )}
               {diagnosticEntry?.kind === 'DISABLED' && (
-                <p className="border-t border-cyan-900/70 pt-4 text-sm text-slate-400">
+                <p className="border-t border-[var(--info-border)] pt-4 text-sm text-[var(--muted)]">
                   {diagnosticEntry.message}
                 </p>
               )}
@@ -277,16 +279,29 @@ export default async function BillsPage({
           <Reveal direction="up">
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Riwayat tagihan</h2>
-              <div className="divide-y divide-slate-700 overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
+              <div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
                 {bills.map((bill) => (
                   <article key={bill.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium">{periodLabel(bill)}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-[var(--muted)]">
                         {bill.kwh === null ? 'kWh tidak diisi' : `${formatDecimal(bill.kwh)} kWh`}
                       </p>
                     </div>
-                    <p className="font-semibold text-emerald-300">{rupiah.format(bill.totalAmountRupiah)}</p>
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
+                      <p className="font-semibold text-[var(--primary)]">{rupiah.format(bill.totalAmountRupiah)}</p>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/bills/${bill.id}/edit`}
+                          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                          title="Edit tagihan"
+                          aria-label={`Edit tagihan ${periodLabel(bill)}`}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Link>
+                        <DeleteBillButton billId={bill.id} periodLabel={periodLabel(bill)} />
+                      </div>
+                    </div>
                   </article>
                 ))}
               </div>

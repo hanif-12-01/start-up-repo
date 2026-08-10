@@ -41,13 +41,13 @@ export function LogoutButton({
         disabled={loading}
         className={
           className ??
-          'px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-md text-sm font-medium text-slate-200 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50'
+          'rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:opacity-50'
         }
       >
         {loading ? 'Keluar...' : label}
       </button>
       {errorMessage && (
-        <p role="status" className="text-xs font-semibold text-rose-500">
+        <p role="status" className="text-xs font-semibold text-[var(--danger)]">
           {errorMessage}
         </p>
       )}

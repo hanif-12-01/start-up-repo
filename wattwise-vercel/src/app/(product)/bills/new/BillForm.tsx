@@ -6,10 +6,14 @@ import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 import { Reveal } from '@/components/motion/Reveal';
 import { createBillAction } from './actions';
 import { MeterOcrInput } from './MeterOcrInput';
-
-const inputClass =
-  'w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50';
-const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-300';
+import {
+  errorTextClass,
+  fieldClass,
+  helpTextClass,
+  labelClass,
+  primaryButton,
+  secondaryButton,
+} from '@/components/product/WorkspaceUI';
 
 export function BillForm({ businessId, previousMeterEnd }: { businessId: string; previousMeterEnd?: string | null }) {
   const [state, formAction, isPending] = useActionState(createBillAction, null);
@@ -20,7 +24,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
     <>
       {state?.error && (
         <Reveal direction="up" duration={0.2}>
-          <div role="alert" className="rounded-md border border-red-800 bg-red-950/80 p-3 text-sm text-red-200">
+          <div role="alert" className="rounded-xl border border-[var(--danger-border)] bg-[var(--danger-surface)] p-3 text-sm text-[var(--danger)]">
             {state.error}
           </div>
         </Reveal>
@@ -32,7 +36,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="periodStart" className={labelClass}>
-                Awal periode <span className="text-red-400">*</span>
+                Awal periode <span className="text-[var(--danger)]" aria-hidden="true">*</span>
               </label>
               <input
                 id="periodStart"
@@ -40,13 +44,13 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
                 type="date"
                 required
                 defaultValue={previousValue('periodStart')}
-                className={inputClass}
+                className={fieldClass}
               />
-              {fieldError('periodStart') && <p className="mt-1 text-xs text-red-400">{fieldError('periodStart')}</p>}
+              {fieldError('periodStart') && <p className={errorTextClass}>{fieldError('periodStart')}</p>}
             </div>
             <div>
               <label htmlFor="periodEnd" className={labelClass}>
-                Akhir periode <span className="text-red-400">*</span>
+                Akhir periode <span className="text-[var(--danger)]" aria-hidden="true">*</span>
               </label>
               <input
                 id="periodEnd"
@@ -54,18 +58,18 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
                 type="date"
                 required
                 defaultValue={previousValue('periodEnd')}
-                className={inputClass}
+                className={fieldClass}
               />
-              {fieldError('periodEnd') && <p className="mt-1 text-xs text-red-400">{fieldError('periodEnd')}</p>}
+              {fieldError('periodEnd') && <p className={errorTextClass}>{fieldError('periodEnd')}</p>}
             </div>
           </div>
-          <p className="-mt-3 text-xs text-slate-500">
+          <p className="-mt-3 text-xs text-[var(--muted)]">
             Tanggal awal dan akhir dihitung inklusif. Periode tidak boleh bertumpang tindih dengan tagihan lain.
           </p>
 
           <div>
             <label htmlFor="totalAmountRupiah" className={labelClass}>
-              Total tagihan (Rupiah) <span className="text-red-400">*</span>
+              Total tagihan (Rupiah) <span className="text-[var(--danger)]" aria-hidden="true">*</span>
             </label>
             <input
               id="totalAmountRupiah"
@@ -75,15 +79,15 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
               pattern="[0-9]*"
               required
               defaultValue={previousValue('totalAmountRupiah')}
-              className={inputClass}
+              className={fieldClass}
               placeholder="Contoh: 1250000"
               aria-describedby="amount-help"
             />
-            <p id="amount-help" className="mt-1 text-xs text-slate-500">
+            <p id="amount-help" className={helpTextClass}>
               Masukkan angka saja tanpa Rp, titik, atau koma.
             </p>
             {fieldError('totalAmountRupiah') && (
-              <p className="mt-1 text-xs text-red-400">{fieldError('totalAmountRupiah')}</p>
+              <p className={errorTextClass}>{fieldError('totalAmountRupiah')}</p>
             )}
           </div>
 
@@ -99,10 +103,10 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
                 min="0"
                 step="0.001"
                 defaultValue={previousValue('kwh')}
-                className={inputClass}
+                className={fieldClass}
                 placeholder="Opsional"
               />
-              {fieldError('kwh') && <p className="mt-1 text-xs text-red-400">{fieldError('kwh')}</p>}
+              {fieldError('kwh') && <p className={errorTextClass}>{fieldError('kwh')}</p>}
             </div>
             <div>
               <label htmlFor="tariffRupiahPerKwh" className={labelClass}>
@@ -115,25 +119,25 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
                 min="0"
                 step="0.01"
                 defaultValue={previousValue('tariffRupiahPerKwh')}
-                className={inputClass}
+                className={fieldClass}
                 placeholder="Opsional"
               />
               {fieldError('tariffRupiahPerKwh') && (
-                <p className="mt-1 text-xs text-red-400">{fieldError('tariffRupiahPerKwh')}</p>
+                <p className={errorTextClass}>{fieldError('tariffRupiahPerKwh')}</p>
               )}
             </div>
           </div>
-          <p className="-mt-3 text-xs text-slate-500">
+          <p className="-mt-3 text-xs text-[var(--muted)]">
             WattWise tidak menebak kWh atau tarif dari total tagihan. Kolom kosong akan tetap kosong.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div><label htmlFor="meterStart" className={labelClass}>Meter awal</label><input id="meterStart" name="meterStart" type="number" min="0" step="0.001" defaultValue={previousValue('meterStart') || previousMeterEnd || ''} className={inputClass} placeholder="Opsional"/>{fieldError('meterStart') && <p className="mt-1 text-xs text-red-400">{fieldError('meterStart')}</p>}</div>
-            <div><label htmlFor="meterEnd" className={labelClass}>Meter akhir</label><input id="meterEnd" name="meterEnd" type="number" min="0" step="0.001" defaultValue={previousValue('meterEnd')} className={inputClass} placeholder="Opsional"/>{fieldError('meterEnd') && <p className="mt-1 text-xs text-red-400">{fieldError('meterEnd')}</p>}</div>
+            <div><label htmlFor="meterStart" className={labelClass}>Meter awal</label><input id="meterStart" name="meterStart" type="number" min="0" step="0.001" defaultValue={previousValue('meterStart') || previousMeterEnd || ''} className={fieldClass} placeholder="Opsional"/>{fieldError('meterStart') && <p className={errorTextClass}>{fieldError('meterStart')}</p>}</div>
+            <div><label htmlFor="meterEnd" className={labelClass}>Meter akhir</label><input id="meterEnd" name="meterEnd" type="number" min="0" step="0.001" defaultValue={previousValue('meterEnd')} className={fieldClass} placeholder="Opsional"/>{fieldError('meterEnd') && <p className={errorTextClass}>{fieldError('meterEnd')}</p>}</div>
           </div>
-          <p className="-mt-3 text-xs text-slate-500">Jika kWh kosong dan kedua meter diisi, pemakaian dihitung dari meter akhir − meter awal. Meter awal diprefill dari catatan akhir terbaru jika tersedia.</p>
+          <p className="-mt-3 text-xs text-[var(--muted)]">Jika kWh kosong dan kedua meter diisi, pemakaian dihitung dari meter akhir - meter awal. Meter awal diisi dari catatan akhir terbaru jika tersedia.</p>
           <MeterOcrInput targetInputId="meterEnd" />
-          <div><label htmlFor="paymentMethod" className={labelClass}>Metode pembayaran</label><select id="paymentMethod" name="paymentMethod" defaultValue={previousValue('paymentMethod')} className={inputClass}><option value="">Tidak diisi</option><option value="POSTPAID">Pascabayar</option><option value="PREPAID">Token/prabayar</option><option value="OTHER">Lainnya</option></select></div>
+          <div><label htmlFor="paymentMethod" className={labelClass}>Metode pembayaran</label><select id="paymentMethod" name="paymentMethod" defaultValue={previousValue('paymentMethod')} className={fieldClass}><option value="">Tidak diisi</option><option value="POSTPAID">Pascabayar</option><option value="PREPAID">Token/prabayar</option><option value="OTHER">Lainnya</option></select></div>
 
           <div>
             <label htmlFor="notes" className={labelClass}>
@@ -145,17 +149,17 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
               rows={3}
               maxLength={1000}
               defaultValue={previousValue('notes')}
-              className={inputClass}
+              className={fieldClass}
               placeholder="Contoh: ada penyesuaian atau denda pada rincian tagihan"
             />
-            {fieldError('notes') && <p className="mt-1 text-xs text-red-400">{fieldError('notes')}</p>}
+            {fieldError('notes') && <p className={errorTextClass}>{fieldError('notes')}</p>}
           </div>
         </fieldset>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Link
             href={`/bills?businessId=${encodeURIComponent(businessId)}`}
-            className="rounded-md border border-slate-600 px-4 py-2.5 text-center text-sm font-semibold text-slate-200 hover:bg-slate-700"
+            className={secondaryButton}
           >
             Batal
           </Link>
@@ -163,7 +167,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
             <button
               type="submit"
               disabled={isPending}
-              className="w-full rounded-md bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 sm:w-auto"
+              className={`${primaryButton} w-full sm:w-auto`}
             >
               {isPending ? 'Menyimpan...' : 'Simpan Tagihan'}
             </button>

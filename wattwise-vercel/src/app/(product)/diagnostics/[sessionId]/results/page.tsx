@@ -45,12 +45,12 @@ export default async function DiagnosticResultsPage({
     }
     if (error instanceof DiagnosticsUnavailableError) {
       return (
-        <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
-          <section className="mx-auto max-w-2xl rounded-xl border border-amber-800/70 bg-amber-950/30 p-6">
-            <h1 className="text-xl font-semibold text-amber-300">
+        <main className="min-h-screen bg-[var(--surface)] p-5 text-[var(--foreground)] md:p-10">
+          <section className="mx-auto max-w-2xl rounded-xl border border-[var(--warning-border)]/70 bg-[var(--warning-surface)]/30 p-6">
+            <h1 className="text-xl font-semibold text-[var(--warning)]">
               Pemeriksaan belum tersedia
             </h1>
-            <p className="mt-2 text-sm text-amber-100/80">{error.message}</p>
+            <p className="mt-2 text-sm text-[var(--warning)]/80">{error.message}</p>
           </section>
         </main>
       );
@@ -71,23 +71,23 @@ export default async function DiagnosticResultsPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-900 p-5 text-slate-100 md:p-10">
+    <main className="min-h-screen bg-[var(--surface)] p-5 text-[var(--foreground)] md:p-10">
       <PageReveal className="mx-auto max-w-3xl space-y-6">
         <Reveal direction="down">
-          <header className="border-b border-slate-800 pb-5">
+          <header className="border-b border-[var(--border)] pb-5">
             <Link
               href="/bills"
-              className="text-sm font-semibold text-cyan-300 hover:text-cyan-200 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+              className="text-sm font-semibold text-[var(--info)] hover:text-[var(--info)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)]"
             >
               ← Kembali ke tagihan
             </Link>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
               Hasil pemeriksaan konteks · Kos
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">
               Bagian yang perlu dicek
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
               Urutan ini disusun dari jawaban dan data dua periode yang tersimpan. Daftar ini
               bukan diagnosis, bukan kepastian penyebab, dan tidak memberikan langkah tindakan.
             </p>
@@ -97,12 +97,12 @@ export default async function DiagnosticResultsPage({
         <Reveal direction="up">
           <section
             aria-label="Periode yang dibandingkan"
-            className="rounded-xl border border-slate-700 bg-slate-800 p-5"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-5"
           >
-            <p className="text-xs uppercase tracking-wide text-slate-500">
+            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
               Periode yang dibandingkan
             </p>
-            <p className="mt-2 text-sm text-slate-200">
+            <p className="mt-2 text-sm text-[var(--foreground)]">
               {formatDate(session.comparisonBill.periodStart)}–{formatDate(session.comparisonBill.periodEnd)}
               {' '}dibandingkan dengan{' '}
               {formatDate(session.currentBill.periodStart)}–{formatDate(session.currentBill.periodEnd)}
@@ -112,9 +112,9 @@ export default async function DiagnosticResultsPage({
 
         {session.status === 'CLOSED' && (
           <Reveal direction="up">
-            <section className="rounded-xl border border-emerald-800/70 bg-emerald-950/20 p-5">
-              <h2 className="font-semibold text-emerald-200">Sesi Cek Kenaikan Selesai</h2>
-              <p className="mt-2 text-sm text-emerald-100/70">
+            <section className="rounded-xl border border-[var(--border-strong)]/70 bg-[var(--primary-soft)]/20 p-5">
+              <h2 className="font-semibold text-[var(--primary)]">Sesi Cek Kenaikan Selesai</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]/70">
                 Hasil, pemeriksaan, dan Rencana Hemat tetap dapat dibaca. Sesi ini tidak menerima pemeriksaan baru.
               </p>
             </section>
@@ -123,11 +123,11 @@ export default async function DiagnosticResultsPage({
 
         {candidates.length === 0 ? (
           <Reveal direction="up">
-            <section className="rounded-xl border border-slate-700 bg-slate-800 p-6">
+            <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-6">
               <h2 className="text-xl font-semibold">
                 Belum ada bagian prioritas yang dapat ditentukan dari jawaban saat ini.
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
                 Hasil kosong tidak berarti tidak ada perubahan. Data dan jawaban yang tersedia
                 belum memberikan dukungan yang cukup untuk menampilkan kandidat.
               </p>
@@ -138,21 +138,21 @@ export default async function DiagnosticResultsPage({
             {candidates.map((candidate) => (
               <li key={candidate.id}>
                 <Reveal direction="up">
-                  <article className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400">
+                  <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-6">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--info)]">
                       Prioritas {candidate.rank}
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">{candidate.title}</h2>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                    <p className="mt-3 text-sm leading-relaxed text-[var(--foreground)]">
                       {candidate.explanation}
                     </p>
 
                     {candidate.supportingFactors.length > 0 && (
                       <section className="mt-5">
-                        <h3 className="text-sm font-semibold text-emerald-300">
+                        <h3 className="text-sm font-semibold text-[var(--primary)]">
                           Informasi yang mendukung pemeriksaan
                         </h3>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--foreground)]">
                           {candidate.supportingFactors.map((factor) => (
                             <li key={factor.factorCode}>{factor.displayLabel}</li>
                           ))}
@@ -162,10 +162,10 @@ export default async function DiagnosticResultsPage({
 
                     {candidate.contradictingFactors.length > 0 && (
                       <section className="mt-5">
-                        <h3 className="text-sm font-semibold text-amber-300">
+                        <h3 className="text-sm font-semibold text-[var(--warning)]">
                           Informasi yang membatasi
                         </h3>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--foreground)]">
                           {candidate.contradictingFactors.map((factor) => (
                             <li key={factor.factorCode}>{factor.displayLabel}</li>
                           ))}
@@ -174,11 +174,11 @@ export default async function DiagnosticResultsPage({
                     )}
 
                     {candidate.candidateType === 'DATA_QUALITY' ? (
-                      <section className="mt-5 rounded-lg border border-amber-800/70 bg-amber-950/30 p-4">
-                        <h3 className="text-sm font-semibold text-amber-200">
+                      <section className="mt-5 rounded-lg border border-[var(--warning-border)]/70 bg-[var(--warning-surface)]/30 p-4">
+                        <h3 className="text-sm font-semibold text-[var(--warning)]">
                           Tidak memerlukan pemeriksaan fisik
                         </h3>
-                        <p className="mt-2 text-sm leading-relaxed text-amber-100/70">
+                        <p className="mt-2 text-sm leading-relaxed text-[var(--warning)]/70">
                           Lengkapi informasi yang tersedia bila memungkinkan. Jangan
                           melakukan pemeriksaan perangkat atau instalasi untuk kandidat ini.
                         </p>
@@ -187,7 +187,7 @@ export default async function DiagnosticResultsPage({
                         const inspection = inspectionByCandidate.get(candidate.id);
                         if (!inspection?.inspectable) {
                           return (
-                            <p className="mt-5 text-sm text-slate-500">
+                            <p className="mt-5 text-sm text-[var(--muted)]">
                               Panduan observasi aman belum tersedia untuk bagian ini.
                             </p>
                           );
@@ -200,14 +200,14 @@ export default async function DiagnosticResultsPage({
                             <div className="mt-5">
                               <Link
                                 href={path}
-                                className="inline-flex rounded-md bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-400 focus:outline-2 focus:outline-offset-2 focus:outline-cyan-300"
+                                className="inline-flex rounded-md bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--focus-ring)]"
                               >
                                 {inspection.planStatus === 'COMPLETED'
                                   ? 'Lihat hasil pemeriksaan'
                                   : 'Lanjutkan pemeriksaan'}
                               </Link>
                               {inspection.resultCode && (
-                                <p className="mt-2 text-xs text-slate-400">
+                                <p className="mt-2 text-xs text-[var(--muted)]">
                                   Hasil tercatat:{' '}
                                   {INSPECTION_ANSWER_LABELS[inspection.resultCode]}
                                 </p>
@@ -216,7 +216,7 @@ export default async function DiagnosticResultsPage({
                           );
                         }
                         return session.status === 'CLOSED' ? (
-                          <p className="mt-5 text-sm text-slate-500">
+                          <p className="mt-5 text-sm text-[var(--muted)]">
                             Sesi sudah ditutup; pemeriksaan baru tidak dapat dimulai.
                           </p>
                         ) : (
@@ -231,9 +231,9 @@ export default async function DiagnosticResultsPage({
         )}
 
         <Reveal direction="up">
-          <section className="rounded-xl border border-cyan-900/80 bg-cyan-950/20 p-5">
-            <h2 className="font-semibold text-cyan-200">Batas hasil</h2>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-100/70">
+          <section className="rounded-xl border border-[var(--info-border)]/80 bg-[var(--info-surface)]/20 p-5">
+            <h2 className="font-semibold text-[var(--info)]">Batas hasil</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
               Hasil ini hanya membantu mempersempit bagian yang perlu diperiksa. Jangan
               menganggap urutan sebagai tingkat kepastian atau bukti penyebab pasti.
             </p>

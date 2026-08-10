@@ -50,6 +50,9 @@ async function main() {
     try {
       execSync(`docker network create ${NETWORK_NAME}`, { stdio: 'ignore' });
       startedNetwork = true;
+    } catch {}
+
+    try {
       execSync(
         `docker run -d --name ${CONTAINER_NAME} --network ${NETWORK_NAME} -p ${PORT}:5432 -e POSTGRES_USER=${USER} -e POSTGRES_PASSWORD=${PASS} -e POSTGRES_DB=${DB_NAME} postgres:16-alpine`,
         { stdio: 'inherit' }

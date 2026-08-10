@@ -1,12 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, ArrowRight } from 'lucide-react';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { PasswordInput } from '@/components/auth/PasswordInput';
+import {
+  fieldClass,
+  labelClass,
+  primaryButton,
+} from '@/components/product/WorkspaceUI';
 import { authClient } from '@/server/auth/client';
-import { PageReveal } from '@/components/motion/PageReveal';
-import { Reveal } from '@/components/motion/Reveal';
-import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,114 +20,94 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('Mohon isi alamat email dan kata sandi.');
+      setError('Email dan kata sandi belum lengkap. Isi keduanya, lalu coba masuk kembali.');
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await authClient.signIn.email({
+      const response = await authClient.signIn.email({
         email: email.trim().toLowerCase(),
         password,
       });
-
-      if (res.error) {
-        setError('Email atau kata sandi tidak cocok.');
-        setLoading(false);
-      } else {
-        router.push('/plan');
+      if (response.error) {
+        setError('Kami tidak dapat masuk karena email atau kata sandi tidak cocok. Periksa kembali penulisannya, lalu coba lagi.');
+        return;
       }
+      router.push('/dashboard');
+      router.refresh();
     } catch {
-      setError('Terjadi kesalahan pada sistem. Silakan coba lagi.');
+      setError('Layanan masuk tidak merespons. Periksa koneksi Anda, tunggu sebentar, lalu coba lagi.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-100 p-4">
-      <PageReveal className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-6">
-        <Reveal direction="down">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-emerald-400">WattWise AI</h1>
-            <p className="text-sm text-slate-400">Masuk ke akun WattWise Anda.</p>
+    <AuthShell
+      eyebrow="Selamat datang kembali"
+      title="Masuk ke ruang kerja Anda"
+      description="Lanjutkan pencatatan tagihan, tinjau perubahan biaya, dan lihat tindakan yang sedang berjalan."
+    >
+      {error && (
+        <div id="login-error" role="alert" className="mb-5 flex gap-3 rounded-xl border border-[var(--danger-border)] bg-[var(--danger-surface)] p-4 text-sm leading-6 text-[var(--danger)]">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={loading}>
+        <div>
+          <label htmlFor="email" className={labelClass}>Alamat email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            disabled={loading}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={fieldClass}
+            placeholder="nama@usaha.com"
+            autoComplete="email"
+            inputMode="email"
+            aria-describedby={error ? 'login-error' : undefined}
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="password" className={labelClass}>Kata sandi</label>
+            <span className="mb-1.5 text-xs text-[var(--muted)]">Minimal 8 karakter</span>
           </div>
-        </Reveal>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            disabled={loading}
+            placeholder="Masukkan kata sandi"
+            autoComplete="current-password"
+            describedBy={error ? 'login-error' : undefined}
+          />
+        </div>
 
-        {error && (
-          <Reveal direction="up" duration={0.2}>
-            <div role="alert" className="p-3 bg-red-950/80 border border-red-800 rounded-md text-sm text-red-200">
-              {error}
-            </div>
-          </Reveal>
-        )}
+        <button type="submit" disabled={loading} className={`${primaryButton} w-full`}>
+          {loading ? 'Memeriksa akun...' : 'Masuk ke WattWise'}
+          {!loading && <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />}
+        </button>
+      </form>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <Reveal direction="up" delay={0.05}>
-            <div>
-              <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Alamat Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                disabled={loading}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                placeholder="nama@perusahaan.com"
-              />
-            </div>
-          </Reveal>
-
-          <Reveal direction="up" delay={0.1}>
-            <div>
-              <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                Kata Sandi
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                disabled={loading}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                placeholder="Kata sandi Anda"
-              />
-            </div>
-          </Reveal>
-
-          <Reveal direction="up" delay={0.15}>
-            <InteractiveMotion>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50"
-              >
-                {loading ? 'Memproses...' : 'Masuk'}
-              </button>
-            </InteractiveMotion>
-          </Reveal>
-        </form>
-
-        <Reveal direction="up" delay={0.2}>
-          <div className="text-center text-xs text-slate-400">
-            Belum memiliki akun?{' '}
-            <Link href="/register" className="text-emerald-400 hover:underline font-medium">
-              Daftar di sini
-            </Link>
-          </div>
-        </Reveal>
-      </PageReveal>
-    </main>
+      <p className="mt-7 text-center text-sm text-[var(--muted)]">
+        Belum memiliki akun?{' '}
+        <Link href="/register" className="font-bold text-[var(--primary)] underline-offset-4 hover:underline">
+          Buat akun gratis
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

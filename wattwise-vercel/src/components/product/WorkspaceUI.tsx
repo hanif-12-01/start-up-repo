@@ -5,7 +5,7 @@ import { Info, ShieldAlert } from 'lucide-react';
 export function WorkspacePage({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-10 lg:py-9">
-      <div className="mx-auto max-w-7xl space-y-7">{children}</div>
+      <div className="mx-auto min-w-0 max-w-7xl space-y-7">{children}</div>
     </main>
   );
 }
@@ -71,10 +71,10 @@ export function Surface({
     variant === 'muted'
       ? 'bg-[var(--surface-muted)]'
       : variant === 'elevated'
-        ? 'bg-[var(--surface-elevated)] shadow-md'
-        : 'bg-[var(--surface)] shadow-sm';
+        ? 'bg-[var(--surface-elevated)] shadow-[var(--shadow-medium)]'
+        : 'bg-[var(--surface)]';
   return (
-    <section className={`rounded-3xl border border-[var(--border)] p-5 sm:p-6 ${bgClass} ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-[var(--border)] p-5 sm:p-6 ${bgClass} ${className}`}>
       {children}
     </section>
   );
@@ -114,9 +114,9 @@ export function MetricCard({
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                 trend.isNegative
-                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  ? 'bg-[var(--danger-surface)] text-[var(--danger)]'
                   : trend.isPositive
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-[var(--success-surface)] text-[var(--success)]'
                     : 'bg-[var(--surface-muted)] text-[var(--muted)]'
               }`}
             >
@@ -140,10 +140,10 @@ export function StatusBadge({
   size?: 'sm' | 'md';
 }) {
   const variantStyles = {
-    success: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-    warning: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
-    danger: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
-    info: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20',
+    success: 'bg-[var(--success-surface)] text-[var(--success)] border-[var(--success-border)]',
+    warning: 'bg-[var(--warning-surface)] text-[var(--warning)] border-[var(--warning-border)]',
+    danger: 'bg-[var(--danger-surface)] text-[var(--danger)] border-[var(--danger-border)]',
+    info: 'bg-[var(--info-surface)] text-[var(--info)] border-[var(--info-border)]',
     neutral: 'bg-[var(--surface-muted)] text-[var(--muted)] border-[var(--border)]',
     primary: 'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/20',
   };
@@ -162,30 +162,23 @@ export function EmptyState({
   href,
   action,
 }: {
-  icon: LucideIcon | React.ReactNode;
+  icon: LucideIcon;
   title: string;
   description: string;
   href?: string;
   action?: string;
 }) {
-  const renderIcon = () => {
-    if (!Icon) return null;
-    if (typeof Icon === 'function') {
-      const LucideComp = Icon as LucideIcon;
-      return <LucideComp className="h-8 w-8 text-[var(--muted)]" aria-hidden="true" />;
-    }
-    return <span aria-hidden="true" className="text-3xl">{Icon}</span>;
-  };
-
   return (
     <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] px-5 py-9 text-center">
-      <div className="flex justify-center">{renderIcon()}</div>
+      <div className="flex justify-center">
+        <Icon className="h-8 w-8 text-[var(--muted)]" aria-hidden="true" />
+      </div>
       <h2 className="mt-3 text-lg font-extrabold text-[var(--foreground)]">{title}</h2>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
       {href && action && (
         <Link
           href={href}
-          className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2"
+          className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
         >
           {action}
         </Link>
@@ -211,7 +204,7 @@ export function BusinessSelector({
         <select
           name="businessId"
           defaultValue={selectedId}
-          className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)]"
+          className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--control-background)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] focus:ring-2 focus:ring-[var(--focus-ring)]"
         >
           {businesses.map((item) => (
             <option key={item.id} value={item.id}>
@@ -222,7 +215,7 @@ export function BusinessSelector({
       </label>
       <button
         type="submit"
-        className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-white hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+        className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
       >
         Pilih
       </button>
@@ -242,7 +235,7 @@ export function DataNotice({
   const Icon = variant === 'warning' ? ShieldAlert : Info;
   const variantStyles =
     variant === 'warning'
-      ? 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+      ? 'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)]'
       : 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]';
 
   return (
@@ -257,7 +250,17 @@ export function DataNotice({
 }
 
 export const primaryButton =
-  'inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2';
+  'inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] focus:ring-offset-2 focus:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-55';
 
 export const secondaryButton =
-  'inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-bold text-[var(--foreground)] transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]';
+  'inline-flex items-center justify-center rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-55';
+
+export const fieldClass =
+  'w-full rounded-xl border border-[var(--border-strong)] bg-[var(--control-background)] px-3.5 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--focus-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]/25 disabled:cursor-not-allowed disabled:bg-[var(--control-disabled)] disabled:opacity-70';
+
+export const labelClass =
+  'mb-1.5 block text-xs font-bold text-[var(--foreground)]';
+
+export const helpTextClass = 'mt-1.5 text-xs leading-5 text-[var(--muted)]';
+
+export const errorTextClass = 'mt-1.5 text-xs font-semibold text-[var(--danger)]';
