@@ -134,7 +134,7 @@ INFERENCE_FILE_CHECKSUMS = {
     "contracts.py": "a6a11bde9f7d0fdb15a74269681054b1095f4b19ebf240872a55d6752dca63df",
     "execution.py": "df3c375afa4ec0a49f522027361436952dd715af5d83d654b8c13e1bb1e23274",
     "ingestion/common.py": (
-        "b08c11f1cf1522aee4e7f21d0a31b269dca85765245033750721c9b79ebe4c86"
+        "2f74f23cd527c7f19f454cd11f7669187fb3ac2e5500ac5b28a2eb398208454b"
     ),
     "models/base.py": "d425857a612261b1614604184114b2a4fb69abb362f2712136a7092e3168849c",
     "models/sklearn_models.py": (

@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from wattwise_benchmark.datasets.cohorts import (
+    COHORT_REGISTRY,
+    DatasetCohort,
+    compute_logical_dataset_sha256,
+    validate_cohort_assertions,
+)
 from wattwise_benchmark.datasets.registry import (
     DatasetEntry,
     get_dataset,
@@ -8,8 +14,12 @@ from wattwise_benchmark.datasets.registry import (
 )
 
 __all__ = [
+    "COHORT_REGISTRY",
+    "DatasetCohort",
     "DatasetEntry",
+    "compute_logical_dataset_sha256",
     "get_dataset",
     "list_datasets",
+    "validate_cohort_assertions",
     "validate_dataset_license",
 ]

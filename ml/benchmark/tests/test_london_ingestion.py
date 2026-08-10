@@ -14,6 +14,32 @@ def test_london_expected_observations_month_aware() -> None:
     assert expected_half_hourly_observations(2023, 1) == 1488  # 31 days
 
 
+def test_london_dst_transition_stability_utc_stable_48() -> None:
+    # March 2013 (UK Spring DST transition month) -> 31 days * 48 = 1488 half-hours
+    march_ts = pd.date_range("2013-03-01", periods=1488, freq="30min")
+    df_march = pd.DataFrame({
+        "LCLid": ["MAC000003"] * 1488,
+        "timestamp": march_ts,
+        "KWH/hh": [0.2] * 1488,
+    })
+    march_records = normalize_london_smartmeter(df_march)
+    assert len(march_records) == 1
+    assert march_records[0].expected_observation_count == 1488
+    assert march_records[0].observation_count == 1488
+
+    # October 2013 (UK Autumn DST transition month) -> 31 days * 48 = 1488 half-hours
+    oct_ts = pd.date_range("2013-10-01", periods=1488, freq="30min")
+    df_oct = pd.DataFrame({
+        "LCLid": ["MAC000003"] * 1488,
+        "timestamp": oct_ts,
+        "KWH/hh": [0.2] * 1488,
+    })
+    oct_records = normalize_london_smartmeter(df_oct)
+    assert len(oct_records) == 1
+    assert oct_records[0].expected_observation_count == 1488
+    assert oct_records[0].observation_count == 1488
+
+
 def test_normalize_london_smartmeter_empty_and_missing_cols() -> None:
     assert normalize_london_smartmeter(pd.DataFrame()) == []
 

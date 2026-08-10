@@ -29,7 +29,11 @@ def validate_monthly(panel: pd.DataFrame) -> None:
     months = pd.to_datetime(panel["period_month"], errors="coerce")
     if months.isna().any() or (months.dt.day != 1).any():
         raise ValueError("period_month must be a calendar month start")
-    comp_col = "monthly_completeness_ratio" if "monthly_completeness_ratio" in panel.columns else "coverage_ratio"
+    comp_col = (
+        "monthly_completeness_ratio"
+        if "monthly_completeness_ratio" in panel.columns
+        else "coverage_ratio"
+    )
     completeness = panel[comp_col].to_numpy(dtype=float)
     if ((completeness < 0) | (completeness > 1)).any():
         raise ValueError("monthly completeness must be within [0, 1]")
