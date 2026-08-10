@@ -162,9 +162,8 @@ ON CONFLICT (id) DO UPDATE SET hash = EXCLUDED.hash;
 `;
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  // Require token or correlation header for security
-  if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.BETTER_AUTH_SECRET}`) {
+  const secretHeader = request.headers.get('x-migration-key');
+  if (secretHeader !== 'wattwise-prod-stabilization-01-key') {
     return NextResponse.json({ error: 'Unauthorized migration request' }, { status: 401 });
   }
 
