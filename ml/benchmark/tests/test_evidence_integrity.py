@@ -107,6 +107,20 @@ def _setup_mock_data_root(root: Path) -> None:
     normalize_all(root, pkg_root, completeness_threshold=0.01, force=True)
 
 
+def test_evidence_generation_fails_when_env_var_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("WATTWISE_ML_DATA_ROOT", raising=False)
+    with pytest.raises(RuntimeError, match="WATTWISE_ML_DATA_ROOT"):
+        build_dataset_release_evidence(data_root=None)
+
+
+def test_release_generator_is_read_only_and_never_deletes() -> None:
+    manifest_script = Path(__file__).resolve().parent.parent.parent.parent / "scripts" / "build_dataset_release_manifest.py"
+    code = manifest_script.read_text(encoding="utf-8")
+    assert "shutil.rmtree" not in code
+    assert "unlink" not in code
+    assert "rmdir" not in code
+
+
 def test_evidence_generation_fails_closed_when_data_root_missing(tmp_path: Path) -> None:
     non_existent = tmp_path / "non_existent_data_root"
     with pytest.raises(FileNotFoundError):

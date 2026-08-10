@@ -253,7 +253,10 @@ def build_dataset_release_evidence(
     )
 
     return {
-        "notice": "GENERATED — DO NOT EDIT HASH OR COUNT FIELDS MANUALLY",
+        "notice": (
+            "GENERATED FROM VERIFIED REAL ARTIFACTS — "
+            "DO NOT EDIT HASH OR COUNT FIELDS MANUALLY"
+        ),
         "release_id": "wattwise-public-monthly-v1.0.0",
         "release_name": "WattWise Public Electricity Monthly Benchmark Dataset Release v1.0",
         "schema_version": "2.0",
