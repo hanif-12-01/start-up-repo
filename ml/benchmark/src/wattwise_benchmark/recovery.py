@@ -737,16 +737,20 @@ def validate_predictions(predictions: pd.DataFrame) -> dict[str, Any]:
     duplicate_key = ["example_id", "track", "model_key", "random_seed"]
     if predictions.duplicated(duplicate_key).any():
         raise RecoveryValidationError("prediction unit keys are duplicated")
+    r_successful: int = int(predictions["status"].eq("SUCCESS").sum())
+    r_skipped: int = int(predictions["status"].eq("SKIPPED").sum())
+    r_failed: int = int(predictions["status"].eq("FAILED").sum())
+    r_total: int = len(predictions)
     reconciliation = {
-        "total": len(predictions),
-        "successful": int(predictions["status"].eq("SUCCESS").sum()),
-        "skipped": int(predictions["status"].eq("SKIPPED").sum()),
-        "failed": int(predictions["status"].eq("FAILED").sum()),
+        "total": r_total,
+        "successful": r_successful,
+        "skipped": r_skipped,
+        "failed": r_failed,
         "model_rows": model_rows,
         "deepar": deepar_counts,
     }
-    total_calc: int = int(reconciliation["successful"]) + int(reconciliation["skipped"]) + int(reconciliation["failed"])
-    if int(reconciliation["total"]) != total_calc:
+    total_calc: int = r_successful + r_skipped + r_failed
+    if r_total != total_calc:
         raise RecoveryValidationError("overall accounting does not reconcile")
     return reconciliation
 

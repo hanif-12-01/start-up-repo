@@ -1,9 +1,12 @@
 {
   "experiment_id": "AI-01-REBENCHMARK",
   "timestamp_utc": "2026-08-11T18:38:36Z",
-  "git_sha": "2eb1a9171464ba777a1154b2695f90e46a0c7f29",
+  "benchmark_starting_sha": "2eb1a9171464ba777a1154b2695f90e46a0c7f29",
   "data_root": "D:\\WattWiseMLData",
-  "precheck_fingerprint": "2eb1a9171464ba777a1154b2695f90e46a0c7f29",
+  "data_mega_audit_fingerprint": "451873c1c29c85a8ace7fb5b14ec3f7115e5234fd6d9411753dbaa2a0540e9ab",
+  "data_mega_audit_fingerprint_source": "D:\\WattWiseMLData\\manifests\\ai-data-mega-audit-01.json",
+  "training_precheck_fingerprint": "2557ef625c3f270f2ca1759a553e9c8ac5d2603283e7b85e2447528e8f00ed8d",
+  "training_precheck_fingerprint_source": "D:\\WattWiseMLData\\manifests\\ai-data-mega-audit-01-precheck.json",
   "datasets": {
     "bdg2": {
       "classification": "MEASURED",
@@ -96,6 +99,8 @@
     "ml_pytest": "PASS",
     "ruff": "PASS",
     "mypy": "PASS",
+    "mypy_command": "python -m mypy ml/benchmark/src",
+    "mypy_ignore_missing_imports": false,
     "leakage": "PASS",
     "reproducibility": "PASS",
     "app_unit": "PASS",

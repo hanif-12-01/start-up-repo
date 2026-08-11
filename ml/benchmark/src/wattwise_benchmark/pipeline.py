@@ -87,6 +87,7 @@ def load_normalized(
     selected_dataset_ids: tuple[str, ...] | list[str] | None = None,
 ) -> dict[str, Any]:
     manifest_path = data_root / "manifests" / "normalized-data-manifest.json"
+    payload: dict[str, Any]
     if not manifest_path.is_file():
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         ds_map: dict[str, Any] = {}
