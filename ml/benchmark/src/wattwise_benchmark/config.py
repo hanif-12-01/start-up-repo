@@ -22,6 +22,7 @@ class BenchmarkConfig:
     neural_max_steps_full: int = 100
     neural_context_months: int = 6
     failure_rate_gate: float = 0.05
+    datasets: tuple[str, ...] = ("bdg2", "london_smartmeter", "nrel_comstock")
 
     def validate(self) -> None:
         if self.stage not in {"smoke", "full"}:
@@ -30,6 +31,12 @@ class BenchmarkConfig:
             raise ValueError("completeness_threshold must be in (0, 1]")
         if not self.model_seeds:
             raise ValueError("at least one random seed is required")
+        if not self.datasets:
+            raise ValueError("at least one dataset is required")
+        allowed = {"bdg2", "london_smartmeter", "nrel_comstock"}
+        invalid = set(self.datasets) - allowed
+        if invalid:
+            raise ValueError(f"Invalid datasets in config: {invalid}")
 
     def fingerprint(self) -> str:
         payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))

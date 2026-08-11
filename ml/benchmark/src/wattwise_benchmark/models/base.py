@@ -41,7 +41,7 @@ class ForecastAdapter(Protocol):
     def save(self, path: Path) -> str: ...
 
 
-def eligibility_reason(model_key: str, row: pd.Series) -> str | None:
+def eligibility_reason(model_key: str, row: Any) -> str | None:
     history = int(row["history_month_count"])
     profile = bool(row["profile_eligible"])
     if model_key == "deterministic_baseline":

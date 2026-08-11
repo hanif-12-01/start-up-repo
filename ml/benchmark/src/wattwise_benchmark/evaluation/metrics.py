@@ -99,6 +99,14 @@ def summarize_group(group: pd.DataFrame) -> dict[str, Any]:
         where=smape_denominator > 0,
     )
     mase = _mase_values(scored, absolute)
+    nonzero_mask = actual > 0
+    nonzero_actual = actual[nonzero_mask]
+    nonzero_predicted = predicted[nonzero_mask]
+    mape_nonzero = (
+        float(np.mean(np.abs((nonzero_predicted - nonzero_actual) / nonzero_actual)))
+        if nonzero_actual.size > 0
+        else np.nan
+    )
     summary.update(
         {
             "mae": float(np.mean(absolute)),
@@ -106,6 +114,9 @@ def summarize_group(group: pd.DataFrame) -> dict[str, Any]:
             "wmape": float(absolute.sum() / denominator) if denominator else np.nan,
             "smape": float(np.mean(smape_terms)),
             "mase": float(np.nanmean(mase)) if np.isfinite(mase).any() else np.nan,
+            "mape_nonzero": mape_nonzero,
+            "mape_nonzero_count": int(nonzero_actual.size),
+            "mape_zero_excluded_count": int(actual.size - nonzero_actual.size),
             "median_absolute_error": float(np.median(absolute)),
             "p90_absolute_error": float(np.quantile(absolute, 0.90)),
             "mean_signed_error": float(np.mean(signed)),
@@ -172,128 +183,158 @@ def aggregate_metrics(
 def paired_mae_intervals(
     predictions: pd.DataFrame,
     baseline: str = "deterministic_baseline",
-    samples: int = 500,
+    samples: int = 1000,
     seed: int = 20260715,
     minimum_count: int = 30,
 ) -> pd.DataFrame:
     frame = with_reporting_phase(predictions)
+    dataset_sources = sorted(frame["dataset_source"].unique())
     models = sorted(frame.loc[~frame["model_key"].eq(baseline), "model_key"].unique())
     tracks = sorted(frame["track"].unique())
     rng = np.random.default_rng(seed)
     rows: list[dict[str, Any]] = []
-    for model_key in models:
-        model_seeds = sorted(frame.loc[frame["model_key"].eq(model_key), "random_seed"].unique())
-        for track in tracks:
-            for phase in ReportingPhase:
-                phase_mask = frame["track"].eq(track) & frame["reporting_phase"].eq(phase.value)
-                baseline_scope = frame.loc[phase_mask & frame["model_key"].eq(baseline)]
-                baseline_success = baseline_scope.loc[baseline_scope["status"].eq("SUCCESS")]
-                for model_seed in model_seeds:
-                    model_scope = frame.loc[
-                        phase_mask
-                        & frame["model_key"].eq(model_key)
-                        & frame["random_seed"].eq(model_seed)
-                    ]
-                    model_success = model_scope.loc[model_scope["status"].eq("SUCCESS")]
-                    record: dict[str, Any] = {
-                        "model_key": str(model_key),
-                        "model_random_seed": int(model_seed),
-                        "baseline_model_key": baseline,
-                        "baseline_random_seed": (
-                            int(baseline_scope["random_seed"].iloc[0])
-                            if not baseline_scope.empty
-                            else None
-                        ),
-                        "track": str(track),
-                        "reporting_phase": phase.value,
-                        "model_success_observation_count": len(model_success),
-                        "baseline_success_observation_count": len(baseline_success),
-                        "paired_observation_count": 0,
-                        "paired_count": 0,
-                        "mae_difference": np.nan,
-                        "ci_95_lower": np.nan,
-                        "ci_95_upper": np.nan,
-                        "comparison_status": "NO_COMMON_COHORT",
-                        "comparison_reason": None,
-                        "significance_status": "NOT_TESTED",
-                        "comparison_method": "paired_observation_bootstrap_mean_absolute_error",
-                        "bootstrap_samples": samples,
-                        "minimum_paired_observations": minimum_count,
-                    }
-                    if model_success.duplicated(OBSERVATION_KEY).any():
-                        record["comparison_status"] = "INVALID_DUPLICATE_KEYS"
-                        record["comparison_reason"] = "model success rows duplicate the stable key"
-                        rows.append(record)
-                        continue
-                    if baseline_success.duplicated(OBSERVATION_KEY).any():
-                        record["comparison_status"] = "INVALID_DUPLICATE_KEYS"
-                        record["comparison_reason"] = (
-                            "baseline success rows duplicate the stable key"
-                        )
-                        rows.append(record)
-                        continue
-                    model_columns = [*OBSERVATION_KEY, "target_usage_kwh", "prediction_kwh"]
-                    baseline_columns = [*OBSERVATION_KEY, "target_usage_kwh", "prediction_kwh"]
-                    paired = model_success[model_columns].merge(
-                        baseline_success[baseline_columns].rename(
-                            columns={
-                                "target_usage_kwh": "baseline_target_usage_kwh",
-                                "prediction_kwh": "baseline_prediction",
-                            }
-                        ),
-                        on=OBSERVATION_KEY,
-                        how="inner",
-                        validate="one_to_one",
+
+    for dataset_source in dataset_sources:
+        for model_key in models:
+            model_seeds = sorted(
+                frame.loc[
+                    frame["model_key"].eq(model_key) & frame["dataset_source"].eq(dataset_source),
+                    "random_seed",
+                ].unique()
+            )
+            for track in tracks:
+                for phase in ReportingPhase:
+                    phase_mask = (
+                        frame["dataset_source"].eq(dataset_source)
+                        & frame["track"].eq(track)
+                        & frame["reporting_phase"].eq(phase.value)
                     )
-                    record["paired_observation_count"] = len(paired)
-                    record["paired_count"] = len(paired)
-                    if paired.empty:
-                        if baseline_success.empty and model_success.empty:
-                            reason = "model and baseline have no successful predictions"
-                        elif baseline_success.empty:
-                            reason = "baseline has no successful predictions"
-                        elif model_success.empty:
-                            reason = "model has no successful predictions"
+                    baseline_scope = frame.loc[phase_mask & frame["model_key"].eq(baseline)]
+                    baseline_success = baseline_scope.loc[baseline_scope["status"].eq("SUCCESS")]
+                    for model_seed in model_seeds:
+                        model_scope = frame.loc[
+                            phase_mask
+                            & frame["model_key"].eq(model_key)
+                            & frame["random_seed"].eq(model_seed)
+                        ]
+                        model_success = model_scope.loc[model_scope["status"].eq("SUCCESS")]
+                        record: dict[str, Any] = {
+                            "dataset_source": str(dataset_source),
+                            "model_key": str(model_key),
+                            "model_random_seed": int(model_seed),
+                            "baseline_model_key": baseline,
+                            "baseline_random_seed": (
+                                int(baseline_scope["random_seed"].iloc[0])
+                                if not baseline_scope.empty
+                                else None
+                            ),
+                            "track": str(track),
+                            "reporting_phase": phase.value,
+                            "model_success_observation_count": len(model_success),
+                            "baseline_success_observation_count": len(baseline_success),
+                            "paired_observation_count": 0,
+                            "paired_count": 0,
+                            "model_mae": np.nan,
+                            "baseline_mae": np.nan,
+                            "mae_difference": np.nan,
+                            "relative_mae_improvement_pct": np.nan,
+                            "ci_95_lower": np.nan,
+                            "ci_95_upper": np.nan,
+                            "comparison_status": "NO_COMMON_COHORT",
+                            "comparison_reason": None,
+                            "significance_status": "NOT_TESTED",
+                            "comparison_method": "paired_observation_bootstrap_mean_absolute_error",
+                            "bootstrap_samples": samples,
+                            "minimum_paired_observations": minimum_count,
+                        }
+                        if model_success.duplicated(OBSERVATION_KEY).any():
+                            record["comparison_status"] = "INVALID_DUPLICATE_KEYS"
+                            record["comparison_reason"] = (
+                                "model success rows duplicate the stable key"
+                            )
+                            rows.append(record)
+                            continue
+                        if baseline_success.duplicated(OBSERVATION_KEY).any():
+                            record["comparison_status"] = "INVALID_DUPLICATE_KEYS"
+                            record["comparison_reason"] = (
+                                "baseline success rows duplicate the stable key"
+                            )
+                            rows.append(record)
+                            continue
+                        model_columns = [*OBSERVATION_KEY, "target_usage_kwh", "prediction_kwh"]
+                        baseline_columns = [*OBSERVATION_KEY, "target_usage_kwh", "prediction_kwh"]
+                        paired = model_success[model_columns].merge(
+                            baseline_success[baseline_columns].rename(
+                                columns={
+                                    "target_usage_kwh": "baseline_target_usage_kwh",
+                                    "prediction_kwh": "baseline_prediction",
+                                }
+                            ),
+                            on=OBSERVATION_KEY,
+                            how="inner",
+                            validate="one_to_one",
+                        )
+                        record["paired_observation_count"] = len(paired)
+                        record["paired_count"] = len(paired)
+                        if paired.empty:
+                            if baseline_success.empty and model_success.empty:
+                                reason = "model and baseline have no successful predictions"
+                            elif baseline_success.empty:
+                                reason = "baseline has no successful predictions"
+                            elif model_success.empty:
+                                reason = "model has no successful predictions"
+                            else:
+                                reason = "successful predictions share no stable observation keys"
+                            record["comparison_reason"] = reason
+                            rows.append(record)
+                            continue
+                        actual = paired["target_usage_kwh"].to_numpy(dtype=float)
+                        baseline_actual = paired["baseline_target_usage_kwh"].to_numpy(dtype=float)
+                        if not np.array_equal(actual, baseline_actual):
+                            record["comparison_status"] = "INVALID_TARGET_MISMATCH"
+                            record["comparison_reason"] = (
+                                "ground-truth targets differ on matched keys"
+                            )
+                            rows.append(record)
+                            continue
+                        pred_kwh = paired["prediction_kwh"].to_numpy(dtype=float)
+                        model_error = np.abs(pred_kwh - actual)
+                        baseline_error = np.abs(
+                            paired["baseline_prediction"].to_numpy(dtype=float) - actual
+                        )
+                        delta = model_error - baseline_error
+                        model_mae = float(np.mean(model_error))
+                        baseline_mae = float(np.mean(baseline_error))
+                        record["model_mae"] = model_mae
+                        record["baseline_mae"] = baseline_mae
+                        record["mae_difference"] = float(np.mean(delta))
+                        if baseline_mae > 0:
+                            record["relative_mae_improvement_pct"] = float(
+                                (baseline_mae - model_mae) / baseline_mae * 100.0
+                            )
+
+                        if len(paired) < minimum_count:
+                            record["comparison_status"] = "INSUFFICIENT_SAMPLE"
+                            record["comparison_reason"] = (
+                                f"paired count {len(paired)} is below minimum {minimum_count}"
+                            )
+                            rows.append(record)
+                            continue
+                        n_paired = len(paired)
+                        sample_size = min(n_paired, 5000)
+                        draws = rng.integers(0, n_paired, size=(samples, sample_size))
+                        differences = np.mean(delta[draws], axis=1)
+                        lower = float(np.quantile(differences, 0.025))
+                        upper = float(np.quantile(differences, 0.975))
+                        record["ci_95_lower"] = lower
+                        record["ci_95_upper"] = upper
+                        record["comparison_status"] = "OK"
+                        record["comparison_reason"] = "paired cohort meets minimum sample count"
+                        if upper < 0:
+                            record["significance_status"] = "MODEL_LOWER_MAE"
+                        elif lower > 0:
+                            record["significance_status"] = "BASELINE_LOWER_MAE"
                         else:
-                            reason = "successful predictions share no stable observation keys"
-                        record["comparison_reason"] = reason
+                            record["significance_status"] = "NO_DETECTED_DIFFERENCE"
                         rows.append(record)
-                        continue
-                    actual = paired["target_usage_kwh"].to_numpy(dtype=float)
-                    baseline_actual = paired["baseline_target_usage_kwh"].to_numpy(dtype=float)
-                    if not np.array_equal(actual, baseline_actual):
-                        record["comparison_status"] = "INVALID_TARGET_MISMATCH"
-                        record["comparison_reason"] = "ground-truth targets differ on matched keys"
-                        rows.append(record)
-                        continue
-                    model_error = np.abs(paired["prediction_kwh"].to_numpy(dtype=float) - actual)
-                    baseline_error = np.abs(
-                        paired["baseline_prediction"].to_numpy(dtype=float) - actual
-                    )
-                    delta = model_error - baseline_error
-                    record["mae_difference"] = float(np.mean(delta))
-                    if len(paired) < minimum_count:
-                        record["comparison_status"] = "INSUFFICIENT_SAMPLE"
-                        record["comparison_reason"] = (
-                            f"paired count {len(paired)} is below minimum {minimum_count}"
-                        )
-                        rows.append(record)
-                        continue
-                    differences = np.empty(samples, dtype=float)
-                    for index in range(samples):
-                        draw = rng.integers(0, len(paired), size=len(paired))
-                        differences[index] = float(np.mean(delta[draw]))
-                    lower = float(np.quantile(differences, 0.025))
-                    upper = float(np.quantile(differences, 0.975))
-                    record["ci_95_lower"] = lower
-                    record["ci_95_upper"] = upper
-                    record["comparison_status"] = "OK"
-                    record["comparison_reason"] = "paired cohort meets minimum sample count"
-                    if upper < 0:
-                        record["significance_status"] = "MODEL_LOWER_MAE"
-                    elif lower > 0:
-                        record["significance_status"] = "BASELINE_LOWER_MAE"
-                    else:
-                        record["significance_status"] = "NO_DETECTED_DIFFERENCE"
-                    rows.append(record)
     return pd.DataFrame(rows)

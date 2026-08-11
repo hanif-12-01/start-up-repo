@@ -85,7 +85,7 @@ def _smoke_panel(panel: pd.DataFrame, config: BenchmarkConfig) -> pd.DataFrame:
         eligible = (
             group.groupby("entity_id")["consecutive_month_index"]
             .max()
-            .loc[lambda value: value >= 13]
+            .loc[lambda value: value >= 5]
             .index.astype(str)
             .tolist()
         )
@@ -141,7 +141,7 @@ def _make_adapter(
 
 
 def _result_record(
-    row: pd.Series,
+    row: Any,
     *,
     model_key: str,
     model_version: str,
@@ -207,7 +207,7 @@ def _run_deterministic(test: pd.DataFrame) -> pd.DataFrame:
         0,
         {"parity": "Laravel PredictionService"},
     )
-    for _, row in test.iterrows():
+    for row in test.to_dict("records"):
         reason = eligibility_reason("deterministic_baseline", row)
         started = time.perf_counter()
         prediction: float | None = None
@@ -300,7 +300,7 @@ def _run_adapter(
         failure = f"{type(error).__name__}: {error}"[:500]
 
     rows: list[dict[str, Any]] = []
-    for _, row in test.iterrows():
+    for row in test.to_dict("records"):
         reason = eligibility_reason(model_key, row)
         value = predictions.get(str(row["example_id"]))
         row_failure = failure
@@ -364,8 +364,36 @@ def run_benchmark(
     print(f"[benchmark] stage={config.stage} run_dir={run_dir}")
     print(f"[benchmark] base_sha={base_sha} head_sha={head_sha}")
 
-    normalized = load_normalized(data_root)
+    manifest_path = run_dir / "run-manifest.json"
+    predictions_path = run_dir / "predictions.parquet"
+    metrics_path = run_dir / "metrics.parquet"
+    if manifest_path.is_file() and predictions_path.is_file() and metrics_path.is_file():
+        print(f"[benchmark] run already complete in {run_dir}, loading cached outputs.")
+        run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        metrics = pd.read_parquet(metrics_path)
+        predictions = pd.read_parquet(predictions_path)
+        report_outputs, selection = write_reporting_outputs(metrics, predictions, run_dir)
+        return {
+            "run_dir": str(run_dir),
+            "run_manifest": run_manifest,
+            "metrics": metrics,
+            "predictions_path": str(predictions_path),
+            "selection": selection,
+            "quality_audit": {},
+            "leaderboards": {
+                "model_leaderboard": report_outputs["model_leaderboard"],
+                "phase_leaderboard": report_outputs["phase_leaderboard"],
+            },
+            "eligibility": pd.read_csv(report_outputs["model_eligibility"]),
+            "paired_comparisons": pd.read_csv(report_outputs["paired_comparisons"]),
+        }
+
+    normalized = load_normalized(data_root, selected_dataset_ids=config.datasets)
     combined = normalized["combined_panel"]
+    assert set(combined["dataset_source"].unique()) == set(config.datasets), (
+        f"Combined panel sources {set(combined['dataset_source'].unique())} "
+        f"do not match expected selected sources {set(config.datasets)}"
+    )
     quality = normalized["quality_audit"]
     print(
         f"[benchmark] combined panel: {len(combined)} entity-months, "
@@ -426,7 +454,7 @@ def run_benchmark(
                 except Exception as error:
                     print(f"[benchmark]   {model_key}/{seed} CRASHED: {error}")
                     crash_rows: list[dict[str, Any]] = []
-                    for _, row in test.iterrows():
+                    for row in test.to_dict("records"):
                         reason = eligibility_reason(model_key, row)
                         crash_rows.append(
                             _result_record(
@@ -480,7 +508,7 @@ def run_benchmark(
     norm_manifest = normalized["manifest"]
     source_sha = source_tree_fingerprint(package_root)
 
-    run_manifest: dict[str, Any] = {
+    run_manifest_data: dict[str, Any] = {
         "schema_version": "1.0",
         "run_id": run_dir.name,
         "stage": config.stage,

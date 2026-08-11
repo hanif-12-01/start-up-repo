@@ -30,6 +30,9 @@ def main() -> None:
     bench_cmd = sub.add_parser("benchmark", help="run the model benchmark")
     bench_cmd.add_argument("--stage", choices=["smoke", "full"], default="smoke")
     bench_cmd.add_argument("--run-id", type=str, default=None)
+    bench_cmd.add_argument(
+        "--datasets", nargs="+", default=["bdg2", "london_smartmeter", "nrel_comstock"]
+    )
 
     report_cmd = sub.add_parser(
         "report", help="regenerate corrected reports from an immutable benchmark run"
@@ -83,7 +86,7 @@ def main() -> None:
 
     if args.command == "benchmark":
         normalize_all(root, package)
-        config = BenchmarkConfig(stage=args.stage)
+        config = BenchmarkConfig(stage=args.stage, datasets=tuple(args.datasets))
         rid = args.run_id or _run_id(args.stage)
         run_dir = root / "benchmark-runs" / rid
         result = run_benchmark(root, repo, run_dir, config)

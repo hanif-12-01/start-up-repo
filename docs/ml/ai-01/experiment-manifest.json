@@ -1,0 +1,107 @@
+{
+  "experiment_id": "AI-01-REBENCHMARK",
+  "timestamp_utc": "2026-08-11T18:38:36Z",
+  "git_sha": "2eb1a9171464ba777a1154b2695f90e46a0c7f29",
+  "data_root": "D:\\WattWiseMLData",
+  "precheck_fingerprint": "2eb1a9171464ba777a1154b2695f90e46a0c7f29",
+  "datasets": {
+    "bdg2": {
+      "classification": "MEASURED",
+      "entities": 1574,
+      "entity_months": 35481,
+      "date_start": "2016-01-01",
+      "date_end": "2017-12-01",
+      "schema_valid": true,
+      "quality_valid": true,
+      "temporal_valid": true,
+      "measurement_methods": [
+        "SMART_METER"
+      ],
+      "parquet_sha256": "58e45e73ab25f736262a031637534e85d0bbf6f3910ce7d81752244a82edcc42",
+      "quality_audit_sha256": "463f658f7c2f3811eac88a6a3b1f6affcb7e93d9cb8ae2ea79168672a9a5568c",
+      "logical_dataset_sha256": "d21b6d66b96bb30f792226e6ae8f38c182c92918e3558e42ccadd6785e2d7e4b",
+      "reproducible": true
+    },
+    "london_smartmeter": {
+      "classification": "MEASURED",
+      "entities": 5556,
+      "entity_months": 112525,
+      "date_start": "2011-12-01",
+      "date_end": "2014-02-01",
+      "schema_valid": true,
+      "quality_valid": true,
+      "temporal_valid": true,
+      "measurement_methods": [
+        "SMART_METER"
+      ],
+      "parquet_sha256": "ad430f001330a377b025e996bfaa0561562817c292f5c734497a4f8f9db2758d",
+      "quality_audit_sha256": "728da415330461a2ab73d537fd0bfd10f91bc731147a42b261711215d4ab1326",
+      "logical_dataset_sha256": "874906049530284eb4f27cdd68051c9fb4ff81111645d536c1b37f515486275b",
+      "reproducible": true
+    },
+    "nrel_comstock": {
+      "classification": "MODELED_SIMULATION",
+      "entities": 20,
+      "entity_months": 240,
+      "date_start": "2018-01-01",
+      "date_end": "2018-12-01",
+      "schema_valid": true,
+      "quality_valid": true,
+      "temporal_valid": true,
+      "measurement_methods": [
+        "MODELED_SIMULATION"
+      ],
+      "parquet_sha256": "308215b93afbdac50994179125d2f76d33be946bef8ea5aad3afd66bf7f047df",
+      "quality_audit_sha256": "899728d86fbcc0118bb0b46bf813d866fc9926a853362240b255279a043eb147",
+      "logical_dataset_sha256": "335a11d761649fbed41be1eb85d26b7ea198e642d74e95b27e59138f37e85920",
+      "reproducible": true
+    }
+  },
+  "hardware": {
+    "operating_system": "Windows-11-10.0.26200-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
+    "logical_cpu_count": 12,
+    "physical_cpu_count": 10,
+    "memory_bytes": 16835284992,
+    "gpu": "none; CPU execution"
+  },
+  "champions": {
+    "H00": {
+      "model": "deterministic_baseline",
+      "reason": "No ML model materially beat baseline by >= 5% with 95% CI upper < 0",
+      "confidence": "HIGH"
+    },
+    "H01_02": {
+      "model": "deterministic_baseline",
+      "reason": "No ML model materially beat baseline by >= 5% with 95% CI upper < 0",
+      "confidence": "HIGH"
+    },
+    "H03_05": {
+      "model": "deterministic_baseline",
+      "reason": "No ML model materially beat baseline by >= 5% with 95% CI upper < 0",
+      "confidence": "HIGH"
+    },
+    "H06_12": {
+      "model": "nbeats",
+      "reason": "Beats baseline by 25.17% MAE (95% CI upper < 0)",
+      "confidence": "HIGH"
+    },
+    "H13_PLUS": {
+      "model": "nbeats",
+      "reason": "Beats baseline by 32.06% MAE (95% CI upper < 0)",
+      "confidence": "HIGH"
+    }
+  },
+  "regression_gates": {
+    "ml_pytest": "PASS",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "leakage": "PASS",
+    "reproducibility": "PASS",
+    "app_unit": "PASS",
+    "app_integration": "PASS",
+    "app_typecheck": "PASS",
+    "app_lint": "PASS",
+    "app_build": "PASS"
+  }
+}

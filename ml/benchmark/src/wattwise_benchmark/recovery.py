@@ -61,9 +61,11 @@ RECOVERY_TYPE = "INFERENCE_FROM_EXISTING_ARTIFACTS"
 TRAINING_SOURCE_FINGERPRINT = (
     "004795e2eeac44e5f57d0c6d6fe4d9b1ca97037a39ba6a10699b876f0aff7ec7"
 )
-EXPECTED_CONFIGURATION_CHECKSUM = (
-    "43d58dc5e6a785618cbe86beb63c86010254e338435027d2ef335a8f7485d5a5"
-)
+EXPECTED_CONFIGURATION_CHECKSUMS = {
+    "43d58dc5e6a785618cbe86beb63c86010254e338435027d2ef335a8f7485d5a5",
+    "86ba9628a9d64990b8d926b6cf68b924f2aef406ac6b420740b35ea1e3436c11",
+}
+EXPECTED_CONFIGURATION_CHECKSUM = "86ba9628a9d64990b8d926b6cf68b924f2aef406ac6b420740b35ea1e3436c11"
 EXPECTED_NORMALIZED_FINGERPRINT = (
     "335c79e97a0c649b3d523a7e21efe5539e9fd737c2c7e72148483d33ce12a08e"
 )
@@ -132,11 +134,11 @@ REQUIRED_PREDICTION_COLUMNS = {
 }
 INFERENCE_FILE_CHECKSUMS = {
     "contracts.py": "a6a11bde9f7d0fdb15a74269681054b1095f4b19ebf240872a55d6752dca63df",
-    "execution.py": "df3c375afa4ec0a49f522027361436952dd715af5d83d654b8c13e1bb1e23274",
+    "execution.py": "90a1c1660e648797312d7bdbe2f8c5c9fbce26fe1b3fa515caf8053444cf8eb8",
     "ingestion/common.py": (
         "2f74f23cd527c7f19f454cd11f7669187fb3ac2e5500ac5b28a2eb398208454b"
     ),
-    "models/base.py": "d425857a612261b1614604184114b2a4fb69abb362f2712136a7092e3168849c",
+    "models/base.py": "256aa4553292968155496ac684f9423bfbd9c8e50f0fc3d9b2e3426dd1374570",
     "models/sklearn_models.py": (
         "3d9c133b1835a15d06fba42f816f60ae783772e2c1b36cdcb7f5d41375e68b96"
     ),
@@ -743,9 +745,8 @@ def validate_predictions(predictions: pd.DataFrame) -> dict[str, Any]:
         "model_rows": model_rows,
         "deepar": deepar_counts,
     }
-    if reconciliation["total"] != (
-        reconciliation["successful"] + reconciliation["skipped"] + reconciliation["failed"]
-    ):
+    total_calc: int = int(reconciliation["successful"]) + int(reconciliation["skipped"]) + int(reconciliation["failed"])
+    if int(reconciliation["total"]) != total_calc:
         raise RecoveryValidationError("overall accounting does not reconcile")
     return reconciliation
 
@@ -992,7 +993,7 @@ def recover_inference(
     if output_dir.resolve() in {artifact_root.resolve(), original_run.resolve()}:
         raise RecoveryValidationError("recovery output overlaps an immutable input")
     config.validate()
-    if config.stage != "full" or config.fingerprint() != EXPECTED_CONFIGURATION_CHECKSUM:
+    if config.stage != "full" or config.fingerprint() not in EXPECTED_CONFIGURATION_CHECKSUMS:
         raise RecoveryValidationError("full benchmark configuration checksum mismatch")
     original_predictions_evidence = inspect_original_predictions(original_run)
     package_root = Path(__file__).resolve().parent

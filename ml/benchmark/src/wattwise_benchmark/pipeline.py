@@ -82,21 +82,62 @@ def _cache_valid(path: Path, fingerprint: str) -> bool:
     return True
 
 
-def load_normalized(data_root: Path) -> dict[str, Any]:
+def load_normalized(
+    data_root: Path,
+    selected_dataset_ids: tuple[str, ...] | list[str] | None = None,
+) -> dict[str, Any]:
     manifest_path = data_root / "manifests" / "normalized-data-manifest.json"
-    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not manifest_path.is_file():
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        ds_map: dict[str, Any] = {}
+        for ds in ("bdg2", "london_smartmeter", "nrel_comstock"):
+            pq = data_root / "normalized" / ds / "1.0" / "monthly.parquet"
+            audit = data_root / "normalized" / ds / "1.0" / "quality-audit.json"
+            if pq.is_file() and audit.is_file():
+                ds_map[ds] = {
+                    "parquet": str(pq),
+                    "audit": str(audit),
+                    "parquet_sha256": sha256_file(pq),
+                    "audit_sha256": sha256_file(audit),
+                }
+        payload = {
+            "schema_version": "1.0",
+            "datasets": ds_map,
+            "combined": {
+                "parquet": str(data_root / "normalized" / "bdg2" / "1.0" / "monthly.parquet"),
+                "audit": str(data_root / "normalized" / "bdg2" / "1.0" / "quality-audit.json"),
+            },
+        }
+        manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    else:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+
     panels: dict[str, pd.DataFrame] = {}
     audits: dict[str, dict[str, Any]] = {}
-    for key, entry in payload["datasets"].items():
+    datasets_map: dict[str, Any] = payload.get("datasets", {})
+    for key, entry in datasets_map.items():
+        if selected_dataset_ids and key not in selected_dataset_ids:
+            continue
         panel = pd.read_parquet(entry["parquet"])
         panel["period_month"] = pd.to_datetime(panel["period_month"])
         validate_monthly(panel)
         panels[key] = panel
         audits[key] = json.loads(Path(entry["audit"]).read_text(encoding="utf-8"))
-    combined = pd.read_parquet(payload["combined"]["parquet"])
-    combined["period_month"] = pd.to_datetime(combined["period_month"])
-    validate_monthly(combined)
-    quality = json.loads(Path(payload["combined"]["audit"]).read_text(encoding="utf-8"))
+
+    if selected_dataset_ids:
+        missing = set(selected_dataset_ids) - set(panels.keys())
+        if missing:
+            raise KeyError(f"Selected datasets not found in normalized panel: {missing}")
+        combined = pd.concat([panels[k] for k in selected_dataset_ids if k in panels], ignore_index=True)
+    elif "combined" in payload and "parquet" in payload["combined"]:
+        combined = pd.read_parquet(payload["combined"]["parquet"])
+        combined["period_month"] = pd.to_datetime(combined["period_month"])
+        validate_monthly(combined)
+    else:
+        combined = pd.concat(list(panels.values()), ignore_index=True)
+
+    quality_path = Path(payload["combined"]["audit"])
+    quality = json.loads(quality_path.read_text(encoding="utf-8")) if quality_path.is_file() else {}
     return {
         "manifest": payload,
         "panels": panels,
