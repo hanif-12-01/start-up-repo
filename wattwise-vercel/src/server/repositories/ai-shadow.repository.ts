@@ -3,13 +3,14 @@ import {
   AI05_ARTIFACT_SHA256,
   AI05_FEATURE_SCHEMA_SHA256,
   AI05_MODEL_VERSION,
-  applicationLocalDate,
   buildAiPayload,
   buildContiguousHistory,
   callAiService,
+  classifyProspectiveForecast,
   getEffectiveAiConfig,
   historyFingerprint,
   opaqueRequestId,
+  targetMonthBounds,
   type AiMode,
   type EvidenceProvenance,
 } from '@/server/services/ai-forecast.service';
@@ -90,8 +91,10 @@ export async function enqueueShadowForecastInTransaction(
     sourceStateAt
   );
   if (!history.targetPeriod || !['H06_12', 'H13_PLUS'].includes(history.phase)) return null;
+  const historyPeriods = new Set(history.history.map((item) => item.period_month));
+  const inferenceSamples = samples.filter((sample) => historyPeriods.has(sample.period));
   const deterministic = predictUsage(
-    samples,
+    inferenceSamples,
     business.tariff_rupiah_per_kwh ? Number(business.tariff_rupiah_per_kwh) : null
   );
   if (!deterministic.hasPrediction || deterministic.predictedUsageKwh === null) return null;
@@ -104,8 +107,23 @@ export async function enqueueShadowForecastInTransaction(
     mode: config.mode,
   });
   const provenance = preserveProvenance(business.data_provenance);
-  const prospective = history.temporalIntegrity &&
-    applicationLocalDate(sourceStateAt) < `${history.targetPeriod}-01`;
+  const targetBounds = targetMonthBounds(history.targetPeriod);
+  const targetOverlap = await client.query<{ target_exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM electricity_bill
+        WHERE business_id = $1
+          AND period_start <= $3::date
+          AND period_end >= $2::date
+     ) AS target_exists`,
+    [businessId, targetBounds.start, targetBounds.end]
+  );
+  const targetOutcomeUnknownAtForecast = !targetOverlap.rows[0]?.target_exists;
+  const timing = classifyProspectiveForecast({
+    targetPeriod: history.targetPeriod,
+    forecastOrigin: sourceStateAt,
+    historyTemporalIntegrity: history.temporalIntegrity,
+    targetOutcomeUnknownAtForecast,
+  });
   const payload = buildAiPayload({
     opaqueRequestId: requestId,
     forecastOrigin: sourceStateAt,
@@ -121,13 +139,15 @@ export async function enqueueShadowForecastInTransaction(
        id, business_id, request_id, forecast_origin, target_period, data_provenance,
        prospective_forecast, history_phase, history_fingerprint, transient_payload,
        history_latest_period_end, history_temporal_integrity,
+       target_outcome_unknown_at_forecast, forecast_days_into_target,
        mode, status, deterministic_prediction_kwh, feature_schema_sha256
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13, 'PENDING', $14, $15)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13, $14, $15, 'PENDING', $16, $17)
      ON CONFLICT (request_id) DO NOTHING`,
     [
       crypto.randomUUID(), businessId, requestId, sourceStateAt, history.targetPeriod,
-      provenance, prospective, history.phase, fingerprint,
+      provenance, timing.prospective, history.phase, fingerprint,
       JSON.stringify(payload), history.latestPeriodEnd, history.temporalIntegrity,
+      targetOutcomeUnknownAtForecast, timing.daysIntoTarget,
       config.mode, deterministic.predictedUsageKwh,
       AI05_FEATURE_SCHEMA_SHA256,
     ]
@@ -240,16 +260,29 @@ export async function listPromotionGradeRealEvidence() {
   return (
     await getPool().query(
       `SELECT id, request_id, forecast_origin, target_period, history_phase,
+              history_fingerprint,
               history_latest_period_end, history_temporal_integrity,
+              target_outcome_unknown_at_forecast, forecast_days_into_target,
+              CASE
+                WHEN forecast_days_into_target BETWEEN 0 AND 1 THEN 'DAY_0_1'
+                WHEN forecast_days_into_target BETWEEN 2 AND 7 THEN 'DAY_2_7'
+                WHEN forecast_days_into_target >= 8 THEN 'DAY_8_PLUS'
+              END AS forecast_timing_bucket,
               deterministic_prediction_kwh, ml_prediction_kwh, ml_model_version,
               artifact_sha256, feature_schema_sha256, actual_kwh, actual_kwh_source,
+              actual_observed_at,
               absolute_error_ml, absolute_error_deterministic, scored_at
          FROM ai_shadow_forecast
         WHERE data_provenance = 'REAL_WATTWISE'
           AND prospective_forecast = TRUE
           AND history_temporal_integrity = TRUE
+          AND target_outcome_unknown_at_forecast = TRUE
+          AND forecast_days_into_target IS NOT NULL
+          AND forecast_days_into_target >= 0
           AND actual_kwh_source IN ('USER_ENTERED', 'METER_DERIVED')
           AND actual_kwh IS NOT NULL
+          AND actual_observed_at IS NOT NULL
+          AND actual_observed_at > forecast_origin
           AND ml_prediction_kwh IS NOT NULL
           AND deterministic_prediction_kwh IS NOT NULL
           AND scored_at IS NOT NULL

@@ -1,0 +1,6 @@
+ALTER TABLE ai_shadow_forecast
+DROP CONSTRAINT ai_shadow_forecast_timing_check;
+
+ALTER TABLE ai_shadow_forecast
+DROP COLUMN forecast_days_into_target,
+DROP COLUMN target_outcome_unknown_at_forecast;

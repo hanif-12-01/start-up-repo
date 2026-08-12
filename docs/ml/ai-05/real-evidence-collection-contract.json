@@ -5,16 +5,25 @@
   "history_temporal_integrity_required": true,
   "application_timezone": "Asia/Jakarta",
   "completed_history_rule": "inclusive period_end must be before forecast_origin local calendar date",
+  "prospective_definition": {
+    "history_temporal_integrity": true,
+    "target_outcome_unknown_at_forecast": true,
+    "forecast_origin_within_target_calendar_month": true,
+    "target_and_future_values_excluded_from_inference": true
+  },
   "promotion_grade_filter": {
     "data_provenance": "REAL_WATTWISE",
     "prospective_forecast": true,
+    "target_outcome_unknown_at_forecast": true,
+    "forecast_days_into_target_required": true,
+    "actual_observed_after_forecast_origin": true,
     "actual_outcome_available": true,
     "valid_actual_sources": ["USER_ENTERED", "METER_DERIVED"],
     "ml_prediction_available": true,
     "application_deterministic_prediction_available": true
   },
   "excluded": ["SYNTHETIC_DEMO", "UNCLASSIFIED", "LEGACY_UNKNOWN", "BDG2", "LONDON_SMARTMETER", "NREL_COMSTOCK", "LOAD_TESTS"],
-  "prospective_rule": "forecast_origin < start_of_target_month",
+  "prospective_rule": "target_start <= forecast_origin local date <= target_end, with temporally valid history and target outcome unknown",
   "target_value_used_as_input": false,
   "python_receives_tenant_identifier": false
 }

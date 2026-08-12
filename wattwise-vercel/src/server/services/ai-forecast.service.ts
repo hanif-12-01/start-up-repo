@@ -123,6 +123,54 @@ export function applicationLocalDate(value: Date): string {
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
+export interface TargetMonthBounds {
+  start: string;
+  end: string;
+}
+
+export type ForecastTimingBucket = 'DAY_0_1' | 'DAY_2_7' | 'DAY_8_PLUS';
+
+export function targetMonthBounds(targetPeriod: string): TargetMonthBounds {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(targetPeriod)) {
+    throw new Error('AI_TARGET_PERIOD_INVALID');
+  }
+  const [year, month] = targetPeriod.split('-').map(Number);
+  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    start: `${targetPeriod}-01`,
+    end: `${targetPeriod}-${String(finalDay).padStart(2, '0')}`,
+  };
+}
+
+export function forecastDaysIntoTarget(targetPeriod: string, forecastOrigin: Date): number | null {
+  const bounds = targetMonthBounds(targetPeriod);
+  const localDate = applicationLocalDate(forecastOrigin);
+  if (localDate < bounds.start || localDate > bounds.end) return null;
+  const day = Number(localDate.slice(-2));
+  return day - 1;
+}
+
+export function forecastTimingBucket(daysIntoTarget: number | null): ForecastTimingBucket | null {
+  if (daysIntoTarget === null || !Number.isInteger(daysIntoTarget) || daysIntoTarget < 0) return null;
+  if (daysIntoTarget <= 1) return 'DAY_0_1';
+  if (daysIntoTarget <= 7) return 'DAY_2_7';
+  return 'DAY_8_PLUS';
+}
+
+export function classifyProspectiveForecast(input: {
+  targetPeriod: string;
+  forecastOrigin: Date;
+  historyTemporalIntegrity: boolean;
+  targetOutcomeUnknownAtForecast: boolean;
+}) {
+  const daysIntoTarget = forecastDaysIntoTarget(input.targetPeriod, input.forecastOrigin);
+  return {
+    daysIntoTarget,
+    prospective: input.historyTemporalIntegrity &&
+      input.targetOutcomeUnknownAtForecast && daysIntoTarget !== null,
+  };
+}
+
 function emptyHistory(): AiHistory {
   return {
     phase: 'H00', history: [], targetPeriod: null,

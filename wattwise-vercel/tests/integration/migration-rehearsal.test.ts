@@ -110,6 +110,8 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     const shadowColumnNames = shadowCols.rows.map((row) => row.column_name);
     expect(shadowColumnNames).toContain('history_latest_period_end');
     expect(shadowColumnNames).toContain('history_temporal_integrity');
+    expect(shadowColumnNames).toContain('target_outcome_unknown_at_forecast');
+    expect(shadowColumnNames).toContain('forecast_days_into_target');
 
     // Validate foreign key constraints
     const fkRes = await pool.query(`
@@ -152,7 +154,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
 
   it('STEP 1: Apply all forward migrations (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBeGreaterThanOrEqual(13);
+    expect(forwardNames.length).toBeGreaterThanOrEqual(14);
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -212,8 +214,28 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     expect(integrity.rows[0].history_temporal_integrity).toBe(false);
   });
 
+  it('rehearses migration 0013 rollback and conservative reapply', async () => {
+    await pool.query(readRollbackMigration('0013_ai_shadow_prospective_reachability_rollback.sql'));
+    const removed = await pool.query(`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'ai_shadow_forecast'
+         AND column_name IN ('target_outcome_unknown_at_forecast', 'forecast_days_into_target')
+    `);
+    expect(removed.rows).toHaveLength(0);
+    await pool.query(readForwardMigration('0013_ai_shadow_prospective_reachability.sql'));
+    const conservative = await pool.query(`
+      SELECT target_outcome_unknown_at_forecast, forecast_days_into_target
+        FROM ai_shadow_forecast WHERE id = 'integrity-shadow'
+    `);
+    expect(conservative.rows[0]).toEqual({
+      target_outcome_unknown_at_forecast: false,
+      forecast_days_into_target: null,
+    });
+  });
+
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0013_ai_shadow_prospective_reachability_rollback.sql',
       '0012_ai_shadow_evidence_integrity_rollback.sql',
       '0011_ai_shadow_integration_rollback.sql',
       '0010_kwh_provenance_rollback.sql',

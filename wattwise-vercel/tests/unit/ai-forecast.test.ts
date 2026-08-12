@@ -6,12 +6,16 @@ import {
   buildAiPayload,
   buildContiguousHistory,
   callAiService,
+  classifyProspectiveForecast,
   deterministicParitySnapshot,
+  forecastDaysIntoTarget,
+  forecastTimingBucket,
   getAiIntegrationDiagnostics,
   getEffectiveAiConfig,
   historyFingerprint,
   opaqueRequestId,
   routeHistory,
+  targetMonthBounds,
   validateAiResponse,
 } from '@/server/services/ai-forecast.service';
 import { predictUsage, type UsageSample } from '@/server/services/product-analysis';
@@ -110,6 +114,48 @@ describe('AI-05 server-only integration contract', () => {
     expect(buildContiguousHistory([
       observation('2026-07', 100, '2026-07-31'),
     ], new Date('2026-07-31T05:00:00Z')).history).toHaveLength(0);
+  });
+
+  it('derives target calendar boundaries and timing buckets in Asia/Jakarta', () => {
+    expect(targetMonthBounds('2026-02')).toEqual({ start: '2026-02-01', end: '2026-02-28' });
+    expect(targetMonthBounds('2028-02')).toEqual({ start: '2028-02-01', end: '2028-02-29' });
+    expect(forecastDaysIntoTarget('2026-08', new Date('2026-07-31T17:00:00Z'))).toBe(0);
+    expect(forecastDaysIntoTarget('2026-08', new Date('2026-08-14T17:00:00Z'))).toBe(14);
+    expect(forecastDaysIntoTarget('2026-08', new Date('2026-08-31T16:59:59Z'))).toBe(30);
+    expect(forecastDaysIntoTarget('2026-08', new Date('2026-08-31T17:00:00Z'))).toBeNull();
+    expect(forecastDaysIntoTarget('2026-08', new Date('2026-07-31T16:59:59Z'))).toBeNull();
+    expect(forecastTimingBucket(0)).toBe('DAY_0_1');
+    expect(forecastTimingBucket(1)).toBe('DAY_0_1');
+    expect(forecastTimingBucket(2)).toBe('DAY_2_7');
+    expect(forecastTimingBucket(7)).toBe('DAY_2_7');
+    expect(forecastTimingBucket(8)).toBe('DAY_8_PLUS');
+  });
+
+  it.each([
+    ['before target', '2026-07-31T16:59:59Z', null, false],
+    ['target day 1', '2026-07-31T17:00:00Z', 0, true],
+    ['target middle', '2026-08-14T17:00:00Z', 14, true],
+    ['target final day', '2026-08-31T16:59:59Z', 30, true],
+    ['after target', '2026-08-31T17:00:00Z', null, false],
+  ])('classifies prospective boundary: %s', (_label, iso, days, prospective) => {
+    expect(classifyProspectiveForecast({
+      targetPeriod: '2026-08',
+      forecastOrigin: new Date(iso),
+      historyTemporalIntegrity: true,
+      targetOutcomeUnknownAtForecast: true,
+    })).toEqual({ daysIntoTarget: days, prospective });
+  });
+
+  it('fails prospective classification closed when history is unsafe or target is known', () => {
+    const forecastOrigin = new Date('2026-07-31T17:00:00Z');
+    expect(classifyProspectiveForecast({
+      targetPeriod: '2026-08', forecastOrigin,
+      historyTemporalIntegrity: false, targetOutcomeUnknownAtForecast: true,
+    }).prospective).toBe(false);
+    expect(classifyProspectiveForecast({
+      targetPeriod: '2026-08', forecastOrigin,
+      historyTemporalIntegrity: true, targetOutcomeUnknownAtForecast: false,
+    }).prospective).toBe(false);
   });
 
   it('is invariant to future-bill and target-actual perturbations', () => {

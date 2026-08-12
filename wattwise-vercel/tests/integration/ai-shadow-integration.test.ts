@@ -4,8 +4,10 @@ import { getPool } from '@/server/db/client';
 import { createBill } from '@/server/services/bill.service';
 import {
   claimAndProcessShadowJob,
+  enqueueShadowForecastInTransaction,
   listPromotionGradeRealEvidence,
   listShadowForecastsForUser,
+  reconcileActualOutcomeInTransaction,
 } from '@/server/repositories/ai-shadow.repository';
 import { applyAllForwardMigrations } from '../helpers/migrations';
 import {
@@ -75,6 +77,55 @@ describe('AI-05 durable shadow integration', () => {
       totalAmountRupiah: BigInt(kwh * 1500), kwh: String(kwh),
       tariffRupiahPerKwh: '1500',
     }, businessId);
+  }
+
+  async function insertCalendarBill(
+    businessId: string,
+    period: string,
+    kwh: number,
+    observedAt = new Date('2026-08-01T00:00:00Z')
+  ) {
+    const [year, month] = period.split('-').map(Number);
+    const end = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah,
+         kwh, tariff_rupiah_per_kwh, kwh_source, created_at, updated_at
+       ) VALUES ($1, $2, $3::date, $4::date, $5, $6, 1500, 'USER_ENTERED', $7, $7)`,
+      [crypto.randomUUID(), businessId, `${period}-01`, `${period}-${end}`, kwh * 1500, kwh, observedAt]
+    );
+  }
+
+  async function enqueueAt(businessId: string, forecastOrigin: Date) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const requestId = await enqueueShadowForecastInTransaction(client, businessId, forecastOrigin);
+      await client.query('COMMIT');
+      return requestId;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async function reconcileAt(businessId: string, period: string, kwh: number, observedAt: Date) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await reconcileActualOutcomeInTransaction(client, {
+        businessId, period, actualKwh: kwh,
+        actualKwhSource: 'USER_ENTERED', observedAt,
+      });
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   it('creates one idempotent owner-scoped job and preserves deterministic output', async () => {
@@ -194,6 +245,67 @@ describe('AI-05 durable shadow integration', () => {
     expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
   });
 
+  it('supports the complete prospective REAL_WATTWISE evidence lifecycle and immutable corrections', async () => {
+    const owner = await tenant('real-positive-lifecycle', 'REAL_WATTWISE');
+    for (let month = 2; month <= 7; month += 1) {
+      await insertCalendarBill(owner.businessId, `2026-${String(month).padStart(2, '0')}`, 100 + month);
+    }
+    const forecastOrigin = new Date('2026-07-31T17:00:00Z');
+    const requestId = await enqueueAt(owner.businessId, forecastOrigin);
+    expect(requestId).not.toBeNull();
+    const pending = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(pending).toMatchObject({
+      target_period: '2026-08', history_phase: 'H06_12',
+      history_temporal_integrity: true,
+      target_outcome_unknown_at_forecast: true,
+      prospective_forecast: true,
+      forecast_days_into_target: 0,
+    });
+    expect(pending.transient_payload.history).toHaveLength(6);
+    expect(pending.transient_payload.history.every((item: { period_month: string }) => item.period_month < '2026-08')).toBe(true);
+    await claimAndProcessShadowJob(async () => successResponse(pending.request_id));
+    expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
+
+    await insertCalendarBill(owner.businessId, '2026-08', 160, new Date('2026-09-01T00:00:00Z'));
+    await reconcileAt(owner.businessId, '2026-08', 160, new Date('2026-09-01T00:00:00Z'));
+    const firstEvidence = (await listPromotionGradeRealEvidence())[0];
+    expect(firstEvidence.actual_kwh).toBe('160.000');
+    expect(firstEvidence.absolute_error_ml).toBe('10.000');
+    expect(firstEvidence.absolute_error_deterministic).not.toBeNull();
+    expect(firstEvidence.forecast_timing_bucket).toBe('DAY_0_1');
+    const frozen = {
+      ml: firstEvidence.ml_prediction_kwh,
+      deterministic: firstEvidence.deterministic_prediction_kwh,
+      origin: firstEvidence.forecast_origin,
+      artifact: firstEvidence.artifact_sha256,
+      historyFingerprint: firstEvidence.history_fingerprint,
+    };
+
+    await reconcileAt(owner.businessId, '2026-08', 165, new Date('2026-09-02T00:00:00Z'));
+    const corrected = (await listPromotionGradeRealEvidence())[0];
+    expect(corrected.ml_prediction_kwh).toBe(frozen.ml);
+    expect(corrected.deterministic_prediction_kwh).toBe(frozen.deterministic);
+    expect(corrected.forecast_origin).toEqual(frozen.origin);
+    expect(corrected.artifact_sha256).toBe(frozen.artifact);
+    expect(corrected.history_fingerprint).toBe(frozen.historyFingerprint);
+    expect(corrected.actual_kwh).toBe('165.000');
+    expect(corrected.absolute_error_ml).toBe('15.000');
+  });
+
+  it('fails closed when target outcome already exists and excludes it from inference', async () => {
+    const owner = await tenant('target-known', 'REAL_WATTWISE');
+    for (let month = 2; month <= 8; month += 1) {
+      await insertCalendarBill(owner.businessId, `2026-${String(month).padStart(2, '0')}`, month === 8 ? 99999 : 100 + month);
+    }
+    await enqueueAt(owner.businessId, new Date('2026-07-31T17:00:00Z'));
+    const run = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(run.target_period).toBe('2026-08');
+    expect(run.target_outcome_unknown_at_forecast).toBe(false);
+    expect(run.prospective_forecast).toBe(false);
+    expect(run.transient_payload.history.every((item: { period_month: string }) => item.period_month < '2026-08')).toBe(true);
+    expect(JSON.stringify(run.transient_payload)).not.toContain('99999');
+  });
+
   it('requires temporal integrity in the promotion-grade query', async () => {
     const owner = await tenant('promotion-filter', 'REAL_WATTWISE');
     await pool.query(
@@ -202,11 +314,12 @@ describe('AI-05 durable shadow integration', () => {
          data_provenance, prospective_forecast, history_phase, history_fingerprint,
          mode, status, deterministic_prediction_kwh, ml_prediction_kwh, ml_model_version,
          artifact_sha256, feature_schema_sha256, actual_kwh, actual_kwh_source, scored_at,
-         history_temporal_integrity
+         actual_observed_at, history_temporal_integrity,
+         target_outcome_unknown_at_forecast, forecast_days_into_target
        ) VALUES (
-         'promotion-filter-run', $1, 'promotion-filter-request', NOW(), '2026-08',
+         'promotion-filter-run', $1, 'promotion-filter-request', '2026-08-01T00:00:00Z', '2026-08',
          'REAL_WATTWISE', true, 'H06_12', $2, 'SHADOW', 'SUCCEEDED', 100, 110,
-         $3, $4, $5, 105, 'USER_ENTERED', NOW(), false
+         $3, $4, $5, 105, 'USER_ENTERED', NOW(), '2026-09-01T00:00:00Z', false, true, 0
        )`,
       [
         owner.businessId, 'f'.repeat(64), AI05_MODEL_VERSION,
@@ -221,6 +334,11 @@ describe('AI-05 durable shadow integration', () => {
         WHERE id = 'promotion-filter-run'`
     );
     expect(await listPromotionGradeRealEvidence()).toHaveLength(1);
+    await pool.query(
+      `UPDATE ai_shadow_forecast SET actual_observed_at = forecast_origin
+        WHERE id = 'promotion-filter-run'`
+    );
+    expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
   });
 
   it.skipIf(process.env.WATTWISE_AI_REAL_SERVICE_E2E !== 'true')(
