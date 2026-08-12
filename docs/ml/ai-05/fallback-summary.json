@@ -1,0 +1,10 @@
+{
+  "authority": "WATTWISE_APPLICATION",
+  "ml_failure_changes_user_output": false,
+  "retry_attempts_before_terminal_fallback": 3,
+  "retryable_status": "FAILED_RETRYABLE",
+  "terminal_status": "FALLBACK",
+  "stale_claim_lease_minutes": 5,
+  "transient_payload_cleared_on": ["SUCCEEDED", "FALLBACK"],
+  "safe_failures": ["OFFLINE", "TIMEOUT", "UNAUTHORIZED", "NOT_READY", "CONTRACT_MISMATCH", "INVALID_OUTPUT", "ARTIFACT_FAILURE"]
+}

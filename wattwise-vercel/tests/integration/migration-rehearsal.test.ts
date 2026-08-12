@@ -61,6 +61,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     'billing_plan',
     'sandbox_invoice',
     'sandbox_payment',
+    'ai_shadow_forecast',
   ];
 
   async function getPublicTableNames(): Promise<string[]> {
@@ -98,6 +99,11 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     const billColNames = billCols.rows.map((r) => r.column_name);
     expect(billColNames).toContain('kwh_source');
 
+    const businessCols = await pool.query(`
+      SELECT column_name FROM information_schema.columns WHERE table_name = 'business';
+    `);
+    expect(businessCols.rows.map((row) => row.column_name)).toContain('data_provenance');
+
     // Validate foreign key constraints
     const fkRes = await pool.query(`
       SELECT constraint_name
@@ -133,11 +139,13 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     expect(indexNames).toContain('diagnostic_session_business_created_idx');
     expect(indexNames).toContain('revenue_entry_business_month_idx');
     expect(indexNames).toContain('appliance_business_active_idx');
+    expect(indexNames).toContain('ai_shadow_forecast_claim_idx');
+    expect(indexNames).toContain('ai_shadow_forecast_real_evidence_idx');
   }
 
   it('STEP 1: Apply all forward migrations (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBeGreaterThanOrEqual(11);
+    expect(forwardNames.length).toBeGreaterThanOrEqual(12);
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -166,6 +174,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
 
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0011_ai_shadow_integration_rollback.sql',
       '0010_kwh_provenance_rollback.sql',
       '0009_product_parity_rollback.sql',
       '0008_workspace_feature_parity_rollback.sql',

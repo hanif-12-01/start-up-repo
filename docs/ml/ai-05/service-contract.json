@@ -1,0 +1,12 @@
+{
+  "schema_version": "2.0",
+  "bind_default": "127.0.0.1",
+  "endpoints": ["GET /health/live", "GET /health/ready", "GET /v2/models", "POST /v2/forecast"],
+  "authentication": "BEARER_SERVER_ONLY",
+  "request_body_limit_bytes": 65536,
+  "worker": "AI04_ISOLATED_MODEL_WORKER",
+  "model_version": "nbeats-ai02-1.0.0",
+  "artifact_sha256": "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6",
+  "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4",
+  "supervisor_states": ["STARTING", "READY", "RECOVERING", "NOT_READY", "FAILED"]
+}

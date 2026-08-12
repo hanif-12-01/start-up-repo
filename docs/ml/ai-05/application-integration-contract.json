@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "phase": "AI-05",
+  "application_baseline": "WATTWISE_APPLICATION_DETERMINISTIC",
+  "python_endpoint": "/v2/forecast",
+  "legacy_v1_primary": false,
+  "background_strategy": "DURABLE_OUTBOX",
+  "default_mode": "OFF",
+  "modes": ["OFF", "SHADOW", "LOCAL_EXPERIMENTAL"],
+  "user_facing_ml": false,
+  "routing": {
+    "H00": "deterministic_baseline",
+    "H01_02": "deterministic_baseline",
+    "H03_05": "deterministic_baseline",
+    "H06_12": "nbeats",
+    "H13_PLUS": "nbeats"
+  }
+}

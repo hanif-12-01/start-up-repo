@@ -98,7 +98,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
     await pool.query('DELETE FROM "user"');
   });
 
-  it('discovers through 0009 and preserves the accepted outcome migration up-down-up', async () => {
+  it('discovers through 0011 and preserves the accepted outcome migration up-down-up', async () => {
     const discovered = listForwardMigrationNames();
     expect(discovered).toEqual([
       '0000_auth_schema.sql',
@@ -112,6 +112,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
       '0008_workspace_feature_parity.sql',
       '0009_product_parity.sql',
       '0010_kwh_provenance.sql',
+      '0011_ai_shadow_integration.sql',
     ]);
 
     const firstUp = await pool.query(`SELECT to_regclass('public.action_outcome_evaluation') AS table_name`);

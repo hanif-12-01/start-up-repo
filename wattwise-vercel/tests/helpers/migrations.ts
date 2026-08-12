@@ -23,6 +23,8 @@ export function readRollbackMigration(name: string): string {
 }
 
 export async function applyAllForwardMigrations(pool: pg.Pool): Promise<string[]> {
+  // Suites rebuild parent tables independently; remove the newest dependent table first.
+  await pool.query('DROP TABLE IF EXISTS ai_shadow_forecast CASCADE');
   const names = listForwardMigrationNames();
   for (const name of names) {
     await pool.query(readForwardMigration(name));

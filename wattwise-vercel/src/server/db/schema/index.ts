@@ -7,3 +7,4 @@ export * from './action-plans';
 export * from './outcomes';
 export * from './workspace';
 export * from './billing';
+export * from './ai-shadow';

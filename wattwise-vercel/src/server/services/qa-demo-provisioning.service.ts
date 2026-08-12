@@ -222,6 +222,7 @@ export async function seedQaDemoAccount(options?: QaDemoSeedOptions): Promise<{
         powerVa: 2200,
         tariffRupiahPerKwh: '1444.70',
         paymentMethod: 'Pascabayar',
+        dataProvenance: 'SYNTHETIC_DEMO',
         isActive: true,
         updatedAt: now,
       }).where(sql`${schema.business.id} = ${businessId}`);
@@ -245,6 +246,7 @@ export async function seedQaDemoAccount(options?: QaDemoSeedOptions): Promise<{
         powerVa: 2200,
         tariffRupiahPerKwh: '1444.70',
         paymentMethod: 'Pascabayar',
+        dataProvenance: 'SYNTHETIC_DEMO',
         isActive: true,
         createdAt: now,
         updatedAt: now,

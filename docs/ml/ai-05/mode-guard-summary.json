@@ -1,0 +1,9 @@
+{
+  "default": "OFF",
+  "invalid_configuration": "OFF",
+  "missing_configuration": "OFF",
+  "production_local_experimental": "BLOCKED_TO_OFF",
+  "production_shadow_requires": ["WATTWISE_AI_ALLOW_PRODUCTION_SHADOW=true", "WATTWISE_AI_PRODUCTION_SHADOW_APPROVED=true"],
+  "production_values_set_by_ai05": false,
+  "user_facing_approved": false
+}

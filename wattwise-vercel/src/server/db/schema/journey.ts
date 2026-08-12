@@ -84,6 +84,7 @@ export const business = pgTable(
     paymentMethod: text('payment_method'),
     meterType: text('meter_type'),
     electricityNotes: text('electricity_notes'),
+    dataProvenance: text('data_provenance').notNull().default('UNCLASSIFIED'),
     isActive: boolean('is_active').notNull().default(true),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -102,6 +103,10 @@ export const business = pgTable(
     check(
       'business_electrical_system_check',
       sql`${t.electricalSystem} IN ('ALL_IN', 'TOKEN_PER_KAMAR', 'SUB_METER', 'PATUNGAN', 'CAMPURAN')`
+    ),
+    check(
+      'business_data_provenance_check',
+      sql`${t.dataProvenance} IN ('UNCLASSIFIED', 'REAL_WATTWISE', 'SYNTHETIC_DEMO')`
     ),
   ]
 );

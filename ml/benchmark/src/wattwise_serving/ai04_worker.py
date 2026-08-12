@@ -107,7 +107,7 @@ class IsolatedModelWorker:
         *,
         model_key: str = "nbeats",
         timeout_ms: float = 2_000.0,
-        startup_timeout_ms: float = 30_000.0,
+        startup_timeout_ms: float = 120_000.0,
         context: str = "spawn",
         behavior: str = "normal",
         max_requests_per_generation: int | None = 100,

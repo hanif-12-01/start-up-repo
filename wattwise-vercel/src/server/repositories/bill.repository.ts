@@ -1,6 +1,10 @@
 import type { PoolClient } from 'pg';
 import { getPool } from '@/server/db/client';
 import type { CreateBillInput } from '@/server/validation/bills';
+import {
+  enqueueShadowForecastInTransaction,
+  reconcileActualOutcomeInTransaction,
+} from '@/server/repositories/ai-shadow.repository';
 
 export interface BillRecord {
   id: string;
@@ -206,8 +210,20 @@ export async function createBillForOwnedBusiness(
         kwhSource,
       ]
     );
+    const saved = result.rows[0];
+    const period = typeof saved.period_end === 'string'
+      ? saved.period_end.slice(0, 7)
+      : saved.period_end.toISOString().slice(0, 7);
+    await reconcileActualOutcomeInTransaction(client, {
+      businessId: ownedBusiness.id,
+      period,
+      actualKwh: saved.kwh === null ? null : Number(saved.kwh),
+      actualKwhSource: saved.kwh_source ?? 'LEGACY_UNKNOWN',
+      observedAt: saved.created_at,
+    });
+    await enqueueShadowForecastInTransaction(client, ownedBusiness.id, saved.created_at);
     await client.query('COMMIT');
-    return mapBill(result.rows[0]);
+    return mapBill(saved);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -311,8 +327,20 @@ export async function updateBillForOwnedBusiness(
         existing.business_name,
       ]
     );
+    const saved = result.rows[0];
+    const period = typeof saved.period_end === 'string'
+      ? saved.period_end.slice(0, 7)
+      : saved.period_end.toISOString().slice(0, 7);
+    await reconcileActualOutcomeInTransaction(client, {
+      businessId: existing.business_id,
+      period,
+      actualKwh: saved.kwh === null ? null : Number(saved.kwh),
+      actualKwhSource: saved.kwh_source ?? 'LEGACY_UNKNOWN',
+      observedAt: saved.updated_at,
+    });
+    await enqueueShadowForecastInTransaction(client, existing.business_id, saved.updated_at);
     await client.query('COMMIT');
-    return mapBill(result.rows[0]);
+    return mapBill(saved);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

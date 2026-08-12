@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "promotion_grade_filter": {
+    "data_provenance": "REAL_WATTWISE",
+    "prospective_forecast": true,
+    "actual_outcome_available": true,
+    "valid_actual_sources": ["USER_ENTERED", "METER_DERIVED"],
+    "ml_prediction_available": true,
+    "application_deterministic_prediction_available": true
+  },
+  "excluded": ["SYNTHETIC_DEMO", "UNCLASSIFIED", "LEGACY_UNKNOWN", "BDG2", "LONDON_SMARTMETER", "NREL_COMSTOCK", "LOAD_TESTS"],
+  "prospective_rule": "forecast_origin < start_of_target_month",
+  "target_value_used_as_input": false,
+  "python_receives_tenant_identifier": false
+}
