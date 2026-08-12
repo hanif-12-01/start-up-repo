@@ -9,6 +9,9 @@ import {
   listShadowForecastsForUser,
   reconcileActualOutcomeInTransaction,
 } from '@/server/repositories/ai-shadow.repository';
+import { setShadowEnrollment } from '@/server/repositories/ai-shadow-enrollment.repository';
+import { processShadowBatch } from '@/server/services/ai-shadow-operations.service';
+import { getAiShadowMonitoringSummary } from '@/server/services/ai-shadow-monitoring.service';
 import { applyAllForwardMigrations } from '../helpers/migrations';
 import {
   AI05_ARTIFACT_SHA256,
@@ -138,6 +141,53 @@ describe('AI-05 durable shadow integration', () => {
     expect(rows[0].deterministic_prediction_kwh).not.toBeNull();
     await pool.query(`UPDATE electricity_bill SET updated_at = updated_at WHERE business_id = $1`, [owner.businessId]);
     expect((await listShadowForecastsForUser(owner.userId, owner.businessId))).toHaveLength(1);
+  });
+
+  it('governs enrollment with dry-run, explicit REAL classification, and cohort disable', async () => {
+    const real = await tenant('enrollment-real', 'REAL_WATTWISE');
+    const unknown = await tenant('enrollment-unknown', 'UNCLASSIFIED');
+    await expect(setShadowEnrollment({ businessId: unknown.businessId, action: 'ENROLL', reason: 'controlled test', dryRun: false }))
+      .rejects.toThrow('REAL_WATTWISE_CLASSIFICATION_REQUIRED');
+    expect(await setShadowEnrollment({ businessId: real.businessId, action: 'ENROLL', reason: 'controlled test', dryRun: true }))
+      .toMatchObject({ changed: false, dryRun: true });
+    await setShadowEnrollment({ businessId: real.businessId, action: 'ENROLL', reason: 'controlled test', dryRun: false });
+    await setShadowEnrollment({ businessId: real.businessId, action: 'ENROLL', reason: 'controlled test', dryRun: false });
+    expect((await pool.query(`SELECT count(*)::int AS count FROM ai_shadow_enrollment WHERE business_id = $1`, [real.businessId])).rows[0].count).toBe(1);
+    for (let month = 1; month <= 6; month += 1) await addMonth(real.userId, real.businessId, month, 100);
+    await setShadowEnrollment({ businessId: real.businessId, action: 'DISABLE', reason: 'cohort stop', dryRun: false });
+    await setShadowEnrollment({ businessId: real.businessId, action: 'DISABLE', reason: 'cohort stop', dryRun: false });
+    const run = (await listShadowForecastsForUser(real.userId))[0];
+    expect(run.status).toBe('NOT_ELIGIBLE');
+    expect(run.transient_payload).toBeNull();
+  });
+
+  it('processes bounded batches and reports aggregate monitoring with no real evidence', async () => {
+    const owners = await Promise.all([tenant('batch-a'), tenant('batch-b'), tenant('batch-c')]);
+    for (const owner of owners) {
+      for (let month = 1; month <= 6; month += 1) await addMonth(owner.userId, owner.businessId, month, 100);
+    }
+    const readyFetcher: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/health/ready')) {
+        return new Response(JSON.stringify({
+          schema_version: '2.0', status: 'READY', service_state: 'READY',
+          model_version: AI05_MODEL_VERSION, artifact_sha256: AI05_ARTIFACT_SHA256,
+          feature_schema_sha256: AI05_FEATURE_SCHEMA_SHA256, last_failure_code: null,
+          worker_generation: 1,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      const payload = JSON.parse(String(init?.body)) as { request_id: string };
+      return successResponse(payload.request_id);
+    };
+    const batch = await processShadowBatch({ maxJobs: 2, timeBudgetMs: 5_000, fetcher: readyFetcher });
+    expect(batch).toMatchObject({ claimed: 2, succeeded: 2, serviceReady: true });
+    expect((await pool.query(`SELECT count(*)::int AS count FROM ai_shadow_forecast WHERE status = 'PENDING'`)).rows[0].count).toBe(1);
+    const monitoring = await getAiShadowMonitoringSummary(readyFetcher);
+    expect(monitoring.outbox.pending).toBe(1);
+    expect(monitoring.accuracy.pairedCount).toBe(0);
+    expect(monitoring.accuracy.evidenceTier).toBe('NO_REAL_ACCURACY_EVIDENCE');
+    expect(monitoring.privacy).toEqual({ aggregateOnly: true, piiIncluded: false });
+    expect(JSON.stringify(monitoring)).not.toContain(owners[0].businessId);
   });
 
   it('processes shadow response, clears transient payload, and reconciles later actual', async () => {

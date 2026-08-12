@@ -31,6 +31,11 @@ interface ShadowJobRow {
   attempt_count: number;
 }
 
+export interface ShadowJobOutcome {
+  id: string;
+  status: 'SUCCEEDED' | 'FAILED_RETRYABLE' | 'FALLBACK';
+}
+
 function preserveProvenance(value: string): EvidenceProvenance {
   if (value === 'REAL_WATTWISE' || value === 'SYNTHETIC_DEMO') return value;
   return 'UNCLASSIFIED';
@@ -54,6 +59,18 @@ export async function enqueueShadowForecastInTransaction(
   );
   const business = businessResult.rows[0];
   if (!business) return null;
+  if (config.mode === 'SHADOW' && (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production')) {
+    const enrollment = await client.query<{ enrolled: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM ai_shadow_enrollment
+          WHERE business_id = $1
+            AND shadow_enabled = true
+            AND approved_provenance = 'REAL_WATTWISE'
+       ) AS enrolled`,
+      [businessId]
+    );
+    if (business.data_provenance !== 'REAL_WATTWISE' || !enrollment.rows[0]?.enrolled) return null;
+  }
   const bills = await client.query<{
     period_start: string | Date;
     period_end: string | Date;
@@ -183,7 +200,13 @@ export async function reconcileActualOutcomeInTransaction(
   );
 }
 
-export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): Promise<string | null> {
+export async function claimAndProcessShadowJob(
+  fetcher: typeof fetch = fetch
+): Promise<ShadowJobOutcome | null> {
+  const effectiveConfig = getEffectiveAiConfig();
+  if (effectiveConfig.mode === 'OFF') return null;
+  const requireProductionEnrollment = effectiveConfig.mode === 'SHADOW' &&
+    (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production');
   const pool = getPool();
   const claimToken = crypto.randomUUID();
   const client = await pool.connect();
@@ -199,8 +222,24 @@ export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): P
           (status IN ('PENDING', 'FAILED_RETRYABLE') AND next_attempt_at <= NOW())
           OR (status = 'PROCESSING' AND claimed_at < NOW() - INTERVAL '5 minutes')
         )
+          AND (
+            $1::boolean = FALSE
+            OR (
+              data_provenance = 'REAL_WATTWISE'
+              AND EXISTS (
+                SELECT 1
+                  FROM ai_shadow_enrollment enrollment
+                  JOIN business enrolled_business ON enrolled_business.id = enrollment.business_id
+                 WHERE enrollment.business_id = ai_shadow_forecast.business_id
+                   AND enrollment.shadow_enabled = TRUE
+                   AND enrollment.approved_provenance = 'REAL_WATTWISE'
+                   AND enrolled_business.data_provenance = 'REAL_WATTWISE'
+              )
+            )
+          )
         ORDER BY created_at ASC
-        FOR UPDATE SKIP LOCKED LIMIT 1`
+        FOR UPDATE SKIP LOCKED LIMIT 1`,
+      [requireProductionEnrollment]
     );
     job = claimed.rows[0] ?? null;
     if (!job) {
@@ -222,7 +261,7 @@ export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): P
     client.release();
   }
   if (!job?.transient_payload) return null;
-  const config = getEffectiveAiConfig();
+  const config = effectiveConfig;
   try {
     const result = await callAiService(job.transient_payload, config, fetcher);
     await pool.query(
@@ -240,6 +279,7 @@ export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): P
         AI05_ARTIFACT_SHA256, result.inference_latency_ms, job.id, claimToken,
       ]
     );
+    return { id: job.id, status: 'SUCCEEDED' };
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 100) : 'AI_FAILURE';
     const terminal = Number(job.attempt_count) + 1 >= 3;
@@ -252,8 +292,8 @@ export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): P
         WHERE id = $4 AND claim_token = $5`,
       [terminal ? 'FALLBACK' : 'FAILED_RETRYABLE', code, terminal, job.id, claimToken]
     );
+    return { id: job.id, status: terminal ? 'FALLBACK' : 'FAILED_RETRYABLE' };
   }
-  return job.id;
 }
 
 export async function listPromotionGradeRealEvidence() {

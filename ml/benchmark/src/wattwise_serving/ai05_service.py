@@ -155,6 +155,7 @@ class Ai05Application:
                 "artifact_sha256": NBEATS_SHA256,
                 "feature_schema_sha256": FEATURE_SCHEMA_SHA256,
                 "last_failure_code": self.supervisor.last_failure_code,
+                "worker_generation": self.supervisor.worker_generation,
             },
         )
 
@@ -248,6 +249,9 @@ class Ai05Application:
 def application_from_environment() -> Ai05Application:
     model_root_value = os.environ.get("WATTWISE_MODEL_ROOT", "").strip()
     token = os.environ.get("WATTWISE_AI_SERVICE_TOKEN", "")
+    configured_sha = os.environ.get("WATTWISE_MODEL_ARTIFACT_SHA256", "").strip()
+    if configured_sha and configured_sha != NBEATS_SHA256:
+        raise RuntimeError("NBEATS_ARTIFACT_AUTHORITY_MISMATCH")
     inventory = ArtifactInventory(Path(model_root_value) if model_root_value else None)
     spec = inventory.require("nbeats", NBEATS_VERSION)
     if spec.sha256 != NBEATS_SHA256:

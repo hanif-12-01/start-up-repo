@@ -150,11 +150,12 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     expect(indexNames).toContain('appliance_business_active_idx');
     expect(indexNames).toContain('ai_shadow_forecast_claim_idx');
     expect(indexNames).toContain('ai_shadow_forecast_real_evidence_idx');
+    expect(indexNames).toContain('ai_shadow_enrollment_enabled_idx');
   }
 
   it('STEP 1: Apply all forward migrations (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBeGreaterThanOrEqual(14);
+    expect(forwardNames.length).toBeGreaterThanOrEqual(15);
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -233,8 +234,17 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     });
   });
 
+  it('rehearses migration 0014 rollback and empty reapply', async () => {
+    expect((await pool.query(`SELECT count(*)::int AS count FROM ai_shadow_enrollment`)).rows[0].count).toBe(0);
+    await pool.query(readRollbackMigration('0014_ai_shadow_enrollment_rollback.sql'));
+    expect((await pool.query(`SELECT to_regclass('public.ai_shadow_enrollment') AS table_name`)).rows[0].table_name).toBeNull();
+    await pool.query(readForwardMigration('0014_ai_shadow_enrollment.sql'));
+    expect((await pool.query(`SELECT count(*)::int AS count FROM ai_shadow_enrollment`)).rows[0].count).toBe(0);
+  });
+
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0014_ai_shadow_enrollment_rollback.sql',
       '0013_ai_shadow_prospective_reachability_rollback.sql',
       '0012_ai_shadow_evidence_integrity_rollback.sql',
       '0011_ai_shadow_integration_rollback.sql',

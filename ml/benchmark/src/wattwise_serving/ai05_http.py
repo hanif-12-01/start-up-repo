@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import signal
+import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -69,4 +71,16 @@ def handler_for(application: Ai05Application) -> type[BaseHTTPRequestHandler]:
 
 
 def serve(host: str, port: int, application: Ai05Application) -> None:
-    ThreadingHTTPServer((host, port), handler_for(application)).serve_forever()
+    server = ThreadingHTTPServer((host, port), handler_for(application))
+    previous = signal.getsignal(signal.SIGTERM)
+
+    def shutdown(_signum: int, _frame: Any) -> None:
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    signal.signal(signal.SIGTERM, shutdown)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()
+        application.supervisor.close()
+        signal.signal(signal.SIGTERM, previous)

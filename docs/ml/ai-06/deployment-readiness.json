@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "checks": {
+    "artifact_source_configured": "REQUIRED_AT_DEPLOYMENT",
+    "artifact_sha_matches": "ENFORCED_BEFORE_WORKER_START",
+    "model_service_token_configured": "REQUIRED_AT_RUNTIME",
+    "worker_startup_succeeds": "PASS_LOCAL_REAL_ARTIFACT",
+    "health_live_passes": "PASS_LOCAL",
+    "health_ready_passes": "PASS_LOCAL_REAL_ARTIFACT",
+    "model_version_matches": "ENFORCED",
+    "feature_schema_matches": "ENFORCED",
+    "container_memory_measured": "PASS_LOCAL_1.422_GIB_HIGHEST_OBSERVED",
+    "container_shutdown_works": "PASS_LOCAL_EXIT_0"
+  },
+  "local_measurements": {
+    "ready_startup_ms_approx": 40000,
+    "steady_memory_gib_approx": 1.321,
+    "highest_observed_memory_gib": 1.422,
+    "warm_http_p95_ms": 292.202,
+    "warm_http_requests": 20,
+    "graceful_shutdown_ms": 5615.837,
+    "artifact_size_bytes": 4447799
+  },
+  "frozen_identity": {
+    "model": "nbeats",
+    "version": "nbeats-ai02-1.0.0",
+    "artifact_sha256": "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6",
+    "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4"
+  },
+  "persistent_hosting_target_selected": false,
+  "production_activation_approved": false
+}

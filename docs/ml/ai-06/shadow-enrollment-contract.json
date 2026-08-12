@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "operator_only": true,
+  "user_interface": false,
+  "default_unenrolled": true,
+  "approved_provenance": "REAL_WATTWISE",
+  "production_enqueue_requires": ["WATTWISE_AI_MODE=SHADOW", "dual production approval flags", "business.data_provenance=REAL_WATTWISE", "enabled enrollment", "enrollment.approved_provenance=REAL_WATTWISE"],
+  "operator_input": ["explicit_business_id", "reason", "dry_run"],
+  "identity_inference_forbidden": ["email", "business_name", "user_name"],
+  "disable_pending_policy": "mark NOT_ELIGIBLE and clear transient payload",
+  "idempotent": true
+}

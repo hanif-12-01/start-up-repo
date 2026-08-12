@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "states": ["OK", "WARNING", "CRITICAL"],
+  "defaults": {
+    "warm_p95_latency_ms": { "warning_above": 500, "critical_above": 750 },
+    "system_failure_rate": { "warning_above": 0.005, "critical_above": 0.01 },
+    "oldest_pending_or_retryable_seconds": { "warning_above": 900, "critical_above": 3600 },
+    "service_not_ready": "CRITICAL",
+    "model_identity_mismatch": "CRITICAL"
+  },
+  "external_notifications": false,
+  "automatic_model_promotion": false
+}

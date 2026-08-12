@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "aggregate_only": true,
+  "pii_fields_forbidden": ["user_id", "business_id", "email", "name", "address", "history", "individual_prediction", "individual_actual"],
+  "operational_metrics": ["pending", "processing", "succeeded", "failed_retryable", "fallback", "oldest_pending_seconds", "oldest_retryable_seconds", "stale_processing", "average_attempt_count", "max_attempt_count", "system_failure_rate"],
+  "latency_metrics": ["count", "p50", "p95", "p99", "max"],
+  "evidence_tiers": {
+    "0": "NO_REAL_ACCURACY_EVIDENCE",
+    "1-29": "PRELIMINARY_ONLY",
+    "30-99": "EVALUABLE_BUT_NOT_PROMOTION_GRADE",
+    "100+": "PROMOTION_GRADE_ELIGIBLE"
+  },
+  "segments": ["H06_12", "H13_PLUS", "DAY_0_1", "DAY_2_7", "DAY_8_PLUS", "USER_ENTERED", "METER_DERIVED", "model_version", "artifact_sha256", "feature_schema_sha256"],
+  "promotion_review_automatic": false
+}

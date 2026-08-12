@@ -1,0 +1,12 @@
+**/.env
+**/.env.*
+**/__pycache__
+**/*.pyc
+**/*.ckpt
+**/*.joblib
+**/*.parquet
+**/*.csv
+**/.pytest_cache
+tests
+reports
+deploy/**/evidence

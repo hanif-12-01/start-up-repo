@@ -74,4 +74,29 @@ export const aiShadowForecast = pgTable(
   ]
 );
 
+export const aiShadowEnrollment = pgTable(
+  'ai_shadow_enrollment',
+  {
+    businessId: text('business_id').primaryKey().references(() => business.id, { onDelete: 'cascade' }),
+    shadowEnabled: boolean('shadow_enabled').notNull().default(false),
+    approvedProvenance: text('approved_provenance').notNull(),
+    enrolledAt: timestamp('enrolled_at', { withTimezone: true }),
+    disabledAt: timestamp('disabled_at', { withTimezone: true }),
+    enrollmentReason: text('enrollment_reason').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('ai_shadow_enrollment_enabled_idx').on(t.shadowEnabled, t.approvedProvenance),
+    check('ai_shadow_enrollment_provenance_check', sql`${t.approvedProvenance} = 'REAL_WATTWISE'`),
+    check('ai_shadow_enrollment_reason_check', sql`length(trim(${t.enrollmentReason})) BETWEEN 3 AND 500`),
+    check(
+      'ai_shadow_enrollment_state_check',
+      sql`(${t.shadowEnabled} = true AND ${t.enrolledAt} IS NOT NULL AND ${t.disabledAt} IS NULL)
+          OR (${t.shadowEnabled} = false)`
+    ),
+  ]
+);
+
 export type AiShadowForecast = typeof aiShadowForecast.$inferSelect;
+export type AiShadowEnrollment = typeof aiShadowEnrollment.$inferSelect;

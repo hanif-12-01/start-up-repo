@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "source": "strict promotion-grade REAL_WATTWISE predicate only",
+  "metrics": ["paired_count", "mae", "rmse", "wmape", "smape", "median_absolute_error", "p90_absolute_error", "signed_bias", "win_rate", "ties", "mean_paired_delta", "median_paired_delta", "relative_mae_improvement"],
+  "paired_delta": "abs_error_nbeats - abs_error_deterministic",
+  "bootstrap": { "minimum_pairs": 30, "resamples": 1000, "seed": 202606, "confidence": 0.95 },
+  "wmape_zero_denominator": "INSUFFICIENT_DENOMINATOR",
+  "excluded": ["UNCLASSIFIED", "SYNTHETIC_DEMO", "LEGACY_UNKNOWN", "retrospective", "target_known", "actual_before_or_at_forecast", "missing_ml", "missing_deterministic"],
+  "automatic_routing_change": false
+}

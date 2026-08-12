@@ -347,6 +347,7 @@ const diagnosticsSchema = z.object({
   artifact_sha256: z.string(),
   feature_schema_sha256: z.string(),
   last_failure_code: z.string().nullable(),
+  worker_generation: z.number().int().nonnegative(),
 }).strict();
 
 export async function getAiIntegrationDiagnostics(
@@ -362,6 +363,7 @@ export async function getAiIntegrationDiagnostics(
     artifactChecksumMatch: false,
     featureSchemaMatch: false,
     workerState: config.mode === 'OFF' ? 'DISABLED' : 'UNKNOWN',
+    workerGeneration: 0,
     lastSafeFailureCode: config.mode === 'OFF' ? config.reason : null,
   };
   if (config.mode === 'OFF' || !config.serviceUrl) return base;
@@ -381,6 +383,7 @@ export async function getAiIntegrationDiagnostics(
       artifactChecksumMatch: parsed.artifact_sha256 === AI05_ARTIFACT_SHA256,
       featureSchemaMatch: parsed.feature_schema_sha256 === AI05_FEATURE_SCHEMA_SHA256,
       workerState: parsed.service_state,
+      workerGeneration: parsed.worker_generation,
       lastSafeFailureCode: parsed.last_failure_code,
     };
   } catch {
