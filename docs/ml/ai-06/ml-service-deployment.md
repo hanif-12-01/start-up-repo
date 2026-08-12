@@ -18,7 +18,6 @@ purchased in AI-06A.
 
 The Python scientific stack already ships the required OpenMP runtime in Torch's library
 directory. `LD_LIBRARY_PATH` is set in the image so LightGBM's import-time native dependency can
-resolve without downloading mutable OS packages. The final Dockerfile change was also validated
-by running the same image with that exact runtime setting; a subsequent Docker Desktop BuildKit
-invocation stalled locally and is recorded as an environment-level P2 follow-up, not a service
-or artifact integrity failure.
+resolve without downloading mutable OS packages. Docker Desktop completed the final image as
+`fb890396e38a`; a fresh container reached READY with the real read-only artifact and stopped with
+exit code 0 without a runtime environment override.

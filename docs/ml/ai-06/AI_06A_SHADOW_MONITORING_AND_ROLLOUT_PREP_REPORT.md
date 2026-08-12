@@ -31,9 +31,8 @@ blocked even when local quality gates pass.
 - Synthetic real-artifact response: success, H06_12, worker generation 1.
 - Warm HTTP p95: 292.202 ms over 20 requests; highest observed memory: 1.422 GiB.
 - Graceful shutdown: exit code 0 in 5,615.837 ms.
-- Docker Desktop BuildKit later stalled while materializing the final one-line runtime ENV layer;
-  the exact runtime setting was verified against the already-built image. Rebuild on a clean CI
-  runner remains an explicit P2 preflight action before any registry publication.
+- Final local image `fb890396e38a` reached READY with the frozen read-only artifact and stopped
+  cleanly with exit code 0 without any runtime library-path override.
 
 ## Scope freeze
 
@@ -46,8 +45,6 @@ NO PRODUCTION DATABASE ACCESS. NO PRODUCTION ENV CHANGE. NO DEPLOYMENT. NO MERGE
 - P1: 0.
 - P2: persistent private ML hosting target has not been selected or approved.
 - P2: production scheduler target has not been selected or approved.
-- P2: rebuild the final image on a clean CI/BuildKit runner before registry publication; local
-  Docker Desktop stalled after the functionally verified runtime correction.
 - Production REAL_WATTWISE paired count was not queried because production DB access is forbidden;
   test/disposable observations are intentionally excluded from that number.
 
