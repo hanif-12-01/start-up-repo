@@ -1,5 +1,10 @@
 {
   "schema_version": "1.0",
+  "allowed_provenance_values": ["UNCLASSIFIED", "REAL_WATTWISE", "SYNTHETIC_DEMO"],
+  "promotion_provenance": "REAL_WATTWISE",
+  "history_temporal_integrity_required": true,
+  "application_timezone": "Asia/Jakarta",
+  "completed_history_rule": "inclusive period_end must be before forecast_origin local calendar date",
   "promotion_grade_filter": {
     "data_provenance": "REAL_WATTWISE",
     "prospective_forecast": true,

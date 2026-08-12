@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import type { PredictionResult, UsageSample } from './product-analysis';
+import type { PredictionResult } from './product-analysis';
 
 export const AI05_MODEL_VERSION = 'nbeats-ai02-1.0.0';
 export const AI05_ARTIFACT_SHA256 =
@@ -10,7 +10,7 @@ export const AI05_FEATURE_SCHEMA_SHA256 =
 
 export type AiMode = 'OFF' | 'SHADOW' | 'LOCAL_EXPERIMENTAL';
 export type HistoryPhase = 'H00' | 'H01_02' | 'H03_05' | 'H06_12' | 'H13_PLUS';
-export type EvidenceProvenance = 'REAL_WATTWISE' | 'SYNTHETIC_DEMO';
+export type EvidenceProvenance = 'UNCLASSIFIED' | 'REAL_WATTWISE' | 'SYNTHETIC_DEMO';
 
 export interface AiEffectiveConfig {
   mode: AiMode;
@@ -100,35 +100,78 @@ export interface AiHistory {
   phase: HistoryPhase;
   history: Array<{ period_month: string; usage_kwh: number }>;
   targetPeriod: string | null;
+  latestPeriodEnd: string | null;
+  temporalIntegrity: boolean;
 }
 
-export function buildContiguousHistory(samples: UsageSample[], forecastOrigin?: Date): AiHistory {
-  const latestAllowedPeriod = forecastOrigin?.toISOString().slice(0, 7) ?? '9999-12';
-  const valid = samples
+export interface AiHistoryObservation {
+  periodMonth: string;
+  periodStart: string;
+  periodEnd: string;
+  usageKwh: number | null;
+}
+
+export const AI05_APPLICATION_TIMEZONE = 'Asia/Jakarta';
+
+export function applicationLocalDate(value: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: AI05_APPLICATION_TIMEZONE,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(value);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+function emptyHistory(): AiHistory {
+  return {
+    phase: 'H00', history: [], targetPeriod: null,
+    latestPeriodEnd: null, temporalIntegrity: false,
+  };
+}
+
+export function buildContiguousHistory(
+  observations: AiHistoryObservation[],
+  forecastOrigin: Date
+): AiHistory {
+  const originLocalDate = applicationLocalDate(forecastOrigin);
+  const valid = observations
     .filter((item) => (
-      /^\d{4}-(0[1-9]|1[0-2])$/.test(item.period) &&
-      item.period <= latestAllowedPeriod &&
+      /^\d{4}-(0[1-9]|1[0-2])$/.test(item.periodMonth) &&
+      /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(item.periodStart) &&
+      /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(item.periodEnd) &&
+      item.periodStart <= item.periodEnd &&
+      item.periodMonth === item.periodEnd.slice(0, 7) &&
+      item.periodEnd < originLocalDate &&
       item.usageKwh !== null &&
       Number.isFinite(item.usageKwh) &&
       item.usageKwh >= 0
     ))
-    .map((item) => ({ period_month: item.period, usage_kwh: Number(item.usageKwh) }))
+    .map((item) => ({
+      period_month: item.periodMonth,
+      period_end: item.periodEnd,
+      usage_kwh: Number(item.usageKwh),
+    }))
     .sort((left, right) => left.period_month.localeCompare(right.period_month));
   if (new Set(valid.map((item) => item.period_month)).size !== valid.length) {
-    return { phase: 'H00', history: [], targetPeriod: null };
+    return emptyHistory();
   }
-  const deduplicated = new Map(valid.map((item) => [item.period_month, item]));
-  const unique = [...deduplicated.values()].sort((a, b) => a.period_month.localeCompare(b.period_month));
-  const contiguous: typeof unique = [];
-  for (let index = unique.length - 1; index >= 0; index -= 1) {
-    if (contiguous.length === 0 || nextMonth(unique[index].period_month) === contiguous[0].period_month) {
-      contiguous.unshift(unique[index]);
+  const contiguous: typeof valid = [];
+  for (let index = valid.length - 1; index >= 0; index -= 1) {
+    if (contiguous.length === 0 || nextMonth(valid[index].period_month) === contiguous[0].period_month) {
+      contiguous.unshift(valid[index]);
     } else {
       break;
     }
   }
   const targetPeriod = contiguous.length > 0 ? nextMonth(contiguous.at(-1)!.period_month) : null;
-  return { phase: routeHistory(contiguous.length), history: contiguous, targetPeriod };
+  return {
+    phase: routeHistory(contiguous.length),
+    history: contiguous.map(({ period_month, usage_kwh }) => ({ period_month, usage_kwh })),
+    targetPeriod,
+    latestPeriodEnd: contiguous.at(-1)?.period_end ?? null,
+    temporalIntegrity: contiguous.length > 0,
+  };
 }
 
 export interface AiContext {

@@ -115,6 +115,28 @@ describe('AI-05 durable shadow integration', () => {
     expect((await pool.query('SELECT count(*)::int AS count FROM electricity_bill')).rows[0].count).toBe(6);
   });
 
+  it('clears the transient payload after the third failed attempt enters terminal fallback', async () => {
+    const owner = await tenant('terminal-fallback');
+    for (let month = 1; month <= 6; month += 1) {
+      await addMonth(owner.userId, owner.businessId, month, 100);
+    }
+    const offline = async () => { throw new Error('offline'); };
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await claimAndProcessShadowJob(offline);
+      if (attempt < 3) {
+        await pool.query(
+          `UPDATE ai_shadow_forecast SET next_attempt_at = NOW()
+            WHERE business_id = $1`,
+          [owner.businessId]
+        );
+      }
+    }
+    const evidence = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(evidence.status).toBe('FALLBACK');
+    expect(Number(evidence.attempt_count)).toBe(3);
+    expect(evidence.transient_payload).toBeNull();
+  });
+
   it('preserves tenant isolation and excludes unclassified businesses from real evidence', async () => {
     const a = await tenant('a', 'UNCLASSIFIED');
     const b = await tenant('b');
@@ -128,7 +150,8 @@ describe('AI-05 durable shadow integration', () => {
     expect(rowsB).toHaveLength(1);
     expect(rowsA[0].business_id).toBe(a.businessId);
     expect(rowsB[0].business_id).toBe(b.businessId);
-    expect(rowsA[0].data_provenance).toBe('SYNTHETIC_DEMO');
+    expect(rowsA[0].data_provenance).toBe('UNCLASSIFIED');
+    expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
   });
 
   it('claiming is concurrency-safe', async () => {
@@ -164,8 +187,40 @@ describe('AI-05 durable shadow integration', () => {
       await addMonth(owner.userId, owner.businessId, month, 100 + month);
     }
     const run = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(run.data_provenance).toBe('REAL_WATTWISE');
+    expect(run.history_temporal_integrity).toBe(true);
+    expect(run.history_latest_period_end).not.toBeNull();
     expect(run.prospective_forecast).toBe(false);
     expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
+  });
+
+  it('requires temporal integrity in the promotion-grade query', async () => {
+    const owner = await tenant('promotion-filter', 'REAL_WATTWISE');
+    await pool.query(
+      `INSERT INTO ai_shadow_forecast (
+         id, business_id, request_id, forecast_origin, target_period,
+         data_provenance, prospective_forecast, history_phase, history_fingerprint,
+         mode, status, deterministic_prediction_kwh, ml_prediction_kwh, ml_model_version,
+         artifact_sha256, feature_schema_sha256, actual_kwh, actual_kwh_source, scored_at,
+         history_temporal_integrity
+       ) VALUES (
+         'promotion-filter-run', $1, 'promotion-filter-request', NOW(), '2026-08',
+         'REAL_WATTWISE', true, 'H06_12', $2, 'SHADOW', 'SUCCEEDED', 100, 110,
+         $3, $4, $5, 105, 'USER_ENTERED', NOW(), false
+       )`,
+      [
+        owner.businessId, 'f'.repeat(64), AI05_MODEL_VERSION,
+        AI05_ARTIFACT_SHA256, AI05_FEATURE_SCHEMA_SHA256,
+      ]
+    );
+    expect(await listPromotionGradeRealEvidence()).toHaveLength(0);
+    await pool.query(
+      `UPDATE ai_shadow_forecast
+          SET history_temporal_integrity = true,
+              history_latest_period_end = '2026-07-31'
+        WHERE id = 'promotion-filter-run'`
+    );
+    expect(await listPromotionGradeRealEvidence()).toHaveLength(1);
   });
 
   it.skipIf(process.env.WATTWISE_AI_REAL_SERVICE_E2E !== 'true')(

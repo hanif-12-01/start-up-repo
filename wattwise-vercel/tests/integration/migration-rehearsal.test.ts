@@ -104,6 +104,13 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     `);
     expect(businessCols.rows.map((row) => row.column_name)).toContain('data_provenance');
 
+    const shadowCols = await pool.query(`
+      SELECT column_name FROM information_schema.columns WHERE table_name = 'ai_shadow_forecast';
+    `);
+    const shadowColumnNames = shadowCols.rows.map((row) => row.column_name);
+    expect(shadowColumnNames).toContain('history_latest_period_end');
+    expect(shadowColumnNames).toContain('history_temporal_integrity');
+
     // Validate foreign key constraints
     const fkRes = await pool.query(`
       SELECT constraint_name
@@ -145,7 +152,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
 
   it('STEP 1: Apply all forward migrations (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBeGreaterThanOrEqual(12);
+    expect(forwardNames.length).toBeGreaterThanOrEqual(13);
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -172,8 +179,42 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     await expect(pool.query(`INSERT INTO "appliance" (id, business_id, name, category, quantity, operating_days) VALUES ('workspace-a2', 'workspace-b1', 'mesin cuci', 'Mesin produksi', 1, 30)`)).rejects.toThrow();
   });
 
+  it('rehearses migration 0012 rollback and reapply without reinterpreting provenance', async () => {
+    await pool.query(`
+      INSERT INTO "user" (id, name, email, email_verified)
+      VALUES ('integrity-user', 'Integrity', 'integrity@example.test', true)
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await pool.query(`
+      INSERT INTO business (id, user_id, name, business_type, segment, electrical_system)
+      VALUES ('integrity-business', 'integrity-user', 'Integrity', 'OTHER', 'OTHER', 'ALL_IN')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await pool.query(`
+      INSERT INTO ai_shadow_forecast (
+        id, business_id, request_id, forecast_origin, target_period, data_provenance,
+        prospective_forecast, history_phase, history_fingerprint, mode, status,
+        feature_schema_sha256
+      ) VALUES (
+        'integrity-shadow', 'integrity-business', 'integrity-request', NOW(), '2026-08',
+        'UNCLASSIFIED', false, 'H06_12', repeat('f', 64), 'SHADOW', 'NOT_ELIGIBLE',
+        repeat('a', 64)
+      ) ON CONFLICT (id) DO NOTHING
+    `);
+    await pool.query(readRollbackMigration('0012_ai_shadow_evidence_integrity_rollback.sql'));
+    expect((await pool.query(
+      `SELECT data_provenance FROM ai_shadow_forecast WHERE id = 'integrity-shadow'`
+    )).rows[0].data_provenance).toBe('UNCLASSIFIED');
+    await pool.query(readForwardMigration('0012_ai_shadow_evidence_integrity.sql'));
+    const integrity = await pool.query(
+      `SELECT history_temporal_integrity FROM ai_shadow_forecast WHERE id = 'integrity-shadow'`
+    );
+    expect(integrity.rows[0].history_temporal_integrity).toBe(false);
+  });
+
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0012_ai_shadow_evidence_integrity_rollback.sql',
       '0011_ai_shadow_integration_rollback.sql',
       '0010_kwh_provenance_rollback.sql',
       '0009_product_parity_rollback.sql',

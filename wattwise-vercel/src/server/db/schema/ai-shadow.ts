@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   check,
+  date,
   index,
   jsonb,
   numeric,
@@ -26,6 +27,8 @@ export const aiShadowForecast = pgTable(
     historyPhase: text('history_phase').notNull(),
     historyFingerprint: text('history_fingerprint').notNull(),
     transientPayload: jsonb('transient_payload'),
+    historyLatestPeriodEnd: date('history_latest_period_end'),
+    historyTemporalIntegrity: boolean('history_temporal_integrity').notNull().default(false),
     mode: text('mode').notNull(),
     status: text('status').notNull(),
     deterministicPredictionKwh: numeric('deterministic_prediction_kwh', { precision: 15, scale: 3 }),
@@ -57,7 +60,10 @@ export const aiShadowForecast = pgTable(
       .on(t.dataProvenance, t.prospectiveForecast, t.scoredAt)
       .where(sql`${t.dataProvenance} = 'REAL_WATTWISE' AND ${t.prospectiveForecast} = true`),
     check('ai_shadow_forecast_mode_check', sql`${t.mode} IN ('SHADOW', 'LOCAL_EXPERIMENTAL')`),
-    check('ai_shadow_forecast_provenance_check', sql`${t.dataProvenance} IN ('REAL_WATTWISE', 'SYNTHETIC_DEMO')`),
+    check(
+      'ai_shadow_forecast_provenance_check',
+      sql`${t.dataProvenance} IN ('UNCLASSIFIED', 'REAL_WATTWISE', 'SYNTHETIC_DEMO')`
+    ),
     check('ai_shadow_forecast_status_check', sql`${t.status} IN ('PENDING', 'PROCESSING', 'SUCCEEDED', 'FALLBACK', 'NOT_ELIGIBLE', 'FAILED_RETRYABLE', 'FAILED_TERMINAL')`),
     check('ai_shadow_forecast_phase_check', sql`${t.historyPhase} IN ('H00', 'H01_02', 'H03_05', 'H06_12', 'H13_PLUS')`),
     check('ai_shadow_forecast_actual_source_check', sql`${t.actualKwhSource} IS NULL OR ${t.actualKwhSource} IN ('USER_ENTERED', 'METER_DERIVED', 'LEGACY_UNKNOWN')`),

@@ -214,6 +214,15 @@ describe('QA Demo Provisioning Integration Tests (IT-QC-DEMO-01B Hardened)', () 
   });
 
   describe('GAP 6 & 7: Provenance & Historical Report Readiness', () => {
+    it('marks QA/demo business explicitly as SYNTHETIC_DEMO', async () => {
+      const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
+      const business = await pool.query(
+        `SELECT data_provenance FROM business WHERE id = $1`,
+        [res.businessId]
+      );
+      expect(business.rows[0].data_provenance).toBe('SYNTHETIC_DEMO');
+    });
+
     it('stores kwh=null with LEGACY_UNKNOWN and derives BILL_TARIFF_DERIVED in read model', async () => {
       const res = await seedQaDemoAccount({ anchorMonth: '2026-08' });
 

@@ -3,6 +3,7 @@ import {
   AI05_ARTIFACT_SHA256,
   AI05_FEATURE_SCHEMA_SHA256,
   AI05_MODEL_VERSION,
+  applicationLocalDate,
   buildAiPayload,
   buildContiguousHistory,
   callAiService,
@@ -29,8 +30,9 @@ interface ShadowJobRow {
   attempt_count: number;
 }
 
-function monthStart(period: string): Date {
-  return new Date(`${period}-01T00:00:00.000Z`);
+function preserveProvenance(value: string): EvidenceProvenance {
+  if (value === 'REAL_WATTWISE' || value === 'SYNTHETIC_DEMO') return value;
+  return 'UNCLASSIFIED';
 }
 
 export async function enqueueShadowForecastInTransaction(
@@ -52,29 +54,41 @@ export async function enqueueShadowForecastInTransaction(
   const business = businessResult.rows[0];
   if (!business) return null;
   const bills = await client.query<{
+    period_start: string | Date;
     period_end: string | Date;
     kwh: string | null;
     total_amount_rupiah: string;
     tariff_rupiah_per_kwh: string | null;
     kwh_source: string | null;
   }>(
-    `SELECT period_end, kwh, total_amount_rupiah, tariff_rupiah_per_kwh, kwh_source
+    `SELECT period_start, period_end, kwh, total_amount_rupiah, tariff_rupiah_per_kwh, kwh_source
        FROM electricity_bill WHERE business_id = $1
       ORDER BY period_end ASC, period_start ASC, id ASC`,
     [businessId]
   );
-  const samples = buildUsageSamplesFromBills(
-    bills.rows.map((row) => ({
-      periodEnd: row.period_end instanceof Date
-        ? row.period_end.toISOString().slice(0, 10)
-        : String(row.period_end),
-      kwh: row.kwh,
-      totalAmountRupiah: BigInt(row.total_amount_rupiah),
-      tariffRupiahPerKwh: row.tariff_rupiah_per_kwh,
-      kwhSource: row.kwh_source,
-    }))
+  const normalizedBills = bills.rows.map((row) => ({
+    periodStart: row.period_start instanceof Date
+      ? row.period_start.toISOString().slice(0, 10)
+      : String(row.period_start),
+    periodEnd: row.period_end instanceof Date
+      ? row.period_end.toISOString().slice(0, 10)
+      : String(row.period_end),
+    kwh: row.kwh,
+    totalAmountRupiah: BigInt(row.total_amount_rupiah),
+    tariffRupiahPerKwh: row.tariff_rupiah_per_kwh,
+    kwhSource: row.kwh_source,
+  }));
+  const samples = buildUsageSamplesFromBills(normalizedBills);
+  const usageByPeriod = new Map(samples.map((sample) => [sample.period, sample.usageKwh]));
+  const history = buildContiguousHistory(
+    normalizedBills.map((bill) => ({
+      periodMonth: bill.periodEnd.slice(0, 7),
+      periodStart: bill.periodStart,
+      periodEnd: bill.periodEnd,
+      usageKwh: usageByPeriod.get(bill.periodEnd.slice(0, 7)) ?? null,
+    })),
+    sourceStateAt
   );
-  const history = buildContiguousHistory(samples, sourceStateAt);
   if (!history.targetPeriod || !['H06_12', 'H13_PLUS'].includes(history.phase)) return null;
   const deterministic = predictUsage(
     samples,
@@ -89,10 +103,9 @@ export async function enqueueShadowForecastInTransaction(
     historyFingerprint: fingerprint,
     mode: config.mode,
   });
-  const provenance: EvidenceProvenance = business.data_provenance === 'REAL_WATTWISE'
-    ? 'REAL_WATTWISE'
-    : 'SYNTHETIC_DEMO';
-  const prospective = sourceStateAt < monthStart(history.targetPeriod);
+  const provenance = preserveProvenance(business.data_provenance);
+  const prospective = history.temporalIntegrity &&
+    applicationLocalDate(sourceStateAt) < `${history.targetPeriod}-01`;
   const payload = buildAiPayload({
     opaqueRequestId: requestId,
     forecastOrigin: sourceStateAt,
@@ -107,13 +120,15 @@ export async function enqueueShadowForecastInTransaction(
     `INSERT INTO ai_shadow_forecast (
        id, business_id, request_id, forecast_origin, target_period, data_provenance,
        prospective_forecast, history_phase, history_fingerprint, transient_payload,
+       history_latest_period_end, history_temporal_integrity,
        mode, status, deterministic_prediction_kwh, feature_schema_sha256
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, 'PENDING', $12, $13)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13, 'PENDING', $14, $15)
      ON CONFLICT (request_id) DO NOTHING`,
     [
       crypto.randomUUID(), businessId, requestId, sourceStateAt, history.targetPeriod,
       provenance, prospective, history.phase, fingerprint,
-      JSON.stringify(payload), config.mode, deterministic.predictedUsageKwh,
+      JSON.stringify(payload), history.latestPeriodEnd, history.temporalIntegrity,
+      config.mode, deterministic.predictedUsageKwh,
       AI05_FEATURE_SCHEMA_SHA256,
     ]
   );
@@ -207,7 +222,7 @@ export async function claimAndProcessShadowJob(fetcher: typeof fetch = fetch): P
     );
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 100) : 'AI_FAILURE';
-    const terminal = job.attempt_count + 1 >= 3;
+    const terminal = Number(job.attempt_count) + 1 >= 3;
     await pool.query(
       `UPDATE ai_shadow_forecast
           SET status = $1, fallback_reason = $2,
@@ -225,12 +240,14 @@ export async function listPromotionGradeRealEvidence() {
   return (
     await getPool().query(
       `SELECT id, request_id, forecast_origin, target_period, history_phase,
+              history_latest_period_end, history_temporal_integrity,
               deterministic_prediction_kwh, ml_prediction_kwh, ml_model_version,
               artifact_sha256, feature_schema_sha256, actual_kwh, actual_kwh_source,
               absolute_error_ml, absolute_error_deterministic, scored_at
          FROM ai_shadow_forecast
         WHERE data_provenance = 'REAL_WATTWISE'
           AND prospective_forecast = TRUE
+          AND history_temporal_integrity = TRUE
           AND actual_kwh_source IN ('USER_ENTERED', 'METER_DERIVED')
           AND actual_kwh IS NOT NULL
           AND ml_prediction_kwh IS NOT NULL

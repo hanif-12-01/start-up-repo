@@ -20,6 +20,12 @@ const sample = (period: string, usageKwh: number): UsageSample => ({
   period, usageKwh, billAmount: usageKwh * 1500, tariff: 1500,
 });
 
+const observation = (
+  periodMonth: string,
+  usageKwh: number,
+  periodEnd = `${periodMonth}-28`
+) => ({ periodMonth, periodStart: `${periodMonth}-01`, periodEnd, usageKwh });
+
 function success(requestId = 'opaque-request') {
   return {
     schema_version: '2.0', request_id: requestId, status: 'SUCCESS',
@@ -70,8 +76,9 @@ describe('AI-05 server-only integration contract', () => {
 
   it('uses only the latest contiguous history run and preserves zero', () => {
     const history = buildContiguousHistory([
-      sample('2025-01', 99), sample('2025-03', 0), sample('2025-04', 120), sample('2025-05', 130),
-    ]);
+      observation('2025-01', 99), observation('2025-03', 0),
+      observation('2025-04', 120), observation('2025-05', 130),
+    ], new Date('2025-06-15T00:00:00Z'));
     expect(history.history).toEqual([
       { period_month: '2025-03', usage_kwh: 0 },
       { period_month: '2025-04', usage_kwh: 120 },
@@ -82,15 +89,60 @@ describe('AI-05 server-only integration contract', () => {
 
   it('fails closed on duplicate months and excludes future months', () => {
     expect(buildContiguousHistory([
-      sample('2025-01', 100), sample('2025-01', 101),
-    ]).phase).toBe('H00');
+      observation('2025-01', 100), observation('2025-01', 101),
+    ], new Date('2025-02-15T00:00:00Z')).phase).toBe('H00');
     expect(buildContiguousHistory([
-      sample('2025-01', 100), sample('2025-02', 101), sample('2025-03', 102),
-    ], new Date('2025-02-15T00:00:00Z')).targetPeriod).toBe('2025-03');
+      observation('2025-01', 100, '2025-01-31'),
+      observation('2025-02', 101, '2025-02-28'),
+      observation('2025-03', 102, '2025-03-31'),
+    ], new Date('2025-02-15T00:00:00Z')).targetPeriod).toBe('2025-02');
+  });
+
+  it('uses exact Asia/Jakarta period-end completion with conservative same-day exclusion', () => {
+    const forecastOrigin = new Date('2026-08-12T05:00:00Z');
+    const history = buildContiguousHistory([
+      observation('2026-07', 100, '2026-07-31'),
+      observation('2026-08', 999, '2026-08-31'),
+    ], forecastOrigin);
+    expect(history.history).toEqual([{ period_month: '2026-07', usage_kwh: 100 }]);
+    expect(history.latestPeriodEnd).toBe('2026-07-31');
+    expect(history.temporalIntegrity).toBe(true);
+    expect(buildContiguousHistory([
+      observation('2026-07', 100, '2026-07-31'),
+    ], new Date('2026-07-31T05:00:00Z')).history).toHaveLength(0);
+  });
+
+  it('is invariant to future-bill and target-actual perturbations', () => {
+    const origin = new Date('2026-07-01T00:00:00Z');
+    const completed = Array.from({ length: 6 }, (_, index) => {
+      const month = String(index + 1).padStart(2, '0');
+      return observation(`2026-${month}`, 100 + index, `2026-${month}-28`);
+    });
+    const a = buildContiguousHistory([
+      ...completed, observation('2026-07', 1, '2026-07-31'),
+      observation('2026-08', 1, '2026-08-31'),
+    ], origin);
+    const b = buildContiguousHistory([
+      ...completed, observation('2026-07', 999999, '2026-07-31'),
+      observation('2026-08', 999999, '2026-08-31'),
+    ], origin);
+    expect(a.history).toEqual(b.history);
+    expect(historyFingerprint(a)).toBe(historyFingerprint(b));
+    const request = {
+      opaqueRequestId: 'temporal-invariance-request',
+      forecastOrigin: origin,
+      context: { businessType: 'RETAIL', timezone: null, buildingArea: null },
+    };
+    expect(buildAiPayload({ ...request, history: a }))
+      .toEqual(buildAiPayload({ ...request, history: b }));
   });
 
   it('does not allow target actual to influence payload or history fingerprint', () => {
-    const history = buildContiguousHistory(Array.from({ length: 6 }, (_, index) => sample(`2025-0${index + 1}`, 100 + index)));
+    const history = buildContiguousHistory(
+      Array.from({ length: 6 }, (_, index) =>
+        observation(`2025-0${index + 1}`, 100 + index, `2025-0${index + 1}-28`)),
+      new Date('2025-07-01T00:00:00Z')
+    );
     const payload = buildAiPayload({ opaqueRequestId: 'opaque-request', forecastOrigin: new Date('2025-06-30T23:00:00Z'), history, context: { businessType: 'RETAIL', timezone: null, buildingArea: null } });
     expect(JSON.stringify(payload)).not.toContain('actual');
     expect(payload.contextual_features.site).toBeNull();
