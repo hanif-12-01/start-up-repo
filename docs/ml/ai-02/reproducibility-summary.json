@@ -1,0 +1,11 @@
+{
+  "run_a": "bb45828330b8cb76078180a74006fab39e206e206df3221d82ec8a5ed4843da1",
+  "run_b": "bb45828330b8cb76078180a74006fab39e206e206df3221d82ec8a5ed4843da1",
+  "comparison_fixture_count": 8,
+  "comparison_target": "deterministic reference only; no AI-01 test labels",
+  "max_abs_prediction_delta": 0.0,
+  "mae_delta": 0.0,
+  "rmse_delta": 0.0,
+  "numerical_tolerance": 0.000001,
+  "acceptable": true
+}

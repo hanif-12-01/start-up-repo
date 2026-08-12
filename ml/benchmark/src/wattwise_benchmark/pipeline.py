@@ -129,7 +129,9 @@ def load_normalized(
         missing = set(selected_dataset_ids) - set(panels.keys())
         if missing:
             raise KeyError(f"Selected datasets not found in normalized panel: {missing}")
-        combined = pd.concat([panels[k] for k in selected_dataset_ids if k in panels], ignore_index=True)
+        combined = pd.concat(
+            [panels[k] for k in selected_dataset_ids if k in panels], ignore_index=True
+        )
     elif "combined" in payload and "parquet" in payload["combined"]:
         combined = pd.read_parquet(payload["combined"]["parquet"])
         combined["period_month"] = pd.to_datetime(combined["period_month"])

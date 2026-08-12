@@ -134,7 +134,7 @@ REQUIRED_PREDICTION_COLUMNS = {
 }
 INFERENCE_FILE_CHECKSUMS = {
     "contracts.py": "a6a11bde9f7d0fdb15a74269681054b1095f4b19ebf240872a55d6752dca63df",
-    "execution.py": "90a1c1660e648797312d7bdbe2f8c5c9fbce26fe1b3fa515caf8053444cf8eb8",
+    "execution.py": "97962bdcb21d5073b994fa00ca753c1be23bdfd5ae7ea6f99d7bc48933f417fd",
     "ingestion/common.py": (
         "2f74f23cd527c7f19f454cd11f7669187fb3ac2e5500ac5b28a2eb398208454b"
     ),

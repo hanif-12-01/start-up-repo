@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "package_version": "ai02-1.0.0",
+  "training_run_id": "ai02-hardened-ai01-seen-seed17",
+  "ai01_closing_sha": "61969c089fc407ba24aaa88bb85da16a0e091d30",
+  "routing": {
+    "H00": "deterministic_baseline",
+    "H01_02": "deterministic_baseline",
+    "H03_05": "deterministic_baseline",
+    "H06_12": "nbeats",
+    "H13_PLUS": "nbeats",
+    "H13_PLUS_backup": "lightgbm"
+  },
+  "artifacts": {
+    "nbeats": {
+      "model_version": "nbeats-ai02-1.0.0",
+      "artifact_sha256": "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6",
+      "config_sha256": "a7291d66cdc397a61f1dcd8505696b778bafe6d1f2dd87e2d42d2e3c0adb1e32",
+      "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4",
+      "ai01_feature_schema_sha256": "5a7f36a8c9096f2025bd1d9357b379c5b9aa719780d49782d8599db6b6a68dc1",
+      "training_data_fingerprint": "d21b6d66b96bb30f792226e6ae8f38c182c92918e3558e42ccadd6785e2d7e4b",
+      "model_seed": 17,
+      "artifact_size_bytes": 4447799,
+      "external_reference": "${WATTWISE_ML_DATA_ROOT}/models/ai-02/nbeats/ai02-1.0.0/model.ckpt"
+    },
+    "lightgbm": {
+      "model_version": "lightgbm-ai02-1.0.0",
+      "artifact_sha256": "85f325153810e2611f6d364c81e7ca6f13948b68feee6f491a3015df3f3cf1c0",
+      "config_sha256": "df21e650e99314ac2512ce69fc5743e23dffd0e237d5a92319bf1462d74bd0c7",
+      "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4",
+      "training_data_fingerprint": "d21b6d66b96bb30f792226e6ae8f38c182c92918e3558e42ccadd6785e2d7e4b",
+      "model_seed": 17,
+      "artifact_size_bytes": 1330972,
+      "external_reference": "${WATTWISE_ML_DATA_ROOT}/models/ai-02/lightgbm/ai02-1.0.0/model.joblib"
+    }
+  },
+  "external_manifest_fingerprint": "dce838224c46d2bb93495f0b9999add22481d493fec41a921ee9849ff75c98b8",
+  "ready_for_shadow_validation": true,
+  "ready_for_application_integration": false,
+  "ready_for_production_ml": false
+}

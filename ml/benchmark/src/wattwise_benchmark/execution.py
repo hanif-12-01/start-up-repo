@@ -369,13 +369,13 @@ def run_benchmark(
     metrics_path = run_dir / "metrics.parquet"
     if manifest_path.is_file() and predictions_path.is_file() and metrics_path.is_file():
         print(f"[benchmark] run already complete in {run_dir}, loading cached outputs.")
-        run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        cached_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         metrics = pd.read_parquet(metrics_path)
         predictions = pd.read_parquet(predictions_path)
         report_outputs, selection = write_reporting_outputs(metrics, predictions, run_dir)
         return {
             "run_dir": str(run_dir),
-            "run_manifest": run_manifest,
+            "run_manifest": cached_manifest,
             "metrics": metrics,
             "predictions_path": str(predictions_path),
             "selection": selection,
@@ -508,7 +508,7 @@ def run_benchmark(
     norm_manifest = normalized["manifest"]
     source_sha = source_tree_fingerprint(package_root)
 
-    run_manifest_data: dict[str, Any] = {
+    run_manifest: dict[str, Any] = {
         "schema_version": "1.0",
         "run_id": run_dir.name,
         "stage": config.stage,

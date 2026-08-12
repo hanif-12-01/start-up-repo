@@ -1,0 +1,39 @@
+{
+  "measurement_scope": "current Windows CPU machine; Python process total RSS",
+  "nbeats": {
+    "cold_load_ms": 5424.4199,
+    "single_prediction": {
+      "iterations": 30,
+      "p50_ms": 88.43375,
+      "p95_ms": 139.69007,
+      "p99_ms": 158.145764
+    },
+    "batch_8": {
+      "iterations": 10,
+      "p50_ms": 106.38395,
+      "p95_ms": 126.86415,
+      "p99_ms": 133.72755
+    },
+    "peak_rss_bytes": 751607808,
+    "artifact_size_bytes": 4447799
+  },
+  "lightgbm": {
+    "cold_load_ms": 20.5091,
+    "single_prediction": {
+      "iterations": 30,
+      "p50_ms": 28.1432,
+      "p95_ms": 30.266795,
+      "p99_ms": 31.606138
+    },
+    "batch_8": {
+      "iterations": 10,
+      "p50_ms": 64.0215,
+      "p95_ms": 65.242555,
+      "p99_ms": 65.318191
+    },
+    "peak_rss_bytes": 725999616,
+    "artifact_size_bytes": 1330972
+  },
+  "interpretation": "N-BEATS should be preloaded for shadow workers; warm latency is acceptable for offline shadow validation. RSS includes the shared Python/scientific runtime, not only model weights.",
+  "operational_hardening_blocker": false
+}

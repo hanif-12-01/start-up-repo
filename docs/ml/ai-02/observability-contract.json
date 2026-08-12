@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "required_shadow_fields": [
+    "request_id",
+    "forecast_timestamp",
+    "history_phase",
+    "selected_model",
+    "model_version",
+    "prediction_kwh",
+    "deterministic_prediction_kwh",
+    "latency_ms",
+    "fallback_used",
+    "fallback_reason",
+    "artifact_version"
+  ],
+  "deferred_outcome_fields": [
+    "actual_kwh",
+    "absolute_error",
+    "percentage_error"
+  ],
+  "pii_required": false,
+  "database_writes": false,
+  "production_deployed": false
+}

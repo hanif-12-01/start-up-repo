@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "contract_version": "ai02-feature-contract-1.0.0",
+  "required_request_fields": [
+    "request_id",
+    "forecast_timestamp",
+    "target_period",
+    "history",
+    "contextual_features",
+    "feature_schema_sha256"
+  ],
+  "history_point_fields": ["period_month", "usage_kwh"],
+  "history_ordering": "strict ascending contiguous calendar months",
+  "history_units": "monthly kWh",
+  "minimum_nbeats_history": 6,
+  "maximum_nbeats_context": 6,
+  "missing_value_behavior": "reject and safe fallback",
+  "zero_value_behavior": "preserve",
+  "negative_value_behavior": "reject and safe fallback",
+  "target_month_usage_not_allowed_as_input": true,
+  "future_history_not_allowed": true,
+  "result_fields": [
+    "prediction_kwh",
+    "selected_model",
+    "model_version",
+    "history_phase",
+    "fallback_used",
+    "fallback_reason",
+    "inference_latency_ms",
+    "artifact_version"
+  ],
+  "database_writes": false,
+  "production_api_exposed": false
+}

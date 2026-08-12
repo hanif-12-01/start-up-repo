@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "scenarios": {
+    "missing_nbeats_artifact": "PASS",
+    "corrupted_checkpoint": "PASS",
+    "wrong_artifact_checksum": "PASS",
+    "missing_required_feature": "PASS",
+    "invalid_input_type": "PASS",
+    "nan_usage": "PASS",
+    "negative_usage": "PASS",
+    "too_short_history": "PASS",
+    "inference_exception": "PASS",
+    "timeout_equivalent_failure": "PASS",
+    "nan_or_infinite_prediction": "PASS",
+    "negative_prediction": "PASS"
+  },
+  "expected_boundary_behavior": "safe deterministic fallback; no exception escapes",
+  "deterministic_fallback": "PASS"
+}
