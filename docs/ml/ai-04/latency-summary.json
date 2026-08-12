@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "worker_cold_start_ms": 17441.9916,
+  "model_load_included_in_worker_start": true,
+  "first_prediction_ms": 136.5882,
+  "warm_p50_ms": 147.3862,
+  "warm_p95_ms": 208.8665,
+  "warm_p99_ms": 241.88328,
+  "warm_max_ms": 258.3946,
+  "load_test_p95_ms": 189.67126,
+  "load_test_p99_ms": 226.548928,
+  "hard_timeout_parent_control_ms": 271.9087,
+  "worker_recycle_and_next_success_ms": 17097.5884,
+  "peak_worker_rss_bytes": 699039744,
+  "steady_state_rss_bytes": 611574824,
+  "max_within_generation_rss_growth_percent": 5.26758,
+  "warm_latency_gate_pass": true,
+  "memory_gate_pass": true
+}

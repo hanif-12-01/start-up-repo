@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "missing_artifact": "PASS",
+  "corrupt_artifact": "PASS",
+  "checksum_mismatch": "PASS",
+  "schema_mismatch": "PASS",
+  "invalid_output": "PASS",
+  "worker_timeout": "PASS",
+  "worker_crash": "PASS",
+  "worker_recycle": "PASS",
+  "next_request_after_recovery": "PASS",
+  "deterministic_safety_net": "PASS",
+  "shadow_result_can_override_user_forecast": false
+}

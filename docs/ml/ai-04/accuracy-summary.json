@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "real_wattwise_records": 0,
+  "paired_observation_count": 0,
+  "evidence_tier": "NO_REAL_ACCURACY_EVIDENCE",
+  "conclusion": "INSUFFICIENT_REAL_WATTWISE_EVIDENCE",
+  "bootstrap_ci": "NOT_ENOUGH_DATA",
+  "public_proxy_accuracy_claimed_as_product_accuracy": false,
+  "modeled_simulation_accuracy_claimed_as_product_accuracy": false,
+  "synthetic_demo_accuracy_claimed_as_product_accuracy": false
+}

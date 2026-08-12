@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "run_id": "ai04-20260812T082742Z",
+  "ai02_base_sha": "4dabeeb7f1b37a75cb47e62c19f85939c787e247",
+  "nbeats_version": "nbeats-ai02-1.0.0",
+  "nbeats_artifact_sha256": "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6",
+  "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4",
+  "input_snapshot_fingerprint": "26726e58c83f2b24b2a6a32a6e68141ebcd525248ce5dbbae175d5d201211481",
+  "external_run_reference": "${WATTWISE_ML_DATA_ROOT}/shadow/ai-04/runs/ai04-20260812T082742Z",
+  "provenance_counts": {
+    "REAL_WATTWISE": 0,
+    "PUBLIC_PROXY": 100,
+    "MODELED_SIMULATION": 20,
+    "SYNTHETIC_DEMO": 5
+  },
+  "unique_operational_requests": 125,
+  "load_test_replays": 500,
+  "process_start_method": "spawn",
+  "timeout_ms": 5000,
+  "timeout_injection_ms": 200,
+  "max_requests_per_generation": 100,
+  "shadow_result_can_override_user_forecast": false,
+  "production_database_writes": false,
+  "application_integration": false
+}

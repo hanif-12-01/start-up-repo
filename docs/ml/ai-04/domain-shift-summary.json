@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "real_wattwise_available": false,
+  "usage_distribution": "No legitimate REAL_WATTWISE snapshot available.",
+  "history_distribution": "No legitimate REAL_WATTWISE snapshot available.",
+  "context_missingness": "No legitimate REAL_WATTWISE snapshot available.",
+  "overall_domain_shift": "INSUFFICIENT_DATA",
+  "public_proxy_note": "London SmartMeter is operational proxy evidence only.",
+  "simulation_note": "ComStock is infrastructure behavior evidence only."
+}

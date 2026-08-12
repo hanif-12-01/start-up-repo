@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "total_unique_operational_requests": 125,
+  "eligible_ml_requests": 122,
+  "nbeats_success": 122,
+  "fallback_count_on_valid_replay": 0,
+  "system_failure_rate": 0.0,
+  "uncaught_exceptions": 0,
+  "artifact_failures_on_valid_package": 0,
+  "checksum_failures_on_valid_package": 0,
+  "invalid_outputs": 0,
+  "hard_timeout_injections": 1,
+  "hard_timeout_parent_control_ms": 271.9087,
+  "worker_recovery_next_request_success": true,
+  "model_preloaded": true,
+  "requests_processed": 644,
+  "model_loads": 8,
+  "load_test_requests": 500
+}
