@@ -190,6 +190,29 @@ describe('AI-05 durable shadow integration', () => {
     expect(JSON.stringify(monitoring)).not.toContain(owners[0].businessId);
   });
 
+  it('retains pending work and raises an aggregate alert while the ML service is down', async () => {
+    const owner = await tenant('ml-outage');
+    for (let month = 1; month <= 6; month += 1) {
+      await addMonth(owner.userId, owner.businessId, month, 100 + month);
+    }
+    const before = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(before).toMatchObject({ status: 'PENDING', attempt_count: '0' });
+    expect(before.transient_payload).not.toBeNull();
+
+    const unavailableFetcher: typeof fetch = async () => {
+      throw new TypeError('synthetic service unavailable');
+    };
+    await expect(processShadowBatch({ fetcher: unavailableFetcher })).resolves.toMatchObject({
+      claimed: 0, noWork: true, serviceReady: false,
+    });
+    const after = (await listShadowForecastsForUser(owner.userId))[0];
+    expect(after).toMatchObject({ status: 'PENDING', attempt_count: '0' });
+    expect(after.transient_payload).toEqual(before.transient_payload);
+    const monitoring = await getAiShadowMonitoringSummary(unavailableFetcher);
+    expect(monitoring.alertState).toBe('CRITICAL');
+    expect(monitoring.service.serviceReady).toBe(false);
+  });
+
   it('processes shadow response, clears transient payload, and reconciles later actual', async () => {
     const owner = await tenant('score');
     for (let month = 1; month <= 6; month += 1) await addMonth(owner.userId, owner.businessId, month, 100 + month);
