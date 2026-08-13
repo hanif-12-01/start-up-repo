@@ -54,7 +54,7 @@ describe('AI-06B.1 production read-only auditor', () => {
   it('uses explicit read-only transactions twice and emits no connection secret', async () => {
     const created = [fakeConnection(), fakeConnection()];
     let index = 0;
-    const secretUrl = 'postgresql://audit_reader@db.example.test/prod';
+    const secretUrl = 'postgresql://db.example.test/prod';
     const result = await auditProductionDatabase(secretUrl, {
       connectionFactory: () => created[index++].connection,
     });
@@ -77,7 +77,7 @@ describe('AI-06B.1 production read-only auditor', () => {
   it('fails closed before schema collection when the role has write privilege', async () => {
     const created = fakeConnection({ writePrivilege: true });
     await expect(auditProductionDatabase(
-      'postgresql://audit_reader@db.example.test/prod',
+      'postgresql://db.example.test/prod',
       { connectionFactory: () => created.connection }
     )).rejects.toMatchObject({ code: 'PRODUCTION_AUDIT_ROLE_TOO_PRIVILEGED' });
     expect(created.statements.some((statement) => statement.includes('ai06b1:columns'))).toBe(false);
