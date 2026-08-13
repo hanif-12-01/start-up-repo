@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "phase": "AI-06B.1",
-  "candidate_git_sha": "PENDING_AI06B1_IMPLEMENTATION_COMMIT",
+  "candidate_git_sha": "918f49e983399110109612830667318ed284b4b3",
   "starting_sha": "2eb8e8c597965f0a51309b4a18c7d6403a8da312",
   "production_deployment_id": "dpl_FmprgTMxKjJDH8yJDH9UvCQgdvXM",
   "production_release_sha": "8eca78a173c61251d300098c333198099ca87b26",

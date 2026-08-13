@@ -9,6 +9,7 @@ result and current provider-authoritative backup/PITR evidence. No production mu
 ## Authoritative Git and model freeze
 
 - AI-06B.1 starting SHA: `2eb8e8c597965f0a51309b4a18c7d6403a8da312`
+- AI-06B.1 implementation SHA: `918f49e983399110109612830667318ed284b4b3`
 - Branch: `feature/ai-06b-1-prod-audit-closeout`
 - Model: `nbeats-ai02-1.0.0`
 - Artifact SHA-256: `541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6`
