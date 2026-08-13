@@ -7,6 +7,11 @@ production environment variable, or production deployment was created or changed
 
 Recommended ML host: **Google Cloud Run, `asia-southeast1` (Singapore)**.
 
+Selected security-boundary classification: **IAM_AUTHENTICATED_SERVER_TO_SERVER**. The default
+Cloud Run URL is internet routable; disabling unauthenticated invocation does not make it
+network-private. This document uses “private” only for storage/registry access or when describing
+the application intent, never as a claim that the selected Cloud Run ingress is network-private.
+
 Recommended initial resource:
 
 - 1 vCPU;
@@ -88,9 +93,9 @@ The service must remain NOT_READY if any identity or checksum differs. Cloud Run
 read-only Cloud Storage mounts and documents their cache memory overhead; see
 [Cloud Storage volume mounts](https://docs.cloud.google.com/run/docs/configuring/services/cloud-storage-volume-mounts).
 
-## Authentication and private-service boundary
+## Authentication and service boundary
 
-The service should reject anonymous Cloud Run invocation. The approved design is two-layer auth:
+The service should reject anonymous Cloud Run invocation. The selected design is two-layer auth:
 
 1. Vercel OIDC is exchanged through GCP Workload Identity Federation for a short-lived Google ID
    token that is placed in `X-Serverless-Authorization` for Cloud Run IAM.
@@ -100,6 +105,11 @@ The service should reject anonymous Cloud Run invocation. The approved design is
 The current Next.js client sends only the application bearer token. A reviewed, tested WIF/ID-token
 adapter is therefore a pre-deployment requirement after the provider is approved. No adapter or
 credential was added during B1.
+
+The network-private alternative would set Cloud Run ingress to internal and require a GCP-side
+gateway/proxy, VPC connectivity, or application co-location because Vercel is not an accepted
+internal source. It adds load-balancer/VPC operations, cost, latency, and failure modes without
+removing the need for application authentication. It is not selected for the controlled-shadow MVP.
 
 ## Scheduler decision
 

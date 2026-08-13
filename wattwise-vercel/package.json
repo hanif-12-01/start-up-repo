@@ -24,7 +24,8 @@
     "qa:demo:reset": "tsx scripts/qa-demo-reset.ts",
     "qa:demo:check": "tsx scripts/qa-demo-check.ts",
     "ai:shadow:enrollment": "tsx scripts/ai-shadow-enrollment.ts",
-    "ai:shadow:report": "tsx scripts/ai-shadow-report.ts"
+    "ai:shadow:report": "tsx scripts/ai-shadow-report.ts",
+    "ai:production:audit": "tsx scripts/ai-production-readonly-audit.ts"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
