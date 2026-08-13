@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "phase": "AI-06B",
+  "stage": "B1",
+  "generated_at": "2026-08-13T15:14:28+07:00",
+  "starting_sha": "a70b2296754fa37839635d241003be93d4f9e8e5",
+  "branch": "feature/ai-06b-production-shadow",
+  "state": "BLOCKED_READ_ONLY_SCHEMA_AUDIT_REQUIRED",
+  "production_mutation_performed": false,
+  "production_shadow_active": false,
+  "effective_pre_activation_mode": "OFF_OR_UNSET",
+  "pre_activation_ml_calls_expected": 0,
+  "model": {
+    "family": "nbeats",
+    "version": "nbeats-ai02-1.0.0",
+    "artifact_sha256": "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d6272191d6",
+    "feature_schema_sha256": "0442358152959f5ea3568c4baf846e0df887d14b692ed734600f6fdb60958fd4",
+    "changed": false
+  },
+  "recommended_infrastructure": {
+    "ml_host": "Google Cloud Run asia-southeast1",
+    "resource": "1 vCPU / 4 GiB / min 1 / max 1 / concurrency 1",
+    "estimated_monthly_cost_usd": "40-55",
+    "artifact_source": "private versioned Cloud Storage prefix mounted read-only",
+    "scheduler": "Google Cloud Scheduler HTTP target",
+    "cadence": "every 10 minutes",
+    "scheduler_initially_disabled": true
+  },
+  "production_audit": {
+    "vercel_project_identified": true,
+    "release_sha_identified": true,
+    "health_passed": true,
+    "database_url_name_present": true,
+    "database_secret_read": false,
+    "schema_audited_read_only": false,
+    "schema_state": "UNKNOWN",
+    "missing_migrations": "UNKNOWN",
+    "backup_recovery": "UNKNOWN"
+  },
+  "cohort": {
+    "recommended_initial_size": 1,
+    "approved": false,
+    "selected": false,
+    "enrolled": 0,
+    "ids_recorded_in_git": false
+  },
+  "approval": {
+    "persistent_ml_host": false,
+    "scheduler": false,
+    "cost": false,
+    "artifact_design": false,
+    "exact_cohort": false,
+    "exact_migration_plan": false,
+    "activation_window": false
+  }
+}
