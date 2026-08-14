@@ -3,7 +3,7 @@ from __future__ import annotations
 from tests.test_serving_artifacts import write_inventory
 from tests.test_serving_contracts import payload
 from wattwise_serving.artifacts import ArtifactInventory
-from wattwise_serving.http_server import InferenceApplication
+from wattwise_serving.http_server import InferenceApplication, _authorized
 from wattwise_serving.runtime import InferenceRuntime
 
 
@@ -41,3 +41,11 @@ def test_malformed_input_returns_structured_error(tmp_path) -> None:
         "status": "error",
         "error_code": "INVALID_REQUEST_KEYS",
     }
+
+
+def test_bearer_token_comparison_fails_closed() -> None:
+    token = "preview-only-token"
+    assert _authorized(f"Bearer {token}", token)
+    assert not _authorized(None, token)
+    assert not _authorized("Basic preview-only-token", token)
+    assert not _authorized("Bearer wrong-token", token)

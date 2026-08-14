@@ -259,14 +259,38 @@ export function generateAnalysisRecommendations(input: {
   return recommendations;
 }
 
-export async function getProductAnalysisReadModel(userId: string, requestedBusinessId?: string) {
+export async function getProductAnalysisReadModel(
+  userId: string,
+  requestedBusinessId?: string,
+  options?: { phaseAware?: boolean; forecastOrigin?: Date }
+) {
   const { getDecisionSupport } = await import('./workspace.service');
   const data = await getDecisionSupport(userId, requestedBusinessId);
 
   const tariff = Number(data.business.tariffRupiahPerKwh ?? data.latestBill?.tariffRupiahPerKwh ?? 0) || null;
 
   const samples = buildUsageSamplesFromBills(data.bills);
-  const prediction = predictUsage(samples, tariff);
+  const deterministicPrediction = predictUsage(samples, tariff);
+  const phaseAwarePrediction = options?.phaseAware
+    ? await Promise.all([
+        import('./phase-aware-forecast.service'),
+        import('../repositories/bill.repository').then(({ listBillsForUser }) =>
+          listBillsForUser(userId, data.business.id)
+        ),
+      ]).then(([{ getPhaseAwareForecast }, phaseBills]) =>
+        getPhaseAwareForecast({
+          business: {
+            id: data.business.id,
+            businessType: data.business.businessType,
+          },
+          samples: buildUsageSamplesFromBills(phaseBills.slice(0, 60)),
+          deterministicPrediction,
+          tariff,
+          forecastOrigin: options.forecastOrigin,
+        })
+      )
+    : null;
+  const prediction = phaseAwarePrediction?.prediction ?? deterministicPrediction;
   const anomaly = analyzeLatestAnomaly(samples);
 
   const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
@@ -295,6 +319,8 @@ export async function getProductAnalysisReadModel(userId: string, requestedBusin
     tariff,
     samples,
     prediction,
+    deterministicPrediction,
+    phaseAwarePrediction,
     anomaly,
     efficiency,
     recommendations,

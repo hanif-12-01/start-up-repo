@@ -21,9 +21,11 @@ function formatValue(value: number, metric: Metric) {
 export function TrendChart({
   points,
   metric = 'kwh',
+  forecastLabel = 'Estimasi matematis',
 }: {
   points: TrendPoint[];
   metric?: Metric;
+  forecastLabel?: string;
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -120,7 +122,7 @@ export function TrendChart({
               {`Grafik tren ${metric === 'kwh' ? 'pemakaian dalam kWh' : 'biaya dalam Rupiah'}`}
             </title>
             <desc id={descriptionId}>
-              Data tercatat memakai garis utuh. Estimasi matematis berikutnya memakai garis putus-putus.
+              Data tercatat memakai garis utuh. {forecastLabel} berikutnya memakai garis putus-putus.
             </desc>
 
             {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
@@ -247,7 +249,7 @@ export function TrendChart({
         </span>
         <span className="flex items-center gap-2">
           <span className="inline-block h-0.5 w-5 border-b-2 border-dashed border-[var(--chart-series-forecast)]" aria-hidden="true" />
-          <span className="font-semibold">Estimasi matematis berikutnya</span>
+          <span className="font-semibold">{forecastLabel} berikutnya</span>
         </span>
         {coordinates.some((coordinate) => coordinate.value === null) && (
           <span>Periode tanpa nilai tidak digambar sebagai titik nol.</span>
@@ -278,7 +280,7 @@ export function TrendChart({
                     </td>
                     <td className="py-2 text-[var(--muted)]">
                       {point.type === 'forecast'
-                        ? 'Estimasi matematis'
+                        ? forecastLabel
                         : point.type === 'derived'
                           ? 'Nilai turunan'
                           : 'Tercatat'}

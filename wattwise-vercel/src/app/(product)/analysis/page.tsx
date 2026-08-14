@@ -55,11 +55,20 @@ export default async function AnalysisPage({
 
   const { userId } = await requireWorkspacePage(requestedBusinessId);
   const [analysisModel, entitlements] = await Promise.all([
-    getProductAnalysisReadModel(userId, requestedBusinessId),
+    getProductAnalysisReadModel(userId, requestedBusinessId, { phaseAware: activeTab === 'forecast' }),
     getUserEntitlements(userId),
   ]);
 
-  const { data, tariff, samples, prediction, anomaly, efficiency: score, recommendations } = analysisModel;
+  const {
+    data,
+    tariff,
+    samples,
+    prediction,
+    phaseAwarePrediction,
+    anomaly,
+    efficiency: score,
+    recommendations,
+  } = analysisModel;
   const businessQuery = `businessId=${encodeURIComponent(data.business.id)}`;
 
   // Construct trend points for visualization
@@ -113,7 +122,7 @@ export default async function AnalysisPage({
       <WorkspaceHeader
         eyebrow="Pusat analisis"
         title="Analisis biaya dan pemakaian"
-        description="Satu tempat terpadu untuk membaca tren historis, indikasi anomali, proyeksi deterministik, rekomendasi prioritas, dan simulasi skenario."
+        description="Satu tempat terpadu untuk membaca tren historis, indikasi anomali, prediksi WattWise, rekomendasi prioritas, dan simulasi skenario."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BusinessSelector businesses={data.businesses} selectedId={data.business.id} route="/analysis" />
@@ -152,7 +161,7 @@ export default async function AnalysisPage({
           }
         />
         <MetricCard
-          label="Proyeksi Pemakaian"
+          label="Prediksi Pemakaian"
           value={
             prediction.predictedUsageKwh === null
               ? 'Belum ada'
@@ -193,7 +202,7 @@ export default async function AnalysisPage({
       <SoftCard>
         <SectionHeader
           title="Tren & Proyeksi Pemakaian Listrik"
-          description="Visualisasi perbandingan data tagihan tercatat historis dengan estimasi proyeksi deterministik."
+          description="Visualisasi perbandingan data tagihan historis dengan prediksi periode berikutnya berdasarkan metode yang sedang digunakan."
           badge={
             <StatusBadge variant="info">
               {samples.length} Periode Data
@@ -201,7 +210,11 @@ export default async function AnalysisPage({
           }
         />
         <div className="mt-6">
-          <TrendChart points={trendPoints} metric="kwh" />
+          <TrendChart
+            points={trendPoints}
+            metric="kwh"
+            forecastLabel={phaseAwarePrediction?.sourceLabel ?? 'Estimasi matematis'}
+          />
         </div>
       </SoftCard>
 
@@ -358,7 +371,20 @@ export default async function AnalysisPage({
               </p>
             </div>
           )}
-          <SectionHeader title="Proyeksi Pemakaian Deterministik" description="Dihitung dari tren linear dan rata-rata bergerak berbobot data historis Anda." />
+          <SectionHeader
+            title="Prediksi WattWise"
+            description="Mesin prediksi dipilih otomatis berdasarkan histori bulanan valid yang berurutan. Hasil tetap berupa estimasi berdasarkan data yang Anda masukkan."
+          />
+          {phaseAwarePrediction && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <StatusBadge variant={phaseAwarePrediction.fallbackUsed ? 'warning' : 'primary'}>
+                {phaseAwarePrediction.sourceLabel}
+              </StatusBadge>
+              <span className="text-xs text-[var(--muted)]">
+                {phaseAwarePrediction.continuousHistoryMonths} bulan histori valid berurutan
+              </span>
+            </div>
+          )}
           {prediction.hasPrediction ? (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Surface variant="muted">
@@ -393,7 +419,39 @@ export default async function AnalysisPage({
           )}
           <p className="mt-5 text-xs text-[var(--muted)]">
             Metode: {prediction.method ?? 'Belum tersedia'} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
+            {' '}Prediksi ini bukan data resmi PLN dan perlu dibaca sebagai indikasi.
           </p>
+          {phaseAwarePrediction?.validationDetailsVisible && (
+            <Surface variant="muted" className="mt-5 border border-dashed border-[var(--border-strong)]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
+                    Detail validasi Preview
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Data: {phaseAwarePrediction.dataProvenance}
+                  </p>
+                </div>
+                <StatusBadge variant={phaseAwarePrediction.fallbackUsed ? 'warning' : 'success'}>
+                  {phaseAwarePrediction.requestedEngine === 'deterministic_baseline'
+                    ? 'Tanpa panggilan ML'
+                    : phaseAwarePrediction.fallbackUsed
+                      ? 'Fallback aktif'
+                      : 'Inferensi berhasil'}
+                </StatusBadge>
+              </div>
+              <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt className="text-[var(--muted)]">Fase</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.reportingPhase}</dd></div>
+                <div><dt className="text-[var(--muted)]">Histori berurutan</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.continuousHistoryMonths} bulan</dd></div>
+                <div><dt className="text-[var(--muted)]">Diminta</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.requestedEngine}</dd></div>
+                <div><dt className="text-[var(--muted)]">Dipilih</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.selectedEngine}</dd></div>
+                <div><dt className="text-[var(--muted)]">Ditampilkan</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.displayedEngine}</dd></div>
+                <div><dt className="text-[var(--muted)]">Versi</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.modelVersion ?? 'deterministik'}</dd></div>
+                <div><dt className="text-[var(--muted)]">Alasan fallback</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.fallbackReason ?? '—'}</dd></div>
+                <div><dt className="text-[var(--muted)]">Latensi model</dt><dd className="mt-1 font-bold">{phaseAwarePrediction.inferenceLatencyMs === null ? '—' : `${decimal.format(phaseAwarePrediction.inferenceLatencyMs)} ms`}</dd></div>
+              </dl>
+            </Surface>
+          )}
         </SoftCard>
       )}
 

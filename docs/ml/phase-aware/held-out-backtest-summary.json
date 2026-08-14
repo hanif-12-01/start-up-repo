@@ -1,0 +1,76 @@
+{
+  "evidence_source": "AI-01_FROZEN_BDG2_HELD_OUT_TEST",
+  "future_target_used_as_input": false,
+  "model_seed": 17,
+  "routing_quality_regression": false,
+  "schema_version": "1.0",
+  "selection_or_tuning_performed": false,
+  "track": "seen_entity",
+  "rows": [
+    {
+      "phase": "H00",
+      "routed_model": "lightgbm",
+      "sample_count": 5958,
+      "mae": 50500.42736597737,
+      "rmse": 126800.05353156645,
+      "smape": 62.37929258594794,
+      "wmape": 51.09011614936591,
+      "deterministic_mae": null,
+      "deterministic_smape": null,
+      "win_rate": null,
+      "decision": "HELD_OUT_EVIDENCE_NO_VALID_DETERMINISTIC_COMPARATOR"
+    },
+    {
+      "phase": "H01_02",
+      "routed_model": "deterministic_baseline",
+      "sample_count": 312,
+      "mae": 9647.136059935898,
+      "rmse": 23644.583617079596,
+      "smape": 13.163195488746391,
+      "wmape": 8.556732916526254,
+      "deterministic_mae": null,
+      "deterministic_smape": null,
+      "win_rate": null,
+      "decision": "AUTHORIZED_BASELINE"
+    },
+    {
+      "phase": "H03_05",
+      "routed_model": "lightgbm",
+      "sample_count": 308,
+      "mae": 9482.598983475335,
+      "rmse": 32130.24786376434,
+      "smape": 13.288608417915027,
+      "wmape": 9.29556971417891,
+      "deterministic_mae": 11202.79594935065,
+      "deterministic_smape": 14.880366274456906,
+      "win_rate": 49.67532467532468,
+      "decision": "NO_ROUTING_QUALITY_REGRESSION"
+    },
+    {
+      "phase": "H06_12",
+      "routed_model": "nbeats",
+      "sample_count": 460,
+      "mae": 6104.413677988267,
+      "rmse": 18731.38026347977,
+      "smape": 19.444882546619088,
+      "wmape": 8.092867455477204,
+      "deterministic_mae": 8157.480311956524,
+      "deterministic_smape": 24.261021632575382,
+      "win_rate": 69.78260869565217,
+      "decision": "NO_ROUTING_QUALITY_REGRESSION"
+    },
+    {
+      "phase": "H13_PLUS",
+      "routed_model": "nbeats",
+      "sample_count": 4902,
+      "mae": 9568.474764174822,
+      "rmse": 25518.03629349672,
+      "smape": 27.56245505231161,
+      "wmape": 9.624874907069065,
+      "deterministic_mae": 14235.109729885764,
+      "deterministic_smape": 28.80890525989969,
+      "win_rate": 65.38147694818441,
+      "decision": "NO_ROUTING_QUALITY_REGRESSION"
+    }
+  ]
+}
