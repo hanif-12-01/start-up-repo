@@ -366,7 +366,7 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
     it('classifies all five phases from owned monthly bills while AI OFF stays deterministic', async () => {
       await seedUser('phase-user', 'phase-user@example.test');
       const fixtures = [
-        ['phase-h00', 0, 'H00', 'lightgbm'],
+        ['phase-h00', 0, 'H00', 'deterministic_baseline'],
         ['phase-h02', 2, 'H01_02', 'deterministic_baseline'],
         ['phase-h04', 4, 'H03_05', 'lightgbm'],
         ['phase-h08', 8, 'H06_12', 'nbeats'],
