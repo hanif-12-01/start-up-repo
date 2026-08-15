@@ -1,0 +1,85 @@
+{
+  "description": "Representative LightGBM test fixtures for numerical parity validation across H03_05 and H00",
+  "fixtures": [
+    {
+      "fixture_id": "lgb_case_1_stable",
+      "pattern": "stable",
+      "reporting_phase": "H03_05",
+      "target_period": "2026-04",
+      "history": [150.0, 152.0, 151.0],
+      "contextual_features": {
+        "dataset_source": "wattwise_application",
+        "building_primary_use": null,
+        "business_type": "RETAIL",
+        "building_area": null,
+        "site": null,
+        "timezone": null,
+        "profile_eligible": false
+      }
+    },
+    {
+      "fixture_id": "lgb_case_2_growing",
+      "pattern": "growing",
+      "reporting_phase": "H03_05",
+      "target_period": "2026-05",
+      "history": [100.0, 120.0, 145.0, 175.0],
+      "contextual_features": {
+        "dataset_source": "wattwise_application",
+        "building_primary_use": null,
+        "business_type": "FNB",
+        "building_area": null,
+        "site": null,
+        "timezone": null,
+        "profile_eligible": false
+      }
+    },
+    {
+      "fixture_id": "lgb_case_3_declining",
+      "pattern": "declining",
+      "reporting_phase": "H03_05",
+      "target_period": "2026-06",
+      "history": [300.0, 270.0, 240.0, 210.0, 190.0],
+      "contextual_features": {
+        "dataset_source": "wattwise_application",
+        "building_primary_use": null,
+        "business_type": "SERVICES",
+        "building_area": null,
+        "site": null,
+        "timezone": null,
+        "profile_eligible": false
+      }
+    },
+    {
+      "fixture_id": "lgb_case_4_noisy",
+      "pattern": "noisy",
+      "reporting_phase": "H03_05",
+      "target_period": "2026-04",
+      "history": [120.0, 280.0, 130.0],
+      "contextual_features": {
+        "dataset_source": "wattwise_application",
+        "building_primary_use": null,
+        "business_type": "MANUFACTURING",
+        "building_area": null,
+        "site": null,
+        "timezone": null,
+        "profile_eligible": false
+      }
+    },
+    {
+      "fixture_id": "lgb_case_5_unusual_valid",
+      "pattern": "unusual_valid",
+      "reporting_phase": "H03_05",
+      "target_period": "2026-06",
+      "history": [15.5, 16.0, 15.8, 16.2, 15.9],
+      "contextual_features": {
+        "dataset_source": "wattwise_application",
+        "building_primary_use": null,
+        "business_type": "OFFICE",
+        "building_area": null,
+        "site": null,
+        "timezone": null,
+        "profile_eligible": false
+      }
+    }
+  ]
+}

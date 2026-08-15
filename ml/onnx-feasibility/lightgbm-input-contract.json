@@ -1,0 +1,48 @@
+{
+  "model_family": "lightgbm",
+  "model_version": "lightgbm-ai02-1.0.0",
+  "contract_version": "1.0",
+  "input_nodes": [
+    {
+      "name": "input",
+      "shape": [-1, 88],
+      "dynamic_dimensions": ["batch_size"],
+      "dtype": "float64",
+      "description": "Preprocessed feature vector combining 40 numeric features and one-hot encoded categorical features (88 columns total in double precision)."
+    }
+  ],
+  "feature_schema": {
+    "numeric_features": [
+      "lag_1", "lag_2", "lag_3", "lag_4", "lag_5", "lag_6",
+      "lag_7", "lag_8", "lag_9", "lag_10", "lag_11", "lag_12",
+      "rolling_mean_2", "rolling_mean_3", "rolling_mean_6", "rolling_mean_12",
+      "rolling_std_3", "rolling_std_6", "rolling_std_12",
+      "change_1", "trend_3", "trend_6", "history_month_count",
+      "target_month", "month_sin", "month_cos", "chronological_year_index",
+      "missing_history_1", "missing_history_2", "missing_history_3", "missing_history_4",
+      "missing_history_5", "missing_history_6", "missing_history_7", "missing_history_8",
+      "missing_history_9", "missing_history_10", "missing_history_11", "missing_history_12",
+      "building_area"
+    ],
+    "categorical_features": [
+      "dataset_source",
+      "building_primary_use",
+      "business_type",
+      "site",
+      "timezone"
+    ],
+    "preprocessor_type": "ColumnTransformer",
+    "preprocessed_feature_count": 88
+  },
+  "output_nodes": [
+    {
+      "name": "variable",
+      "shape": [-1, 1],
+      "dynamic_dimensions": ["batch_size"],
+      "dtype": "float64",
+      "interpretation": "Raw predicted electricity consumption in kWh. Final product forecast clamps to non-negative: max(0.0, output)."
+    }
+  ],
+  "prediction_horizon": 1,
+  "supported_phases": ["H00", "H03_05"]
+}

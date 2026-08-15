@@ -1,0 +1,183 @@
+{
+  "source_integrity": {
+    "lightgbm_match": "YES",
+    "nbeats_match": "YES",
+    "schema_match": "YES",
+    "original_model_modified": "NO"
+  },
+  "lightgbm": {
+    "onnx_export": "PASS",
+    "onnx_checker": "PASS",
+    "parity_cases": 5,
+    "parity_pass": 5,
+    "max_abs_error": 0.000287395143864444,
+    "max_rel_error": 1.0626354046691468e-05,
+    "numerical_parity": "PASS",
+    "deterministic": "YES",
+    "original_mb": 1.2693,
+    "onnx_mb": 0.9971,
+    "under_100mb": "YES",
+    "load_ms": 92.49,
+    "cold_ms": 1.173,
+    "warm_ms": 0.263,
+    "case_results": [
+      {
+        "fixture_id": "lgb_case_1_stable",
+        "pattern": "stable",
+        "reference_prediction": 27.045508045529964,
+        "onnx_prediction": 27.045795440673828,
+        "abs_error": 0.000287395143864444,
+        "rel_error": 1.0626354046691468e-05,
+        "max_allowed_abs": 0.01,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "lgb_case_2_growing",
+        "pattern": "growing",
+        "reference_prediction": 3670.754974820921,
+        "onnx_prediction": 3670.755126953125,
+        "abs_error": 0.00015213220422083396,
+        "rel_error": 4.144439093983814e-08,
+        "max_allowed_abs": 0.3670754974820921,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "lgb_case_3_declining",
+        "pattern": "declining",
+        "reference_prediction": 1304.2306302979189,
+        "onnx_prediction": 1304.230712890625,
+        "abs_error": 8.259270612143155e-05,
+        "rel_error": 6.33267646095425e-08,
+        "max_allowed_abs": 0.1304230630297919,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "lgb_case_4_noisy",
+        "pattern": "noisy",
+        "reference_prediction": 0.0,
+        "onnx_prediction": 0.0,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.01,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "lgb_case_5_unusual_valid",
+        "pattern": "unusual_valid",
+        "reference_prediction": 307.644199557285,
+        "onnx_prediction": 307.644287109375,
+        "abs_error": 8.755209000810282e-05,
+        "rel_error": 2.845887883928725e-07,
+        "max_allowed_abs": 0.0307644199557285,
+        "passed": true,
+        "deterministic": true
+      }
+    ]
+  },
+  "nbeats": {
+    "model_class": "NBeats (PyTorch Forecasting / Lightning wrapper around 2 Generic stacks)",
+    "export_wrapper_required": "YES",
+    "wrapper_description": "NBeatsInferenceWrapper extracts pure PyTorch net_blocks from the Lightning/Forecasting checkpoint, reproducing exact softplus_inv, sequence-level mean/std scaling, forward pass, denormalization, inverse softplus, and non-negative clamping without PyTorch Lightning/Forecasting runtime dependencies.",
+    "wrapper_parity": "PASS",
+    "onnx_export": "PASS",
+    "onnx_checker": "PASS",
+    "parity_cases": 6,
+    "parity_pass": 6,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "numerical_parity": "PASS",
+    "deterministic": "YES",
+    "original_mb": 4.2418,
+    "onnx_mb": 0.046,
+    "under_100mb": "YES",
+    "load_ms": 24.95,
+    "cold_ms": 3.531,
+    "warm_ms": 0.186,
+    "case_results": [
+      {
+        "fixture_id": "nbeats_case_1_stable_h06_12",
+        "pattern": "stable",
+        "phase": "H06_12",
+        "reference_prediction": 200.59043884277344,
+        "onnx_prediction": 200.59043884277344,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.020059043884277344,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "nbeats_case_2_growth_h06_12",
+        "pattern": "growth",
+        "phase": "H06_12",
+        "reference_prediction": 256.9375,
+        "onnx_prediction": 256.9375,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.02569375,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "nbeats_case_3_decline_h06_12",
+        "pattern": "decline",
+        "phase": "H06_12",
+        "reference_prediction": 280.1641845703125,
+        "onnx_prediction": 280.1641845703125,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.02801641845703125,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "nbeats_case_4_noisy_h06_12",
+        "pattern": "noisy",
+        "phase": "H06_12",
+        "reference_prediction": 333.95513916015625,
+        "onnx_prediction": 333.95513916015625,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.033395513916015626,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "nbeats_case_5_long_history_h13_plus",
+        "pattern": "long_history",
+        "phase": "H13_PLUS",
+        "reference_prediction": 221.93844604492188,
+        "onnx_prediction": 221.93844604492188,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.02219384460449219,
+        "passed": true,
+        "deterministic": true
+      },
+      {
+        "fixture_id": "nbeats_case_6_stable_long_h13_plus",
+        "pattern": "stable_long",
+        "phase": "H13_PLUS",
+        "reference_prediction": 366.6795959472656,
+        "onnx_prediction": 366.6795959472656,
+        "abs_error": 0.0,
+        "rel_error": 0.0,
+        "max_allowed_abs": 0.03666795959472657,
+        "passed": true,
+        "deterministic": true
+      }
+    ]
+  },
+  "total_onnx_mb": 1.0431,
+  "browser_portability": {
+    "lightgbm_portable": "YES",
+    "nbeats_portable": "YES",
+    "lightgbm_contract_created": "YES",
+    "nbeats_contract_created": "YES",
+    "portability_blockers": "NONE"
+  }
+}

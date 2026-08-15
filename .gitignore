@@ -95,3 +95,14 @@ Test model/
 /ml/benchmark/**/*.txt.partial
 /ml/benchmark/**/*.zip.partial
 *.egg-info/
+
+# ONNX feasibility artifacts
+.onnx-artifacts/
+*.onnx
+.cloudrun-staging/
+.vercel-ml-stage/
+!ml/onnx-feasibility/*.md
+!ml/onnx-feasibility/**/*.md
+__pycache__/
+*.pyc
+
