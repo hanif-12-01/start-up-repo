@@ -75,9 +75,8 @@ export async function GET(request: Request) {
   try {
     const result = await checkAiValidationDemo();
     return NextResponse.json(result, { status: result.ready ? 200 : 422 });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal error during validation check.';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Internal error during validation check.' }, { status: 500 });
   }
 }
 
@@ -101,9 +100,8 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal error during validation seed.';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Internal error during validation seed.' }, { status: 500 });
   }
 }
 
@@ -120,8 +118,7 @@ export async function DELETE(request: Request) {
   try {
     const result = await resetAiValidationDemo();
     return NextResponse.json(result, { status: 200 });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal error during validation reset.';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Internal error during validation reset.' }, { status: 500 });
   }
 }

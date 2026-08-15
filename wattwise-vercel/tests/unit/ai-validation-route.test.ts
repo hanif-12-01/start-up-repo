@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   isAuthorized,
   validateEnvironmentGuard,
@@ -6,7 +6,7 @@ import {
   POST,
   DELETE,
 } from '@/app/api/internal/ai-validation/route';
-import { AI_VALIDATION_PREVIEW_PROJECT_ID } from '@/server/services/ai-validation-demo.service';
+import * as demoService from '@/server/services/ai-validation-demo.service';
 
 describe('AI Validation Route Security & Guards', () => {
   const dummyAdminToken = 'test_admin_token_abcdef1234567890';
@@ -43,14 +43,14 @@ describe('AI Validation Route Security & Guards', () => {
       expect(isAuthorized(shorterTokenRequest, { AI_VALIDATION_ADMIN_TOKEN: dummyAdminToken })).toBe(false);
     });
 
-    it('strictly rejects the old previously exposed token when admin token is configured or unset', () => {
-      const oldToken = 'ww_preview_sec_f98c21a478b0e412a89c5678d1234ef0';
+    it('strictly rejects any revoked or unknown token when admin token is configured or unset', () => {
+      const revokedToken = 'revoked_token_example_do_not_use';
       const request = new Request('https://preview.local/api/internal/ai-validation', {
-        headers: { Authorization: `Bearer ${oldToken}` },
+        headers: { Authorization: `Bearer ${revokedToken}` },
       });
       // When unset: fail closed (no hardcoded fallback)
       expect(isAuthorized(request, {})).toBe(false);
-      // When rotated: fail
+      // When configured: fail
       expect(isAuthorized(request, { AI_VALIDATION_ADMIN_TOKEN: dummyAdminToken })).toBe(false);
     });
 
@@ -67,7 +67,7 @@ describe('AI Validation Route Security & Guards', () => {
       VERCEL_ENV: 'preview',
       QA_DEMO_ENABLED: 'true',
       WATTWISE_AI_VALIDATION_PROFILE_ENABLED: 'true',
-      WATTWISE_PREVIEW_DATABASE_PROJECT_ID: AI_VALIDATION_PREVIEW_PROJECT_ID,
+      WATTWISE_PREVIEW_DATABASE_PROJECT_ID: demoService.AI_VALIDATION_PREVIEW_PROJECT_ID,
     };
 
     it('unconditionally rejects Production environment even with valid flags', () => {
@@ -121,7 +121,7 @@ describe('AI Validation Route Security & Guards', () => {
     });
   });
 
-  describe('Route Handler Responses (HTTP 401 & 403)', () => {
+  describe('Route Handler Responses & Error Sanitization (HTTP 401, 403, 500)', () => {
     it('returns HTTP 401 for unauthorized GET / POST / DELETE requests', async () => {
       const unauthRequest = new Request('https://preview.local/api/internal/ai-validation', {
         headers: { Authorization: 'Bearer wrong_token' },
@@ -141,6 +141,30 @@ describe('AI Validation Route Security & Guards', () => {
       expect(delRes.status).toBe(401);
       const delJson = await delRes.json();
       expect(delJson.error).toBe('Unauthorized request.');
+    });
+
+    it('returns sanitized generic error messages and suppresses raw exceptions on 500', async () => {
+      process.env.AI_VALIDATION_ADMIN_TOKEN = dummyAdminToken;
+      process.env.VERCEL_ENV = 'preview';
+      process.env.QA_DEMO_ENABLED = 'true';
+      process.env.WATTWISE_AI_VALIDATION_PROFILE_ENABLED = 'true';
+      process.env.WATTWISE_PREVIEW_DATABASE_PROJECT_ID = demoService.AI_VALIDATION_PREVIEW_PROJECT_ID;
+
+      const spy = vi.spyOn(demoService, 'checkAiValidationDemo').mockRejectedValueOnce(
+        new Error('Sensitive PostgreSQL connection details: password=secret')
+      );
+
+      const request = new Request('https://preview.local/api/internal/ai-validation', {
+        headers: { Authorization: `Bearer ${dummyAdminToken}` },
+      });
+
+      const response = await GET(request);
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toBe('Internal error during validation check.');
+      expect(JSON.stringify(body)).not.toContain('Sensitive');
+      expect(JSON.stringify(body)).not.toContain('secret');
+      spy.mockRestore();
     });
   });
 });

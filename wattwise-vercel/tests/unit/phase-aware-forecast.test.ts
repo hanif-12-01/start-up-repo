@@ -82,7 +82,7 @@ describe('phase-aware history and routing', () => {
   });
 
   it('maps every phase to the authorized engine', () => {
-    expect(requestedEngineForPhase('H00')).toBe('lightgbm');
+    expect(requestedEngineForPhase('H00')).toBe('deterministic_baseline');
     expect(requestedEngineForPhase('H01_02')).toBe('deterministic_baseline');
     expect(requestedEngineForPhase('H03_05')).toBe('lightgbm');
     expect(requestedEngineForPhase('H06_12')).toBe('nbeats');
@@ -142,29 +142,31 @@ describe('phase-aware execution modes and gateway', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('requires a server-authorized validation profile for H00', async () => {
+  it('makes zero ML requests for H00 and returns truthful initial estimate', async () => {
     const fetcher = vi.fn<typeof fetch>();
+    const deterministic = predictUsage([], 1_500);
     const result = await getPhaseAwareForecast({
       business: { id: 'ordinary-business', businessType: 'FNB' },
       samples: [],
-      deterministicPrediction: predictUsage([], 1_500),
+      deterministicPrediction: deterministic,
       tariff: 1_500,
       forecastOrigin: origin,
       env: mlEnv,
       fetcher,
     });
-    expect(result.fallbackReason).toBe('MISSING_VALIDATED_STATIC_PROFILE');
+    expect(result.reportingPhase).toBe('H00');
+    expect(result.requestedEngine).toBe('deterministic_baseline');
     expect(result.selectedEngine).toBe('deterministic_baseline');
+    expect(result.displayedEngine).toBe('deterministic_baseline');
+    expect(result.phaseLabel).toBe('Estimasi awal');
+    expect(result.sourceLabel).toBe('Estimasi awal');
+    expect(result.mlPredictionKwh).toBeNull();
+    expect(result.fallbackUsed).toBe(false);
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('executes LightGBM for H00 only with the Preview validation profile', async () => {
-    const fetcher = vi.fn<typeof fetch>(async (_url, init) => {
-      const request = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      expect(request.requested_model).toBe('lightgbm');
-      expect(request.consumption_history).toEqual([]);
-      return jsonResponse(successfulResponse(request, 215));
-    });
+  it('keeps H00 non-ML and returns truthful initial estimate for synthetic demo and real businesses', async () => {
+    const fetcher = vi.fn<typeof fetch>();
     const result = await getPhaseAwareForecast({
       business: { id: 'demo-h00', businessType: 'FNB' },
       samples: [],
@@ -179,10 +181,16 @@ describe('phase-aware execution modes and gateway', () => {
       },
       fetcher,
     });
-    expect(result.selectedEngine).toBe('lightgbm');
-    expect(result.prediction.predictedUsageKwh).toBe(215);
+    expect(result.requestedEngine).toBe('deterministic_baseline');
+    expect(result.selectedEngine).toBe('deterministic_baseline');
+    expect(result.displayedEngine).toBe('deterministic_baseline');
+    expect(result.phaseLabel).toBe('Estimasi awal');
+    expect(result.sourceLabel).toBe('Estimasi awal');
     expect(result.validationDetailsVisible).toBe(true);
     expect(result.dataProvenance).toBe('SYNTHETIC_DEMO');
+    expect(result.fallbackUsed).toBe(false);
+    expect(result.mlPredictionKwh).toBeNull();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it.each([

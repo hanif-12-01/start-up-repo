@@ -219,7 +219,7 @@ export async function checkAiValidationDemo(anchorMonth = new Date().toISOString
     });
   }
   const expected = new Map([
-    ['AI Validation H00', ['H00', 'lightgbm', 0]],
+    ['AI Validation H00', ['H00', 'deterministic_baseline', 0]],
     ['AI Validation H01_02', ['H01_02', 'deterministic_baseline', 2]],
     ['AI Validation H03_05', ['H03_05', 'lightgbm', 4]],
     ['AI Validation H06_12', ['H06_12', 'nbeats', 8]],

@@ -172,7 +172,7 @@ export function reportingPhaseForMonths(months: number): ReportingPhase {
 }
 
 export function requestedEngineForPhase(phase: ReportingPhase): PredictionEngine {
-  if (phase === 'H00' || phase === 'H03_05') return 'lightgbm';
+  if (phase === 'H03_05') return 'lightgbm';
   if (phase === 'H06_12' || phase === 'H13_PLUS') return 'nbeats';
   return 'deterministic_baseline';
 }
@@ -469,7 +469,10 @@ export async function getPhaseAwareForecast(input: {
       inferenceLatencyMs: null,
       prediction: input.deterministicPrediction,
       mlPredictionKwh: null,
-      sourceLabel: 'Estimasi berdasarkan histori awal',
+      sourceLabel:
+        history.reportingPhase === 'H00'
+          ? 'Estimasi awal'
+          : 'Estimasi berdasarkan histori awal',
       phaseLabel: phaseLabels[history.reportingPhase],
     };
   }
