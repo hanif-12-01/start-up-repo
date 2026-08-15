@@ -99,6 +99,9 @@ Test model/
 # ONNX feasibility artifacts
 .onnx-artifacts/
 *.onnx
+*.wasm
+/wattwise-vercel/public/ml-feasibility/
+/wattwise-vercel/public/ort-wasm/
 .cloudrun-staging/
 .vercel-ml-stage/
 !ml/onnx-feasibility/*.md

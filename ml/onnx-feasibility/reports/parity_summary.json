@@ -17,9 +17,9 @@
     "original_mb": 1.2693,
     "onnx_mb": 0.9971,
     "under_100mb": "YES",
-    "load_ms": 92.49,
-    "cold_ms": 1.173,
-    "warm_ms": 0.263,
+    "load_ms": 104.44,
+    "cold_ms": 1.065,
+    "warm_ms": 0.141,
     "case_results": [
       {
         "fixture_id": "lgb_case_1_stable",
@@ -92,11 +92,11 @@
     "numerical_parity": "PASS",
     "deterministic": "YES",
     "original_mb": 4.2418,
-    "onnx_mb": 0.046,
+    "onnx_mb": 0.0197,
     "under_100mb": "YES",
-    "load_ms": 24.95,
-    "cold_ms": 3.531,
-    "warm_ms": 0.186,
+    "load_ms": 17.89,
+    "cold_ms": 3.793,
+    "warm_ms": 0.174,
     "case_results": [
       {
         "fixture_id": "nbeats_case_1_stable_h06_12",
@@ -172,7 +172,7 @@
       }
     ]
   },
-  "total_onnx_mb": 1.0431,
+  "total_onnx_mb": 1.0168,
   "browser_portability": {
     "lightgbm_portable": "YES",
     "nbeats_portable": "YES",

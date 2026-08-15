@@ -43,6 +43,8 @@ next-env.d.ts
 .vercel
 .env*
 .preview-browser-profile-09b/
+public/ml-feasibility/
+public/ort-wasm/
+*.onnx
+*.wasm
 
-.vercel
-.env*

@@ -161,7 +161,7 @@ def export_nbeats() -> tuple[Path, dict[str, Any]]:
         dummy_input,
         str(OUTPUT_FILE),
         export_params=True,
-        opset_version=18,
+        opset_version=17,
         do_constant_folding=True,
         input_names=["history_6m"],
         output_names=["prediction_kwh"],
@@ -169,6 +169,7 @@ def export_nbeats() -> tuple[Path, dict[str, Any]]:
             "history_6m": {0: "batch_size"},
             "prediction_kwh": {0: "batch_size"},
         },
+        dynamo=False,
     )
     print(f"[OK] Exported N-BEATS ONNX model to {OUTPUT_FILE}")
 
