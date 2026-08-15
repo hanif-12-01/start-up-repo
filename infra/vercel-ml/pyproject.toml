@@ -1,0 +1,18 @@
+[project]
+name = "wattwise-ml-serving"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "torch==2.6.0+cpu",
+  "pytorch-forecasting==1.8.0",
+  "pytorch-lightning==2.6.5",
+  "lightgbm==4.6.0",
+  "scikit-learn==1.7.1",
+  "joblib==1.5.3",
+  "pandas==2.3.1",
+  "numpy==2.3.2",
+]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+extra-index-url = ["https://download.pytorch.org/whl/cpu"]

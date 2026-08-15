@@ -67,6 +67,7 @@ ML/data/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
 # local tool state
 .claude/
 
@@ -95,3 +96,7 @@ Test model/
 /ml/benchmark/**/*.txt.partial
 /ml/benchmark/**/*.zip.partial
 *.egg-info/
+
+# Local deployment staging
+.vercel-ml-stage/
+.cloudrun-staging/
