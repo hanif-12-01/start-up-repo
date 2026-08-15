@@ -238,7 +238,7 @@ export function generateAnalysisRecommendations(input: {
     recommendations.push({
       id: 'rec-appliance-missing',
       priority: 'RENDAH',
-      title: 'Lengkapi daftar peralatan listrik untuk estimasi lebih akurat',
+      title: 'Lengkapi daftar peralatan listrik untuk estimasi lebih terperinci',
       reason: 'Belum ada data rincian peralatan listrik yang tercatat pada profil usaha.',
       limitation: 'Analisis efisiensi tanpa daftar peralatan bersifat indikatif umum.',
       nextAction: 'Gunakan template peralatan usaha atau tambahkan peralatan secara manual.',

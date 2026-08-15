@@ -11,7 +11,6 @@ import {
   Lightbulb,
   LineChart,
   LockKeyhole,
-  ReceiptText,
   SlidersHorizontal,
   TrendingUp,
 } from 'lucide-react';
@@ -34,7 +33,7 @@ import { Simulator } from '@/app/(product)/predictions/Simulator';
 import type { EmbeddedForecastPlan } from '@/server/services/product-analysis';
 import type { PredictionResult } from '@/server/services/product-analysis';
 import { runEmbeddedNBeatsInference } from '@/lib/ai/embedded-nbeats';
-import { deriveDisplayedPrediction } from '@/lib/ai/prediction-display';
+import { deriveDisplayedPrediction, getDataReadinessStatus } from '@/lib/ai/prediction-display';
 
 const tabs = [
   ['overview', Gauge, 'Ringkasan'],
@@ -179,6 +178,8 @@ export function AnalysisView({
   const fallbackUsed = aiPrediction ? aiPrediction.fallbackUsed : false;
   const inferenceLatencyMs = aiPrediction ? aiPrediction.latencyMs : null;
 
+  const dataReadiness = getDataReadinessStatus(forecastPlan.continuousHistoryMonths);
+
   // Construct trend points for visualization with single unified prediction
   const trendPoints: TrendPoint[] = samples.map((s) => ({
     period: s.period,
@@ -231,21 +232,15 @@ export function AnalysisView({
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BusinessSelector businesses={data.businesses} selectedId={data.business.id} route="/analysis" />
-            <StatusBadge variant="primary" size="md">
-              {data.business.name}
+            <StatusBadge variant="info">
+              Tarif {data.business.tariffRupiahPerKwh ? `${rupiah.format(Number(data.business.tariffRupiahPerKwh))}/kWh` : 'Belum diatur'}
             </StatusBadge>
           </div>
         }
       />
 
-      {/* Top KPI Telemetry Strip */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Tagihan Terakhir"
-          value={data.latestBill ? rupiah.format(Number(data.latestBill.totalAmountRupiah)) : '—'}
-          secondary={data.latestBill ? formatMonth(data.latestBill.periodEnd) : 'Belum ada data'}
-          icon={ReceiptText}
-        />
+      {/* Key Diagnostic & Prediction Cards */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard
           label="Indikasi Anomali"
           value={anomaly.status}
@@ -382,6 +377,26 @@ export function AnalysisView({
               </p>
             </Surface>
           </div>
+
+          {/* Data Readiness Banner */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                  Kesiapan Data Usaha
+                </p>
+                <h3 className="mt-0.5 text-base font-black text-[var(--foreground)]">
+                  {dataReadiness.label} · {forecastPlan.continuousHistoryMonths} Bulan Histori Berurutan
+                </h3>
+              </div>
+              <StatusBadge variant={dataReadiness.isAiReady ? 'success' : 'neutral'}>
+                {dataReadiness.isAiReady ? 'Prediksi AI Aktif' : 'Estimasi Historis'}
+              </StatusBadge>
+            </div>
+            <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
+              {dataReadiness.description} {dataReadiness.milestoneMessage}
+            </p>
+          </div>
         </div>
       )}
 
@@ -442,6 +457,32 @@ export function AnalysisView({
               </p>
             </Surface>
           </div>
+
+          {(anomaly.status === 'Boros' || anomaly.status === 'Perlu Dicek') && (
+            <Surface variant="elevated" className="mt-6 border-l-4 border-l-[var(--warning)]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--warning)]">
+                    Langkah Penyelidikan Disarankan
+                  </p>
+                  <h3 className="mt-1 text-base font-black text-[var(--foreground)]">
+                    Tindak Lanjuti dengan Cek Kenaikan
+                  </h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Periksa kemungkinan faktor operasional atau alat berdaya tinggi yang menyebabkan peningkatan pemakaian ini.
+                  </p>
+                </div>
+                <Link
+                  href={`/diagnostics?${businessQuery}`}
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
+                >
+                  Mulai Cek Kenaikan
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
+            </Surface>
+          )}
+
           <div className="mt-6">
             <DataNotice title="Definisi Sinyal Anomali" variant="warning">
               Ini adalah indikasi awal berbasis perbandingan data input Anda. Angka ini bukan diagnosis teknis, bukan bukti kerusakan peralatan, dan bukan klaim resmi PLN.
@@ -474,6 +515,26 @@ export function AnalysisView({
             </span>
           </div>
 
+          {/* Data Readiness Indicator Component */}
+          <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                  Kesiapan Data WattWise
+                </p>
+                <h4 className="text-sm font-bold text-[var(--foreground)]">
+                  {dataReadiness.label}
+                </h4>
+              </div>
+              <StatusBadge variant={dataReadiness.isAiReady ? 'success' : 'neutral'}>
+                {dataReadiness.isAiReady ? 'Prediksi AI Aktif' : 'Estimasi Historis'}
+              </StatusBadge>
+            </div>
+            <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
+              {dataReadiness.description} {dataReadiness.milestoneMessage}
+            </p>
+          </div>
+
           {isInferring ? (
             <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center">
               <div className="inline-flex items-center gap-3 text-sm font-semibold text-[var(--primary)]">
@@ -484,26 +545,68 @@ export function AnalysisView({
               </p>
             </div>
           ) : prediction.hasPrediction ? (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Surface variant="muted">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Pemakaian</p>
-                <p className="mt-2 text-2xl font-black tabular-nums text-[var(--foreground)]">
-                  {decimal.format(prediction.predictedUsageKwh ?? 0)} kWh
-                </p>
-              </Surface>
-              <Surface variant="muted">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Tagihan</p>
-                <p className="mt-2 text-xl font-black tabular-nums text-[var(--foreground)]">
-                  {prediction.estimatedBill === null ? 'Tarif belum diisi' : rupiah.format(prediction.estimatedBill)}
-                </p>
-              </Surface>
-              <Surface variant="muted">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Risiko Kenaikan</p>
-                <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
-              </Surface>
-              <Surface variant="muted">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Keyakinan</p>
-                <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.confidence ?? 'Sedang'}</p>
+            <div className="mt-5 space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Surface variant="muted">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Pemakaian</p>
+                  <p className="mt-2 text-2xl font-black tabular-nums text-[var(--foreground)]">
+                    {decimal.format(prediction.predictedUsageKwh ?? 0)} kWh
+                  </p>
+                </Surface>
+                <Surface variant="muted">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Tagihan</p>
+                  <p className="mt-2 text-xl font-black tabular-nums text-[var(--foreground)]">
+                    {prediction.estimatedBill === null ? 'Tarif belum diisi' : rupiah.format(prediction.estimatedBill)}
+                  </p>
+                </Surface>
+                <Surface variant="muted">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Risiko Kenaikan</p>
+                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
+                </Surface>
+                <Surface variant="muted">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Keyakinan</p>
+                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.confidence ?? 'Sedang'}</p>
+                </Surface>
+              </div>
+
+              {/* Contextual Next Step Handoff */}
+              <Surface variant="elevated" className="border-l-4 border-l-[var(--primary)]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-wide text-[var(--primary)]">
+                      Langkah Selanjutnya
+                    </p>
+                    <h3 className="mt-1 text-base font-black text-[var(--foreground)]">
+                      {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM'
+                        ? 'Periksa Potensi Kenaikan (Cek Kenaikan)'
+                        : 'Tinjau Rekomendasi Efisiensi Energi'}
+                    </h3>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM'
+                        ? 'Prediksi menunjukkan potensi kenaikan beban biaya/pemakaian. Jalankan Cek Kenaikan untuk memeriksa faktor yang mungkin berkontribusi.'
+                        : 'Proyeksi pemakaian berada dalam rentang wajar. Tinjau rekomendasi operasional atau lanjutkan pencatatan rutin.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM' ? (
+                      <Link
+                        href={`/diagnostics?${businessQuery}`}
+                        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
+                      >
+                        Mulai Cek Kenaikan
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/analysis?${businessQuery}&tab=recommendations`}
+                        className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
+                      >
+                        Lihat Rekomendasi
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </Surface>
             </div>
           ) : (

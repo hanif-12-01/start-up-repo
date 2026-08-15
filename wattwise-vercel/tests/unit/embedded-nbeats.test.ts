@@ -241,3 +241,79 @@ describe('SERVER-SIDE ZERO REMOTE ML INVOCATION & SERVICE URL IRRELEVANCE', () =
     }
   });
 });
+
+describe('DATA READINESS BOUNDARIES & USER-FACING PRESENTATION (MVP-CORE-01)', () => {
+  it('maps continuous history months to user-friendly readiness states without technical phase codes', async () => {
+    const { getDataReadinessStatus } = await import('@/lib/ai/prediction-display');
+
+    // H00 (0 months)
+    const h00 = getDataReadinessStatus(0);
+    expect(h00.phaseKey).toBe('H00');
+    expect(h00.label).toBe('Belum ada histori konsumsi');
+    expect(h00.isAiReady).toBe(false);
+    expect(h00.label).not.toMatch(/H00|H01|H03|H06|H13/);
+
+    // H01_02 (1-2 months)
+    const h01 = getDataReadinessStatus(1);
+    expect(h01.phaseKey).toBe('H01_02');
+    expect(h01.label).toBe('Histori awal');
+    expect(h01.isAiReady).toBe(false);
+    expect(h01.milestoneMessage).toContain('5 bulan berurutan lagi');
+
+    const h02 = getDataReadinessStatus(2);
+    expect(h02.phaseKey).toBe('H01_02');
+    expect(h02.label).toBe('Histori awal');
+    expect(h02.isAiReady).toBe(false);
+
+    // H03_05 (3-5 months)
+    const h03 = getDataReadinessStatus(3);
+    expect(h03.phaseKey).toBe('H03_05');
+    expect(h03.label).toBe('Histori berkembang');
+    expect(h03.isAiReady).toBe(false);
+    expect(h03.milestoneMessage).toContain('3 bulan berurutan lagi');
+
+    const h05 = getDataReadinessStatus(5);
+    expect(h05.phaseKey).toBe('H03_05');
+    expect(h05.label).toBe('Histori berkembang');
+    expect(h05.isAiReady).toBe(false);
+    expect(h05.milestoneMessage).toContain('1 bulan berurutan lagi');
+
+    // H06_12 (6-12 months)
+    const h06 = getDataReadinessStatus(6);
+    expect(h06.phaseKey).toBe('H06_12');
+    expect(h06.label).toBe('Siap untuk Prediksi AI');
+    expect(h06.isAiReady).toBe(true);
+
+    const h12 = getDataReadinessStatus(12);
+    expect(h12.phaseKey).toBe('H06_12');
+    expect(h12.label).toBe('Siap untuk Prediksi AI');
+    expect(h12.isAiReady).toBe(true);
+
+    // H13_PLUS (13+ months)
+    const h13 = getDataReadinessStatus(13);
+    expect(h13.phaseKey).toBe('H13_PLUS');
+    expect(h13.label).toBe('Histori panjang');
+    expect(h13.isAiReady).toBe(true);
+  });
+});
+
+describe('PRODUCT SAFE-WORDING & CLAIM INTEGRITY', () => {
+  it('confirms recommendation generators produce safe decision support wording', async () => {
+    const { generateAnalysisRecommendations } = await import('@/server/services/product-analysis');
+
+    const recs = generateAnalysisRecommendations({
+      anomalyStatus: 'Boros',
+      differencePercent: 25.4,
+      ratioPercent: 18.2,
+      predictionRisk: 'HIGH',
+      hasApplianceEstimates: false,
+      highestApplianceShare: 35,
+    });
+
+    for (const rec of recs) {
+      const combined = `${rec.title} ${rec.reason} ${rec.limitation} ${rec.nextAction}`;
+      expect(combined).not.toMatch(/pasti menghemat|jaminan|akurasi 100%|penyebab pasti|kerusakan peralatan terbukti/i);
+      expect(combined).toMatch(/indikasi|estimasi|perlu|tinjau|periksa|operasional/i);
+    }
+  });
+});
