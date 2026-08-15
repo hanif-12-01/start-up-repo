@@ -97,7 +97,7 @@
       "classification": "CORE",
       "userProblem": "Ketidakpastian biaya listrik bulan depan mengganggu perencanaan cash flow operasional.",
       "requiredData": ["continuousHistory6m", "tariff"],
-      "output": "Estimasi kWh, estimasi tagihan (Rp), tingkat risiko, dan keyakinan",
+      "output": "Estimasi kWh, estimasi tagihan (Rp), tingkat risiko, dan kesiapan data",
       "nextStep": "Jika risiko tinggi/sedang: Cek Kenaikan (/diagnostics); jika rendah: Rekomendasi",
       "consumedBy": ["TrendChart", "AnalysisOverview", "NextActionHandoff"],
       "status": "ACTIVE"

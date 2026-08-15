@@ -294,6 +294,9 @@ describe('DATA READINESS BOUNDARIES & USER-FACING PRESENTATION (MVP-CORE-01)', (
     expect(h13.phaseKey).toBe('H13_PLUS');
     expect(h13.label).toBe('Histori panjang');
     expect(h13.isAiReady).toBe(true);
+    // H13_PLUS description must explicitly clarify that N-BEATS uses 6 months
+    expect(h13.description).toMatch(/6 bulan/i);
+    expect(h13.milestoneMessage).toMatch(/6 bulan/i);
   });
 });
 

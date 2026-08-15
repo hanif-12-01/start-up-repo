@@ -87,8 +87,8 @@ export function getDataReadinessStatus(continuousHistoryMonths: number): DataRea
   return {
     phaseKey: 'H13_PLUS',
     label: 'Histori panjang',
-    description: 'Prediksi AI aktif dengan basis data historis yang kuat.',
-    milestoneMessage: 'Histori panjang memberikan pola historis yang lebih lengkap.',
+    description: 'Histori konsumsi Anda sudah matang. Prediksi AI saat ini menggunakan 6 bulan terbaru yang berurutan.',
+    milestoneMessage: 'Anda memiliki histori yang panjang. Model N-BEATS menggunakan 6 bulan terbaru sebagai input inferensi.',
     isAiReady: true,
   };
 }

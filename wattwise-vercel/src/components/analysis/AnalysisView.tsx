@@ -274,14 +274,14 @@ export function AnalysisView({
               ? 'Menyiapkan prediksi WattWise...'
               : prediction.estimatedBill
                 ? rupiah.format(prediction.estimatedBill)
-                : `Keyakinan ${prediction.confidence ?? '—'}`
+                : `Kesiapan Data: ${prediction.confidence ?? '—'}`
           }
           icon={TrendingUp}
         />
         <MetricCard
           label="Skor Efisiensi"
           value={score.score !== null ? score.score : '—'}
-          secondary={`${score.label} · Keyakinan ${score.confidence}`}
+          secondary={`${score.label} · Kesiapan Data: ${score.confidence}`}
           icon={Gauge}
         />
       </section>
@@ -498,7 +498,7 @@ export function AnalysisView({
             <div className="mb-5 flex items-start gap-3 rounded-2xl bg-[var(--surface-muted)] p-4">
               <LockKeyhole className="h-5 w-5 text-[var(--muted)] shrink-0" />
               <p className="text-xs text-[var(--muted)]">
-                Paket Gratis menampilkan ringkasan proyeksi dasar. Detail historis panjang dan faktor musim tersedia pada Paket Pro.
+                Paket Gratis menampilkan ringkasan proyeksi dasar. Analisis lanjutan dan ekspor data tersedia pada Paket Pro.
               </p>
             </div>
           )}
@@ -564,7 +564,7 @@ export function AnalysisView({
                   <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
                 </Surface>
                 <Surface variant="muted">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Keyakinan</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Kesiapan Data</p>
                   <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.confidence ?? 'Sedang'}</p>
                 </Surface>
               </div>
