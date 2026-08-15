@@ -72,6 +72,7 @@ next-env.d.ts
 
 # test outputs
 test-outputs/
+/.tmp/
 
 # local test model folder
 Test model/
@@ -94,3 +95,18 @@ Test model/
 /ml/benchmark/**/*.txt.partial
 /ml/benchmark/**/*.zip.partial
 *.egg-info/
+
+# ONNX feasibility artifacts
+.onnx-artifacts/
+*.onnx
+*.wasm
+!/wattwise-vercel/public/models/nbeats-ai02-1.0.0.onnx
+/wattwise-vercel/public/ml-feasibility/
+/wattwise-vercel/public/ort-wasm/
+.cloudrun-staging/
+.vercel-ml-stage/
+!ml/onnx-feasibility/*.md
+!ml/onnx-feasibility/**/*.md
+__pycache__/
+*.pyc
+

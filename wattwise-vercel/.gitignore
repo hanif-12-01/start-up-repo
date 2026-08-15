@@ -43,6 +43,9 @@ next-env.d.ts
 .vercel
 .env*
 .preview-browser-profile-09b/
+public/ml-feasibility/
+public/ort-wasm/
+*.onnx
+*.wasm
+!public/models/nbeats-ai02-1.0.0.onnx
 
-.vercel
-.env*

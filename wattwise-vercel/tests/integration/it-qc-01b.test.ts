@@ -4,6 +4,7 @@ import { applyAllForwardMigrations } from '../helpers/migrations';
 import { createBillForOwnedBusiness, updateBillForOwnedBusiness, deleteBillForOwnedBusiness, ReferencedBillLockedError } from '../../src/server/repositories/bill.repository';
 import { deleteRevenueEntry, applyApplianceTemplate } from '../../src/server/services/workspace.service';
 import { getMonthlyReportReadModel } from '../../src/server/services/monthly-report.service';
+import { getProductAnalysisReadModel } from '../../src/server/services/product-analysis';
 import { GET as csvRouteGET } from '../../src/app/api/reports/monthly.csv/route';
 import * as sessionModule from '../../src/server/auth/session';
 
@@ -358,6 +359,72 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
 
       const check = await pool.query(`SELECT count(*)::int FROM revenue_entry WHERE id = 'rev-del-1'`);
       expect(check.rows[0].count).toBe(0);
+    });
+  });
+
+  describe('Phase-aware forecast database integration and tenant isolation', () => {
+    it('classifies all five phases from owned monthly bills while AI OFF stays deterministic', async () => {
+      await seedUser('phase-user', 'phase-user@example.test');
+      const fixtures = [
+        ['phase-h00', 0, 'H00', 'deterministic_baseline'],
+        ['phase-h02', 2, 'H01_02', 'deterministic_baseline'],
+        ['phase-h04', 4, 'H03_05', 'deterministic_baseline'],
+        ['phase-h08', 8, 'H06_12', 'nbeats'],
+        ['phase-h13', 13, 'H13_PLUS', 'nbeats'],
+      ] as const;
+      const previousMode = process.env.WATTWISE_AI_MODE;
+      process.env.WATTWISE_AI_MODE = 'OFF';
+      try {
+        for (const [businessId, count, phase, engine] of fixtures) {
+          await seedBusiness(businessId, 'phase-user', `AI Validation ${phase}`);
+          for (let index = 0; index < count; index += 1) {
+            const date = new Date(Date.UTC(2025, index, 1));
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const lastDay = new Date(Date.UTC(year, date.getUTCMonth() + 1, 0)).getUTCDate();
+            await pool.query(
+              `INSERT INTO electricity_bill (
+                 id, business_id, period_start, period_end, total_amount_rupiah,
+                 kwh, tariff_rupiah_per_kwh, kwh_source
+               ) VALUES ($1, $2, $3::date, $4::date, $5, $6, 1500, 'USER_ENTERED')`,
+              [
+                `${businessId}-bill-${index}`,
+                businessId,
+                `${year}-${month}-01`,
+                `${year}-${month}-${lastDay}`,
+                150_000 + index * 15_000,
+                100 + index * 10,
+              ]
+            );
+          }
+          const result = await getProductAnalysisReadModel('phase-user', businessId, {
+            forecastOrigin: new Date('2026-12-15T00:00:00.000Z'),
+          });
+          expect(result.forecastPlan.reportingPhase).toBe(phase);
+          expect(result.forecastPlan.requestedEngine).toBe(engine);
+          if (engine === 'nbeats') {
+            expect(result.forecastPlan.eligible).toBe(true);
+            expect(result.forecastPlan.history6m).toHaveLength(6);
+            expect(result.forecastPlan.modelVersion).toBe('nbeats-ai02-1.0.0');
+          } else {
+            expect(result.forecastPlan.eligible).toBe(false);
+            expect(result.forecastPlan.history6m).toBeNull();
+            expect(result.forecastPlan.modelVersion).toBeNull();
+          }
+        }
+      } finally {
+        if (previousMode === undefined) delete process.env.WATTWISE_AI_MODE;
+        else process.env.WATTWISE_AI_MODE = previousMode;
+      }
+    });
+
+    it('rejects a foreign business before prediction orchestration can run', async () => {
+      await seedUser('phase-owner-a', 'phase-owner-a@example.test');
+      await seedUser('phase-owner-b', 'phase-owner-b@example.test');
+      await seedBusiness('phase-private-business', 'phase-owner-b', 'Private Business');
+      await expect(
+        getProductAnalysisReadModel('phase-owner-a', 'phase-private-business')
+      ).rejects.toThrow();
     });
   });
 });

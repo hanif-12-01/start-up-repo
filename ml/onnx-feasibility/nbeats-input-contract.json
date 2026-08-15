@@ -1,0 +1,34 @@
+{
+  "model_family": "nbeats",
+  "model_version": "nbeats-ai02-1.0.0",
+  "contract_version": "1.0",
+  "input_nodes": [
+    {
+      "name": "history_6m",
+      "shape": [-1, 6],
+      "dynamic_dimensions": ["batch_size"],
+      "dtype": "float32",
+      "description": "Sequence of last 6 continuous monthly electricity usage values in kWh ordered chronologically [t-5, t-4, t-3, t-2, t-1, t0]."
+    }
+  ],
+  "internal_transforms": {
+    "input_transform": "softplus_inv: z = where(y > 20.0, y, y + log(-expm1(-(y + eps))))",
+    "normalization": "standard: center = mean(z, dim=-1), scale = clamp(std(z, dim=-1, ddof=0), min=1e-7), x_norm = (z - center) / scale",
+    "network_blocks": "2 generic N-BEATS stacks (2 dense layers per block, width 32, expansion length 16)",
+    "output_denormalization": "z_pred = forecast * scale + center",
+    "output_inverse_transform": "y_pred = softplus(z_pred) = log(1.0 + exp(z_pred))",
+    "postprocessing": "prediction_kwh = clamp(y_pred, min=0.0)"
+  },
+  "output_nodes": [
+    {
+      "name": "prediction_kwh",
+      "shape": [-1, 1],
+      "dynamic_dimensions": ["batch_size"],
+      "dtype": "float32",
+      "interpretation": "Point forecast for target month in kWh (strictly non-negative and finite)."
+    }
+  ],
+  "expected_context_length": 6,
+  "expected_horizon": 1,
+  "supported_phases": ["H06_12", "H13_PLUS"]
+}

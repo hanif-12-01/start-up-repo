@@ -1,0 +1,47 @@
+{
+  "description": "Representative N-BEATS test fixtures for numerical parity validation across H06_12 and H13_PLUS",
+  "fixtures": [
+    {
+      "fixture_id": "nbeats_case_1_stable_h06_12",
+      "pattern": "stable",
+      "reporting_phase": "H06_12",
+      "target_period": "2026-07",
+      "history": [200.0, 202.0, 199.0, 201.0, 203.0, 200.0]
+    },
+    {
+      "fixture_id": "nbeats_case_2_growth_h06_12",
+      "pattern": "growth",
+      "reporting_phase": "H06_12",
+      "target_period": "2026-09",
+      "history": [100.0, 115.0, 130.0, 150.0, 170.0, 195.0, 220.0, 250.0]
+    },
+    {
+      "fixture_id": "nbeats_case_3_decline_h06_12",
+      "pattern": "decline",
+      "reporting_phase": "H06_12",
+      "target_period": "2026-11",
+      "history": [500.0, 470.0, 440.0, 410.0, 390.0, 360.0, 330.0, 310.0, 290.0, 270.0]
+    },
+    {
+      "fixture_id": "nbeats_case_4_noisy_h06_12",
+      "pattern": "noisy",
+      "reporting_phase": "H06_12",
+      "target_period": "2026-07",
+      "history": [150.0, 320.0, 180.0, 410.0, 200.0, 350.0]
+    },
+    {
+      "fixture_id": "nbeats_case_5_long_history_h13_plus",
+      "pattern": "long_history",
+      "reporting_phase": "H13_PLUS",
+      "target_period": "2027-07",
+      "history": [105.0, 110.0, 120.0, 125.0, 130.0, 140.0, 145.0, 150.0, 160.0, 165.0, 170.0, 180.0, 185.0, 190.0, 200.0, 205.0, 210.0, 220.0]
+    },
+    {
+      "fixture_id": "nbeats_case_6_stable_long_h13_plus",
+      "pattern": "stable_long",
+      "reporting_phase": "H13_PLUS",
+      "target_period": "2028-01",
+      "history": [350.0, 355.0, 360.0, 365.0, 350.0, 355.0, 360.0, 365.0, 350.0, 355.0, 360.0, 365.0, 350.0, 355.0, 360.0, 365.0, 350.0, 355.0, 360.0, 365.0, 350.0, 355.0, 360.0, 365.0]
+    }
+  ]
+}

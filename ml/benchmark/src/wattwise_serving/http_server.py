@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -51,12 +52,32 @@ class InferenceApplication:
             }
 
 
-def handler_for(application: InferenceApplication) -> type[BaseHTTPRequestHandler]:
+def _authorized(authorization: str | None, token: str) -> bool:
+    if not authorization or not authorization.startswith("Bearer "):
+        return False
+    supplied = authorization.removeprefix("Bearer ")
+    return bool(supplied) and hmac.compare_digest(supplied, token)
+
+
+def handler_for(
+    application: InferenceApplication,
+    token: str | None = None,
+) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if self.path == "/health":
                 status, payload = application.health()
             elif self.path == "/v1/models":
+                if token is not None and not _authorized(self.headers.get("Authorization"), token):
+                    self._write(
+                        HTTPStatus.UNAUTHORIZED,
+                        {
+                            "schema_version": "1.0",
+                            "status": "error",
+                            "error_code": "UNAUTHORIZED",
+                        },
+                    )
+                    return
                 status, payload = application.models()
             else:
                 status, payload = (
@@ -74,6 +95,16 @@ def handler_for(application: InferenceApplication) -> type[BaseHTTPRequestHandle
                 self._write(
                     HTTPStatus.NOT_FOUND,
                     {"schema_version": "1.0", "status": "error", "error_code": "NOT_FOUND"},
+                )
+                return
+            if token is not None and not _authorized(self.headers.get("Authorization"), token):
+                self._write(
+                    HTTPStatus.UNAUTHORIZED,
+                    {
+                        "schema_version": "1.0",
+                        "status": "error",
+                        "error_code": "UNAUTHORIZED",
+                    },
                 )
                 return
             try:
@@ -108,6 +139,6 @@ def handler_for(application: InferenceApplication) -> type[BaseHTTPRequestHandle
     return Handler
 
 
-def serve(host: str, port: int, application: InferenceApplication) -> None:
-    server = ThreadingHTTPServer((host, port), handler_for(application))
+def serve(host: str, port: int, application: InferenceApplication, *, token: str) -> None:
+    server = ThreadingHTTPServer((host, port), handler_for(application, token))
     server.serve_forever()

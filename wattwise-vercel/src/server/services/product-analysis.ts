@@ -238,7 +238,7 @@ export function generateAnalysisRecommendations(input: {
     recommendations.push({
       id: 'rec-appliance-missing',
       priority: 'RENDAH',
-      title: 'Lengkapi daftar peralatan listrik untuk estimasi lebih akurat',
+      title: 'Lengkapi daftar peralatan listrik untuk estimasi lebih terperinci',
       reason: 'Belum ada data rincian peralatan listrik yang tercatat pada profil usaha.',
       limitation: 'Analisis efisiensi tanpa daftar peralatan bersifat indikatif umum.',
       nextAction: 'Gunakan template peralatan usaha atau tambahkan peralatan secara manual.',
@@ -259,14 +259,71 @@ export function generateAnalysisRecommendations(input: {
   return recommendations;
 }
 
-export async function getProductAnalysisReadModel(userId: string, requestedBusinessId?: string) {
+export interface EmbeddedForecastPlan {
+  reportingPhase: 'H00' | 'H01_02' | 'H03_05' | 'H06_12' | 'H13_PLUS';
+  continuousHistoryMonths: number;
+  requestedEngine: 'deterministic_baseline' | 'lightgbm' | 'nbeats';
+  targetPeriod: string;
+  deterministicPrediction: PredictionResult;
+  history6m: number[] | null;
+  tariff: number | null;
+  modelVersion: string | null;
+  eligible: boolean;
+  sourceLabel: string;
+  phaseLabel: string;
+  dataProvenance: 'BUSINESS_DATA' | 'SYNTHETIC_DEMO';
+}
+
+export async function getProductAnalysisReadModel(
+  userId: string,
+  requestedBusinessId?: string,
+  options?: { forecastOrigin?: Date }
+) {
   const { getDecisionSupport } = await import('./workspace.service');
   const data = await getDecisionSupport(userId, requestedBusinessId);
 
   const tariff = Number(data.business.tariffRupiahPerKwh ?? data.latestBill?.tariffRupiahPerKwh ?? 0) || null;
 
   const samples = buildUsageSamplesFromBills(data.bills);
-  const prediction = predictUsage(samples, tariff);
+  const deterministicPrediction = predictUsage(samples, tariff);
+
+  const { buildContinuousHistory, requestedEngineForPhase } = await import('./phase-aware-forecast.service');
+  const phaseBills = await import('../repositories/bill.repository').then(({ listBillsForUser }) =>
+    listBillsForUser(userId, data.business.id)
+  );
+  const continuousHistory = buildContinuousHistory(buildUsageSamplesFromBills(phaseBills.slice(0, 60)), options?.forecastOrigin);
+  const requestedEngine = requestedEngineForPhase(continuousHistory.reportingPhase);
+  const history6m = continuousHistory.continuousHistoryMonths >= 6
+    ? continuousHistory.history.slice(-6).map((h) => h.usage_kwh)
+    : null;
+
+  const phaseLabel =
+    continuousHistory.reportingPhase === 'H00'
+      ? 'Estimasi awal'
+      : continuousHistory.reportingPhase === 'H01_02'
+        ? 'Estimasi berdasarkan histori awal'
+        : continuousHistory.reportingPhase === 'H03_05'
+          ? 'Estimasi berdasarkan histori tersedia'
+          : continuousHistory.reportingPhase === 'H06_12'
+            ? 'Prediksi AI berbasis histori'
+            : 'Prediksi AI berbasis histori panjang';
+
+  const forecastPlan: EmbeddedForecastPlan = {
+    reportingPhase: continuousHistory.reportingPhase,
+    continuousHistoryMonths: continuousHistory.continuousHistoryMonths,
+    requestedEngine,
+    targetPeriod: continuousHistory.targetPeriod,
+    deterministicPrediction,
+    history6m,
+    tariff,
+    modelVersion: requestedEngine === 'nbeats' ? 'nbeats-ai02-1.0.0' : null,
+    eligible: requestedEngine === 'nbeats' && history6m !== null && history6m.length === 6,
+    sourceLabel: phaseLabel,
+    phaseLabel,
+    dataProvenance: 'BUSINESS_DATA',
+  };
+
+  const prediction = deterministicPrediction;
   const anomaly = analyzeLatestAnomaly(samples);
 
   const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
@@ -295,6 +352,8 @@ export async function getProductAnalysisReadModel(userId: string, requestedBusin
     tariff,
     samples,
     prediction,
+    deterministicPrediction,
+    forecastPlan,
     anomaly,
     efficiency,
     recommendations,

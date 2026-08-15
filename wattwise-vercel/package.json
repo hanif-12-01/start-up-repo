@@ -13,6 +13,9 @@
     }
   },
   "scripts": {
+    "prepare:onnx-runtime": "node scripts/prepare-onnx-runtime-assets.mjs",
+    "predev": "npm run prepare:onnx-runtime",
+    "prebuild": "npm run prepare:onnx-runtime",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -22,7 +25,10 @@
     "test:integration": "node scripts/run-with-postgres.js vitest run tests/integration",
     "qa:demo:seed": "tsx scripts/qa-demo-seed.ts",
     "qa:demo:reset": "tsx scripts/qa-demo-reset.ts",
-    "qa:demo:check": "tsx scripts/qa-demo-check.ts"
+    "qa:demo:check": "tsx scripts/qa-demo-check.ts",
+    "ai:validation:seed": "tsx scripts/ai-validation-seed.ts",
+    "ai:validation:check": "tsx scripts/ai-validation-check.ts",
+    "ai:validation:reset": "tsx scripts/ai-validation-reset.ts"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
@@ -32,6 +38,7 @@
     "gsap": "3.15.0",
     "lucide-react": "^0.468.0",
     "next": "16.2.11",
+    "onnxruntime-web": "^1.21.0",
     "pg": "8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
