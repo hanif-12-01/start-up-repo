@@ -11,7 +11,7 @@ export const metadata = {
 
 export default function OnnxProofPage() {
   // Development and test harness guard: inaccessible in Production
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.VERCEL_ENV === "production") {
     notFound();
   }
 
