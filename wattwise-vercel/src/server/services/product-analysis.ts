@@ -259,6 +259,21 @@ export function generateAnalysisRecommendations(input: {
   return recommendations;
 }
 
+export interface EmbeddedForecastPlan {
+  reportingPhase: 'H00' | 'H01_02' | 'H03_05' | 'H06_12' | 'H13_PLUS';
+  continuousHistoryMonths: number;
+  requestedEngine: 'deterministic_baseline' | 'lightgbm' | 'nbeats';
+  targetPeriod: string;
+  deterministicPrediction: PredictionResult;
+  history6m: number[] | null;
+  tariff: number | null;
+  modelVersion: string | null;
+  eligible: boolean;
+  sourceLabel: string;
+  phaseLabel: string;
+  dataProvenance: 'BUSINESS_DATA' | 'SYNTHETIC_DEMO';
+}
+
 export async function getProductAnalysisReadModel(
   userId: string,
   requestedBusinessId?: string,
@@ -271,13 +286,45 @@ export async function getProductAnalysisReadModel(
 
   const samples = buildUsageSamplesFromBills(data.bills);
   const deterministicPrediction = predictUsage(samples, tariff);
+
+  const { buildContinuousHistory, requestedEngineForPhase } = await import('./phase-aware-forecast.service');
+  const phaseBills = await import('../repositories/bill.repository').then(({ listBillsForUser }) =>
+    listBillsForUser(userId, data.business.id)
+  );
+  const continuousHistory = buildContinuousHistory(buildUsageSamplesFromBills(phaseBills.slice(0, 60)), options?.forecastOrigin);
+  const requestedEngine = requestedEngineForPhase(continuousHistory.reportingPhase);
+  const history6m = continuousHistory.continuousHistoryMonths >= 6
+    ? continuousHistory.history.slice(-6).map((h) => h.usage_kwh)
+    : null;
+
+  const phaseLabel =
+    continuousHistory.reportingPhase === 'H00'
+      ? 'Estimasi awal'
+      : continuousHistory.reportingPhase === 'H01_02'
+        ? 'Estimasi berdasarkan histori awal'
+        : continuousHistory.reportingPhase === 'H03_05'
+          ? 'Estimasi berdasarkan histori tersedia'
+          : continuousHistory.reportingPhase === 'H06_12'
+            ? 'Prediksi AI berbasis histori'
+            : 'Prediksi AI berbasis histori panjang';
+
+  const forecastPlan: EmbeddedForecastPlan = {
+    reportingPhase: continuousHistory.reportingPhase,
+    continuousHistoryMonths: continuousHistory.continuousHistoryMonths,
+    requestedEngine,
+    targetPeriod: continuousHistory.targetPeriod,
+    deterministicPrediction,
+    history6m,
+    tariff,
+    modelVersion: requestedEngine === 'nbeats' ? 'nbeats-ai02-1.0.0' : null,
+    eligible: requestedEngine === 'nbeats' && history6m !== null && history6m.length === 6,
+    sourceLabel: phaseLabel,
+    phaseLabel,
+    dataProvenance: 'BUSINESS_DATA',
+  };
+
   const phaseAwarePrediction = options?.phaseAware
-    ? await Promise.all([
-        import('./phase-aware-forecast.service'),
-        import('../repositories/bill.repository').then(({ listBillsForUser }) =>
-          listBillsForUser(userId, data.business.id)
-        ),
-      ]).then(([{ getPhaseAwareForecast }, phaseBills]) =>
+    ? await import('./phase-aware-forecast.service').then(({ getPhaseAwareForecast }) =>
         getPhaseAwareForecast({
           business: {
             id: data.business.id,
@@ -321,6 +368,7 @@ export async function getProductAnalysisReadModel(
     prediction,
     deterministicPrediction,
     phaseAwarePrediction,
+    forecastPlan,
     anomaly,
     efficiency,
     recommendations,

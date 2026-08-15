@@ -84,7 +84,7 @@ describe('phase-aware history and routing', () => {
   it('maps every phase to the authorized engine', () => {
     expect(requestedEngineForPhase('H00')).toBe('deterministic_baseline');
     expect(requestedEngineForPhase('H01_02')).toBe('deterministic_baseline');
-    expect(requestedEngineForPhase('H03_05')).toBe('lightgbm');
+    expect(requestedEngineForPhase('H03_05')).toBe('deterministic_baseline');
     expect(requestedEngineForPhase('H06_12')).toBe('nbeats');
     expect(requestedEngineForPhase('H13_PLUS')).toBe('nbeats');
   });
@@ -142,6 +142,28 @@ describe('phase-aware execution modes and gateway', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it('makes zero ML requests for H03_05 and returns deterministic baseline', async () => {
+    const samples = months(4);
+    const fetcher = vi.fn<typeof fetch>();
+    const result = await getPhaseAwareForecast({
+      business: { id: 'h03-05-business', businessType: 'FNB' },
+      samples,
+      deterministicPrediction: predictUsage(samples, 1_500),
+      tariff: 1_500,
+      forecastOrigin: origin,
+      env: mlEnv,
+      fetcher,
+    });
+    expect(result.reportingPhase).toBe('H03_05');
+    expect(result.requestedEngine).toBe('deterministic_baseline');
+    expect(result.selectedEngine).toBe('deterministic_baseline');
+    expect(result.displayedEngine).toBe('deterministic_baseline');
+    expect(result.sourceLabel).toBe('Estimasi berdasarkan histori tersedia');
+    expect(result.phaseLabel).toBe('Estimasi berdasarkan histori tersedia');
+    expect(result.fallbackUsed).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it('makes zero ML requests for H00 and returns truthful initial estimate', async () => {
     const fetcher = vi.fn<typeof fetch>();
     const deterministic = predictUsage([], 1_500);
@@ -194,7 +216,6 @@ describe('phase-aware execution modes and gateway', () => {
   });
 
   it.each([
-    [4, 'lightgbm'],
     [8, 'nbeats'],
     [13, 'nbeats'],
   ] as const)('routes %i months through real gateway contract as %s', async (count, engine) => {

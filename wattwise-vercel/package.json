@@ -13,6 +13,9 @@
     }
   },
   "scripts": {
+    "prepare:onnx-runtime": "node scripts/prepare-onnx-runtime-assets.mjs",
+    "predev": "npm run prepare:onnx-runtime",
+    "prebuild": "npm run prepare:onnx-runtime",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

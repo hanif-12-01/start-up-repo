@@ -100,6 +100,7 @@ Test model/
 .onnx-artifacts/
 *.onnx
 *.wasm
+!/wattwise-vercel/public/models/nbeats-ai02-1.0.0.onnx
 /wattwise-vercel/public/ml-feasibility/
 /wattwise-vercel/public/ort-wasm/
 .cloudrun-staging/

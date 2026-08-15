@@ -47,4 +47,5 @@ public/ml-feasibility/
 public/ort-wasm/
 *.onnx
 *.wasm
+!public/models/nbeats-ai02-1.0.0.onnx
 
