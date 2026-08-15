@@ -229,14 +229,34 @@ const phaseLabels: Record<ReportingPhase, string> = {
   H13_PLUS: 'Prediksi AI berbasis histori panjang',
 };
 
-function fallbackReasonFromError(error: unknown): FallbackReason {
-  const message = error instanceof Error ? error.message : '';
-  if (message.includes('timeout') || message.includes('Timeout') || message.includes('aborted')) {
+export function fallbackReasonFromError(error: unknown): FallbackReason {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const name = error instanceof Error ? error.name : '';
+
+  if (
+    name === 'TimeoutError' ||
+    message.includes('timeout') ||
+    message.includes('Timeout') ||
+    message.includes('aborted')
+  ) {
     return 'SERVICE_TIMEOUT';
   }
-  if (message.includes('ARTIFACT') || message.includes('artifact')) return 'ARTIFACT_VERSION_MISMATCH';
-  if (message.includes('PREDICTION')) return 'INVALID_PREDICTION';
-  if (message.includes('JSON') || message.includes('RESPONSE') || message.includes('response')) {
+  if (message.includes('ARTIFACT') || message.includes('artifact')) {
+    return 'ARTIFACT_VERSION_MISMATCH';
+  }
+  if (message.includes('INVALID_PREDICTION') || message.includes('PREDICTION')) {
+    return 'INVALID_PREDICTION';
+  }
+  if (
+    message.includes('MALFORMED_JSON') ||
+    message.includes('INVALID_CONTENT') ||
+    message.includes('TOO_LARGE') ||
+    message.includes('ZodError') ||
+    message.includes('ML_REQUEST_ID_MISMATCH') ||
+    message.includes('ML_RESPONSE_PHASE_MISMATCH') ||
+    message.includes('ML_RESPONSE_MODEL_MISMATCH') ||
+    error instanceof z.ZodError
+  ) {
     return 'MALFORMED_RESPONSE';
   }
   return 'SERVICE_UNAVAILABLE';

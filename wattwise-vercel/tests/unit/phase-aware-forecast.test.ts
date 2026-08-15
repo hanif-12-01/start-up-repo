@@ -233,11 +233,11 @@ describe('phase-aware execution modes and gateway', () => {
   });
 
   it.each([
-    ['HTTP 500', async () => jsonResponse({ error: true }, 500)],
-    ['malformed JSON', async () => new Response('{broken', { headers: { 'content-type': 'application/json' } })],
-    ['unreachable service', async () => { throw new Error('connect ECONNREFUSED'); }],
-    ['timeout', async () => { throw new Error('TimeoutError: request aborted'); }],
-  ] as const)('falls back safely on %s', async (_name, behavior) => {
+    ['HTTP 500', async () => jsonResponse({ error: true }, 500), 'SERVICE_UNAVAILABLE'],
+    ['malformed JSON', async () => new Response('{broken', { headers: { 'content-type': 'application/json' } }), 'MALFORMED_RESPONSE'],
+    ['unreachable service', async () => { throw new Error('connect ECONNREFUSED'); }, 'SERVICE_UNAVAILABLE'],
+    ['timeout', async () => { throw new Error('TimeoutError: request aborted'); }, 'SERVICE_TIMEOUT'],
+  ] as const)('falls back safely on %s with reason %s', async (_name, behavior, expectedReason) => {
     const samples = months(8);
     const deterministic = predictUsage(samples, 1_500);
     const result = await getPhaseAwareForecast({
@@ -250,6 +250,7 @@ describe('phase-aware execution modes and gateway', () => {
       fetcher: vi.fn<typeof fetch>(behavior),
     });
     expect(result.fallbackUsed).toBe(true);
+    expect(result.fallbackReason).toBe(expectedReason);
     expect(result.selectedEngine).toBe('deterministic_baseline');
     expect(result.prediction).toEqual(deterministic);
   });
