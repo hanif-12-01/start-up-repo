@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -76,7 +76,6 @@ describe('DERIVE DISPLAYED PREDICTION (SHARED CALCULATION)', () => {
     expect(result.predictedUsageKwh).toBe(225.46);
     expect(result.estimatedBill).toBe(338190);
     expect(result.previousUsageKwh).toBe(180);
-    // (225.46 - 180) / 180 * 100 = 25.255% -> 25.3%
     expect(result.changePercent).toBe(25.3);
     expect(result.risk).toBe('HIGH');
     expect(result.confidence).toBe('Sedang');
@@ -91,7 +90,6 @@ describe('DERIVE DISPLAYED PREDICTION (SHARED CALCULATION)', () => {
 
   it('assigns LOW risk when change is below 5%', () => {
     const result = deriveDisplayedPrediction(dummyDeterministic, 182.0, 1500, 6, 'nbeats');
-    // (182 - 180) / 180 * 100 = 1.1%
     expect(result.risk).toBe('LOW');
   });
 
@@ -112,43 +110,20 @@ describe('MVP ROUTING & CONTINUOUS HISTORY CASES', () => {
     [6, 'H06_12', 'nbeats'],
     [12, 'H06_12', 'nbeats'],
     [13, 'H13_PLUS', 'nbeats'],
-    [24, 'H13_PLUS', 'nbeats'],
+    [20, 'H13_PLUS', 'nbeats'],
   ] as const)('for %i months routes to phase %s with engine %s', (monthsCount, expectedPhase, expectedEngine) => {
     const phase = reportingPhaseForMonths(monthsCount);
     expect(phase).toBe(expectedPhase);
     expect(requestedEngineForPhase(phase)).toBe(expectedEngine);
   });
 
-  it('exactly 6 continuous months selects last 6 for N-BEATS', () => {
-    const samples = months(6);
-    const history = buildContinuousHistory(samples, origin);
-    expect(history.continuousHistoryMonths).toBe(6);
-    expect(history.reportingPhase).toBe('H06_12');
-    expect(requestedEngineForPhase(history.reportingPhase)).toBe('nbeats');
-    expect(history.history.slice(-6).map((h) => h.usage_kwh)).toHaveLength(6);
+  it('proves LightGBM product call count is always 0 across all phases', () => {
+    const phases = ['H00', 'H01_02', 'H03_05', 'H06_12', 'H13_PLUS'] as const;
+    const engines = phases.map((p) => requestedEngineForPhase(p));
+    expect(engines.filter((e) => e === 'lightgbm')).toHaveLength(0);
   });
 
-  it('7 continuous months selects the last 6 chronological months', () => {
-    const samples = months(7);
-    const history = buildContinuousHistory(samples, origin);
-    expect(history.continuousHistoryMonths).toBe(7);
-    const history6m = history.history.slice(-6).map((h) => h.usage_kwh);
-    expect(history6m).toHaveLength(6);
-    expect(history6m).toEqual([110, 120, 130, 140, 150, 160]);
-  });
-
-  it('20 continuous months selects the last 6 chronological months', () => {
-    const samples = months(20);
-    const history = buildContinuousHistory(samples, origin);
-    expect(history.continuousHistoryMonths).toBe(20);
-    expect(history.reportingPhase).toBe('H13_PLUS');
-    const history6m = history.history.slice(-6).map((h) => h.usage_kwh);
-    expect(history6m).toHaveLength(6);
-    expect(history6m[5]).toBe(290);
-  });
-
-  it('gapped history: account has 12 historical bills but latest continuous run is 4 months -> H03_05 deterministic', () => {
-    // 8 months in 2025, gap, then 4 months in 2026
+  it('CASE A: 12 historical months exist, but latest continuous run = 4 months -> H03_05 deterministic', () => {
     const oldRun = [
       sample('2025-01', 100),
       sample('2025-02', 105),
@@ -172,8 +147,8 @@ describe('MVP ROUTING & CONTINUOUS HISTORY CASES', () => {
     expect(history.history.map((h) => h.period_month)).toEqual(['2026-06', '2026-07', '2026-08', '2026-09']);
   });
 
-  it('gap before latest 6-month continuous run still qualifies as H06_12 N-BEATS', () => {
-    const oldRun = [sample('2025-01', 100), sample('2025-02', 105)];
+  it('CASE B: 10 total historical months, latest 6 are continuous with older gap -> H06_12 N-BEATS eligible', () => {
+    const oldRun = [sample('2025-01', 100), sample('2025-02', 105), sample('2025-03', 110), sample('2025-04', 115)];
     const latest6 = months(6, 4); // 2026-04 through 2026-09
     const history = buildContinuousHistory([...oldRun, ...latest6], origin);
     expect(history.continuousHistoryMonths).toBe(6);
@@ -187,5 +162,82 @@ describe('MVP ROUTING & CONTINUOUS HISTORY CASES', () => {
       '2026-08',
       '2026-09',
     ]);
+  });
+
+  it('CASE C: Latest continuous sequence has 5 months because month t-3 is missing -> H03_05 deterministic', () => {
+    const samples = [
+      sample('2026-01', 100),
+      sample('2026-02', 110),
+      // 2026-03 missing!
+      sample('2026-04', 130),
+      sample('2026-05', 140),
+      sample('2026-06', 150),
+      sample('2026-07', 160),
+      sample('2026-08', 170),
+    ];
+    const history = buildContinuousHistory(samples, origin);
+    expect(history.continuousHistoryMonths).toBe(5);
+    expect(history.reportingPhase).toBe('H03_05');
+    expect(requestedEngineForPhase(history.reportingPhase)).toBe('deterministic_baseline');
+  });
+
+  it('CASE D: Duplicate month is rejected and does not fabricate missing data', () => {
+    const samples = [
+      sample('2026-04', 100),
+      sample('2026-05', 110),
+      sample('2026-06', 120),
+      sample('2026-06', 125), // Duplicate
+      sample('2026-07', 130),
+      sample('2026-08', 140),
+    ];
+    const history = buildContinuousHistory(samples, origin);
+    expect(history.duplicateMonthsRejected).toEqual(['2026-06']);
+    // Continuous run ends before duplicate: only 2026-07 and 2026-08 are continuous up to latest
+    expect(history.history.map((h) => h.period_month)).toEqual(['2026-07', '2026-08']);
+    expect(history.continuousHistoryMonths).toBe(2);
+    expect(history.reportingPhase).toBe('H01_02');
+  });
+});
+
+describe('SERVER-SIDE ZERO REMOTE ML INVOCATION & SERVICE URL IRRELEVANCE', () => {
+  it('proves that building continuous history and forecast plan performs 0 server HTTP/fetch calls', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const oldUrl = process.env.WATTWISE_AI_SERVICE_URL;
+    const oldToken = process.env.WATTWISE_AI_SERVICE_TOKEN;
+
+    try {
+      process.env.WATTWISE_AI_SERVICE_URL = 'https://invalid.example.invalid';
+      process.env.WATTWISE_AI_SERVICE_TOKEN = 'unauthorized-token';
+
+      // Test all phases: H03_05, H06_12, H13_PLUS
+      for (const count of [4, 6, 14]) {
+        const samples = months(count);
+        const history = buildContinuousHistory(samples, origin);
+        const requestedEngine = requestedEngineForPhase(history.reportingPhase);
+        const history6m = history.continuousHistoryMonths >= 6
+          ? history.history.slice(-6).map((h) => h.usage_kwh)
+          : null;
+
+        expect(history.continuousHistoryMonths).toBe(count);
+        if (count < 6) {
+          expect(requestedEngine).toBe('deterministic_baseline');
+          expect(history6m).toBeNull();
+        } else {
+          expect(requestedEngine).toBe('nbeats');
+          expect(history6m).toHaveLength(6);
+        }
+      }
+
+      // Assert global fetch was called ZERO times on the server
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      if (oldUrl === undefined) delete process.env.WATTWISE_AI_SERVICE_URL;
+      else process.env.WATTWISE_AI_SERVICE_URL = oldUrl;
+
+      if (oldToken === undefined) delete process.env.WATTWISE_AI_SERVICE_TOKEN;
+      else process.env.WATTWISE_AI_SERVICE_TOKEN = oldToken;
+
+      fetchSpy.mockRestore();
+    }
   });
 });

@@ -189,7 +189,7 @@ export function AnalysisView({
     type: 'historical' as const,
   }));
 
-  if (prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
+  if (!isInferring && prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
     trendPoints.push({
       period: 'forecast-next',
       label: 'Estimasi periode berikutnya',
@@ -276,7 +276,7 @@ export function AnalysisView({
           }
           secondary={
             isInferring
-              ? 'Inferensi browser...'
+              ? 'Menyiapkan prediksi WattWise...'
               : prediction.estimatedBill
                 ? rupiah.format(prediction.estimatedBill)
                 : `Keyakinan ${prediction.confidence ?? '—'}`

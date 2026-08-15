@@ -18,7 +18,7 @@ export default async function AnalysisPage({
 
   const { userId } = await requireWorkspacePage(requestedBusinessId);
   const [analysisModel, entitlements] = await Promise.all([
-    getProductAnalysisReadModel(userId, requestedBusinessId, { phaseAware: requestedTab === 'forecast' }),
+    getProductAnalysisReadModel(userId, requestedBusinessId),
     getUserEntitlements(userId),
   ]);
 

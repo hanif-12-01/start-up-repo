@@ -277,7 +277,7 @@ export interface EmbeddedForecastPlan {
 export async function getProductAnalysisReadModel(
   userId: string,
   requestedBusinessId?: string,
-  options?: { phaseAware?: boolean; forecastOrigin?: Date }
+  options?: { forecastOrigin?: Date }
 ) {
   const { getDecisionSupport } = await import('./workspace.service');
   const data = await getDecisionSupport(userId, requestedBusinessId);
@@ -323,21 +323,7 @@ export async function getProductAnalysisReadModel(
     dataProvenance: 'BUSINESS_DATA',
   };
 
-  const phaseAwarePrediction = options?.phaseAware
-    ? await import('./phase-aware-forecast.service').then(({ getPhaseAwareForecast }) =>
-        getPhaseAwareForecast({
-          business: {
-            id: data.business.id,
-            businessType: data.business.businessType,
-          },
-          samples: buildUsageSamplesFromBills(phaseBills.slice(0, 60)),
-          deterministicPrediction,
-          tariff,
-          forecastOrigin: options.forecastOrigin,
-        })
-      )
-    : null;
-  const prediction = phaseAwarePrediction?.prediction ?? deterministicPrediction;
+  const prediction = deterministicPrediction;
   const anomaly = analyzeLatestAnomaly(samples);
 
   const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
@@ -367,7 +353,6 @@ export async function getProductAnalysisReadModel(
     samples,
     prediction,
     deterministicPrediction,
-    phaseAwarePrediction,
     forecastPlan,
     anomaly,
     efficiency,

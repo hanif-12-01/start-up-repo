@@ -398,15 +398,18 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
             );
           }
           const result = await getProductAnalysisReadModel('phase-user', businessId, {
-            phaseAware: true,
             forecastOrigin: new Date('2026-12-15T00:00:00.000Z'),
           });
-          expect(result.phaseAwarePrediction?.reportingPhase).toBe(phase);
-          expect(result.phaseAwarePrediction?.requestedEngine).toBe(engine);
-          if (engine === 'deterministic_baseline') {
-            expect(result.phaseAwarePrediction?.fallbackUsed).toBe(false);
+          expect(result.forecastPlan.reportingPhase).toBe(phase);
+          expect(result.forecastPlan.requestedEngine).toBe(engine);
+          if (engine === 'nbeats') {
+            expect(result.forecastPlan.eligible).toBe(true);
+            expect(result.forecastPlan.history6m).toHaveLength(6);
+            expect(result.forecastPlan.modelVersion).toBe('nbeats-ai02-1.0.0');
           } else {
-            expect(result.phaseAwarePrediction?.fallbackReason).toBe('MODEL_DISABLED');
+            expect(result.forecastPlan.eligible).toBe(false);
+            expect(result.forecastPlan.history6m).toBeNull();
+            expect(result.forecastPlan.modelVersion).toBeNull();
           }
         }
       } finally {
@@ -420,7 +423,7 @@ describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
       await seedUser('phase-owner-b', 'phase-owner-b@example.test');
       await seedBusiness('phase-private-business', 'phase-owner-b', 'Private Business');
       await expect(
-        getProductAnalysisReadModel('phase-owner-a', 'phase-private-business', { phaseAware: true })
+        getProductAnalysisReadModel('phase-owner-a', 'phase-private-business')
       ).rejects.toThrow();
     });
   });
