@@ -6,7 +6,7 @@ import { Eye, EyeOff, Sparkles } from 'lucide-react';
 export const DEMO_ACCOUNT_EMAIL =
   process.env.NEXT_PUBLIC_DEMO_EMAIL || 'wattwise.jury.demo@example.com';
 export const DEMO_ACCOUNT_PASSWORD =
-  process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'WattWiseDemo2026!';
+  process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'password123';
 
 export function DemoAccessCard({
   onFillCredentials,
