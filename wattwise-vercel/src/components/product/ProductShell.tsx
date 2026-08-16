@@ -213,6 +213,7 @@ export function ProductShell({
           <button
             ref={menuButtonRef}
             type="button"
+            data-tour-id="mobile-menu-button"
             onClick={() => setMenuOpen(true)}
             aria-expanded={menuOpen}
             aria-controls="product-mobile-menu"

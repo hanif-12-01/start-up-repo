@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   X,
   ChevronLeft,
@@ -10,8 +10,10 @@ import {
   ExternalLink,
   CheckCircle2,
   HelpCircle,
+  MousePointerClick,
 } from 'lucide-react';
 import { useBeginnerGuide } from './BeginnerGuideContext';
+import { SESSION_TOUR_PENDING_STEP_KEY } from './guide-steps';
 
 interface TargetRect {
   top: number;
@@ -24,6 +26,7 @@ interface TargetRect {
 
 export function InteractiveGuideOverlay() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const {
     isTourActive,
     currentStep,
@@ -40,6 +43,10 @@ export function InteractiveGuideOverlay() {
   const [targetFound, setTargetFound] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const targetElRef = useRef<Element | null>(null);
+
+  // Derived state without cascading setState in effect
+  const isTargetClickStep = currentStepData?.advanceMode === 'target-click';
 
   // Check viewport width for responsive mobile layout
   useEffect(() => {
@@ -55,18 +62,33 @@ export function InteractiveGuideOverlay() {
     if (!isTourActive || !currentStepData) {
       setTargetRect(null);
       setTargetFound(false);
+      targetElRef.current = null;
       return;
     }
 
-    // Try primary target first, then fallback
+    const mobile = window.innerWidth < 640;
     let el: Element | null = document.querySelector(
       `[data-tour-id="${currentStepData.targetTourId}"]`
     );
+
+    // On mobile, if target is in hidden sidebar, highlight mobile menu button if available
+    if (mobile && (!el || el.clientHeight === 0)) {
+      const isSidebarTarget = currentStepData.targetTourId.startsWith('sidebar-');
+      if (isSidebarTarget) {
+        const menuBtn = document.querySelector('[data-tour-id="mobile-menu-button"]');
+        if (menuBtn && menuBtn.clientHeight > 0) {
+          el = menuBtn;
+        }
+      }
+    }
+
     if (!el && currentStepData.fallbackTourId) {
       el = document.querySelector(
         `[data-tour-id="${currentStepData.fallbackTourId}"]`
       );
     }
+
+    targetElRef.current = el;
 
     if (el) {
       const rect = el.getBoundingClientRect();
@@ -84,6 +106,73 @@ export function InteractiveGuideOverlay() {
       setTargetFound(false);
     }
   }, [isTourActive, currentStepData]);
+
+  // Attach scoped temporary click listener to the active target element ONLY
+  useEffect(() => {
+    if (!isTourActive || !currentStepData || currentStepData.advanceMode !== 'target-click') {
+      return;
+    }
+
+    const el = targetElRef.current;
+    if (!el) return;
+
+    const handleTargetClick = () => {
+      // Do NOT call preventDefault or stopPropagation
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(SESSION_TOUR_PENDING_STEP_KEY, String(currentStep + 1));
+        }
+      } catch {}
+    };
+
+    el.addEventListener('click', handleTargetClick, { capture: true });
+    return () => {
+      el.removeEventListener('click', handleTargetClick, { capture: true });
+    };
+  }, [isTourActive, currentStep, currentStepData, targetFound]);
+
+  // Route confirmation: observe pathname and searchParams to auto-advance target-click steps
+  useEffect(() => {
+    if (!isTourActive || !currentStepData) return;
+
+    if (currentStepData.advanceMode === 'target-click') {
+      let pathnameMatched = true;
+      if (currentStepData.expectedPathname) {
+        pathnameMatched =
+          pathname === currentStepData.expectedPathname ||
+          (currentStepData.expectedPathname !== '/dashboard' &&
+            pathname.startsWith(currentStepData.expectedPathname));
+      }
+
+      let searchParamMatched = true;
+      if (currentStepData.expectedSearchParam) {
+        const paramVal = searchParams.get(currentStepData.expectedSearchParam.key);
+        searchParamMatched = paramVal === currentStepData.expectedSearchParam.value;
+      }
+
+      if (pathnameMatched && searchParamMatched) {
+        // Check if this step was pending or we're on the step and target was clicked/reached
+        let wasPending = false;
+        try {
+          if (typeof window !== 'undefined') {
+            const pending = sessionStorage.getItem(SESSION_TOUR_PENDING_STEP_KEY);
+            if (pending === String(currentStep + 1)) {
+              wasPending = true;
+              sessionStorage.removeItem(SESSION_TOUR_PENDING_STEP_KEY);
+            }
+          }
+        } catch {}
+
+        // If route matches expected destination for a target-click navigation step, advance to next step
+        if (wasPending || currentStepData.expectedSearchParam) {
+          const timer = setTimeout(() => {
+            nextStep();
+          }, 120);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, [isTourActive, currentStep, currentStepData, pathname, searchParams, nextStep]);
 
   // Scroll target into view smoothly and track position on step/route change
   useEffect(() => {
@@ -103,7 +192,7 @@ export function InteractiveGuideOverlay() {
     }
 
     // Delay slightly to account for smooth scroll & dynamic render
-    const timer = setTimeout(updateTargetPosition, 150);
+    const timer = setTimeout(updateTargetPosition, 100);
 
     const handleScrollOrResize = () => {
       window.requestAnimationFrame(updateTargetPosition);
@@ -145,7 +234,7 @@ export function InteractiveGuideOverlay() {
     }
 
     const cardWidth = 380;
-    const cardHeight = 280;
+    const cardHeight = 270;
     const padding = 16;
     const placement = currentStepData.placement || 'bottom';
 
@@ -299,20 +388,27 @@ export function InteractiveGuideOverlay() {
           )}
         </div>
 
-        {/* Route CTA Link if user needs navigation */}
+        {/* Target-click visual helper or route CTA */}
         <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between">
-          <Link
-            href={currentStepData.ctaHref}
-            className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[var(--primary)] hover:underline decoration-[var(--primary)]/50 underline-offset-4 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded-md py-0.5"
-          >
-            <span>Buka: {currentStepData.ctaLabel}</span>
-            <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
-          </Link>
+          {targetFound && isTargetClickStep ? (
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--primary)]">
+              <MousePointerClick className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Klik bagian yang disorot untuk melanjutkan</span>
+            </div>
+          ) : (
+            <Link
+              href={currentStepData.ctaHref}
+              className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[var(--primary)] hover:underline decoration-[var(--primary)]/50 underline-offset-4 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded-md py-0.5"
+            >
+              <span>Buka: {currentStepData.ctaLabel}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+            </Link>
+          )}
 
           <button
             type="button"
             onClick={stopTour}
-            className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)]"
+            className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)] ml-auto"
           >
             Lewati panduan
           </button>
@@ -340,6 +436,9 @@ export function InteractiveGuideOverlay() {
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Selesai
               </button>
+            ) : isTargetClickStep && targetFound ? (
+              // For target-click steps when target exists: DO NOT show competing primary Lanjut button!
+              null
             ) : (
               <button
                 type="button"
