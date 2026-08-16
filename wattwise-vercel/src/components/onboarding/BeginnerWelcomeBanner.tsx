@@ -4,10 +4,10 @@ import { Sparkles, Clock } from 'lucide-react';
 import { useBeginnerGuide } from './BeginnerGuideContext';
 
 export function BeginnerWelcomeBanner() {
-  const { isCompleted, isBannerDismissed, isGuideOpen, startGuide, dismissBanner } =
+  const { isCompleted, isBannerDismissed, isTourActive, startTour, dismissBanner } =
     useBeginnerGuide();
 
-  if (isCompleted || isBannerDismissed || isGuideOpen) {
+  if (isCompleted || isBannerDismissed || isTourActive) {
     return null;
   }
 
@@ -35,7 +35,7 @@ export function BeginnerWelcomeBanner() {
               </span>
             </div>
             <p className="mt-1 text-xs sm:text-sm leading-5 text-[var(--muted)] max-w-2xl">
-              Ikuti panduan singkat untuk memahami alur dari mencatat tagihan hingga menentukan tindakan hemat.
+              WattWise akan menunjukkan langsung bagian yang perlu Anda gunakan, langkah demi langkah.
             </p>
           </div>
         </div>
@@ -50,13 +50,13 @@ export function BeginnerWelcomeBanner() {
           </button>
           <button
             type="button"
-            onClick={() => startGuide(0)}
+            onClick={() => startTour(0)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shadow-xs"
           >
-            Mulai panduan →
+            Mulai panduan interaktif →
           </button>
         </div>
       </div>
     </section>
   );
-}
+}

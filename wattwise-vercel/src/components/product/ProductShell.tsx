@@ -23,34 +23,34 @@ import { ThemeToggle } from '@/components/product/ThemeToggle';
 import { WattWiseLogo } from '@/components/WattWiseLogo';
 import {
   BeginnerGuideProvider,
-  BeginnerGuideModal,
+  InteractiveGuideOverlay,
   GuideReplayButton,
 } from '@/components/onboarding';
 
-type Item = { href: string; label: string; icon: LucideIcon };
+type Item = { href: string; label: string; icon: LucideIcon; tourId?: string };
 
 const groups: Array<{ label: string; items: Item[] }> = [
   {
     label: 'UTAMA',
     items: [
-      { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard },
-      { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined },
+      { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, tourId: 'sidebar-dashboard' },
+      { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined, tourId: 'sidebar-analysis' },
     ],
   },
   {
     label: 'DATA',
     items: [
-      { href: '/bills', label: 'Tagihan Listrik', icon: ReceiptText },
-      { href: '/revenue', label: 'Pendapatan', icon: WalletCards },
-      { href: '/appliances', label: 'Peralatan', icon: PlugZap },
-      { href: '/businesses', label: 'Usaha Saya', icon: Building2 },
+      { href: '/bills', label: 'Tagihan Listrik', icon: ReceiptText, tourId: 'sidebar-bills' },
+      { href: '/revenue', label: 'Pendapatan', icon: WalletCards, tourId: 'sidebar-revenue' },
+      { href: '/appliances', label: 'Peralatan', icon: PlugZap, tourId: 'sidebar-appliances' },
+      { href: '/businesses', label: 'Usaha Saya', icon: Building2, tourId: 'sidebar-businesses' },
     ],
   },
   {
     label: 'TINDAKAN',
     items: [
-      { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search },
-      { href: '/reports/monthly', label: 'Laporan', icon: FileText },
+      { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search, tourId: 'sidebar-diagnostics' },
+      { href: '/reports/monthly', label: 'Laporan', icon: FileText, tourId: 'sidebar-reports' },
     ],
   },
   {
@@ -74,6 +74,7 @@ function NavLink({ item, pathname, close }: { item: Item; pathname: string; clos
     <Link
       href={item.href}
       onClick={close}
+      data-tour-id={item.tourId}
       aria-current={active ? 'page' : undefined}
       className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
         active
@@ -249,9 +250,10 @@ export function ProductShell({
         )}
 
         <div className="min-w-0 flex-1 lg:pl-[256px]">{children}</div>
-        <BeginnerGuideModal />
+        <InteractiveGuideOverlay />
       </div>
     </BeginnerGuideProvider>
   );
 }
+
 

@@ -28,7 +28,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
       {portfolio.length === 0 ? (
         <EmptyState icon={Building2} title="Belum ada usaha" description="Tambahkan usaha pertama untuk mulai mencatat tagihan dan menjalankan Cek Kenaikan." href="/businesses/new" action="Tambah Usaha" />
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div data-tour-id="business-list" className="grid gap-5 lg:grid-cols-2">
           {portfolio.map((item) => (
             <SoftCard key={item.id} className={!item.isActive ? 'opacity-75' : ''}>
               <div className="flex items-start justify-between gap-4">

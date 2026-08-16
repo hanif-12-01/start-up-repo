@@ -2,117 +2,150 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
-  GUIDE_STEPS,
-  STORAGE_COMPLETED_KEY,
+  TOUR_STEPS,
+  STORAGE_TOUR_V2_COMPLETED_KEY,
+  STORAGE_TOUR_V1_COMPLETED_KEY,
   STORAGE_DISMISSED_SESSION_KEY,
+  SESSION_TOUR_ACTIVE_KEY,
+  SESSION_TOUR_STEP_KEY,
 } from '@/components/onboarding/guide-steps';
 
-describe('UX-ONBOARD-01 — Beginner Guided Tour / Panduan Pemula', () => {
-  it('CASE 1: Guide defines exactly 6 sequential stages covering DATA -> UNDERSTAND -> PREDICT -> DECIDE/ACT -> MEASURE', () => {
-    expect(GUIDE_STEPS).toHaveLength(6);
-    expect(GUIDE_STEPS[0].stage).toBe('DATA');
-    expect(GUIDE_STEPS[1].stage).toBe('DATA');
-    expect(GUIDE_STEPS[2].stage).toBe('UNDERSTAND');
-    expect(GUIDE_STEPS[3].stage).toBe('PREDICT');
-    expect(GUIDE_STEPS[4].stage).toBe('DECIDE / ACT');
-    expect(GUIDE_STEPS[5].stage).toBe('MEASURE');
+describe('UX-ONBOARD-02 — Interactive Beginner Coachmark Tour', () => {
+  it('CASE 1: Fresh user flow defines sequential interactive steps', () => {
+    expect(TOUR_STEPS).toHaveLength(9);
+    expect(TOUR_STEPS[0].stage).toBe('DATA');
+    expect(TOUR_STEPS[1].stage).toBe('DATA');
+    expect(TOUR_STEPS[2].stage).toBe('DATA');
+    expect(TOUR_STEPS[3].stage).toBe('DATA');
+    expect(TOUR_STEPS[4].stage).toBe('DECIDE / ACT');
+    expect(TOUR_STEPS[5].stage).toBe('UNDERSTAND');
+    expect(TOUR_STEPS[6].stage).toBe('PREDICT');
+    expect(TOUR_STEPS[7].stage).toBe('DECIDE / ACT');
+    expect(TOUR_STEPS[8].stage).toBe('MEASURE');
   });
 
-  it('CASE 2: Step 1 covers business profile preparation without automated mutation', () => {
-    const step1 = GUIDE_STEPS[0];
-    expect(step1.title).toContain('1. Siapkan profil usaha');
-    expect(step1.detailedContext).toMatch(/jenis usaha/i);
-    expect(step1.detailedContext).toMatch(/daya listrik/i);
-    expect(step1.detailedContext).toMatch(/tarif listrik/i);
-    expect(step1.ctaLabel).toBe('Kelola Usaha');
+  it('CASE 2: Start guide activates interactive tour with stable tour IDs', () => {
+    expect(TOUR_STEPS[0].targetTourId).toBe('business-selector');
+    expect(TOUR_STEPS[0].fallbackTourId).toBe('manage-business');
+    expect(TOUR_STEPS[1].targetTourId).toBe('business-profile-form');
+    expect(TOUR_STEPS[2].targetTourId).toBe('sidebar-bills');
+    expect(TOUR_STEPS[3].targetTourId).toBe('add-bill');
+    expect(TOUR_STEPS[4].targetTourId).toBe('dashboard-next-action');
+    expect(TOUR_STEPS[5].targetTourId).toBe('analysis-trend-section');
+    expect(TOUR_STEPS[6].targetTourId).toBe('analysis-forecast-tab');
+    expect(TOUR_STEPS[7].targetTourId).toBe('analysis-next-action');
+    expect(TOUR_STEPS[8].targetTourId).toBe('sidebar-reports');
+  });
+
+  it('CASE 3: Dashboard business selector and manage business targets exist in DashboardPage', () => {
+    const dashboardFile = readFileSync(join(process.cwd(), 'src/app/(product)/dashboard/page.tsx'), 'utf8');
+    expect(dashboardFile).toContain('data-tour-id="business-selector"');
+    expect(dashboardFile).toContain('data-tour-id="manage-business"');
+    expect(dashboardFile).toContain('data-tour-id="dashboard-next-action"');
+    expect(dashboardFile).toContain('data-tour-id="dashboard-header"');
+  });
+
+  it('CASE 4: Stable tour IDs are present across ProductShell navigation and GuideReplayButton', () => {
+    const shellFile = readFileSync(join(process.cwd(), 'src/components/product/ProductShell.tsx'), 'utf8');
+    const replayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/GuideReplayButton.tsx'), 'utf8');
+    expect(shellFile).toContain('tourId: \'sidebar-dashboard\'');
+    expect(shellFile).toContain('tourId: \'sidebar-analysis\'');
+    expect(shellFile).toContain('tourId: \'sidebar-bills\'');
+    expect(shellFile).toContain('tourId: \'sidebar-revenue\'');
+    expect(shellFile).toContain('tourId: \'sidebar-businesses\'');
+    expect(shellFile).toContain('tourId: \'sidebar-diagnostics\'');
+    expect(shellFile).toContain('tourId: \'sidebar-reports\'');
+    expect(replayFile).toContain('data-tour-id="sidebar-guide"');
+    expect(shellFile).toContain('<InteractiveGuideOverlay');
+  });
+
+  it('CASE 5: Missing target safe fallback is implemented without crashing', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).toContain('Bagian ini berada di halaman lain');
+    expect(overlayFile).toContain('fallbackTourId');
+    expect(overlayFile).toContain('!targetFound');
+  });
+
+  it('CASE 6: Target click allows normal interactivity without blocking clicks', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).toContain('pointer-events-none');
+    expect(overlayFile).toContain('pointer-events-auto');
+  });
+
+  it('CASE 7: Route navigation and session continuity keys are properly configured', () => {
+    expect(SESSION_TOUR_ACTIVE_KEY).toBe('wattwise:interactive-tour:v2:active');
+    expect(SESSION_TOUR_STEP_KEY).toBe('wattwise:interactive-tour:v2:step');
+    expect(STORAGE_DISMISSED_SESSION_KEY).toBe('wattwise:interactive-tour:v2:dismissed');
+  });
+
+  it('CASE 8: Form-entry step does NOT auto-submit or autofill fake data', () => {
+    const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    const combined = `${contextFile} ${overlayFile}`;
+
+    expect(combined).not.toContain('.submit()');
+    expect(combined).not.toContain('dispatchEvent(new SubmitEvent');
+    expect(combined).not.toContain('formAction');
+  });
+
+  it('CASE 9: Completion stores v2 localStorage key', () => {
+    expect(STORAGE_TOUR_V2_COMPLETED_KEY).toBe('wattwise:interactive-tour:v2:completed');
+  });
+
+  it('CASE 10: Replay works after completion via GuideReplayButton', () => {
+    const replayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/GuideReplayButton.tsx'), 'utf8');
+    expect(replayFile).toContain('startTour(0)');
+    expect(replayFile).toContain('data-tour-id="sidebar-guide"');
+  });
+
+  it('CASE 11: Existing v1-completed users are recognized without breaking compatibility', () => {
+    expect(STORAGE_TOUR_V1_COMPLETED_KEY).toBe('wattwise:onboarding:v1:completed');
+    const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
+    expect(contextFile).toContain('STORAGE_TOUR_V1_COMPLETED_KEY');
+  });
+
+  it('CASE 12: No business empty-account state provides non-crashing guidance', () => {
+    const step1 = TOUR_STEPS[0];
+    expect(step1.fallbackTourId).toBe('manage-business');
     expect(step1.ctaHref).toBe('/businesses');
   });
 
-  it('CASE 3: Step 2 covers electricity bill recording without automated creation', () => {
-    const step2 = GUIDE_STEPS[1];
-    expect(step2.title).toContain('2. Catat tagihan listrik');
-    expect(step2.shortDescription).toMatch(/pemakaian kWh dan biaya listrik setiap bulan/i);
-    expect(step2.ctaLabel).toBe('Tambah Tagihan');
-    expect(step2.ctaHref).toBe('/bills/new');
+  it('CASE 13: Existing business allows smooth continuation without forcing duplicate creation', () => {
+    const step2 = TOUR_STEPS[1];
+    expect(step2.actionLabel).toBe('Profil sudah siap — lanjut');
   });
 
-  it('CASE 4: Step 3 covers understanding consumption changes truthfully', () => {
-    const step3 = GUIDE_STEPS[2];
-    expect(step3.title).toContain('3. Pahami perubahan konsumsi');
-    expect(step3.ctaLabel).toBe('Lihat Analisis');
-    expect(step3.ctaHref).toBe('/analysis');
-    // Must not claim automatic root-cause discovery
-    expect(step3.shortDescription).not.toMatch(/menemukan penyebab pasti|garansi hemat/i);
+  it('CASE 14: Existing bills allows continuation without forcing duplicate bill entry', () => {
+    const step4 = TOUR_STEPS[3];
+    expect(step4.actionLabel).toBe('Saya sudah punya tagihan — lanjut');
   });
 
-  it('CASE 5: Forecast step copy adheres strictly to truthfulness and N-BEATS eligibility rules', () => {
-    const step4 = GUIDE_STEPS[3];
-    expect(step4.title).toContain('4. Lihat perkiraan bulan berikutnya');
-    expect(step4.stage).toBe('PREDICT');
-    expect(step4.ctaHref).toBe('/predictions');
+  it('CASE 15: Forecast step copy strictly adheres to N-BEATS and historical estimate truthfulness', () => {
+    const step7 = TOUR_STEPS[6];
+    expect(step7.stage).toBe('PREDICT');
+    expect(step7.detailedContext).toContain('kurang dari 6 bulan berurutan');
+    expect(step7.detailedContext).toContain('estimasi historis');
+    expect(step7.detailedContext).toContain('minimal 6 bulan histori berurutan');
+    expect(step7.detailedContext).toContain('Prediksi AI N-BEATS');
+    expect(step7.detailedContext).toContain('fallback');
 
-    // Rule: <6 continuous months -> historical estimate
-    expect(step4.shortDescription).toContain('kurang dari 6 bulan berurutan');
-    expect(step4.shortDescription).toContain('estimasi historis');
-
-    // Rule: >=6 continuous months -> N-BEATS
-    expect(step4.shortDescription).toContain('minimal 6 bulan histori berurutan');
-    expect(step4.shortDescription).toContain('Prediksi AI N-BEATS');
-
-    // Rule: fallback -> historical estimate
-    expect(step4.detailedContext).toContain('fallback');
-
-    // Forbidden terms: Model A / Model B / multiple AI engines
-    const fullStep4Text = `${step4.title} ${step4.shortDescription} ${step4.detailedContext}`;
-    expect(fullStep4Text).not.toMatch(/model a|model b/i);
-    expect(fullStep4Text).not.toMatch(/H01_02|H03_05|H06_12/i);
-    expect(fullStep4Text).not.toMatch(/onnx|wasm|tensor/i);
+    const fullText = `${step7.title} ${step7.instruction} ${step7.detailedContext}`;
+    expect(fullText).not.toMatch(/model a|model b/i);
+    expect(fullText).not.toMatch(/H01_02|H03_05|H06_12/i);
   });
 
-  it('CASE 6: Step 5 covers decision and action guidance (Langkah Berikutnya)', () => {
-    const step5 = GUIDE_STEPS[4];
-    expect(step5.title).toContain('5. Tentukan langkah berikutnya');
-    expect(step5.stage).toBe('DECIDE / ACT');
-    expect(step5.detailedContext).toContain('Langkah Berikutnya');
-    expect(step5.ctaLabel).toBe('Lihat Rekomendasi');
-    expect(step5.ctaHref).toBe('/recommendations');
-  });
-
-  it('CASE 7: Step 6 covers measurement and evaluation (Rencana Hemat / outcome)', () => {
-    const step6 = GUIDE_STEPS[5];
-    expect(step6.title).toContain('6. Catat hasil dan evaluasi');
-    expect(step6.stage).toBe('MEASURE');
-    expect(step6.detailedContext).toMatch(/Rencana Hemat/i);
-    expect(step6.detailedContext).toMatch(/Panduan kapan saja/i);
-    expect(step6.ctaLabel).toBe('Kembali ke Dashboard');
-    expect(step6.ctaHref).toBe('/dashboard');
-  });
-
-  it('CASE 8: Storage keys match non-database browser persistence contract', () => {
-    expect(STORAGE_COMPLETED_KEY).toBe('wattwise:onboarding:v1:completed');
-    expect(STORAGE_DISMISSED_SESSION_KEY).toBe('wattwise:onboarding:v1:dismissed');
-  });
-
-  it('CASE 9: Component source code contains no database imports or server mutation actions', () => {
+  it('CASE 16: No database imports, mutations, or auth bypass in onboarding codebase', () => {
     const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
     const bannerFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerWelcomeBanner.tsx'), 'utf8');
-    const modalFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideModal.tsx'), 'utf8');
+    const replayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/GuideReplayButton.tsx'), 'utf8');
 
-    const combinedCode = `${contextFile} ${bannerFile} ${modalFile}`;
-    expect(combinedCode).not.toContain('@/server/db');
-    expect(combinedCode).not.toContain('drizzle-orm');
-    expect(combinedCode).not.toContain('INSERT INTO');
-    expect(combinedCode).not.toContain('DELETE FROM');
-    expect(combinedCode).not.toContain('UPDATE ');
-  });
-
-  it('CASE 10: ProductShell integrates replay button and Dashboard integrates welcome banner', () => {
-    const shellFile = readFileSync(join(process.cwd(), 'src/components/product/ProductShell.tsx'), 'utf8');
-    const dashboardFile = readFileSync(join(process.cwd(), 'src/app/(product)/dashboard/page.tsx'), 'utf8');
-
-    expect(shellFile).toContain('<BeginnerGuideProvider>');
-    expect(shellFile).toContain('<BeginnerGuideModal />');
-    expect(shellFile).toContain('<GuideReplayButton');
-    expect(dashboardFile).toContain('<BeginnerWelcomeBanner />');
+    const combined = `${contextFile} ${overlayFile} ${bannerFile} ${replayFile}`;
+    expect(combined).not.toContain('@/server/db');
+    expect(combined).not.toContain('drizzle-orm');
+    expect(combined).not.toContain('INSERT INTO');
+    expect(combined).not.toContain('DELETE FROM');
+    expect(combined).not.toContain('UPDATE ');
+    expect(combined).not.toContain('wattwise.jury.demo@example.com');
   });
 });

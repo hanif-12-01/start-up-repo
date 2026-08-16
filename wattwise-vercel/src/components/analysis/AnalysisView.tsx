@@ -299,7 +299,7 @@ export function AnalysisView({
       </section>
 
       {/* Priority Action Banner */}
-      <Surface variant="elevated" className="border-l-4 border-l-[var(--primary)]">
+      <Surface data-tour-id="analysis-next-action" variant="elevated" className="border-l-4 border-l-[var(--primary)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="h-6 w-6 text-[var(--primary)] shrink-0 mt-0.5" aria-hidden="true" />
@@ -319,7 +319,7 @@ export function AnalysisView({
       </Surface>
 
       {/* Primary Visual Trend Area */}
-      <SoftCard>
+      <SoftCard data-tour-id="analysis-trend-section">
         <SectionHeader
           title="Tren & Proyeksi Pemakaian Listrik"
           description="Visualisasi perbandingan data tagihan historis dengan prediksi periode berikutnya berdasarkan metode yang sedang digunakan."
@@ -343,6 +343,7 @@ export function AnalysisView({
         {tabs.map(([key, Icon, label]) => (
           <Link
             key={key}
+            data-tour-id={key === 'forecast' ? 'analysis-forecast-tab' : undefined}
             href={`/analysis?${businessQuery}&tab=${key}`}
             aria-current={activeTab === key ? 'page' : undefined}
             className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
