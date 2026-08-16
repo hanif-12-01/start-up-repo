@@ -12,6 +12,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'WattWise AI — Listrik Lebih Cerdas, Cash Flow Lebih Terkendali',
   description: 'Mulai dari tagihan yang Anda punya. WattWise membantu menemukan apa yang perlu diperiksa lebih dahulu.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/wattwise-logo.png',
+  },
 };
 
 export default function RootLayout({

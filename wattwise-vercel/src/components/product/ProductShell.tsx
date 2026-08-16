@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Bolt,
   Building2,
   ChartNoAxesCombined,
   FileText,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { LogoutButton } from '@/components/LogoutButton';
 import { ThemeToggle } from '@/components/product/ThemeToggle';
+import { WattWiseLogo } from '@/components/WattWiseLogo';
 
 type Item = { href: string; label: string; icon: LucideIcon };
 
@@ -142,9 +142,7 @@ export function ProductShell({
   const sidebar = (
     <aside className="flex h-full w-[256px] flex-col border-r border-[var(--border)] bg-[var(--surface-muted)] px-3.5 py-4 text-[var(--foreground)]">
       <Link href="/dashboard" onClick={close} className="flex items-center gap-2.5 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] rounded-xl">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-subtle)]">
-          <Bolt className="h-5 w-5" aria-hidden="true" />
-        </span>
+        <WattWiseLogo size={36} />
         <div>
           <strong className="block text-base tracking-tight font-black">WattWise AI</strong>
           <span className="block text-[10px] font-semibold text-[var(--muted)]">Kendali biaya listrik</span>
@@ -201,7 +199,7 @@ export function ProductShell({
 
       <header className="product-shell-mobile sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-2 font-extrabold text-sm">
-          <Bolt className="h-4 w-4 text-[var(--primary)]" />
+          <WattWiseLogo size={24} />
           WattWise AI
         </Link>
         <button

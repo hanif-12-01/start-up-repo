@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { BarChart3, Bolt, ShieldCheck } from 'lucide-react';
+import { BarChart3, Zap, ShieldCheck } from 'lucide-react';
+import { WattWiseLogo } from '@/components/WattWiseLogo';
 import { ThemeToggle } from '@/components/product/ThemeToggle';
 
 const benefits = [
@@ -9,7 +10,7 @@ const benefits = [
     description: 'Ubah catatan tagihan menjadi konteks biaya yang dapat ditindaklanjuti.',
   },
   {
-    icon: Bolt,
+    icon: Zap,
     title: 'Mulai dari data yang Anda punya',
     description: 'Tidak memerlukan sensor atau perangkat khusus untuk memulai.',
   },
@@ -36,9 +37,7 @@ export function AuthShell({
       <section className="relative hidden overflow-hidden border-r border-[var(--border)] bg-[var(--landing-inverse)] px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between xl:px-16">
         <div aria-hidden="true" className="absolute -right-20 top-12 h-72 w-72 rounded-full bg-[var(--primary)]/15 blur-3xl" />
         <Link href="/" className="relative inline-flex w-fit items-center gap-3 rounded-xl focus-visible:ring-2 focus-visible:ring-white">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)]">
-            <Bolt className="h-5 w-5" aria-hidden="true" />
-          </span>
+          <WattWiseLogo size={40} />
           <span>
             <strong className="block text-lg font-extrabold tracking-tight">WattWise AI</strong>
             <span className="block text-xs text-[var(--landing-inverse-muted)]">Kendali biaya listrik usaha</span>
@@ -81,7 +80,7 @@ export function AuthShell({
       <section className="flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-4 py-4 sm:px-8">
           <Link href="/" className="inline-flex items-center gap-2 font-extrabold lg:hidden">
-            <Bolt className="h-5 w-5 text-[var(--primary)]" aria-hidden="true" />
+            <WattWiseLogo size={24} />
             WattWise AI
           </Link>
           <span className="hidden lg:block" />

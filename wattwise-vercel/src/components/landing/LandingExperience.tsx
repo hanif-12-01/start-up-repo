@@ -9,7 +9,6 @@ import {
   Activity,
   ArrowRight,
   BarChart3,
-  Bolt,
   Building2,
   Check,
   CheckCircle2,
@@ -33,6 +32,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
+import { WattWiseLogo } from '@/components/WattWiseLogo';
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
 
@@ -112,12 +112,7 @@ const capabilities = [
 function BrandMark({ invert = false }: { invert?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
-      <span
-        aria-hidden="true"
-        className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-subtle)]"
-      >
-        <Bolt className="h-4.5 w-4.5" />
-      </span>
+      <WattWiseLogo size={36} />
       <span
         className={`text-base font-black tracking-[-0.03em] ${
           invert ? 'text-white' : 'text-[var(--foreground)]'
@@ -141,7 +136,7 @@ function ProductPreview() {
         {/* Preview header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-muted)] px-5 py-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-[var(--foreground)]">
-            <Bolt className="h-3.5 w-3.5" aria-hidden="true" />
+            <WattWiseLogo size={16} />
             WattWise AI
           </div>
           <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--primary)]">
