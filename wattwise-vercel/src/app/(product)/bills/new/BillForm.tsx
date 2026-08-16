@@ -30,7 +30,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
         </Reveal>
       )}
 
-      <form action={formAction} className="space-y-5">
+      <form data-tour-id="bill-entry-form" action={formAction} className="space-y-5">
         <input type="hidden" name="businessId" value={businessId} />
         <fieldset disabled={isPending} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">

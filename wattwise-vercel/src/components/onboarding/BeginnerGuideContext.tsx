@@ -1,26 +1,36 @@
 ﻿'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useSyncExternalStore } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+} from 'react';
 import {
-  GUIDE_STEPS,
-  STORAGE_COMPLETED_KEY,
+  TOUR_STEPS,
+  STORAGE_TOUR_V2_COMPLETED_KEY,
+  STORAGE_TOUR_V1_COMPLETED_KEY,
   STORAGE_DISMISSED_SESSION_KEY,
-  type GuideStep,
+  SESSION_TOUR_ACTIVE_KEY,
+  SESSION_TOUR_STEP_KEY,
+  type TourStep,
 } from './guide-steps';
 
 interface BeginnerGuideContextType {
-  isGuideOpen: boolean;
+  isTourActive: boolean;
   currentStep: number;
+  currentStepData: TourStep;
   isCompleted: boolean;
   isBannerDismissed: boolean;
-  steps: GuideStep[];
-  startGuide: (step?: number) => void;
-  closeGuide: () => void;
+  steps: TourStep[];
+  startTour: (step?: number) => void;
+  stopTour: () => void;
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (step: number) => void;
   dismissBanner: () => void;
-  completeGuide: () => void;
+  completeTour: () => void;
 }
 
 const BeginnerGuideContext = createContext<BeginnerGuideContextType | undefined>(undefined);
@@ -28,17 +38,19 @@ const BeginnerGuideContext = createContext<BeginnerGuideContextType | undefined>
 function subscribeStorage(callback: () => void) {
   if (typeof window === 'undefined') return () => {};
   window.addEventListener('storage', callback);
-  window.addEventListener('wattwise-onboarding-update', callback);
+  window.addEventListener('wattwise-tour-update', callback);
   return () => {
     window.removeEventListener('storage', callback);
-    window.removeEventListener('wattwise-onboarding-update', callback);
+    window.removeEventListener('wattwise-tour-update', callback);
   };
 }
 
 function getCompletedSnapshot(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return localStorage.getItem(STORAGE_COMPLETED_KEY) === 'true';
+    const v2 = localStorage.getItem(STORAGE_TOUR_V2_COMPLETED_KEY) === 'true';
+    const v1 = localStorage.getItem(STORAGE_TOUR_V1_COMPLETED_KEY) === 'true';
+    return v2 || v1;
   } catch {
     return false;
   }
@@ -53,113 +65,177 @@ function getDismissedSnapshot(): boolean {
   }
 }
 
-function getServerSnapshot(): boolean {
+function getTourActiveSnapshot(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(SESSION_TOUR_ACTIVE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function getTourStepSnapshot(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const savedStepStr = sessionStorage.getItem(SESSION_TOUR_STEP_KEY);
+    const savedStep = savedStepStr ? parseInt(savedStepStr, 10) : 0;
+    return Math.max(0, Math.min(Number.isNaN(savedStep) ? 0 : savedStep, TOUR_STEPS.length - 1));
+  } catch {
+    return 0;
+  }
+}
+
+function getServerBooleanSnapshot(): boolean {
   return false;
 }
 
-export function BeginnerGuideProvider({ children }: { children: React.ReactNode }) {
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+function getServerNumberSnapshot(): number {
+  return 0;
+}
 
+export function BeginnerGuideProvider({ children }: { children: React.ReactNode }) {
   const isCompleted = useSyncExternalStore(
     subscribeStorage,
     getCompletedSnapshot,
-    getServerSnapshot
+    getServerBooleanSnapshot
   );
 
   const isBannerDismissed = useSyncExternalStore(
     subscribeStorage,
     getDismissedSnapshot,
-    getServerSnapshot
+    getServerBooleanSnapshot
+  );
+
+  const isTourActive = useSyncExternalStore(
+    subscribeStorage,
+    getTourActiveSnapshot,
+    getServerBooleanSnapshot
+  );
+
+  const currentStep = useSyncExternalStore(
+    subscribeStorage,
+    getTourStepSnapshot,
+    getServerNumberSnapshot
   );
 
   const notifyChange = useCallback(() => {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('wattwise-onboarding-update'));
+      window.dispatchEvent(new Event('wattwise-tour-update'));
     }
   }, []);
 
-  const startGuide = useCallback((step = 0) => {
-    const validStep = Math.max(0, Math.min(step, GUIDE_STEPS.length - 1));
-    setCurrentStep(validStep);
-    setIsGuideOpen(true);
-  }, []);
-
-  const closeGuide = useCallback(() => {
-    setIsGuideOpen(false);
-  }, []);
-
-  const nextStep = useCallback(() => {
-    setCurrentStep((prev) => {
-      if (prev >= GUIDE_STEPS.length - 1) {
-        try {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_COMPLETED_KEY, 'true');
-            notifyChange();
-          }
-        } catch {}
-        setIsGuideOpen(false);
-        return prev;
+  const startTour = useCallback((step = 0) => {
+    const validStep = Math.max(0, Math.min(step, TOUR_STEPS.length - 1));
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SESSION_TOUR_ACTIVE_KEY, 'true');
+        sessionStorage.setItem(SESSION_TOUR_STEP_KEY, String(validStep));
       }
-      return prev + 1;
-    });
+    } catch {}
+    notifyChange();
   }, [notifyChange]);
 
+  const stopTour = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(SESSION_TOUR_ACTIVE_KEY);
+        sessionStorage.removeItem(SESSION_TOUR_STEP_KEY);
+      }
+    } catch {}
+    notifyChange();
+  }, [notifyChange]);
+
+  const nextStep = useCallback(() => {
+    const next = currentStep + 1;
+    if (next >= TOUR_STEPS.length) {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_TOUR_V2_COMPLETED_KEY, 'true');
+          sessionStorage.removeItem(SESSION_TOUR_ACTIVE_KEY);
+          sessionStorage.removeItem(SESSION_TOUR_STEP_KEY);
+        }
+      } catch {}
+      notifyChange();
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SESSION_TOUR_STEP_KEY, String(next));
+      }
+    } catch {}
+    notifyChange();
+  }, [currentStep, notifyChange]);
+
   const prevStep = useCallback(() => {
-    setCurrentStep((prev) => Math.max(0, prev - 1));
-  }, []);
+    const next = Math.max(0, currentStep - 1);
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SESSION_TOUR_STEP_KEY, String(next));
+      }
+    } catch {}
+    notifyChange();
+  }, [currentStep, notifyChange]);
 
   const goToStep = useCallback((step: number) => {
-    const validStep = Math.max(0, Math.min(step, GUIDE_STEPS.length - 1));
-    setCurrentStep(validStep);
-  }, []);
+    const validStep = Math.max(0, Math.min(step, TOUR_STEPS.length - 1));
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SESSION_TOUR_STEP_KEY, String(validStep));
+      }
+    } catch {}
+    notifyChange();
+  }, [notifyChange]);
 
   const dismissBanner = useCallback(() => {
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(STORAGE_DISMISSED_SESSION_KEY, 'true');
-        notifyChange();
       }
     } catch {}
+    notifyChange();
   }, [notifyChange]);
 
-  const completeGuide = useCallback(() => {
+  const completeTour = useCallback(() => {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_COMPLETED_KEY, 'true');
-        notifyChange();
+        localStorage.setItem(STORAGE_TOUR_V2_COMPLETED_KEY, 'true');
+        sessionStorage.removeItem(SESSION_TOUR_ACTIVE_KEY);
+        sessionStorage.removeItem(SESSION_TOUR_STEP_KEY);
       }
     } catch {}
-    setIsGuideOpen(false);
+    notifyChange();
   }, [notifyChange]);
 
-  // Keyboard accessibility: Escape to close guide
+  // Keyboard accessibility: Escape closes tour
   useEffect(() => {
-    if (!isGuideOpen) return;
+    if (!isTourActive) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsGuideOpen(false);
+        stopTour();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isGuideOpen]);
+  }, [isTourActive, stopTour]);
+
+  const currentStepData = TOUR_STEPS[currentStep] || TOUR_STEPS[0];
 
   return (
     <BeginnerGuideContext.Provider
       value={{
-        isGuideOpen,
+        isTourActive,
         currentStep,
+        currentStepData,
         isCompleted,
         isBannerDismissed,
-        steps: GUIDE_STEPS,
-        startGuide,
-        closeGuide,
+        steps: TOUR_STEPS,
+        startTour,
+        stopTour,
         nextStep,
         prevStep,
         goToStep,
         dismissBanner,
-        completeGuide,
+        completeTour,
       }}
     >
       {children}

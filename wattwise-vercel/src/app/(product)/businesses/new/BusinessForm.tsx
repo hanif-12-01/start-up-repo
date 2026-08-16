@@ -66,7 +66,7 @@ export function BusinessForm() {
         </Reveal>
       )}
 
-      <form action={formAction} className="grid gap-4 md:grid-cols-2">
+      <form data-tour-id="business-profile-form" action={formAction} className="grid gap-4 md:grid-cols-2">
         <Reveal direction="up" delay={0.05}>
           <div>
             <label htmlFor="name" className={labelClass}>

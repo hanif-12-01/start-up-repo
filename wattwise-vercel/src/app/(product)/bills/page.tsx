@@ -106,6 +106,7 @@ export default async function BillsPage({
             </div>
             <div className="flex items-center gap-3">
               <Link
+                data-tour-id="add-bill"
                 href={`/bills/new${businessQuery}`}
                 className={primaryButton}
               >
@@ -131,6 +132,7 @@ export default async function BillsPage({
                 tarif, atau penyebab perubahan.
               </p>
               <Link
+                data-tour-id="add-bill"
                 href={`/bills/new${businessQuery}`}
                 className={`${primaryButton} mt-5`}
               >

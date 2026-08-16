@@ -117,7 +117,7 @@ export default async function DashboardPage({
       <div className="mx-auto max-w-7xl space-y-6">
         <BeginnerWelcomeBanner />
 
-        <header className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
+        <header data-tour-id="dashboard-header" className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Dashboard kendali biaya</p>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">
@@ -129,7 +129,7 @@ export default async function DashboardPage({
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             {dashboard.businessSummary.options.length > 1 && (
-              <form action="/dashboard" method="get" className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2.5">
+              <form data-tour-id="business-selector" action="/dashboard" method="get" className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2.5">
                 <label>
                   <span className="mb-1 block text-[10px] font-bold uppercase text-[var(--primary)]">Usaha aktif</span>
                   <select name="businessId" defaultValue={selectedBusinessId} className="min-w-48 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[var(--focus)]">
@@ -139,11 +139,11 @@ export default async function DashboardPage({
                 <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-bold text-[var(--primary-foreground)]">Pilih</button>
               </form>
             )}
-            <Link href="/businesses" className={secondaryButton}>Kelola Usaha</Link>
+            <Link data-tour-id="manage-business" href="/businesses" className={secondaryButton}>Kelola Usaha</Link>
           </div>
         </header>
 
-        <section className="relative overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 sm:p-8">
+        <section data-tour-id="dashboard-next-action" className="relative overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 sm:p-8">
           <div className="relative grid gap-7 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Langkah berikutnya</p>
