@@ -28,6 +28,7 @@ import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journe
 import { getDecisionSupport } from '@/server/services/workspace.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
+import { BeginnerWelcomeBanner } from '@/components/onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,6 +115,8 @@ export default async function DashboardPage({
   return (
     <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-10 lg:py-9">
       <div className="mx-auto max-w-7xl space-y-6">
+        <BeginnerWelcomeBanner />
+
         <header className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Dashboard kendali biaya</p>

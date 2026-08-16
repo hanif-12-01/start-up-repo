@@ -21,6 +21,11 @@ import {
 import { LogoutButton } from '@/components/LogoutButton';
 import { ThemeToggle } from '@/components/product/ThemeToggle';
 import { WattWiseLogo } from '@/components/WattWiseLogo';
+import {
+  BeginnerGuideProvider,
+  BeginnerGuideModal,
+  GuideReplayButton,
+} from '@/components/onboarding';
 
 type Item = { href: string; label: string; icon: LucideIcon };
 
@@ -176,6 +181,7 @@ export function ProductShell({
       </nav>
 
       <div className="mt-2 border-t border-[var(--border)] pt-3 space-y-2">
+        <GuideReplayButton closeMenu={close} />
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-bold text-[var(--muted)]">Tampilan</span>
           <ThemeToggle />
@@ -192,56 +198,60 @@ export function ProductShell({
   );
 
   return (
-    <div className="product-shell min-h-screen lg:flex">
-      <div className="product-shell-sidebar fixed inset-y-0 left-0 z-50 hidden lg:block">
-        {sidebar}
-      </div>
-
-      <header className="product-shell-mobile sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2 font-extrabold text-sm">
-          <WattWiseLogo size={24} />
-          WattWise AI
-        </Link>
-        <button
-          ref={menuButtonRef}
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-expanded={menuOpen}
-          aria-controls="product-mobile-menu"
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--foreground)]"
-        >
-          <Menu className="h-4 w-4" />
-          Menu
-        </button>
-      </header>
-
-      {menuOpen && (
-        <div
-          id="product-mobile-menu"
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigasi produk"
-        >
-          <button
-            type="button"
-            aria-label="Tutup menu"
-            onClick={close}
-            className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-xs"
-          />
-          <div ref={drawerRef} className="absolute inset-y-0 left-0 z-10 shadow-[var(--shadow-medium)]">{sidebar}</div>
-          <button
-            type="button"
-            onClick={close}
-            className="absolute right-4 top-4 z-20 rounded-full bg-[var(--surface)] p-2 shadow-lg text-[var(--foreground)]"
-            aria-label="Tutup menu navigasi"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <BeginnerGuideProvider>
+      <div className="product-shell min-h-screen lg:flex">
+        <div className="product-shell-sidebar fixed inset-y-0 left-0 z-50 hidden lg:block">
+          {sidebar}
         </div>
-      )}
 
-      <div className="min-w-0 flex-1 lg:pl-[256px]">{children}</div>
-    </div>
+        <header className="product-shell-mobile sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
+          <Link href="/dashboard" className="flex items-center gap-2 font-extrabold text-sm">
+            <WattWiseLogo size={24} />
+            WattWise AI
+          </Link>
+          <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-controls="product-mobile-menu"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--foreground)]"
+          >
+            <Menu className="h-4 w-4" />
+            Menu
+          </button>
+        </header>
+
+        {menuOpen && (
+          <div
+            id="product-mobile-menu"
+            className="fixed inset-0 z-50 lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigasi produk"
+          >
+            <button
+              type="button"
+              aria-label="Tutup menu"
+              onClick={close}
+              className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-xs"
+            />
+            <div ref={drawerRef} className="absolute inset-y-0 left-0 z-10 shadow-[var(--shadow-medium)]">{sidebar}</div>
+            <button
+              type="button"
+              onClick={close}
+              className="absolute right-4 top-4 z-20 rounded-full bg-[var(--surface)] p-2 shadow-lg text-[var(--foreground)]"
+              aria-label="Tutup menu navigasi"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1 lg:pl-[256px]">{children}</div>
+        <BeginnerGuideModal />
+      </div>
+    </BeginnerGuideProvider>
   );
 }
+
