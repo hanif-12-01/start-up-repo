@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getDataReadinessStatus,
   deriveDisplayedPrediction,
+  getRuntimePredictionStatus,
 } from '@/lib/ai/prediction-display';
 import {
   requestedEngineForPhase,
@@ -201,3 +202,93 @@ describe('H: Core feature map truthfulness', () => {
     expect(raw.toLowerCase()).not.toMatch(/lightgbm.*active|active.*lightgbm/i);
   });
 });
+
+// ─── I: Runtime Prediction Status Truthfulness (JURY-RELEASE-FINAL-FIX) ──────
+describe('I: Runtime Prediction Status Truthfulness', () => {
+  it('CASE 1 — H03 deterministic: displays "Estimasi Historis" and isAiActive is false', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: false,
+      continuousHistoryMonths: 3,
+      isInferring: false,
+      displayedEngine: 'deterministic_baseline',
+      fallbackUsed: false,
+      hasAiPrediction: false,
+    });
+    expect(status.label).toBe('Estimasi Historis');
+    expect(status.isAiActive).toBe(false);
+    expect(status.variant).toBe('neutral');
+  });
+
+  it('CASE 2 — H06 eligible / inference processing: displays "Memproses Prediksi AI..." and isAiActive is false', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: true,
+      continuousHistoryMonths: 6,
+      isInferring: true,
+      displayedEngine: 'deterministic_baseline',
+      fallbackUsed: false,
+      hasAiPrediction: false,
+    });
+    expect(status.label).toBe('Memproses Prediksi AI...');
+    expect(status.isAiActive).toBe(false);
+    expect(status.variant).toBe('primary');
+  });
+
+  it('CASE 3 — H06 N-BEATS success: displays "Prediksi AI Aktif" and isAiActive is true', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: true,
+      continuousHistoryMonths: 6,
+      isInferring: false,
+      displayedEngine: 'nbeats',
+      fallbackUsed: false,
+      hasAiPrediction: true,
+    });
+    expect(status.label).toBe('Prediksi AI Aktif');
+    expect(status.isAiActive).toBe(true);
+    expect(status.variant).toBe('success');
+  });
+
+  it('CASE 4 — H06 forced inference failure: displays "Estimasi Historis (fallback)" and is NOT AI active', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: true,
+      continuousHistoryMonths: 6,
+      isInferring: false,
+      displayedEngine: 'deterministic_baseline',
+      fallbackUsed: true,
+      hasAiPrediction: false,
+    });
+    expect(status.label).toBe('Estimasi Historis (fallback)');
+    expect(status.isAiActive).toBe(false);
+    expect(status.label).not.toContain('Prediksi AI Aktif');
+    expect(status.variant).toBe('warning');
+  });
+
+  it('CASE 5 — H13 success: displays "Prediksi AI Aktif" and isAiActive is true', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: true,
+      continuousHistoryMonths: 13,
+      isInferring: false,
+      displayedEngine: 'nbeats',
+      fallbackUsed: false,
+      hasAiPrediction: true,
+    });
+    expect(status.label).toBe('Prediksi AI Aktif');
+    expect(status.isAiActive).toBe(true);
+    expect(status.variant).toBe('success');
+  });
+
+  it('CASE 6 — H13 fallback: displays "Estimasi Historis (fallback)" and is NOT AI active', () => {
+    const status = getRuntimePredictionStatus({
+      eligible: true,
+      continuousHistoryMonths: 18,
+      isInferring: false,
+      displayedEngine: 'deterministic_baseline',
+      fallbackUsed: true,
+      hasAiPrediction: false,
+    });
+    expect(status.label).toBe('Estimasi Historis (fallback)');
+    expect(status.isAiActive).toBe(false);
+    expect(status.label).not.toContain('Prediksi AI Aktif');
+    expect(status.variant).toBe('warning');
+  });
+});
+

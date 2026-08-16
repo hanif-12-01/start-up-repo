@@ -33,7 +33,11 @@ import { Simulator } from '@/app/(product)/predictions/Simulator';
 import type { EmbeddedForecastPlan } from '@/server/services/product-analysis';
 import type { PredictionResult } from '@/server/services/product-analysis';
 import { runEmbeddedNBeatsInference } from '@/lib/ai/embedded-nbeats';
-import { deriveDisplayedPrediction, getDataReadinessStatus } from '@/lib/ai/prediction-display';
+import {
+  deriveDisplayedPrediction,
+  getDataReadinessStatus,
+  getRuntimePredictionStatus,
+} from '@/lib/ai/prediction-display';
 
 const tabs = [
   ['overview', Gauge, 'Ringkasan'],
@@ -179,6 +183,14 @@ export function AnalysisView({
   const inferenceLatencyMs = aiPrediction ? aiPrediction.latencyMs : null;
 
   const dataReadiness = getDataReadinessStatus(forecastPlan.continuousHistoryMonths);
+  const runtimeStatus = getRuntimePredictionStatus({
+    eligible: forecastPlan.eligible,
+    continuousHistoryMonths: forecastPlan.continuousHistoryMonths,
+    isInferring,
+    displayedEngine,
+    fallbackUsed,
+    hasAiPrediction: Boolean(aiPrediction && !aiPrediction.fallbackUsed),
+  });
 
   // Construct trend points for visualization with single unified prediction
   const trendPoints: TrendPoint[] = samples.map((s) => ({
@@ -389,8 +401,8 @@ export function AnalysisView({
                   {dataReadiness.label} · {forecastPlan.continuousHistoryMonths} Bulan Histori Berurutan
                 </h3>
               </div>
-              <StatusBadge variant={dataReadiness.isAiReady ? 'success' : 'neutral'}>
-                {dataReadiness.isAiReady ? 'Prediksi AI Aktif' : 'Estimasi Historis'}
+              <StatusBadge variant={runtimeStatus.variant}>
+                {runtimeStatus.label}
               </StatusBadge>
             </div>
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
@@ -526,8 +538,8 @@ export function AnalysisView({
                   {dataReadiness.label}
                 </h4>
               </div>
-              <StatusBadge variant={dataReadiness.isAiReady ? 'success' : 'neutral'}>
-                {dataReadiness.isAiReady ? 'Prediksi AI Aktif' : 'Estimasi Historis'}
+              <StatusBadge variant={runtimeStatus.variant}>
+                {runtimeStatus.label}
               </StatusBadge>
             </div>
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">

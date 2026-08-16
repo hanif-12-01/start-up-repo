@@ -47,6 +47,68 @@ export interface DataReadinessStatus {
   isAiReady: boolean;
 }
 
+export interface RuntimePredictionStatus {
+  label: string;
+  isAiActive: boolean;
+  variant: 'success' | 'neutral' | 'warning' | 'primary';
+  description?: string;
+}
+
+export function getRuntimePredictionStatus(params: {
+  eligible: boolean;
+  continuousHistoryMonths: number;
+  isInferring: boolean;
+  displayedEngine?: string | null;
+  fallbackUsed?: boolean;
+  hasAiPrediction?: boolean;
+}): RuntimePredictionStatus {
+  const {
+    eligible,
+    isInferring,
+    displayedEngine,
+    fallbackUsed = false,
+    hasAiPrediction = false,
+  } = params;
+
+  // Case 1: Non-eligible history (H00, H01_02, H03_05)
+  if (!eligible) {
+    return {
+      label: 'Estimasi Historis',
+      isAiActive: false,
+      variant: 'neutral',
+    };
+  }
+
+  // Case 2: Eligible and inference in progress
+  if (isInferring) {
+    return {
+      label: 'Memproses Prediksi AI...',
+      isAiActive: false,
+      variant: 'primary',
+      description: 'Sedang memproses model inferensi AI di browser.',
+    };
+  }
+
+  // Case 3: N-BEATS Success
+  // ONLY IF eligible && !isInferring && displayedEngine === 'nbeats' && !fallbackUsed && hasAiPrediction
+  if (displayedEngine === 'nbeats' && !fallbackUsed && hasAiPrediction) {
+    return {
+      label: 'Prediksi AI Aktif',
+      isAiActive: true,
+      variant: 'success',
+      description: 'Prediksi AI aktif menggunakan pola konsumsi 6 bulan berurutan.',
+    };
+  }
+
+  // Case 4: N-BEATS Failure / Fallback
+  return {
+    label: 'Estimasi Historis (fallback)',
+    isAiActive: false,
+    variant: 'warning',
+    description: 'Prediksi AI tidak tersedia sementara. Menampilkan estimasi historis aman.',
+  };
+}
+
 export function getDataReadinessStatus(continuousHistoryMonths: number): DataReadinessStatus {
   if (continuousHistoryMonths <= 0) {
     return {
@@ -92,3 +154,4 @@ export function getDataReadinessStatus(continuousHistoryMonths: number): DataRea
     isAiReady: true,
   };
 }
+
