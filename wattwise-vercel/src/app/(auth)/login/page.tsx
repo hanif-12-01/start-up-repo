@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { DemoAccessCard } from '@/components/auth/DemoAccessCard';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import {
   fieldClass,
@@ -19,6 +20,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleFillDemoCredentials = (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setError(null);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -101,6 +108,8 @@ export default function LoginPage() {
           {!loading && <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />}
         </button>
       </form>
+
+      <DemoAccessCard onFillCredentials={handleFillDemoCredentials} disabled={loading} />
 
       <p className="mt-7 text-center text-sm text-[var(--muted)]">
         Belum memiliki akun?{' '}
