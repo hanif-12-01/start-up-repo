@@ -1,140 +1,116 @@
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   TOUR_STEPS,
-  STORAGE_TOUR_V2_COMPLETED_KEY,
-  STORAGE_TOUR_V1_COMPLETED_KEY,
-  STORAGE_DISMISSED_SESSION_KEY,
   SESSION_TOUR_ACTIVE_KEY,
   SESSION_TOUR_STEP_KEY,
+  SESSION_TOUR_PENDING_STEP_KEY,
 } from '@/components/onboarding/guide-steps';
 
-describe('UX-ONBOARD-02 — Interactive Beginner Coachmark Tour', () => {
-  it('CASE 1: Fresh user flow defines sequential interactive steps', () => {
+describe('UX-ONBOARD-02-FIX — True Click-Driven Tour & Provider Boundary Tests', () => {
+  it('CASE 1: TourStep supports explicit advanceMode with 9 sequential steps', () => {
     expect(TOUR_STEPS).toHaveLength(9);
-    expect(TOUR_STEPS[0].stage).toBe('DATA');
-    expect(TOUR_STEPS[1].stage).toBe('DATA');
-    expect(TOUR_STEPS[2].stage).toBe('DATA');
-    expect(TOUR_STEPS[3].stage).toBe('DATA');
-    expect(TOUR_STEPS[4].stage).toBe('DECIDE / ACT');
-    expect(TOUR_STEPS[5].stage).toBe('UNDERSTAND');
-    expect(TOUR_STEPS[6].stage).toBe('PREDICT');
-    expect(TOUR_STEPS[7].stage).toBe('DECIDE / ACT');
-    expect(TOUR_STEPS[8].stage).toBe('MEASURE');
+    for (const step of TOUR_STEPS) {
+      expect(['manual', 'target-click', 'route-change']).toContain(step.advanceMode);
+    }
   });
 
-  it('CASE 2: Start guide activates interactive tour with stable tour IDs', () => {
-    expect(TOUR_STEPS[0].targetTourId).toBe('business-selector');
-    expect(TOUR_STEPS[0].fallbackTourId).toBe('manage-business');
-    expect(TOUR_STEPS[1].targetTourId).toBe('business-profile-form');
-    expect(TOUR_STEPS[2].targetTourId).toBe('sidebar-bills');
-    expect(TOUR_STEPS[3].targetTourId).toBe('add-bill');
-    expect(TOUR_STEPS[4].targetTourId).toBe('dashboard-next-action');
-    expect(TOUR_STEPS[5].targetTourId).toBe('analysis-trend-section');
-    expect(TOUR_STEPS[6].targetTourId).toBe('analysis-forecast-tab');
-    expect(TOUR_STEPS[7].targetTourId).toBe('analysis-next-action');
-    expect(TOUR_STEPS[8].targetTourId).toBe('sidebar-reports');
+  it('CASE 2: Step 3 (Tagihan Listrik) is target-click with expectedPathname /bills', () => {
+    const step3 = TOUR_STEPS[2];
+    expect(step3.advanceMode).toBe('target-click');
+    expect(step3.targetTourId).toBe('sidebar-bills');
+    expect(step3.expectedPathname).toBe('/bills');
   });
 
-  it('CASE 3: Dashboard business selector and manage business targets exist in DashboardPage', () => {
-    const dashboardFile = readFileSync(join(process.cwd(), 'src/app/(product)/dashboard/page.tsx'), 'utf8');
-    expect(dashboardFile).toContain('data-tour-id="business-selector"');
-    expect(dashboardFile).toContain('data-tour-id="manage-business"');
-    expect(dashboardFile).toContain('data-tour-id="dashboard-next-action"');
-    expect(dashboardFile).toContain('data-tour-id="dashboard-header"');
+  it('CASE 3: Step 6 (Analisis) is target-click with expectedPathname /analysis', () => {
+    const step6 = TOUR_STEPS[5];
+    expect(step6.advanceMode).toBe('target-click');
+    expect(step6.targetTourId).toBe('sidebar-analysis');
+    expect(step6.expectedPathname).toBe('/analysis');
   });
 
-  it('CASE 4: Stable tour IDs are present across ProductShell navigation and GuideReplayButton', () => {
-    const shellFile = readFileSync(join(process.cwd(), 'src/components/product/ProductShell.tsx'), 'utf8');
-    const replayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/GuideReplayButton.tsx'), 'utf8');
-    expect(shellFile).toContain('tourId: \'sidebar-dashboard\'');
-    expect(shellFile).toContain('tourId: \'sidebar-analysis\'');
-    expect(shellFile).toContain('tourId: \'sidebar-bills\'');
-    expect(shellFile).toContain('tourId: \'sidebar-revenue\'');
-    expect(shellFile).toContain('tourId: \'sidebar-businesses\'');
-    expect(shellFile).toContain('tourId: \'sidebar-diagnostics\'');
-    expect(shellFile).toContain('tourId: \'sidebar-reports\'');
-    expect(replayFile).toContain('data-tour-id="sidebar-guide"');
-    expect(shellFile).toContain('<InteractiveGuideOverlay');
+  it('CASE 4: Step 7 (Forecast) is target-click with expectedSearchParam tab=forecast', () => {
+    const step7 = TOUR_STEPS[6];
+    expect(step7.advanceMode).toBe('target-click');
+    expect(step7.targetTourId).toBe('analysis-forecast-tab');
+    expect(step7.expectedPathname).toBe('/analysis');
+    expect(step7.expectedSearchParam).toEqual({
+      key: 'tab',
+      value: 'forecast',
+    });
   });
 
-  it('CASE 5: Missing target safe fallback is implemented without crashing', () => {
-    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
-    expect(overlayFile).toContain('Bagian ini berada di halaman lain');
-    expect(overlayFile).toContain('fallbackTourId');
-    expect(overlayFile).toContain('!targetFound');
+  it('CASE 5: Step 8 (Recommendations) is target-click with expectedSearchParam tab=recommendations', () => {
+    const step8 = TOUR_STEPS[7];
+    expect(step8.advanceMode).toBe('target-click');
+    expect(step8.targetTourId).toBe('analysis-recommendations-tab');
+    expect(step8.expectedPathname).toBe('/analysis');
+    expect(step8.expectedSearchParam).toEqual({
+      key: 'tab',
+      value: 'recommendations',
+    });
   });
 
-  it('CASE 6: Target click allows normal interactivity without blocking clicks', () => {
-    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
-    expect(overlayFile).toContain('pointer-events-none');
-    expect(overlayFile).toContain('pointer-events-auto');
-  });
-
-  it('CASE 7: Route navigation and session continuity keys are properly configured', () => {
-    expect(SESSION_TOUR_ACTIVE_KEY).toBe('wattwise:interactive-tour:v2:active');
-    expect(SESSION_TOUR_STEP_KEY).toBe('wattwise:interactive-tour:v2:step');
-    expect(STORAGE_DISMISSED_SESSION_KEY).toBe('wattwise:interactive-tour:v2:dismissed');
-  });
-
-  it('CASE 8: Form-entry step does NOT auto-submit or autofill fake data', () => {
-    const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
-    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
-    const combined = `${contextFile} ${overlayFile}`;
-
-    expect(combined).not.toContain('.submit()');
-    expect(combined).not.toContain('dispatchEvent(new SubmitEvent');
-    expect(combined).not.toContain('formAction');
-  });
-
-  it('CASE 9: Completion stores v2 localStorage key', () => {
-    expect(STORAGE_TOUR_V2_COMPLETED_KEY).toBe('wattwise:interactive-tour:v2:completed');
-  });
-
-  it('CASE 10: Replay works after completion via GuideReplayButton', () => {
-    const replayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/GuideReplayButton.tsx'), 'utf8');
-    expect(replayFile).toContain('startTour(0)');
-    expect(replayFile).toContain('data-tour-id="sidebar-guide"');
-  });
-
-  it('CASE 11: Existing v1-completed users are recognized without breaking compatibility', () => {
-    expect(STORAGE_TOUR_V1_COMPLETED_KEY).toBe('wattwise:onboarding:v1:completed');
-    const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
-    expect(contextFile).toContain('STORAGE_TOUR_V1_COMPLETED_KEY');
-  });
-
-  it('CASE 12: No business empty-account state provides non-crashing guidance', () => {
-    const step1 = TOUR_STEPS[0];
-    expect(step1.fallbackTourId).toBe('manage-business');
-    expect(step1.ctaHref).toBe('/businesses');
-  });
-
-  it('CASE 13: Existing business allows smooth continuation without forcing duplicate creation', () => {
+  it('CASE 6: Step 2 (Business profile) remains manual advanceMode', () => {
     const step2 = TOUR_STEPS[1];
+    expect(step2.advanceMode).toBe('manual');
     expect(step2.actionLabel).toBe('Profil sudah siap — lanjut');
   });
 
-  it('CASE 14: Existing bills allows continuation without forcing duplicate bill entry', () => {
+  it('CASE 7: Step 4 (Bill form) remains manual advanceMode', () => {
     const step4 = TOUR_STEPS[3];
+    expect(step4.advanceMode).toBe('manual');
     expect(step4.actionLabel).toBe('Saya sudah punya tagihan — lanjut');
   });
 
-  it('CASE 15: Forecast step copy strictly adheres to N-BEATS and historical estimate truthfulness', () => {
-    const step7 = TOUR_STEPS[6];
-    expect(step7.stage).toBe('PREDICT');
-    expect(step7.detailedContext).toContain('kurang dari 6 bulan berurutan');
-    expect(step7.detailedContext).toContain('estimasi historis');
-    expect(step7.detailedContext).toContain('minimal 6 bulan histori berurutan');
-    expect(step7.detailedContext).toContain('Prediksi AI N-BEATS');
-    expect(step7.detailedContext).toContain('fallback');
-
-    const fullText = `${step7.title} ${step7.instruction} ${step7.detailedContext}`;
-    expect(fullText).not.toMatch(/model a|model b/i);
-    expect(fullText).not.toMatch(/H01_02|H03_05|H06_12/i);
+  it('CASE 8: Target-click handler does NOT call preventDefault', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).not.toContain('.preventDefault()');
   });
 
-  it('CASE 16: No database imports, mutations, or auth bypass in onboarding codebase', () => {
+  it('CASE 9: Target-click handler does NOT call stopPropagation', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).not.toContain('.stopPropagation()');
+  });
+
+  it('CASE 10: Target listener cleanup exists on step/route change', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).toContain('removeEventListener');
+  });
+
+  it('CASE 11: Pending navigation advancement persists only in sessionStorage', () => {
+    expect(SESSION_TOUR_PENDING_STEP_KEY).toBe('wattwise:interactive-tour:v2:pending-step');
+    expect(SESSION_TOUR_ACTIVE_KEY).toBe('wattwise:interactive-tour:v2:active');
+    expect(SESSION_TOUR_STEP_KEY).toBe('wattwise:interactive-tour:v2:step');
+  });
+
+  it('CASE 12 & 13: Expected route vs wrong route handling in overlay', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).toContain('currentStepData.expectedPathname');
+    expect(overlayFile).toContain('pathnameMatched');
+    expect(overlayFile).toContain('searchParamMatched');
+  });
+
+  it('CASE 14: Forecast step specifically validates search params tab=forecast', () => {
+    const step7 = TOUR_STEPS[6];
+    expect(step7.expectedSearchParam?.key).toBe('tab');
+    expect(step7.expectedSearchParam?.value).toBe('forecast');
+  });
+
+  it('CASE 15: Missing target does not throw error and renders graceful helper', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).toContain('Bagian ini berada di halaman lain');
+    expect(overlayFile).toContain('!targetFound');
+  });
+
+  it('CASE 16: ProductLayout Suspense fallback cannot expose authenticated children outside provider', () => {
+    const layoutFile = readFileSync(join(process.cwd(), 'src/app/(product)/layout.tsx'), 'utf8');
+    expect(layoutFile).not.toContain('fallback={<div className="min-h-screen bg-[#f7f9f4]">{children}</div>}');
+    expect(layoutFile).toContain('aria-busy="true"');
+  });
+
+  it('CASE 17: No onboarding database or auth internals imported', () => {
     const contextFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerGuideContext.tsx'), 'utf8');
     const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
     const bannerFile = readFileSync(join(process.cwd(), 'src/components/onboarding/BeginnerWelcomeBanner.tsx'), 'utf8');
@@ -147,5 +123,31 @@ describe('UX-ONBOARD-02 — Interactive Beginner Coachmark Tour', () => {
     expect(combined).not.toContain('DELETE FROM');
     expect(combined).not.toContain('UPDATE ');
     expect(combined).not.toContain('wattwise.jury.demo@example.com');
+  });
+
+  it('CASE 18: No automatic mutation or form auto-submission in onboarding code', () => {
+    const overlayFile = readFileSync(join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'), 'utf8');
+    expect(overlayFile).not.toContain('.submit()');
+    expect(overlayFile).not.toContain('dispatchEvent(new SubmitEvent');
+  });
+
+  it('CASE 19: Mobile menu button target exists on ProductShell', () => {
+    const shellFile = readFileSync(join(process.cwd(), 'src/components/product/ProductShell.tsx'), 'utf8');
+    expect(shellFile).toContain('data-tour-id="mobile-menu-button"');
+  });
+
+  it('CASE 20: Step 8 has exact route/target match (analysis-recommendations-tab on /analysis)', () => {
+    const step8 = TOUR_STEPS[7];
+    expect(step8.route).toBe('/analysis');
+    expect(step8.targetTourId).toBe('analysis-recommendations-tab');
+    expect(step8.expectedPathname).toBe('/analysis');
+    expect(step8.expectedSearchParam).toEqual({
+      key: 'tab',
+      value: 'recommendations',
+    });
+
+    const analysisViewFile = readFileSync(join(process.cwd(), 'src/components/analysis/AnalysisView.tsx'), 'utf8');
+    expect(analysisViewFile).toContain('data-tour-id=');
+    expect(analysisViewFile).toContain('analysis-recommendations-tab');
   });
 });

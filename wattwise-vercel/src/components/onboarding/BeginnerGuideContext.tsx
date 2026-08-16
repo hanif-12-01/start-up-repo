@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, {
   createContext,
@@ -243,10 +243,23 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
   );
 }
 
+const defaultGuideContext: BeginnerGuideContextType = {
+  isTourActive: false,
+  currentStep: 0,
+  currentStepData: TOUR_STEPS[0],
+  isCompleted: true,
+  isBannerDismissed: true,
+  steps: TOUR_STEPS,
+  startTour: () => {},
+  stopTour: () => {},
+  nextStep: () => {},
+  prevStep: () => {},
+  goToStep: () => {},
+  dismissBanner: () => {},
+  completeTour: () => {},
+};
+
 export function useBeginnerGuide() {
   const context = useContext(BeginnerGuideContext);
-  if (!context) {
-    throw new Error('useBeginnerGuide must be used within a BeginnerGuideProvider');
-  }
-  return context;
+  return context || defaultGuideContext;
 }

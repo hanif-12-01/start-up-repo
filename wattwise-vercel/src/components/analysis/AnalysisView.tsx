@@ -343,7 +343,13 @@ export function AnalysisView({
         {tabs.map(([key, Icon, label]) => (
           <Link
             key={key}
-            data-tour-id={key === 'forecast' ? 'analysis-forecast-tab' : undefined}
+            data-tour-id={
+              key === 'forecast'
+                ? 'analysis-forecast-tab'
+                : key === 'recommendations'
+                ? 'analysis-recommendations-tab'
+                : undefined
+            }
             href={`/analysis?${businessQuery}&tab=${key}`}
             aria-current={activeTab === key ? 'page' : undefined}
             className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
