@@ -49,4 +49,13 @@ describe('PRICING-CONSISTENCY-01 — Pricing Unit Tests', () => {
     expect(plansPageContent).toContain('plan.priceAmount');
     expect(plansPageContent).toContain('rupiah.format(plan.priceAmount)');
   });
+
+  it('CASE 6: Static source guard — plan.service.ts does NOT contain runtime pricing mutation logic', () => {
+    const planServicePath = join(process.cwd(), 'src', 'server', 'services', 'plan.service.ts');
+    const planServiceContent = readFileSync(planServicePath, 'utf8');
+
+    expect(planServiceContent).not.toContain('ensureCanonicalBillingPlans');
+    expect(planServiceContent).not.toContain('UPDATE billing_plan');
+    expect(planServiceContent).not.toContain('update(billingPlan)');
+  });
 });

@@ -137,4 +137,44 @@ describe('PRICING-CONSISTENCY-01 — Pricing Integration Tests', () => {
     const diffDays = Math.round((endsAt - startsAt) / (1000 * 60 * 60 * 24));
     expect(diffDays).toBe(30);
   });
+
+  it('CASE 7: PLAN_CENTER_NO_SELF_HEAL — getPlanCenter is purely READ-ONLY and does NOT mutate billing_plan', async () => {
+    const userId = await seedTestUser('user-no-heal-1');
+    try {
+      // Temporarily set PRO price to 99000 in test DB
+      await pool.query(`UPDATE billing_plan SET price_amount = 99000 WHERE code = 'PRO';`);
+
+      // Call getPlanCenter
+      const planCenter = await getPlanCenter(userId);
+      const proPlan = planCenter.plans.find((p) => p.code === 'PRO');
+      expect(proPlan?.priceAmount).toBe(99000n);
+
+      // Re-query database: it MUST NOT have been self-healed back to 49000
+      const dbRes = await pool.query(`SELECT price_amount FROM billing_plan WHERE code = 'PRO';`);
+      expect(Number(dbRes.rows[0].price_amount)).toBe(99000);
+    } finally {
+      // Restore canonical pricing
+      await pool.query(`UPDATE billing_plan SET price_amount = 49000 WHERE code = 'PRO';`);
+    }
+  });
+
+  it('CASE 8: CHECKOUT_NO_SELF_HEAL — createSandboxCheckout is purely READ-ONLY and does NOT mutate billing_plan', async () => {
+    const userId = await seedTestUser('user-no-heal-2');
+    try {
+      // Temporarily set PRO price to 99000 in test DB
+      await pool.query(`UPDATE billing_plan SET price_amount = 99000 WHERE code = 'PRO';`);
+
+      // Call createSandboxCheckout
+      const invoiceId = await createSandboxCheckout(userId, 'PRO', 'checkout-no-heal-pro');
+      const invoiceRes = await pool.query(`SELECT amount FROM sandbox_invoice WHERE id = $1;`, [invoiceId]);
+      expect(Number(invoiceRes.rows[0].amount)).toBe(99000);
+
+      // Re-query database: it MUST NOT have been self-healed back to 49000
+      const dbRes = await pool.query(`SELECT price_amount FROM billing_plan WHERE code = 'PRO';`);
+      expect(Number(dbRes.rows[0].price_amount)).toBe(99000);
+    } finally {
+      // Restore canonical pricing
+      await pool.query(`UPDATE billing_plan SET price_amount = 49000 WHERE code = 'PRO';`);
+    }
+  });
 });

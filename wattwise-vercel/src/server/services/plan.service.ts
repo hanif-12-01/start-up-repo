@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import { billingPlan, sandboxInvoice, sandboxPayment, userPlan } from '@/server/db/schema';
 import { getUserEntitlements } from './entitlement.service';
@@ -6,16 +6,7 @@ import { getUserEntitlements } from './entitlement.service';
 export class TrialAlreadyUsedError extends Error {}
 export class SandboxPaymentError extends Error {}
 
-export async function ensureCanonicalBillingPlans() {
-  const db = getDb();
-  await db.execute(sql`
-    UPDATE billing_plan SET price_amount = 49000 WHERE code = 'PRO' AND price_amount != 49000;
-    UPDATE billing_plan SET price_amount = 149000 WHERE code = 'BUSINESS' AND price_amount != 149000;
-  `);
-}
-
 export async function getPlanCenter(userId: string) {
-  await ensureCanonicalBillingPlans().catch(() => {});
   const db = getDb();
   const [entitlements, plans, invoices] = await Promise.all([
     getUserEntitlements(userId),
@@ -47,7 +38,6 @@ export async function startProTrial(userId: string) {
 }
 
 export async function createSandboxCheckout(userId: string, planCode: 'PRO' | 'BUSINESS', idempotencyKey: string) {
-  await ensureCanonicalBillingPlans().catch(() => {});
   const db = getDb();
   return db.transaction(async (tx) => {
     const [plan] = await tx.select().from(billingPlan).where(and(eq(billingPlan.code, planCode), eq(billingPlan.active, true))).limit(1);
