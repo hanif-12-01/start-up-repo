@@ -133,11 +133,20 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     expect(indexNames).toContain('diagnostic_session_business_created_idx');
     expect(indexNames).toContain('revenue_entry_business_month_idx');
     expect(indexNames).toContain('appliance_business_active_idx');
+
+    // Validate final billing plan prices
+    const plansRes = await pool.query(`
+      SELECT code, price_amount FROM billing_plan ORDER BY code;
+    `);
+    const planMap = Object.fromEntries(plansRes.rows.map((r) => [r.code, Number(r.price_amount)]));
+    expect(planMap.FREE).toBe(0);
+    expect(planMap.PRO).toBe(49000);
+    expect(planMap.BUSINESS).toBe(149000);
   }
 
   it('STEP 1: Apply all forward migrations (FIRST UP)', async () => {
     const forwardNames = listForwardMigrationNames();
-    expect(forwardNames.length).toBeGreaterThanOrEqual(11);
+    expect(forwardNames.length).toBeGreaterThanOrEqual(12);
 
     for (const name of forwardNames) {
       const sql = readForwardMigration(name);
@@ -166,6 +175,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
 
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0011_pilot_pricing_consistency_rollback.sql',
       '0010_kwh_provenance_rollback.sql',
       '0009_product_parity_rollback.sql',
       '0008_workspace_feature_parity_rollback.sql',
