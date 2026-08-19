@@ -18,6 +18,7 @@ export interface DashboardNextActionInput {
   businessId: string;
   latestBillId: string | null;
   hasEligibleComparison: boolean;
+  diagnosticAvailable?: boolean;
   session: {
     id: string;
     status: DiagnosticStatus;
@@ -55,10 +56,18 @@ export function resolveDashboardNextAction(
     return { kind: 'LINK', label: 'Tambah Tagihan Pembanding', href: billPath };
   }
   if (!input.session) {
+    const isAvailable = input.diagnosticAvailable ?? true;
+    if (isAvailable) {
+      return {
+        kind: 'START_DIAGNOSTIC',
+        label: 'Cek Kenaikan',
+        electricityBillId: input.latestBillId,
+      };
+    }
     return {
-      kind: 'START_DIAGNOSTIC',
-      label: 'Cek Kenaikan',
-      electricityBillId: input.latestBillId,
+      kind: 'LINK',
+      label: 'Lihat Analisis',
+      href: `/analysis?businessId=${encoded(input.businessId)}`,
     };
   }
 

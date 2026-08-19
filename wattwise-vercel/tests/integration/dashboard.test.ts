@@ -18,7 +18,11 @@ const dbUrl =
 describe('IT-DIAG-07A dashboard composition integration', () => {
   let pool: pg.Pool;
 
-  async function seedTenant(suffix: string, businessCount = 1) {
+  async function seedTenant(
+    suffix: string,
+    businessCount = 1,
+    segment: 'KOS' | 'FNB' = 'KOS'
+  ) {
     const userId = `dashboard-user-${suffix}`;
     await pool.query(
       `INSERT INTO "user" (id, name, email, email_verified)
@@ -32,8 +36,15 @@ describe('IT-DIAG-07A dashboard composition integration', () => {
       await pool.query(
         `INSERT INTO business (
            id, user_id, name, business_type, segment, electrical_system, created_at
-         ) VALUES ($1, $2, $3, 'KOS_PROPERTY', 'KOS', 'ALL_IN', $4)`,
-        [businessId, userId, `Kos ${suffix} ${index}`, `2026-01-0${index}T00:00:00Z`]
+         ) VALUES ($1, $2, $3, $4, $5, 'ALL_IN', $6)`,
+        [
+          businessId,
+          userId,
+          `${segment === 'KOS' ? 'Kos' : 'Usaha'} ${suffix} ${index}`,
+          segment === 'KOS' ? 'KOS_PROPERTY' : 'FNB',
+          segment,
+          `2026-01-0${index}T00:00:00Z`,
+        ]
       );
     }
     return { userId, businessIds };
@@ -339,6 +350,34 @@ describe('IT-DIAG-07A dashboard composition integration', () => {
     const dashboard = await getDashboardReadModel(tenant.userId, businessId);
     expect(dashboard.nextAction.label).toBe('Lanjutkan Pemeriksaan');
     expect(dashboard.inspectionSummaries).toHaveLength(2);
+  });
+
+  it('routes unsupported business segment with 2+ bills to analysis without offering Cek Kenaikan', async () => {
+    const fnbTenant = await seedTenant('fnb-segment', 1, 'FNB');
+    const businessId = fnbTenant.businessIds[0];
+
+    await insertBill(
+      businessId,
+      'dashboard-fnb-bill-1',
+      '2026-01-01',
+      '2026-01-31',
+      '1500000'
+    );
+    await insertBill(
+      businessId,
+      'dashboard-fnb-bill-2',
+      '2026-02-01',
+      '2026-02-28',
+      '1800000',
+      '350.000'
+    );
+
+    const dashboard = await getDashboardReadModel(fnbTenant.userId, businessId);
+    expect(dashboard.nextAction).toEqual({
+      kind: 'LINK',
+      label: 'Lihat Analisis',
+      href: `/analysis?businessId=${encodeURIComponent(businessId)}`,
+    });
   });
 
   it('enforces the dashboard feature flag on the server', async () => {

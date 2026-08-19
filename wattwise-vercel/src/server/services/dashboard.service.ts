@@ -16,6 +16,7 @@ import {
   type DashboardNextAction,
   type DashboardNextActionInput,
 } from '@/server/services/dashboard-next-action';
+import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
 import { findInspectionDefinition } from '@/server/services/inspection-catalog';
 import { INSPECTION_ANSWER_LABELS } from '@/server/services/inspection-presentation';
 import {
@@ -227,10 +228,13 @@ export async function getDashboardReadModel(
       }).eligible
     : false;
 
+  const diagnosticCapability = getDiagnosticCapability(business.segment);
+
   const nextActionInput: DashboardNextActionInput = {
     businessId: business.id,
     latestBillId: latest?.id ?? null,
     hasEligibleComparison: comparison !== null,
+    diagnosticAvailable: diagnosticCapability.available,
     session: diagnostic
       ? {
           id: diagnostic.id,

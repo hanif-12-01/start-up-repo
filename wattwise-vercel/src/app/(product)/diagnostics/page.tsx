@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileCheck,
   Gauge,
+  Info,
   ReceiptText,
   Search,
   ShieldCheck,
@@ -19,6 +20,7 @@ import {
 } from '@/components/product/WorkspaceUI';
 import { readRequestedBusiness, requireWorkspacePage } from '@/server/services/workspace-page';
 import { getDashboardReadModel } from '@/server/services/dashboard.service';
+import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
 import { getDecisionSupport } from '@/server/services/workspace.service';
 import { StartDiagnosticButton } from './StartDiagnosticButton';
 
@@ -39,6 +41,9 @@ export default async function DiagnosticsPage({
 
   const businessQuery = `?businessId=${encodeURIComponent(workspaceData.business.id)}`;
   const { nextAction } = dashboard;
+  const capability = getDiagnosticCapability(workspaceData.business.segment);
+  const isUnsupportedWithoutSession =
+    !capability.available && !dashboard.latestDiagnosticSummary;
 
   const steps = [
     {
@@ -88,173 +93,209 @@ export default async function DiagnosticsPage({
         }
       />
 
-      {/* Main Status & Hero Card */}
-      <SoftCard className="relative overflow-hidden border-[var(--border-strong)]/15 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white shadow-xl">
-        <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[var(--primary)]/15 blur-3xl" aria-hidden="true" />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--primary)]/20 text-[var(--primary)] backdrop-blur-md">
-                <Gauge className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <span className="rounded-full bg-[var(--primary)]/15 px-3 py-1 text-xs font-bold text-[var(--primary)]">
-                Status Sesi Diagnostik
-              </span>
-            </div>
-            <h2 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">
-              {nextAction.label}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted)]/80">
-              Cek Kenaikan menyusun alur evaluasi terstruktur berbasis perbandingan tagihan aktual dan konteks usaha Anda.
-            </p>
+      {isUnsupportedWithoutSession ? (
+        <SoftCard className="relative overflow-hidden border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 sm:p-8">
+          <div className="flex items-center gap-2">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
+              <Info className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
+              Informasi Layanan
+            </span>
           </div>
-          <div>
-            {nextAction.kind === 'START_DIAGNOSTIC' ? (
-              <StartDiagnosticButton
-                electricityBillId={nextAction.electricityBillId}
-                resumable={false}
-              />
-            ) : (
-              <Link
-                href={nextAction.href}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-emerald-950 shadow-md transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-              >
-                <span>{nextAction.label}</span>
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            )}
+          <h2 className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">
+            Cek Kenaikan mendalam belum tersedia untuk segmen ini
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
+            Anda tetap dapat menggunakan Analisis, Proyeksi, dan Rekomendasi WattWise berdasarkan data usaha yang sudah dicatat.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/analysis${businessQuery}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-extrabold text-[var(--primary-foreground)] shadow-sm transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+            >
+              <span>Lihat Analisis</span>
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href={`/dashboard${businessQuery}`}
+              className={secondaryButton}
+            >
+              Kembali ke Dashboard
+            </Link>
           </div>
-        </div>
-      </SoftCard>
-
-      {/* Steps Breakdown */}
-      <SoftCard>
-        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
-              Metodologi Diagnostik
-            </p>
-            <h2 className="mt-1 text-xl font-black">5 Tahap Perjalanan Cek Kenaikan</h2>
-          </div>
-          <Activity className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
-        </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {steps.map((st) => {
-            const Icon = st.icon;
-            return (
-              <div
-                key={st.number}
-                className="group relative flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 transition hover:border-[var(--primary)] hover:bg-[var(--surface)]"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-[var(--primary)]">{st.number}</span>
-                    <Icon className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--primary)] transition-colors" />
-                  </div>
-                  <h3 className="mt-3 text-sm font-bold text-[var(--foreground)]">{st.title}</h3>
-                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{st.desc}</p>
+        </SoftCard>
+      ) : (
+        <>
+          {/* Main Status & Hero Card */}
+          <SoftCard className="relative overflow-hidden border-[var(--border-strong)]/15 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 text-white shadow-xl">
+            <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[var(--primary)]/15 blur-3xl" aria-hidden="true" />
+            <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--primary)]/20 text-[var(--primary)] backdrop-blur-md">
+                    <Gauge className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="rounded-full bg-[var(--primary)]/15 px-3 py-1 text-xs font-bold text-[var(--primary)]">
+                    Status Sesi Diagnostik
+                  </span>
                 </div>
+                <h2 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                  {nextAction.label}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted)]/80">
+                  Cek Kenaikan menyusun alur evaluasi terstruktur berbasis perbandingan tagihan aktual dan konteks usaha Anda.
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </SoftCard>
-
-      {/* Grid: Candidate Items & Action Plans */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Candidates */}
-        <SoftCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
-                Kandidat Pemeriksaan
-              </p>
-              <h2 className="mt-1 text-xl font-black">Bagian yang Perlu Dicek</h2>
+              <div>
+                {nextAction.kind === 'START_DIAGNOSTIC' ? (
+                  <StartDiagnosticButton
+                    electricityBillId={nextAction.electricityBillId}
+                    resumable={false}
+                  />
+                ) : (
+                  <Link
+                    href={nextAction.href}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-emerald-950 shadow-md transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                  >
+                    <span>{nextAction.label}</span>
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
             </div>
-            <Search className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
-          </div>
+          </SoftCard>
 
-          {dashboard.candidateSummaries.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-center">
-              <p className="text-sm leading-relaxed text-[var(--muted)]">
-                Belum ada kandidat pemeriksaan aktif. Masukkan minimal 2 periode tagihan untuk menjalankan Cek Kenaikan.
-              </p>
-              <Link
-                href={`/bills/new${businessQuery}`}
-                className={`mt-4 ${secondaryButton}`}
-              >
-                Tambah Tagihan Baru
-              </Link>
+          {/* Steps Breakdown */}
+          <SoftCard>
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
+                  Metodologi Diagnostik
+                </p>
+                <h2 className="mt-1 text-xl font-black">5 Tahap Perjalanan Cek Kenaikan</h2>
+              </div>
+              <Activity className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
             </div>
-          ) : (
-            <ol className="mt-5 space-y-3">
-              {dashboard.candidateSummaries.map((candidate) => (
-                <li
-                  key={`${candidate.rankLabel}-${candidate.title}`}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[var(--primary)]">
-                      {candidate.rankLabel}
-                    </span>
-                    <span className="text-[11px] font-bold text-[var(--muted)]">
-                      {candidate.inspectionStatusLabel}
-                    </span>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {steps.map((st) => {
+                const Icon = st.icon;
+                return (
+                  <div
+                    key={st.number}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4 transition hover:border-[var(--primary)] hover:bg-[var(--surface)]"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-[var(--primary)]">{st.number}</span>
+                        <Icon className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--primary)] transition-colors" />
+                      </div>
+                      <h3 className="mt-3 text-sm font-bold text-[var(--foreground)]">{st.title}</h3>
+                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{st.desc}</p>
+                    </div>
                   </div>
-                  <h3 className="mt-2 font-bold text-[var(--foreground)]">{candidate.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-                    {candidate.explanation}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </SoftCard>
-
-        {/* Action Plans */}
-        <SoftCard>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
-                Tindakan Berjalan
-              </p>
-              <h2 className="mt-1 text-xl font-black">Rencana Hemat Active</h2>
+                );
+              })}
             </div>
-            <CheckCircle2 className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
+          </SoftCard>
+
+          {/* Grid: Candidate Items & Action Plans */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Candidates */}
+            <SoftCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
+                    Kandidat Pemeriksaan
+                  </p>
+                  <h2 className="mt-1 text-xl font-black">Bagian yang Perlu Dicek</h2>
+                </div>
+                <Search className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
+              </div>
+
+              {dashboard.candidateSummaries.length === 0 ? (
+                <div className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-center">
+                  <p className="text-sm leading-relaxed text-[var(--muted)]">
+                    Belum ada kandidat pemeriksaan aktif. Masukkan minimal 2 periode tagihan untuk menjalankan Cek Kenaikan.
+                  </p>
+                  <Link
+                    href={`/bills/new${businessQuery}`}
+                    className={`mt-4 ${secondaryButton}`}
+                  >
+                    Tambah Tagihan Baru
+                  </Link>
+                </div>
+              ) : (
+                <ol className="mt-5 space-y-3">
+                  {dashboard.candidateSummaries.map((candidate) => (
+                    <li
+                      key={`${candidate.rankLabel}-${candidate.title}`}
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[var(--primary)]">
+                          {candidate.rankLabel}
+                        </span>
+                        <span className="text-[11px] font-bold text-[var(--muted)]">
+                          {candidate.inspectionStatusLabel}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 font-bold text-[var(--foreground)]">{candidate.title}</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+                        {candidate.explanation}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </SoftCard>
+
+            {/* Action Plans */}
+            <SoftCard>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary)]">
+                    Tindakan Berjalan
+                  </p>
+                  <h2 className="mt-1 text-xl font-black">Rencana Hemat Active</h2>
+                </div>
+                <CheckCircle2 className="h-6 w-6 text-[var(--primary)]" aria-hidden="true" />
+              </div>
+
+              {dashboard.actionPlanSummaries.length === 0 ? (
+                <div className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-center">
+                  <p className="text-sm leading-relaxed text-[var(--muted)]">
+                    Belum ada Rencana Hemat yang dibuat. Rencana Hemat dapat ditentukan setelah menyelesaikan pemeriksaan kandidat.
+                  </p>
+                  <Link
+                    href={`/recommendations${businessQuery}`}
+                    className={`mt-4 ${secondaryButton}`}
+                  >
+                    Lihat Rekomendasi
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  {dashboard.actionPlanSummaries.map((action) => (
+                    <article
+                      key={action.title}
+                      className="rounded-2xl border border-[var(--border-strong)]/10 bg-[var(--primary-soft)] p-4"
+                    >
+                      <h3 className="font-extrabold text-[var(--foreground)]">{action.title}</h3>
+                      <p className="mt-1 text-xs font-bold text-[var(--primary)]">
+                        {action.statusLabel}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+                        Mulai {action.plannedStartDate} · Evaluasi: {action.reviewTarget}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </SoftCard>
           </div>
-
-          {dashboard.actionPlanSummaries.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-center">
-              <p className="text-sm leading-relaxed text-[var(--muted)]">
-                Belum ada Rencana Hemat yang dibuat. Rencana Hemat dapat ditentukan setelah menyelesaikan pemeriksaan kandidat.
-              </p>
-              <Link
-                href={`/recommendations${businessQuery}`}
-                className={`mt-4 ${secondaryButton}`}
-              >
-                Lihat Rekomendasi
-              </Link>
-            </div>
-          ) : (
-            <div className="mt-5 space-y-3">
-              {dashboard.actionPlanSummaries.map((action) => (
-                <article
-                  key={action.title}
-                  className="rounded-2xl border border-[var(--border-strong)]/10 bg-[var(--primary-soft)] p-4"
-                >
-                  <h3 className="font-extrabold text-[var(--foreground)]">{action.title}</h3>
-                  <p className="mt-1 text-xs font-bold text-[var(--primary)]">
-                    {action.statusLabel}
-                  </p>
-                  <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
-                    Mulai {action.plannedStartDate} · Evaluasi: {action.reviewTarget}
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
-        </SoftCard>
-      </div>
+        </>
+      )}
 
       {/* Disclaimers Footer */}
       <footer className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-5 text-xs text-[var(--muted)] space-y-2">

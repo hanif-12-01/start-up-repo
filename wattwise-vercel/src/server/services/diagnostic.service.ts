@@ -25,6 +25,11 @@ import {
 import { DIAGNOSTIC_CANDIDATE_RULE_VERSION } from '@/server/services/diagnostic-candidate-catalog';
 import { generateDiagnosticCandidates } from '@/server/services/diagnostic-candidate-generator';
 
+export {
+  getDiagnosticCapability,
+  type DiagnosticCapability,
+} from '@/server/services/diagnostic-capability';
+
 export class DiagnosticsUnavailableError extends Error {
   constructor(message = 'Pemeriksaan kenaikan belum tersedia.') {
     super(message);

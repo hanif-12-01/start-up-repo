@@ -13,6 +13,7 @@ function input(
     businessId: 'business-a',
     latestBillId: 'bill-current',
     hasEligibleComparison: true,
+    diagnosticAvailable: true,
     session: null,
     ...overrides,
   };
@@ -85,6 +86,10 @@ describe('IT-DIAG-07A deterministic next action', () => {
     ],
     [input({ hasEligibleComparison: false }), 'Tambah Tagihan Pembanding'],
     [input(), 'Cek Kenaikan'],
+    [
+      input({ diagnosticAvailable: false }),
+      'Lihat Analisis',
+    ],
     [input({ session: session({ status: 'DRAFT' }) }), 'Lanjutkan Cek Kenaikan'],
     [
       input({ session: session({ status: 'COLLECTING_CONTEXT' }) }),
@@ -234,6 +239,91 @@ describe('IT-DIAG-07A deterministic next action', () => {
       kind: 'LINK',
       label: 'Tambah Tagihan Pertama',
       href: '/bills/new?businessId=usaha%2Fdua',
+    });
+  });
+
+  it('routes unsupported capability with 2+ bills to analysis with preserved business context', () => {
+    const action = resolveDashboardNextAction(
+      input({
+        businessId: 'business-a',
+        latestBillId: 'bill-current',
+        hasEligibleComparison: true,
+        diagnosticAvailable: false,
+        session: null,
+      })
+    );
+    expect(action).toEqual({
+      kind: 'LINK',
+      label: 'Lihat Analisis',
+      href: '/analysis?businessId=business-a',
+    });
+  });
+
+  it('encodes business context in analysis fallback URL for unsupported capability', () => {
+    const action = resolveDashboardNextAction(
+      input({
+        businessId: 'usaha/dua',
+        latestBillId: 'bill-current',
+        hasEligibleComparison: true,
+        diagnosticAvailable: false,
+        session: null,
+      })
+    );
+    expect(action).toEqual({
+      kind: 'LINK',
+      label: 'Lihat Analisis',
+      href: '/analysis?businessId=usaha%2Fdua',
+    });
+  });
+
+  it('prioritizes bill journey over diagnostic fallback when comparison bill is missing', () => {
+    const action = resolveDashboardNextAction(
+      input({
+        businessId: 'business-a',
+        latestBillId: 'bill-first',
+        hasEligibleComparison: false,
+        diagnosticAvailable: false,
+        session: null,
+      })
+    );
+    expect(action).toEqual({
+      kind: 'LINK',
+      label: 'Tambah Tagihan Pembanding',
+      href: '/bills/new?businessId=business-a',
+    });
+  });
+
+  it('prioritizes first bill addition when no bills exist even if diagnostic is unavailable', () => {
+    const action = resolveDashboardNextAction(
+      input({
+        businessId: 'business-a',
+        latestBillId: null,
+        hasEligibleComparison: false,
+        diagnosticAvailable: false,
+        session: null,
+      })
+    );
+    expect(action).toEqual({
+      kind: 'LINK',
+      label: 'Tambah Tagihan Pertama',
+      href: '/bills/new?businessId=business-a',
+    });
+  });
+
+  it('preserves existing diagnostic session progression even if diagnosticAvailable is false', () => {
+    const action = resolveDashboardNextAction(
+      input({
+        businessId: 'business-a',
+        latestBillId: 'bill-current',
+        hasEligibleComparison: true,
+        diagnosticAvailable: false,
+        session: session({ status: 'DRAFT' }),
+      })
+    );
+    expect(action).toEqual({
+      kind: 'LINK',
+      label: 'Lanjutkan Cek Kenaikan',
+      href: '/diagnostics/session-a',
     });
   });
 
