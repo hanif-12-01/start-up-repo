@@ -13,6 +13,8 @@ import {
   primaryButton,
 } from '@/components/product/WorkspaceUI';
 import { authClient } from '@/server/auth/client';
+import { DEMO_ACCOUNT_EMAIL } from '@/components/auth/DemoAccessCard';
+import { prepareDemoLogin } from './actions';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function LoginPage() {
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError(null);
+    void prepareDemoLogin(demoEmail);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -38,8 +41,13 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail === DEMO_ACCOUNT_EMAIL.toLowerCase()) {
+        await prepareDemoLogin(normalizedEmail);
+      }
+
       const response = await authClient.signIn.email({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
       if (response.error) {
