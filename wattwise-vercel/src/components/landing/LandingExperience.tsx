@@ -114,7 +114,7 @@ function BrandMark({ invert = false }: { invert?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <Image
-        src="/brand/wattwise-mark-transparent.png"
+        src="/brand/wattwise-mark-glyph-v2.png"
         alt=""
         aria-hidden="true"
         width={36}
