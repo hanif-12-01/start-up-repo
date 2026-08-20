@@ -32,6 +32,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import { WattWiseLogo } from '@/components/WattWiseLogo';
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -112,7 +113,15 @@ const capabilities = [
 function BrandMark({ invert = false }: { invert?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
-      <WattWiseLogo size={36} />
+      <Image
+        src="/brand/wattwise-mark-transparent.png"
+        alt=""
+        aria-hidden="true"
+        width={36}
+        height={36}
+        priority
+        className="h-9 w-9 shrink-0 object-contain"
+      />
       <span
         className={`text-base font-black tracking-[-0.03em] ${
           invert ? 'text-white' : 'text-[var(--foreground)]'
