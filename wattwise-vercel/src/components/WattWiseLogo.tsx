@@ -1,4 +1,4 @@
-﻿import Image from 'next/image';
+import Image from 'next/image';
 
 export function WattWiseLogo({
   size = 28,
@@ -9,7 +9,7 @@ export function WattWiseLogo({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center ${className}`}
       style={{ width: size, height: size }}
     >
       <Image
@@ -18,7 +18,8 @@ export function WattWiseLogo({
         width={size}
         height={size}
         priority
-        className="object-contain"
+        unoptimized
+        className="h-full w-full object-contain drop-shadow-sm"
       />
     </span>
   );
