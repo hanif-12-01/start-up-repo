@@ -12,6 +12,7 @@ use App\Http\Controllers\ElectricityEntryController;
 use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\PredictionHealthController;
 use App\Http\Controllers\RecommendationController;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('journey')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 
         Route::get('businesses', [BusinessController::class, 'index'])->name('businesses.index');
         Route::post('businesses', [BusinessController::class, 'store'])->name('businesses.store');

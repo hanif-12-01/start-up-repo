@@ -72,6 +72,10 @@ class WattWiseDemoSeeder extends Seeder
                 Appliance::where('business_id', $business->id)->delete();
             }
         }
+
+        if (DemoAccount::portfolioDemoEnabled()) {
+            $this->seedMultiLocationPortfolio($user);
+        }
     }
 
     private function seedDemoUser(): User
@@ -187,8 +191,8 @@ class WattWiseDemoSeeder extends Seeder
     /**
      * Seed deterministic monthly electricity entries for a validation scenario.
      *
-     * @param Carbon[] $months
-     * @param array<string, mixed> $scenario
+     * @param  Carbon[]  $months
+     * @param  array<string, mixed>  $scenario
      */
     private function seedElectricityEntries(
         Business $business,
@@ -238,7 +242,7 @@ class WattWiseDemoSeeder extends Seeder
     /**
      * Seed six months of deterministic revenue data for the primary demo business.
      *
-     * @param Carbon[] $months
+     * @param  Carbon[]  $months
      */
     private function seedRevenueEntries(Business $business, array $months): void
     {
@@ -295,6 +299,174 @@ class WattWiseDemoSeeder extends Seeder
                 'source' => 'TEMPLATE',
                 'confidence' => 'COMMON_MARKET_RANGE',
                 'notes' => $notes,
+            ]);
+        }
+    }
+
+    /**
+     * Seed 3 additional realistic locations to demonstrate multi-location
+     * portfolio command center (IT-P0-09) during competition demo:
+     * - Laundry Berkah Purwokerto (Laundry, spike +22% / Perlu Perhatian)
+     * - Kedai Kopi Soedirman (F&B, increase +14% / Perlu Dicek)
+     * - Toko Frozen Jaya (Cold storage, missing current month / Data Belum Lengkap)
+     * (Kos Melati Purwokerto represents Normal / Aman).
+     */
+    private function seedMultiLocationPortfolio(User $user): void
+    {
+        $months6 = $this->computeDemoMonths(6);
+        $tariff = 1444.70;
+
+        // 1. Laundry Berkah Purwokerto (Perlu Perhatian: +22% spike in current month)
+        $laundry = Business::updateOrCreate(
+            ['user_id' => $user->id, 'name' => 'Laundry Berkah Purwokerto'],
+            [
+                'business_type' => 'LAUNDRY',
+                'city' => 'Banyumas',
+                'province' => 'Jawa Tengah',
+                'status' => Business::STATUS_ACTIVE,
+                'onboarding_completed_at' => now(),
+            ]
+        );
+        BusinessProfile::updateOrCreate(
+            ['business_id' => $laundry->id],
+            ['employee_count' => 3, 'operating_days_per_month' => 30, 'notes' => 'Outlet laundry kiloan & satuan']
+        );
+        ElectricityProfile::updateOrCreate(
+            ['business_id' => $laundry->id],
+            ['customer_type' => 'Bisnis/Industri', 'power_va' => 5500, 'tariff_per_kwh' => $tariff, 'payment_method' => 'Pascabayar']
+        );
+
+        ElectricityEntry::where('business_id', $laundry->id)->delete();
+        $laundryUsages = [1180.0, 1210.0, 1195.0, 1205.0, 1210.0, 1464.0];
+        $meter = 35000.0;
+        foreach ($months6 as $i => $m) {
+            $u = $laundryUsages[$i];
+            ElectricityEntry::create([
+                'business_id' => $laundry->id,
+                'period_month' => $m->format('Y-m-d'),
+                'usage_kwh' => $u,
+                'bill_amount_idr' => round($u * $tariff, 2),
+                'meter_start' => $meter,
+                'meter_end' => $meter + $u,
+                'tariff_per_kwh' => $tariff,
+                'payment_method' => 'Pascabayar',
+                'notes' => 'Data sintetis demo portfolio multi-lokasi.',
+            ]);
+            $meter += $u;
+        }
+
+        RevenueEntry::where('business_id', $laundry->id)->delete();
+        $laundryRevenues = [17500000, 17800000, 18000000, 18200000, 18200000, 18500000];
+        foreach ($months6 as $i => $m) {
+            RevenueEntry::create([
+                'business_id' => $laundry->id,
+                'period_month' => $m->format('Y-m-d'),
+                'revenue_amount_idr' => $laundryRevenues[$i],
+                'revenue_input_mode' => 'EXACT',
+                'notes' => 'Penerimaan operasional laundry',
+            ]);
+        }
+
+        // 2. Kedai Kopi Soedirman (Perlu Dicek: +14% increase in current month)
+        $fnb = Business::updateOrCreate(
+            ['user_id' => $user->id, 'name' => 'Kedai Kopi Soedirman'],
+            [
+                'business_type' => 'FNB',
+                'city' => 'Purwokerto',
+                'province' => 'Jawa Tengah',
+                'status' => Business::STATUS_ACTIVE,
+                'onboarding_completed_at' => now(),
+            ]
+        );
+        BusinessProfile::updateOrCreate(
+            ['business_id' => $fnb->id],
+            ['employee_count' => 5, 'operating_days_per_month' => 30, 'notes' => 'Kedai kopi dan makanan ringan']
+        );
+        ElectricityProfile::updateOrCreate(
+            ['business_id' => $fnb->id],
+            ['customer_type' => 'Bisnis/Usaha', 'power_va' => 3500, 'tariff_per_kwh' => $tariff, 'payment_method' => 'Pascabayar']
+        );
+
+        ElectricityEntry::where('business_id', $fnb->id)->delete();
+        $fnbUsages = [840.0, 855.0, 845.0, 860.0, 850.0, 969.0];
+        $meterFnb = 22000.0;
+        foreach ($months6 as $i => $m) {
+            $u = $fnbUsages[$i];
+            ElectricityEntry::create([
+                'business_id' => $fnb->id,
+                'period_month' => $m->format('Y-m-d'),
+                'usage_kwh' => $u,
+                'bill_amount_idr' => round($u * $tariff, 2),
+                'meter_start' => $meterFnb,
+                'meter_end' => $meterFnb + $u,
+                'tariff_per_kwh' => $tariff,
+                'payment_method' => 'Pascabayar',
+                'notes' => 'Data sintetis demo portfolio multi-lokasi.',
+            ]);
+            $meterFnb += $u;
+        }
+
+        RevenueEntry::where('business_id', $fnb->id)->delete();
+        $fnbRevenues = [22000000, 22500000, 23000000, 23500000, 23500000, 24000000];
+        foreach ($months6 as $i => $m) {
+            RevenueEntry::create([
+                'business_id' => $fnb->id,
+                'period_month' => $m->format('Y-m-d'),
+                'revenue_amount_idr' => $fnbRevenues[$i],
+                'revenue_input_mode' => 'EXACT',
+                'notes' => 'Omzet penjualan coffee shop',
+            ]);
+        }
+
+        // 3. Toko Frozen Jaya (Data Belum Lengkap: missing current month electricity)
+        $frozen = Business::updateOrCreate(
+            ['user_id' => $user->id, 'name' => 'Toko Frozen Jaya'],
+            [
+                'business_type' => 'COLD_STORAGE',
+                'city' => 'Purwokerto',
+                'province' => 'Jawa Tengah',
+                'status' => Business::STATUS_ACTIVE,
+                'onboarding_completed_at' => now(),
+            ]
+        );
+        BusinessProfile::updateOrCreate(
+            ['business_id' => $frozen->id],
+            ['employee_count' => 4, 'operating_days_per_month' => 30, 'notes' => 'Distributor makanan beku']
+        );
+        ElectricityProfile::updateOrCreate(
+            ['business_id' => $frozen->id],
+            ['customer_type' => 'Bisnis/Industri', 'power_va' => 7700, 'tariff_per_kwh' => $tariff, 'payment_method' => 'Pascabayar']
+        );
+
+        ElectricityEntry::where('business_id', $frozen->id)->delete();
+        $frozenUsages = [1820.0, 1850.0, 1840.0, 1860.0, 1850.0];
+        $meterFrozen = 51000.0;
+        for ($i = 0; $i < 5; $i++) {
+            $m = $months6[$i];
+            $u = $frozenUsages[$i];
+            ElectricityEntry::create([
+                'business_id' => $frozen->id,
+                'period_month' => $m->format('Y-m-d'),
+                'usage_kwh' => $u,
+                'bill_amount_idr' => round($u * $tariff, 2),
+                'meter_start' => $meterFrozen,
+                'meter_end' => $meterFrozen + $u,
+                'tariff_per_kwh' => $tariff,
+                'payment_method' => 'Pascabayar',
+                'notes' => 'Data sintetis demo portfolio multi-lokasi.',
+            ]);
+            $meterFrozen += $u;
+        }
+
+        RevenueEntry::where('business_id', $frozen->id)->delete();
+        $frozenRevenues = [32000000, 33000000, 34000000, 34500000, 35000000];
+        for ($i = 0; $i < 5; $i++) {
+            RevenueEntry::create([
+                'business_id' => $frozen->id,
+                'period_month' => $months6[$i]->format('Y-m-d'),
+                'revenue_amount_idr' => $frozenRevenues[$i],
+                'revenue_input_mode' => 'EXACT',
+                'notes' => 'Omzet toko frozen food',
             ]);
         }
     }

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, Check, ChevronsUpDown, Loader2, Plus } from '@lucide/vue';
+import {
+    Building2,
+    Check,
+    ChevronsUpDown,
+    LayoutGrid,
+    Loader2,
+    Plus,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import {
     DropdownMenu,
@@ -16,13 +23,20 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
 
 const page = usePage();
 const { isMobile, state } = useSidebar();
+const { isCurrentUrl } = useCurrentUrl();
+const isPortfolioPage = computed(() => isCurrentUrl('/portfolio'));
 
 const businessContext = computed(() => page.props.businessContext);
-const activeBusinesses = computed(() => businessContext.value?.activeBusinesses ?? []);
-const activeBusiness = computed(() => businessContext.value?.activeBusiness ?? null);
+const activeBusinesses = computed(
+    () => businessContext.value?.activeBusinesses ?? [],
+);
+const activeBusiness = computed(
+    () => businessContext.value?.activeBusiness ?? null,
+);
 
 const isCollapsed = computed(() => state.value === 'collapsed');
 
@@ -52,6 +66,10 @@ const tooltipText = computed(() => {
         return activeBusiness.value?.name ?? '';
     }
 
+    if (isPortfolioPage.value) {
+        return `Semua Usaha (${activeBusinesses.value.length} Lokasi)`;
+    }
+
     return `Pilih Usaha: ${activeBusiness.value?.name ?? ''}`;
 });
 
@@ -59,7 +77,7 @@ const isSelecting = ref(false);
 const selectError = ref<string | null>(null);
 
 const selectBusiness = (businessId: number) => {
-    if (activeBusiness.value?.id === businessId) {
+    if (activeBusiness.value?.id === businessId && !isPortfolioPage.value) {
         return;
     }
 
@@ -68,7 +86,10 @@ const selectBusiness = (businessId: number) => {
 
     router.post(
         '/businesses/select',
-        { business_id: businessId },
+        {
+            business_id: businessId,
+            redirect_to: '/dashboard',
+        },
         {
             preserveState: false,
             preserveScroll: true,
@@ -82,7 +103,7 @@ const selectBusiness = (businessId: number) => {
                     selectError.value = 'Gagal memilih usaha.';
                 }
             },
-        }
+        },
     );
 };
 </script>
@@ -100,12 +121,22 @@ const selectBusiness = (businessId: number) => {
                     aria-label="Belum ada usaha aktif"
                 >
                     <Link href="/businesses" class="flex items-center gap-2">
-                        <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                        <div
+                            class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary"
+                        >
                             <Building2 class="size-4" />
                         </div>
-                        <div v-if="!isCollapsed" class="grid flex-1 leading-tight">
-                            <span class="truncate font-semibold text-sm">Belum ada usaha aktif</span>
-                            <span class="truncate text-xs text-emerald-600 font-medium">Buat Usaha &rarr;</span>
+                        <div
+                            v-if="!isCollapsed"
+                            class="grid flex-1 leading-tight"
+                        >
+                            <span class="truncate text-sm font-semibold"
+                                >Belum ada usaha aktif</span
+                            >
+                            <span
+                                class="truncate text-xs font-medium text-emerald-600"
+                                >Buat Usaha &rarr;</span
+                            >
                         </div>
                     </Link>
                 </SidebarMenuButton>
@@ -121,12 +152,26 @@ const selectBusiness = (businessId: number) => {
                     aria-label="Manajemen usaha aktif"
                 >
                     <Link href="/businesses" class="flex items-center gap-2">
-                        <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                        <div
+                            class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary"
+                        >
                             <Building2 class="size-4" />
                         </div>
-                        <div v-if="!isCollapsed" class="grid flex-1 leading-tight">
-                            <span class="truncate font-semibold text-sm">{{ activeBusiness?.name }}</span>
-                            <span class="truncate text-xs text-muted-foreground">{{ getBusinessTypeLabel(activeBusiness?.business_type) }}</span>
+                        <div
+                            v-if="!isCollapsed"
+                            class="grid flex-1 leading-tight"
+                        >
+                            <span class="truncate text-sm font-semibold">{{
+                                activeBusiness?.name
+                            }}</span>
+                            <span
+                                class="truncate text-xs text-muted-foreground"
+                                >{{
+                                    getBusinessTypeLabel(
+                                        activeBusiness?.business_type,
+                                    )
+                                }}</span
+                            >
                         </div>
                     </Link>
                 </SidebarMenuButton>
@@ -143,26 +188,103 @@ const selectBusiness = (businessId: number) => {
                             :disabled="isSelecting"
                             aria-label="Pilih properti atau usaha aktif"
                         >
-                            <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary shrink-0">
-                                <Loader2 v-if="isSelecting" class="size-4 animate-spin" />
+                            <div
+                                class="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary"
+                            >
+                                <Loader2
+                                    v-if="isSelecting"
+                                    class="size-4 animate-spin"
+                                />
+                                <LayoutGrid
+                                    v-else-if="isPortfolioPage"
+                                    class="size-4 text-emerald-500"
+                                />
                                 <Building2 v-else class="size-4" />
                             </div>
-                            <div v-if="!isCollapsed" class="grid flex-1 leading-tight text-left min-w-0">
-                                <span class="truncate font-semibold text-sm">{{ activeBusiness?.name }}</span>
-                                <span class="truncate text-xs text-muted-foreground">{{ getBusinessTypeLabel(activeBusiness?.business_type) }}</span>
+                            <div
+                                v-if="!isCollapsed"
+                                class="grid min-w-0 flex-1 text-left leading-tight"
+                            >
+                                <template v-if="isPortfolioPage">
+                                    <span class="truncate text-sm font-semibold"
+                                        >Semua Usaha</span
+                                    >
+                                    <span
+                                        class="truncate text-xs text-muted-foreground"
+                                        >{{ activeBusinesses.length }} Lokasi
+                                        Aktif</span
+                                    >
+                                </template>
+                                <template v-else>
+                                    <span
+                                        class="truncate text-sm font-semibold"
+                                        >{{ activeBusiness?.name }}</span
+                                    >
+                                    <span
+                                        class="truncate text-xs text-muted-foreground"
+                                        >{{
+                                            getBusinessTypeLabel(
+                                                activeBusiness?.business_type,
+                                            )
+                                        }}</span
+                                    >
+                                </template>
                             </div>
-                            <ChevronsUpDown v-if="!isCollapsed" class="ml-auto size-4 text-muted-foreground shrink-0" />
+                            <ChevronsUpDown
+                                v-if="!isCollapsed"
+                                class="ml-auto size-4 shrink-0 text-muted-foreground"
+                            />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent
-                        class="w-(--reka-dropdown-menu-trigger-width) min-w-64 rounded-lg bg-popover text-popover-foreground border border-border shadow-md"
-                        :side="isMobile ? 'bottom' : (state === 'collapsed' ? 'right' : 'bottom')"
+                        class="w-(--reka-dropdown-menu-trigger-width) min-w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md"
+                        :side="
+                            isMobile
+                                ? 'bottom'
+                                : state === 'collapsed'
+                                  ? 'right'
+                                  : 'bottom'
+                        "
                         align="start"
                         :side-offset="4"
                     >
-                        <DropdownMenuLabel class="text-xs text-muted-foreground px-3 py-2 font-semibold">
-                            Pilih Properti / Usaha
+                        <!-- Semua Usaha option for multi-location users -->
+                        <DropdownMenuItem :as-child="true">
+                            <Link
+                                href="/portfolio"
+                                class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                                <div
+                                    class="flex aspect-square size-6 shrink-0 items-center justify-center rounded-md bg-sidebar-primary/5 text-sidebar-primary"
+                                >
+                                    <LayoutGrid
+                                        class="size-3 text-emerald-600"
+                                    />
+                                </div>
+                                <div class="flex min-w-0 flex-1 flex-col">
+                                    <span
+                                        class="truncate text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+                                        >Semua Usaha</span
+                                    >
+                                    <span
+                                        class="truncate text-xs text-muted-foreground"
+                                        >{{ activeBusinesses.length }} lokasi
+                                        aktif</span
+                                    >
+                                </div>
+                                <Check
+                                    v-if="isPortfolioPage"
+                                    class="ml-auto size-4 shrink-0 text-primary"
+                                />
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuLabel
+                            class="px-3 py-2 text-xs font-semibold text-muted-foreground"
+                        >
+                            Pilih Lokasi
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -170,20 +292,35 @@ const selectBusiness = (businessId: number) => {
                             :key="b.id"
                             @click="selectBusiness(b.id)"
                             :aria-selected="activeBusiness?.id === b.id"
-                            class="flex items-center gap-2 px-3 py-2 cursor-pointer focus:bg-accent focus:text-accent-foreground text-foreground"
+                            class="flex cursor-pointer items-center gap-2 px-3 py-2 text-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                            <div class="flex aspect-square size-6 items-center justify-center rounded-md bg-sidebar-primary/5 text-sidebar-primary shrink-0">
+                            <div
+                                class="flex aspect-square size-6 shrink-0 items-center justify-center rounded-md bg-sidebar-primary/5 text-sidebar-primary"
+                            >
                                 <Building2 class="size-3" />
                             </div>
-                            <div class="flex flex-col min-w-0 flex-1">
-                                <span class="text-sm font-medium truncate">{{ b.name }}</span>
-                                <span class="text-xs text-muted-foreground truncate">{{ getBusinessTypeLabel(b.business_type) }}</span>
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <span class="truncate text-sm font-medium">{{
+                                    b.name
+                                }}</span>
+                                <span
+                                    class="truncate text-xs text-muted-foreground"
+                                    >{{
+                                        getBusinessTypeLabel(b.business_type)
+                                    }}</span
+                                >
                             </div>
-                            <Check v-if="activeBusiness?.id === b.id" class="ml-auto size-4 text-primary shrink-0" />
+                            <Check
+                                v-if="activeBusiness?.id === b.id"
+                                class="ml-auto size-4 shrink-0 text-primary"
+                            />
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem :as-child="true">
-                            <Link href="/businesses" class="flex items-center gap-2 px-3 py-2 cursor-pointer w-full text-left font-medium text-xs text-emerald-600 hover:text-emerald-700 hover:bg-accent">
+                            <Link
+                                href="/businesses"
+                                class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-medium text-emerald-600 hover:bg-accent hover:text-emerald-700"
+                            >
                                 <Plus class="size-4 text-emerald-600" />
                                 Kelola Properti / Usaha
                             </Link>
@@ -192,7 +329,9 @@ const selectBusiness = (businessId: number) => {
                         <!-- Safe Error Alert inside dropdown if selection fails -->
                         <template v-if="selectError">
                             <DropdownMenuSeparator />
-                            <div class="p-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 dark:text-red-400 rounded-md mx-1 my-1">
+                            <div
+                                class="mx-1 my-1 rounded-md bg-red-50 p-2 text-xs text-red-600 dark:bg-red-950/20 dark:text-red-400"
+                            >
                                 {{ selectError }}
                             </div>
                         </template>

@@ -33,10 +33,24 @@ import type { NavItem } from '@/types';
 
 const page = usePage();
 const needsOnboarding = computed(() => page.props.needsOnboarding === true);
+const businessContext = computed(
+    () => (page.props.businessContext as { activeBusinesses?: any[] }) ?? null,
+);
+const activeBusinesses = computed(
+    () => businessContext.value?.activeBusinesses ?? [],
+);
+const isMultiLocation = computed(() => activeBusinesses.value.length >= 2);
 
-const berandaItems: NavItem[] = [
-    { title: 'Beranda', href: '/dashboard', icon: LayoutGrid },
-];
+const ringkasanItems = computed<NavItem[]>(() => {
+    if (isMultiLocation.value) {
+        return [
+            { title: 'Semua Usaha', href: '/portfolio', icon: LayoutGrid },
+            { title: 'Dashboard Lokasi', href: '/dashboard', icon: Building2 },
+        ];
+    }
+
+    return [{ title: 'Beranda', href: '/dashboard', icon: LayoutGrid }];
+});
 
 const onboardingItems: NavItem[] = [
     { title: 'Mulai di Sini', href: '/onboarding', icon: ClipboardList },
@@ -82,7 +96,7 @@ const kelolaItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent class="gap-1 px-1 py-3">
-            <NavGroup label="Ringkasan" :items="berandaItems" />
+            <NavGroup label="Ringkasan" :items="ringkasanItems" />
             <NavGroup v-if="needsOnboarding" :items="onboardingItems" />
             <NavGroup label="Catat Usaha" :items="catatUsahaItems" />
             <NavGroup label="Pantau & Hemat" :items="pantauItems" />

@@ -21,6 +21,7 @@ class SelectBusinessRequest extends FormRequest
     {
         return [
             'business_id' => ['required', 'integer'],
+            'redirect_to' => ['nullable', 'string'],
         ];
     }
 }

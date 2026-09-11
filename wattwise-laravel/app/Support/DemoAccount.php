@@ -105,6 +105,11 @@ final class DemoAccount
         return (bool) config('demo.ml_validation_enabled', false);
     }
 
+    public static function portfolioDemoEnabled(): bool
+    {
+        return (bool) config('demo.portfolio_demo_enabled', false);
+    }
+
     public static function environmentAllowed(): bool
     {
         return app()->environment('local', 'testing', 'staging');

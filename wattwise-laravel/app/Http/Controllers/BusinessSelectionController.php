@@ -17,7 +17,8 @@ class BusinessSelectionController extends Controller
      */
     public function __invoke(SelectBusinessRequest $request)
     {
-        $businessId = (int) $request->validated()['business_id'];
+        $validated = $request->validated();
+        $businessId = (int) $validated['business_id'];
 
         try {
             $this->resolver->select($request, $businessId);
@@ -25,6 +26,11 @@ class BusinessSelectionController extends Controller
             throw ValidationException::withMessages([
                 'business_selection' => $e->getMessage(),
             ]);
+        }
+
+        $redirectTo = $validated['redirect_to'] ?? null;
+        if ($redirectTo && str_starts_with($redirectTo, '/') && ! str_starts_with($redirectTo, '//')) {
+            return redirect($redirectTo);
         }
 
         return redirect()->back();
