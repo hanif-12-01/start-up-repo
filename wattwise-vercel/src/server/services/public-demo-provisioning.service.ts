@@ -190,13 +190,16 @@ export async function ensurePublicDemoAccount(): Promise<{
     const demo02Id = await upsertBusiness('DEMO 02', 'LAUNDRY', 'LAUNDRY', 'Surabaya', 3500);
     // 5. DEMO 03 — Prediksi AI · 6 Bulan (KOS segment, N-BEATS AI active)
     const demo03Id = await upsertBusiness('DEMO 03', 'KOS_PROPERTY', 'KOS', 'Jakarta Selatan', 4400, 15);
+    // 6. DEMO 04 — Usaha Frozen Jaya · Data Belum Lengkap (COLD_STORAGE segment)
+    const demo04Id = await upsertBusiness('DEMO 04', 'COLD_STORAGE', 'COLD_STORAGE', 'Semarang', 5500);
 
     // Helper to seed bills for a business if not already present
     const seedBillsForBusiness = async (
       bId: string,
       monthCount: number,
       baseKwh: number,
-      stepKwh: number
+      stepKwh: number,
+      skipCurrentMonth = false
     ) => {
       // Check existing bills count
       const existingBills = await tx.select().from(schema.electricityBill)
@@ -206,8 +209,9 @@ export async function ensurePublicDemoAccount(): Promise<{
         // Delete partial/existing bills to guarantee continuous clean history
         await tx.delete(schema.electricityBill).where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
+        const offset = skipCurrentMonth ? 1 : 0;
         for (let i = 0; i < monthCount; i++) {
-          const monthStr = subMonthsStr(anchorMonth, monthCount - 1 - i);
+          const monthStr = subMonthsStr(anchorMonth, monthCount - 1 - i + offset);
           const { start, end } = getMonthDateBounds(monthStr);
           const usageKwh = baseKwh + i * stepKwh;
           const totalAmount = BigInt(Math.round(usageKwh * 1444.70));
@@ -230,12 +234,48 @@ export async function ensurePublicDemoAccount(): Promise<{
       }
     };
 
-    // Seed 2 months for DEMO 01
+    // Helper to seed revenue for a business
+    const seedRevenueForBusiness = async (
+      bId: string,
+      monthCount: number,
+      baseRev: number
+    ) => {
+      const existing = await tx.select().from(schema.revenueEntry)
+        .where(sql`${schema.revenueEntry.businessId} = ${bId}`);
+
+      if (existing.length < monthCount) {
+        await tx.delete(schema.revenueEntry).where(sql`${schema.revenueEntry.businessId} = ${bId}`);
+        for (let i = 0; i < monthCount; i++) {
+          const monthStr = subMonthsStr(anchorMonth, monthCount - 1 - i);
+          const { start } = getMonthDateBounds(monthStr);
+          await tx.insert(schema.revenueEntry).values({
+            id: `rev-jury-${bId.slice(0, 12)}-${i + 1}-${crypto.randomUUID()}`,
+            businessId: bId,
+            periodMonth: start,
+            amountRupiah: BigInt(baseRev + i * 400_000),
+            inputMode: 'EXACT',
+            notes: 'Data sintetis pendapatan akun demo.',
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      }
+    };
+
+    // Seed 2 months for DEMO 01 (FNB: moderate increase ~11% -> Perlu Dicek)
     await seedBillsForBusiness(demo01Id, 2, 350, 40);
-    // Seed 5 months for DEMO 02
+    await seedRevenueForBusiness(demo01Id, 2, 12_000_000);
+
+    // Seed 5 months for DEMO 02 (LAUNDRY: spike +22% on latest month -> Perlu Perhatian)
     await seedBillsForBusiness(demo02Id, 5, 380, 25);
-    // Seed 6 months for DEMO 03 (continuous 6 months triggers H06_12 phase -> N-BEATS AI active)
-    await seedBillsForBusiness(demo03Id, 6, 450, 30);
+    await seedRevenueForBusiness(demo02Id, 5, 18_000_000);
+
+    // Seed 6 months for DEMO 03 (KOS: stable continuous 6 months -> Aman, N-BEATS AI active)
+    await seedBillsForBusiness(demo03Id, 6, 450, 5);
+    await seedRevenueForBusiness(demo03Id, 6, 25_000_000);
+
+    // Seed 3 historical months for DEMO 04, skipping current month -> Data Belum Lengkap
+    await seedBillsForBusiness(demo04Id, 3, 500, 10, true);
 
     return {
       userId,
@@ -244,6 +284,7 @@ export async function ensurePublicDemoAccount(): Promise<{
         demo01: demo01Id,
         demo02: demo02Id,
         demo03: demo03Id,
+        demo04: demo04Id,
       },
     };
   });
