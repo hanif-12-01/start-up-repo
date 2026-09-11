@@ -1,3 +1,9 @@
+> [!WARNING]
+> **HISTORICAL ARCHITECTURE RECORD — SUPERSEDED FOR CURRENT APPLICATION-ROLE STATUS**
+> This document records an earlier architecture milestone when `wattwise-laravel/` served as the active application on Railway.
+> For the current active product architecture, runtime stack, and application roles, see [`docs/architecture/CURRENT_APPLICATION_ARCHITECTURE.md`](CURRENT_APPLICATION_ARCHITECTURE.md).
+> This file is retained as immutable historical evidence of past repository states.
+
 # IT-ARCH-01 active repository root
 
 ## Contract
