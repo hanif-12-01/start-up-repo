@@ -55,7 +55,7 @@ The reference implementation is located in:
 
 `wattwise-laravel/`
 
-This implementation was originally built with Laravel 11, Vue 3, Inertia.js, and Tailwind CSS. It is retained as a read-only behavioral, business logic, and architectural reference.
+The Laravel implementation is retained as a non-authoritative reference for historical business rules, tenancy behavior, and feature-parity comparison. Current product behavior must be verified against the active Next.js implementation and current PRD.
 
 > **Important**: Do **not** implement new product features in `wattwise-laravel/` unless a task specifically requires reference-parity work.
 

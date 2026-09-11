@@ -12,7 +12,7 @@
 - **Path**: `wattwise-laravel/`
 - **Application Role**: `REFERENCE_IMPLEMENTATION`
 - **Current Runtime Status**: Read-only reference; offline / historical staging.
-- **Description**: The initial implementation developed with Laravel 11, Vue 3, and Inertia.js. Retained as an authoritative behavioral reference for business rules, tenant data isolation, and feature-parity audits.
+- **Description**: The Laravel implementation is retained as a non-authoritative reference for historical business rules, tenancy behavior, and feature-parity comparison. Current product behavior must be verified against the active Next.js implementation and current PRD.
 - **Policy**: Contributors and AI coding agents must **not** add new features to `wattwise-laravel/` unless specifically assigned reference-parity tasks.
 
 ## 3. Production Deployment Platform
@@ -33,13 +33,16 @@
 - **PostgreSQL Version**: 17.x (hosted in AWS `aws-ap-southeast-1` Singapore)
 - **ORM / Query Layer**: Drizzle ORM (`drizzle-orm: 0.45.2`, `pg: 8.22.0`)
 - **Migration Status**: Drizzle SQL migrations `0000` through `0011` applied and verified.
-- **Core Schema Tables (14 tables)**:
-  - Auth: `user`, `session`, `account`, `verification`
-  - Workspace & Profile: `business`, `user_preference`
-  - Billing & Metering: `electricity_bill`, `appliance`, `revenue_entry`
-  - Diagnostics: `diagnostic_session`, `diagnostic_answer`, `diagnostic_candidate`
-  - Action & Evaluation: `inspection_plan`, `inspection_item`, `energy_action_plan`, `action_outcome_evaluation`
-  - Commercial & Entitlements: `user_plan`, `billing_plan`, `sandbox_invoice`, `sandbox_payment`
+- **Current Application Tables (20 tables)**:
+  Current application schema contains 20 application tables (managed by Drizzle migrations through `0011`; tracked under `wattwise-vercel/src/server/db/schema/`):
+  - Auth: `user`, `session`, `account`, `verification` (4 tables)
+  - Journey & Workspace: `business`, `user_plan`, `user_preference` (3 tables)
+  - Metering, Billing & Appliances: `electricity_bill`, `revenue_entry`, `appliance` (3 tables)
+  - Diagnostics: `diagnostic_session`, `diagnostic_answer`, `diagnostic_candidate` (3 tables)
+  - Action Plans & Inspections: `inspection_plan`, `inspection_item`, `energy_action_plan` (3 tables)
+  - Outcomes: `action_outcome_evaluation` (1 table)
+  - Commercial & Sandbox: `billing_plan`, `sandbox_invoice`, `sandbox_payment` (3 tables)
+  *(Internal Drizzle migration tracking metadata is maintained separately in `__drizzle_migrations`)*
 
 ## 5. Authentication & Session Architecture
 
@@ -75,13 +78,13 @@ The WattWise forecasting architecture strictly follows PRD Section 6.3 and Secti
 
 1. **LEVEL 1 — CURRENT PRODUCT AUTHORITY**:
    - [`docs/PRD/WattWise_PRD_Current_Validation_Stage.md`](../PRD/WattWise_PRD_Current_Validation_Stage.md) (authoritative for product scope, user personas, validation targets, and non-goals)
-2. **LEVEL 2 — CURRENT ARCHITECTURE / OPERATIONS**:
+2. **LEVEL 2 — CURRENT ARCHITECTURE & PRODUCTION TRUTH**:
    - `docs/architecture/CURRENT_APPLICATION_ARCHITECTURE.md` (this document)
    - `docs/architecture/REPOSITORY_ROLE_MAP.md`
-   - `docs/reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md`
-   - `docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md`
-3. **LEVEL 3 — IMPLEMENTATION / QA REPORTS**:
-   - Task verification reports in `docs/reports/`
+   - `docs/reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md` (latest verified production stability report describing current runtime)
+3. **LEVEL 3 — IMPLEMENTATION, QA & RELEASE EVIDENCE**:
+   - Release readiness checklists (`docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md`)
+   - Task verification reports in `docs/reports/` (e.g. IT-DIAG milestone reports)
    - Operational runbooks in `docs/runbooks/`
    - Demonstration guide [`docs/MVP_DEMO.md`](../MVP_DEMO.md)
 4. **LEVEL 4 — HISTORICAL / SUPERSEDED RECORDS**:

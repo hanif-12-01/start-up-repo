@@ -42,7 +42,7 @@ Status: Clean working tree, perfectly synchronized with remote `origin/main`.
 - **Role**: `ACTIVE_PRODUCT`
 - **Runtime Evidence**:
   - Full Next.js 16 App Router application with React 19 and strict TypeScript.
-  - Active PostgreSQL database schema with 14 production tables managed via Drizzle ORM (migrations `0000`–`0011`).
+  - Active PostgreSQL database schema with 20 application tables managed via Drizzle ORM (migrations `0000`–`0011`).
   - Active Better Auth implementation with HttpOnly cookie sessions and multi-tenant security.
   - Client-side embedded ONNX Runtime Web (`onnxruntime-web: ^1.21.0`) running the champion N-BEATS forecasting model (`public/models/nbeats-ai02-1.0.0.onnx`).
   - Browser-local OCR meter reading with Tesseract.js (`tesseract.js: ^7.0.0`).
@@ -55,7 +55,7 @@ Status: Clean working tree, perfectly synchronized with remote `origin/main`.
 - **Path**: `wattwise-laravel/`
 - **Role**: `REFERENCE_IMPLEMENTATION`
 - **Status**: Read-only reference; offline / historical staging.
-- **Evidence**: Earlier monolithic Laravel 11 / Vue 3 / Inertia.js application. Retained to preserve historical domain logic, tenancy rules, and feature-parity baselines.
+- **Evidence**: The Laravel implementation is retained as a non-authoritative reference for historical business rules, tenancy behavior, and feature-parity comparison. Current product behavior must be verified against the active Next.js implementation and current PRD.
 - **Policy**: No new features are to be developed in `wattwise-laravel/`.
 
 ---
@@ -71,7 +71,8 @@ Status: Clean working tree, perfectly synchronized with remote `origin/main`.
 ## 7. Current Database Technology
 
 - **Database Engine**: Neon Serverless PostgreSQL 17.x (AWS `aws-ap-southeast-1` Singapore region).
-- **ORM / Migrations**: Drizzle ORM (`drizzle-orm: 0.45.2`), with migration tracking table `__drizzle_migrations` and 14 core application tables.
+- **ORM / Migrations**: Drizzle ORM (`drizzle-orm: 0.45.2`), with migration tracking table `__drizzle_migrations` and 20 application tables across 7 domain modules (tracked under `wattwise-vercel/src/server/db/schema/`).
+- **Historical Table-Count Note**: Earlier milestone reports (IT-DIAG-00 through IT-DIAG-11) cited 14 tables as of migration `0007`. Migrations `0008` and `0009` subsequently added 6 tables (`revenue_entry`, `appliance`, `user_preference`, `billing_plan`, `sandbox_invoice`, `sandbox_payment`), bringing the verified active count to exactly 20 application tables.
 
 ---
 
@@ -124,19 +125,26 @@ The following conflicting claims were identified during this audit:
 
 ---
 
-## 13. Known PRD / Runtime Mismatches
+## 13. PRD / Runtime Consistency Analysis
 
-### PRD_RUNTIME_MISMATCH: Location Entitlement Limits
-- **Location**: `wattwise-vercel/src/server/services/entitlement.service.ts` (lines 18–59)
-- **Runtime Policy**:
-  - `FREE`: 1 business
-  - `TRIAL`: 3 businesses
-  - `PRO`: 10 businesses
-  - `BUSINESS`: 50 businesses
-- **PRD Policy**:
-  - Section 8.4: Pro — Rp49.000/month (1 location focus)
-  - Section 8.5: Business — Rp149.000/month (initial pilot focus around approximately 5 included locations, with +Rp25.000/location/month hypothesis)
-- **Status**: Documented below under Section 16 for Product Owner decision. **Not** modified in runtime code during this task.
+### CONFIRMED ALIGNMENT
+- **Pro Pilot Price**: Rp49.000/month (matches PRD Section 8.4; migration `0011_pilot_pricing_consistency.sql`).
+- **Business Pilot Price**: Rp149.000/month (matches PRD Section 8.5; migration `0011_pilot_pricing_consistency.sql`).
+- **Trial Duration**: 30 days (matches PRD Section 8.3; `plan.service.ts`).
+- **Forecasting Eligibility & Bounds**: Deterministic baseline fallback for historical records < 6 contiguous months; embedded N-BEATS active only when $\ge 6$ contiguous months of valid kWh data exist (matches PRD Section 6.3).
+- **Application Logic Separation**: Prediction engine yields next-period kWh only; currency translation, anomaly checks, and recommendations are handled by application logic (matches PRD Section 6.3).
+
+### CONFIRMED MISMATCH
+- **Business Location Entitlement (`PRD_RUNTIME_MISMATCH`)**:
+  - *Current Runtime*: `entitlement.service.ts` allows 50 businesses (`maxBusinesses: 50`).
+  - *Current PRD*: Section 8.5 specifies an initial pilot validation hypothesis focused around approximately maximum 5 included locations (+Rp25.000/location/month additional location hypothesis).
+  - *Status*: Material difference between validation hypothesis packaging (~5 locations) and runtime capacity (50 locations). Requires Product Owner review.
+
+### PRODUCT OWNER DECISION REQUIRED
+- **Pro Location Entitlement (`PRD_RUNTIME_REVIEW_REQUIRED`)**:
+  - *Current Runtime*: `entitlement.service.ts` allows 10 businesses (`maxBusinesses: 10`).
+  - *Current PRD*: Section 8.4 defines pilot pricing (Rp49.000/month) and commercial validation goals (willingness to pay, recurring value), but does **not** explicitly define a numeric included-location limit.
+  - *Status*: Runtime 10 locations cannot be classified as "aligned" or "misaligned" against an explicit numeric PRD limit because none exists in the PRD. Requires Product Owner clarification.
 
 ---
 
@@ -161,9 +169,9 @@ LEVEL 1: docs/PRD/WattWise_PRD_Current_Validation_Stage.md
 LEVEL 2: docs/architecture/CURRENT_APPLICATION_ARCHITECTURE.md
          docs/architecture/REPOSITORY_ROLE_MAP.md
          docs/reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md
-         docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md
     ↓
-LEVEL 3: docs/reports/* (Task verification reports)
+LEVEL 3: docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md
+         docs/reports/* (Task verification reports)
          docs/runbooks/* (Operational runbooks)
          docs/launch/* (Launch checklists)
          docs/MVP_DEMO.md (Jury demo guide)
@@ -177,19 +185,18 @@ LEVEL 4: docs/architecture/IT-ARCH-01_active-root.md (Historical contract)
 
 ## 16. PRD / Runtime Mismatches Requiring Product Owner Decision
 
-The following verified mismatches require Product Owner review and explicit authorization prior to any code modification:
+The following verified items require Product Owner review and explicit decision:
 
-1. **Location Entitlement Discrepancy**:
-   - *Current Runtime*: `entitlement.service.ts` allows 10 businesses for Pro and 50 businesses for Business.
-   - *Current PRD*: Pro is targeted at single-location operators (1 location). Business pilot is hypothesis-validated around approximately 5 included locations with incremental pricing (+Rp25k) per additional location.
-   - *Recommendation*: Schedule a dedicated task to align `ENTITLEMENT_POLICY_V1` with the PRD (Pro = 1, Business = 5), update unit tests, and confirm impact on existing test fixtures.
+1. **Location Entitlement Options (Pro & Business)**:
+   - *Pro Situation*: The PRD does not define an explicit numeric location cap for Pro. Runtime allows 10 businesses.
+   - *Business Situation*: PRD validation hypothesis is approximately maximum 5 included locations. Runtime allows 50 businesses.
+   - *Product Owner Decision Required*:
+     - **Option A**: Explicitly define the intended Pro location entitlement for the validation stage (e.g., whether 1 location was intended, or if multi-property testing is permitted on Pro).
+     - **Option B**: Decide whether Business runtime should remain 50 for technical capacity while commercial packaging exposes approximately 5 included locations.
+     - **Option C**: Align runtime entitlements with pilot packaging in a separate, explicitly approved task.
+   *(Note: No entitlement code was altered in this documentation task).*
 
-2. **Sandbox Pricing Migration Consistency**:
-   - *Current Runtime*: Migration `0011_pilot_pricing_consistency.sql` updated `billing_plan` prices to Rp49.000 (Pro) and Rp149.000 (Business).
-   - *Current PRD*: Perfectly aligned with Section 8.4 and 8.5 pilot pricing.
-   - *Recommendation*: Keep as-is; confirm if Cohort B pricing experimentation (Rp69k) should be scheduled for future cohorts.
-
-3. **Standalone ML Function (`infra/vercel-ml`) vs Browser-Embedded ONNX**:
+2. **Standalone ML Function (`infra/vercel-ml`) vs Browser-Embedded ONNX**:
    - *Current Runtime*: The primary user-facing forecasting path in `wattwise-vercel` uses browser-embedded ONNX (`onnxruntime-web`).
    - *Infrastructure*: `infra/vercel-ml/` provides a Python-based serverless preview function.
    - *Recommendation*: Retain `infra/vercel-ml/` as preview/benchmarking support; formalize browser-embedded ONNX as the sole production forecasting runtime.

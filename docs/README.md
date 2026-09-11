@@ -23,17 +23,17 @@ LEVEL 4: Historical, Archived & Superseded Records
 
 - [`docs/PRD/WattWise_PRD_Current_Validation_Stage.md`](PRD/WattWise_PRD_Current_Validation_Stage.md): **The single product source of truth** for the current Ideation–Pre-Seed / Working MVP stage.
 
-### LEVEL 2 — CURRENT ARCHITECTURE & OPERATIONAL CONTRACTS
+### LEVEL 2 — CURRENT ARCHITECTURE & PRODUCTION TRUTH
 *Governs system boundaries, active stacks, deployment configurations, database schemas, and release readiness.*
 
 - [`docs/architecture/CURRENT_APPLICATION_ARCHITECTURE.md`](architecture/CURRENT_APPLICATION_ARCHITECTURE.md): Active Next.js runtime, Neon PostgreSQL, Better Auth, and browser-embedded ONNX forecasting contract.
 - [`docs/architecture/REPOSITORY_ROLE_MAP.md`](architecture/REPOSITORY_ROLE_MAP.md): Official role classification for all top-level repository directories.
-- [`docs/reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md`](reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md): Production stabilization, database schema verification, and Vercel release status.
+- [`docs/reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md`](reports/WATTWISE_PROD_STAB_01_FINAL_PRODUCTION_STABILITY_REPORT.md): Latest verified production stabilization, database schema verification, and Vercel release status.
+
+### LEVEL 3 — IMPLEMENTATION, QA & RELEASE EVIDENCE
+*Specific task verification, testing evidence, runbooks, pre-release checklists, and demonstration scripts.*
+
 - [`docs/reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md`](reports/WATTWISE_AI_RELEASE_READINESS_CHECKLIST.md): Local and pre-release engineering checklist and environment contracts.
-
-### LEVEL 3 — IMPLEMENTATION, QA & LAUNCH REPORTS
-*Specific task verification, testing evidence, runbooks, and demonstration scripts.*
-
 - [`docs/MVP_DEMO.md`](MVP_DEMO.md): Self-service demonstration narrative for competition judges and beta testers.
 - [`docs/runbooks/`](runbooks/): Operational procedures (incident response, database backup/restore, secret rotation).
 - [`docs/launch/`](launch/): Staging deployment plans, smoke test scenarios, and manual QA checklists.
