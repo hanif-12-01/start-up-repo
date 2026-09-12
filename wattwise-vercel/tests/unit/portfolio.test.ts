@@ -160,9 +160,60 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       const { coverage, summary } = calculateSummary(2, mockProcessed);
       expect(coverage.activeBusinessCount).toBe(2);
       expect(coverage.businessesWithElectricityData).toBe(1);
+      expect(coverage.businessesWithBillRecord).toBe(1);
       expect(coverage.electricityCoveragePercent).toBe(50);
       expect(summary.totalUsageKwh).toBe(1000);
       expect(summary.totalElectricityCostIdr).toBe(1500000);
+    });
+
+    it('distinguishes businesses with bill records from businesses with usable electricity data', () => {
+      // 1 location with valid kWh, 1 location with bill record but null/unusable kWh
+      const mockProcessed: ProcessedLocationData[] = [
+        {
+          business: { id: 'b1', name: 'Biz 1', businessType: 'FNB', city: 'A' },
+          status: 'Aman',
+          statusDescription: 'Ok',
+          trend: 'Stabil',
+          currentUsageKwh: 1000,
+          previousUsageKwh: 1000,
+          usageChangePercent: 0,
+          anomalyDifferencePercent: 0,
+          currentCostIdr: 1500000,
+          previousCostIdr: 1500000,
+          costChangePercent: 0,
+          costImpactIdr: 0,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        },
+        {
+          business: { id: 'b2', name: 'Biz 2', businessType: 'KOS', city: 'B' },
+          status: 'Data Belum Lengkap',
+          statusDescription: 'Data listrik bulan ini belum tersedia/lengkap.',
+          trend: null,
+          currentUsageKwh: null, // Bill exists but kWh is unresolvable!
+          previousUsageKwh: 800,
+          usageChangePercent: null,
+          anomalyDifferencePercent: null,
+          currentCostIdr: 1200000,
+          previousCostIdr: 1200000,
+          costChangePercent: 0,
+          costImpactIdr: 0,
+          diagnosticHint: null,
+          hasSelectedMonthData: true, // Bill record exists
+          hasPreviousMonthData: true,
+        },
+      ];
+
+      const { coverage, summary } = calculateSummary(2, mockProcessed);
+      expect(coverage.activeBusinessCount).toBe(2);
+      // businessesWithBillRecord counts the bill existence (2)
+      expect(coverage.businessesWithBillRecord).toBe(2);
+      // businessesWithElectricityData STRICTLY counts locations where currentUsageKwh !== null (1)
+      expect(coverage.businessesWithElectricityData).toBe(1);
+      expect(coverage.electricityCoveragePercent).toBe(50);
+      expect(summary.totalUsageKwh).toBe(1000);
+      expect(summary.totalElectricityCostIdr).toBe(2700000);
     });
 
     it('returns null for totals when 0 businesses have electricity data', () => {
@@ -252,13 +303,13 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
   });
 
   describe('Kondisi Semua Usaha (Health Summary)', () => {
-    it('aggregates counts and produces safe narrative without black-box scores', () => {
+    it('aggregates counts and produces neutral mixed narrative when no category has a majority', () => {
       const mockProcessed: ProcessedLocationData[] = [
-        { business: { id: 'b1', name: 'B1', businessType: 'FNB', city: null }, status: 'Aman', statusDescription: '', trend: 'Stabil', currentUsageKwh: 100, previousUsageKwh: 100, usageChangePercent: 0, currentCostIdr: 100, previousCostIdr: 100, costChangePercent: 0, costImpactIdr: 0, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
-        { business: { id: 'b2', name: 'B2', businessType: 'FNB', city: null }, status: 'Aman', statusDescription: '', trend: 'Stabil', currentUsageKwh: 100, previousUsageKwh: 100, usageChangePercent: 0, currentCostIdr: 100, previousCostIdr: 100, costChangePercent: 0, costImpactIdr: 0, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
-        { business: { id: 'b3', name: 'B3', businessType: 'FNB', city: null }, status: 'Perlu Dicek', statusDescription: '', trend: 'Naik', currentUsageKwh: 115, previousUsageKwh: 100, usageChangePercent: 15, currentCostIdr: 115, previousCostIdr: 100, costChangePercent: 15, costImpactIdr: 15, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
-        { business: { id: 'b4', name: 'B4', businessType: 'FNB', city: null }, status: 'Perlu Perhatian', statusDescription: '', trend: 'Naik', currentUsageKwh: 130, previousUsageKwh: 100, usageChangePercent: 30, currentCostIdr: 130, previousCostIdr: 100, costChangePercent: 30, costImpactIdr: 30, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
-        { business: { id: 'b5', name: 'B5', businessType: 'FNB', city: null }, status: 'Data Belum Lengkap', statusDescription: '', trend: null, currentUsageKwh: null, previousUsageKwh: null, usageChangePercent: null, currentCostIdr: null, previousCostIdr: null, costChangePercent: null, costImpactIdr: null, diagnosticHint: null, hasSelectedMonthData: false, hasPreviousMonthData: false },
+        { business: { id: 'b1', name: 'B1', businessType: 'FNB', city: null }, status: 'Aman', statusDescription: '', trend: 'Stabil', currentUsageKwh: 100, previousUsageKwh: 100, usageChangePercent: 0, anomalyDifferencePercent: 0, currentCostIdr: 100, previousCostIdr: 100, costChangePercent: 0, costImpactIdr: 0, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
+        { business: { id: 'b2', name: 'B2', businessType: 'FNB', city: null }, status: 'Aman', statusDescription: '', trend: 'Stabil', currentUsageKwh: 100, previousUsageKwh: 100, usageChangePercent: 0, anomalyDifferencePercent: 0, currentCostIdr: 100, previousCostIdr: 100, costChangePercent: 0, costImpactIdr: 0, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
+        { business: { id: 'b3', name: 'B3', businessType: 'FNB', city: null }, status: 'Perlu Dicek', statusDescription: '', trend: 'Naik', currentUsageKwh: 115, previousUsageKwh: 100, usageChangePercent: 15, anomalyDifferencePercent: 15, currentCostIdr: 115, previousCostIdr: 100, costChangePercent: 15, costImpactIdr: 15, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
+        { business: { id: 'b4', name: 'B4', businessType: 'FNB', city: null }, status: 'Perlu Perhatian', statusDescription: '', trend: 'Naik', currentUsageKwh: 130, previousUsageKwh: 100, usageChangePercent: 30, anomalyDifferencePercent: 30, currentCostIdr: 130, previousCostIdr: 100, costChangePercent: 30, costImpactIdr: 30, diagnosticHint: null, hasSelectedMonthData: true, hasPreviousMonthData: true },
+        { business: { id: 'b5', name: 'B5', businessType: 'FNB', city: null }, status: 'Data Belum Lengkap', statusDescription: '', trend: null, currentUsageKwh: null, previousUsageKwh: null, usageChangePercent: null, anomalyDifferencePercent: null, currentCostIdr: null, previousCostIdr: null, costChangePercent: null, costImpactIdr: null, diagnosticHint: null, hasSelectedMonthData: false, hasPreviousMonthData: false },
       ];
 
       const health = calculateHealth(mockProcessed);
@@ -266,7 +317,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       expect(health.checkCount).toBe(1);
       expect(health.attentionCount).toBe(1);
       expect(health.incompleteCount).toBe(1);
-      expect(health.summaryText).toContain('Ada 2 lokasi yang sebaiknya Anda tinjau.');
+      expect(health.summaryText).toContain('Kondisi pemakaian beragam. Ada 2 lokasi yang disarankan untuk ditinjau.');
     });
   });
 
@@ -572,9 +623,9 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
     });
   });
 
-  describe('Regression: Health Summary Narrative (Issue 5)', () => {
-    it('produces majority-safe wording when safeCount > needsReview', () => {
-      // 7 Aman / 2 review (1 check, 1 attention) / 1 incomplete
+  describe('Regression: Health Summary Narrative (Issue 5 & Issue 3 Polish)', () => {
+    it('produces majority-safe wording when safeCount > total / 2', () => {
+      // 7 Aman / 2 review (1 check, 1 attention) / 1 incomplete (total 10)
       const list: ProcessedLocationData[] = [
         ...Array(7).fill(null).map((_, i) => ({
           business: { id: `safe-${i}`, name: `Safe ${i}`, businessType: 'FNB', city: null },
@@ -584,6 +635,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 100,
           previousUsageKwh: 100,
           usageChangePercent: 0,
+          anomalyDifferencePercent: 0,
           currentCostIdr: 100,
           previousCostIdr: 100,
           costChangePercent: 0,
@@ -600,6 +652,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 115,
           previousUsageKwh: 100,
           usageChangePercent: 15,
+          anomalyDifferencePercent: 15,
           currentCostIdr: 115,
           previousCostIdr: 100,
           costChangePercent: 15,
@@ -616,6 +669,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 130,
           previousUsageKwh: 100,
           usageChangePercent: 30,
+          anomalyDifferencePercent: 30,
           currentCostIdr: 130,
           previousCostIdr: 100,
           costChangePercent: 30,
@@ -632,6 +686,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: null,
           previousUsageKwh: null,
           usageChangePercent: null,
+          anomalyDifferencePercent: null,
           currentCostIdr: null,
           previousCostIdr: null,
           costChangePercent: null,
@@ -651,8 +706,8 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       expect(health.summaryText).toContain('Ada 2 lokasi yang sebaiknya Anda tinjau.');
     });
 
-    it('produces majority-needs-review wording when needsReview > safeCount', () => {
-      // 1 Aman / 8 review (5 attention, 3 check) / 1 incomplete
+    it('produces majority-needs-review wording when needsReview > total / 2', () => {
+      // 1 Aman / 8 review (5 attention, 3 check) / 1 incomplete (total 10)
       const list: ProcessedLocationData[] = [
         {
           business: { id: 'safe-1', name: 'Safe 1', businessType: 'FNB', city: null },
@@ -662,6 +717,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 100,
           previousUsageKwh: 100,
           usageChangePercent: 0,
+          anomalyDifferencePercent: 0,
           currentCostIdr: 100,
           previousCostIdr: 100,
           costChangePercent: 0,
@@ -678,6 +734,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 130,
           previousUsageKwh: 100,
           usageChangePercent: 30,
+          anomalyDifferencePercent: 30,
           currentCostIdr: 130,
           previousCostIdr: 100,
           costChangePercent: 30,
@@ -694,6 +751,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: 115,
           previousUsageKwh: 100,
           usageChangePercent: 15,
+          anomalyDifferencePercent: 15,
           currentCostIdr: 115,
           previousCostIdr: 100,
           costChangePercent: 15,
@@ -710,6 +768,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
           currentUsageKwh: null,
           previousUsageKwh: null,
           usageChangePercent: null,
+          anomalyDifferencePercent: null,
           currentCostIdr: null,
           previousCostIdr: null,
           costChangePercent: null,
@@ -728,6 +787,179 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       // Must NOT state "Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar."
       expect(health.summaryText).not.toContain('pola penggunaan yang wajar');
       expect(health.summaryText).toContain('Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (8 dari 10 lokasi).');
+    });
+
+    it('produces majority-incomplete wording when incompleteCount > total / 2 (e.g. 7 incomplete, 2 safe, 1 check out of 10)', () => {
+      // 2 Aman, 1 Perlu Dicek, 0 Perlu Perhatian, 7 Data Belum Lengkap out of 10
+      const list: ProcessedLocationData[] = [
+        ...Array(2).fill(null).map((_, i) => ({
+          business: { id: `safe-${i}`, name: `Safe ${i}`, businessType: 'FNB', city: null },
+          status: 'Aman' as const,
+          statusDescription: 'Ok',
+          trend: 'Stabil' as const,
+          currentUsageKwh: 100,
+          previousUsageKwh: 100,
+          usageChangePercent: 0,
+          anomalyDifferencePercent: 0,
+          currentCostIdr: 100,
+          previousCostIdr: 100,
+          costChangePercent: 0,
+          costImpactIdr: 0,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        })),
+        {
+          business: { id: 'check-1', name: 'Check 1', businessType: 'FNB', city: null },
+          status: 'Perlu Dicek' as const,
+          statusDescription: 'Check',
+          trend: 'Naik' as const,
+          currentUsageKwh: 115,
+          previousUsageKwh: 100,
+          usageChangePercent: 15,
+          anomalyDifferencePercent: 15,
+          currentCostIdr: 115,
+          previousCostIdr: 100,
+          costChangePercent: 15,
+          costImpactIdr: 15,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        },
+        ...Array(7).fill(null).map((_, i) => ({
+          business: { id: `inc-${i}`, name: `Inc ${i}`, businessType: 'FNB', city: null },
+          status: 'Data Belum Lengkap' as const,
+          statusDescription: 'Incomplete',
+          trend: null,
+          currentUsageKwh: null,
+          previousUsageKwh: null,
+          usageChangePercent: null,
+          anomalyDifferencePercent: null,
+          currentCostIdr: null,
+          previousCostIdr: null,
+          costChangePercent: null,
+          costImpactIdr: null,
+          diagnosticHint: null,
+          hasSelectedMonthData: false,
+          hasPreviousMonthData: false,
+        })),
+      ];
+
+      const health = calculateHealth(list);
+      expect(health.safeCount).toBe(2);
+      expect(health.checkCount).toBe(1);
+      expect(health.attentionCount).toBe(0);
+      expect(health.incompleteCount).toBe(7);
+      // MUST NOT state "Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar."
+      expect(health.summaryText).not.toContain('pola penggunaan yang wajar');
+      expect(health.summaryText).toBe('Sebagian besar lokasi belum memiliki data listrik yang lengkap (7 dari 10 lokasi).');
+    });
+  });
+
+  describe('Regression: Authoritative Anomaly Deviation in Attention Items (Issue 2 Polish)', () => {
+    it('uses anomalyDifferencePercent and NEVER costChangePercent for attention wording when previous-month usage is missing', () => {
+      // June: 1000 kWh, 1.000.000 IDR (tariff 1000)
+      // July (previous month): no bill / unusable usage, but cost record exists (e.g. 1.000.000 IDR)
+      // August (selected month): 1150 kWh, cost 2.500.000 IDR (+150% cost change)
+      // Anomaly evaluated against June baseline: difference is +15% (1150 vs 1000) -> Perlu Dicek
+      const location: ProcessedLocationData = {
+        business: { id: 'biz-anomaly-test', name: 'Warung Kopi', businessType: 'FNB', city: 'Surabaya' },
+        status: 'Perlu Dicek',
+        statusDescription: 'Pemakaian listrik 15% lebih tinggi dari pola baseline.',
+        trend: null, // July usage unavailable -> trend is null
+        currentUsageKwh: 1150,
+        previousUsageKwh: null, // July usage missing
+        usageChangePercent: null, // No MoM usage comparison possible
+        anomalyDifferencePercent: 15.0, // Authoritative deviation from historical anomaly engine
+        currentCostIdr: 2500000,
+        previousCostIdr: 1000000,
+        costChangePercent: 150.0, // Cost jumped 150%
+        costImpactIdr: 1500000,
+        diagnosticHint: 'Ada bagian yang disarankan untuk diperiksa.',
+        hasSelectedMonthData: true,
+        hasPreviousMonthData: true,
+      };
+
+      const items = buildAttentionItems([location]);
+      expect(items.length).toBe(1);
+      expect(items[0].status).toBe('Perlu Dicek');
+      // Explanatory wording MUST use anomaly deviation (15%), NOT cost change (150%)
+      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola baseline.');
+      expect(items[0].primaryReason).not.toContain('150%');
+      expect(items[0].usageChangePercent).toBeNull();
+      expect(items[0].anomalyDifferencePercent).toBe(15.0);
+    });
+
+    it('ranks attention items by anomalyDifferencePercent and NEVER falls back to costChangePercent within equal severity', () => {
+      // Two 'Perlu Dicek' locations:
+      // Location A: Anomaly deviation = +12%, Cost change = +95%
+      // Location B: Anomaly deviation = +18%, Cost change = +5%
+      // Correct ranking by electricity anomaly deviation: Location B (18%) must rank BEFORE Location A (12%)
+      const locA: ProcessedLocationData = {
+        business: { id: 'loc-a', name: 'Toko A', businessType: 'RETAIL', city: null },
+        status: 'Perlu Dicek',
+        statusDescription: 'Pemakaian listrik 12% lebih tinggi dari pola baseline.',
+        trend: null,
+        currentUsageKwh: 1120,
+        previousUsageKwh: null,
+        usageChangePercent: null,
+        anomalyDifferencePercent: 12.0,
+        currentCostIdr: 1950000,
+        previousCostIdr: 1000000,
+        costChangePercent: 95.0, // huge cost increase
+        costImpactIdr: 950000,
+        diagnosticHint: null,
+        hasSelectedMonthData: true,
+        hasPreviousMonthData: true,
+      };
+
+      const locB: ProcessedLocationData = {
+        business: { id: 'loc-b', name: 'Toko B', businessType: 'RETAIL', city: null },
+        status: 'Perlu Dicek',
+        statusDescription: 'Pemakaian listrik 18% lebih tinggi dari pola baseline.',
+        trend: null,
+        currentUsageKwh: 1180,
+        previousUsageKwh: null,
+        usageChangePercent: null,
+        anomalyDifferencePercent: 18.0,
+        currentCostIdr: 1050000,
+        previousCostIdr: 1000000,
+        costChangePercent: 5.0, // minimal cost increase
+        costImpactIdr: 50000,
+        diagnosticHint: null,
+        hasSelectedMonthData: true,
+        hasPreviousMonthData: true,
+      };
+
+      const items = buildAttentionItems([locA, locB]);
+      expect(items.length).toBe(2);
+      // Location B must rank 1st because 18% anomaly deviation > 12% anomaly deviation
+      expect(items[0].businessId).toBe('loc-b');
+      expect(items[0].anomalyDifferencePercent).toBe(18.0);
+      expect(items[1].businessId).toBe('loc-a');
+      expect(items[1].anomalyDifferencePercent).toBe(12.0);
+    });
+
+    it('end-to-end processSingleLocation: preserves anomalyDifferencePercent when July usage is missing and cost jumped', () => {
+      // Historical: June bill has 1000 kWh, 1444700 IDR
+      // July: bill missing / no usage
+      // August (selected): 1150 kWh, 2889400 IDR (doubled cost)
+      const bills: BillDataLike[] = [
+        { id: 'b1', businessId: 'biz-1', periodStart: '2026-06-01', periodEnd: '2026-06-30', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+        { id: 'b3', businessId: 'biz-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', totalAmountRupiah: 2889400, kwh: 1150, tariffRupiahPerKwh: 1444.7 },
+      ];
+
+      const res = processSingleLocation(dummyBusiness, bills, '2026-08', '2026-07');
+      expect(res.status).toBe('Perlu Dicek');
+      expect(res.currentUsageKwh).toBe(1150);
+      expect(res.previousUsageKwh).toBeNull();
+      expect(res.usageChangePercent).toBeNull();
+      expect(res.anomalyDifferencePercent).toBe(15);
+
+      const items = buildAttentionItems([res]);
+      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola baseline.');
+      expect(items[0].usageChangePercent).toBeNull();
+      expect(items[0].anomalyDifferencePercent).toBe(15);
     });
   });
 

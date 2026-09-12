@@ -31,7 +31,7 @@ describe('Public Demo Provisioning Integration Tests', () => {
     if (pool) await pool.end();
   });
 
-  it('provisions public demo account and verifies login and 3 demo businesses', async () => {
+  it('provisions public demo account and verifies login and 4 demo businesses', async () => {
     const res = await ensurePublicDemoAccount();
     expect(res.email).toBe(PUBLIC_DEMO_EMAIL);
     expect(res.businessIds.demo01).toBeDefined();

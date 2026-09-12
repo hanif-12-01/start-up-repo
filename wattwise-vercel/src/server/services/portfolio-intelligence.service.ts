@@ -14,6 +14,7 @@ export type PortfolioTrendDirection = 'Naik' | 'Stabil' | 'Turun';
 export interface PortfolioCoverage {
   activeBusinessCount: number;
   businessesWithElectricityData: number;
+  businessesWithBillRecord: number;
   electricityCoveragePercent: number;
 }
 
@@ -55,6 +56,7 @@ export interface PortfolioAttentionItem {
   diagnosticHint?: string | null;
   costImpactIdr: number | null;
   usageChangePercent: number | null;
+  anomalyDifferencePercent?: number | null;
   ctaText: string;
   ctaHref: string;
 }
@@ -141,6 +143,7 @@ export interface ProcessedLocationData {
   diagnosticHint: string | null;
   hasSelectedMonthData: boolean;
   hasPreviousMonthData: boolean;
+  anomalyDifferencePercent?: number | null;
 }
 
 /**
@@ -258,6 +261,7 @@ export function processSingleLocation(
   let status: PortfolioHealthStatus = 'Data Belum Lengkap';
   let statusDescription = 'Data listrik bulan ini belum tersedia/lengkap.';
   let diagnosticHint: string | null = null;
+  let anomalyDifferencePercent: number | null = null;
 
   if (!hasSelectedMonthData || currentUsageKwh === null) {
     // Condition A: Selected-month electricity record or usable usage is missing/unusable
@@ -276,6 +280,7 @@ export function processSingleLocation(
     }));
 
     const anomaly = analyzeLatestAnomaly(samples);
+    anomalyDifferencePercent = anomaly.differencePercent !== null ? anomaly.differencePercent : null;
 
     if (anomaly.status === 'Boros') {
       status = 'Perlu Perhatian';
@@ -317,6 +322,7 @@ export function processSingleLocation(
     diagnosticHint,
     hasSelectedMonthData,
     hasPreviousMonthData,
+    anomalyDifferencePercent,
   };
 }
 
@@ -327,16 +333,19 @@ export function calculateSummary(
   let totalUsageKwh: number | null = null;
   let totalElectricityCostIdr: number | null = null;
   let businessesWithElectricityData = 0;
+  let businessesWithBillRecord = 0;
 
   for (const p of processedList) {
     if (p.hasSelectedMonthData) {
-      businessesWithElectricityData += 1;
-      if (p.currentUsageKwh !== null) {
-        totalUsageKwh = (totalUsageKwh ?? 0) + p.currentUsageKwh;
-      }
+      businessesWithBillRecord += 1;
       if (p.currentCostIdr !== null) {
         totalElectricityCostIdr = (totalElectricityCostIdr ?? 0) + p.currentCostIdr;
       }
+    }
+    // Electricity usage coverage strictly represents locations with resolvable electricity usage
+    if (p.currentUsageKwh !== null) {
+      businessesWithElectricityData += 1;
+      totalUsageKwh = (totalUsageKwh ?? 0) + p.currentUsageKwh;
     }
   }
 
@@ -347,6 +356,7 @@ export function calculateSummary(
     coverage: {
       activeBusinessCount: activeLocations,
       businessesWithElectricityData,
+      businessesWithBillRecord,
       electricityCoveragePercent,
     },
     summary: {
@@ -437,22 +447,33 @@ export function calculateHealth(processedList: ProcessedLocationData[]): Portfol
   const total = processedList.length;
   const needsReview = attentionCount + checkCount;
 
-  let summaryText = 'Belum ada lokasi usaha aktif.';
-  if (total > 0) {
-    if (incompleteCount === total) {
-      summaryText = 'Data listrik belum tercatat lengkap untuk lokasi usaha aktif.';
-    } else if (safeCount > needsReview) {
-      if (needsReview > 0) {
-        summaryText = `Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar. Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
-      } else {
-        summaryText = 'Semua lokasi terpantau berada dalam batas pola penggunaan yang wajar.';
-      }
-    } else if (needsReview > safeCount) {
-      summaryText = `Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (${needsReview} dari ${total} lokasi).`;
-    } else if (needsReview === safeCount && needsReview > 0) {
-      summaryText = `Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
+  if (total === 0) {
+    return {
+      safeCount: 0,
+      checkCount: 0,
+      attentionCount: 0,
+      incompleteCount: 0,
+      summaryText: 'Belum ada lokasi usaha aktif.',
+    };
+  }
+
+  let summaryText: string;
+
+  if (safeCount > total / 2) {
+    if (needsReview > 0) {
+      summaryText = `Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar. Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
     } else {
-      summaryText = 'Data listrik belum tercatat lengkap untuk sebagian besar lokasi usaha.';
+      summaryText = 'Semua lokasi terpantau berada dalam batas pola penggunaan yang wajar.';
+    }
+  } else if (needsReview > total / 2) {
+    summaryText = `Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (${needsReview} dari ${total} lokasi).`;
+  } else if (incompleteCount > total / 2) {
+    summaryText = `Sebagian besar lokasi belum memiliki data listrik yang lengkap (${incompleteCount} dari ${total} lokasi).`;
+  } else {
+    if (needsReview > 0) {
+      summaryText = `Kondisi pemakaian beragam. Ada ${needsReview} lokasi yang disarankan untuk ditinjau.`;
+    } else {
+      summaryText = 'Kondisi pemakaian beragam antar lokasi usaha.';
     }
   }
 
@@ -480,9 +501,9 @@ export function buildAttentionItems(
     const diffSeverity = severityWeight(b.status) - severityWeight(a.status);
     if (diffSeverity !== 0) return diffSeverity;
 
-    // Strongest supported electricity deviation
-    const aDev = Math.abs(a.usageChangePercent ?? a.costChangePercent ?? 0);
-    const bDev = Math.abs(b.usageChangePercent ?? b.costChangePercent ?? 0);
+    // Strongest supported electricity anomaly deviation (never falls back to cost percentage)
+    const aDev = Math.abs(a.anomalyDifferencePercent ?? a.usageChangePercent ?? 0);
+    const bDev = Math.abs(b.anomalyDifferencePercent ?? b.usageChangePercent ?? 0);
     return bDev - aDev;
   });
 
@@ -491,19 +512,19 @@ export function buildAttentionItems(
     let ctaText = 'Lihat Lokasi';
 
     if (p.status === 'Perlu Perhatian') {
-      const pct = p.usageChangePercent !== null
+      const pct = typeof p.anomalyDifferencePercent === 'number' && Number.isFinite(p.anomalyDifferencePercent)
+        ? Math.round(p.anomalyDifferencePercent)
+        : typeof p.usageChangePercent === 'number' && Number.isFinite(p.usageChangePercent)
         ? Math.round(p.usageChangePercent)
-        : p.costChangePercent !== null
-        ? Math.round(p.costChangePercent)
         : null;
       primaryReason = pct !== null
         ? `Pemakaian listrik ${pct}% lebih tinggi dibanding pola sebelumnya.`
         : 'Pemakaian meningkat cukup besar dibanding pola sebelumnya.';
     } else if (p.status === 'Perlu Dicek') {
-      const pct = p.usageChangePercent !== null
+      const pct = typeof p.anomalyDifferencePercent === 'number' && Number.isFinite(p.anomalyDifferencePercent)
+        ? Math.round(p.anomalyDifferencePercent)
+        : typeof p.usageChangePercent === 'number' && Number.isFinite(p.usageChangePercent)
         ? Math.round(p.usageChangePercent)
-        : p.costChangePercent !== null
-        ? Math.round(p.costChangePercent)
         : null;
       primaryReason = pct !== null
         ? `Pemakaian listrik ${pct}% lebih tinggi dari pola baseline.`
@@ -523,7 +544,8 @@ export function buildAttentionItems(
       primaryReason,
       diagnosticHint: p.diagnosticHint,
       costImpactIdr: p.costImpactIdr,
-      usageChangePercent: p.usageChangePercent !== null ? Number(p.usageChangePercent.toFixed(1)) : null,
+      usageChangePercent: typeof p.usageChangePercent === 'number' && Number.isFinite(p.usageChangePercent) ? Number(p.usageChangePercent.toFixed(1)) : null,
+      anomalyDifferencePercent: typeof p.anomalyDifferencePercent === 'number' && Number.isFinite(p.anomalyDifferencePercent) ? Number(p.anomalyDifferencePercent.toFixed(1)) : null,
       ctaText,
       ctaHref: `/dashboard?businessId=${encodeURIComponent(p.business.id)}`,
     };
@@ -669,6 +691,7 @@ export async function getPortfolioOverview(
       coverage: {
         activeBusinessCount: 0,
         businessesWithElectricityData: 0,
+        businessesWithBillRecord: 0,
         electricityCoveragePercent: 0,
       },
       summary: {
@@ -780,8 +803,8 @@ export async function getPortfolioOverview(
     status: p.status,
     statusDescription: p.statusDescription,
     electricityCostIdr: p.currentCostIdr,
-    hasElectricityData: p.hasSelectedMonthData,
-    ctaText: p.hasSelectedMonthData ? 'Lihat Lokasi' : 'Lengkapi Data',
+    hasElectricityData: p.currentUsageKwh !== null,
+    ctaText: p.currentUsageKwh !== null ? 'Lihat Lokasi' : 'Lengkapi Data',
     ctaHref: `/dashboard?businessId=${encodeURIComponent(p.business.id)}`,
   }));
 

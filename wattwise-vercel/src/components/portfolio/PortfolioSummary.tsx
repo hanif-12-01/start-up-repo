@@ -19,7 +19,7 @@ export function PortfolioSummary({
 
   // Card 1: Lokasi Aktif
   const activeLocationsText = `${coverage.activeBusinessCount} Lokasi Aktif`;
-  const coverageText = `${coverage.businessesWithElectricityData} dari ${coverage.activeBusinessCount} lokasi memiliki data ${monthName}.`;
+  const coverageText = `${coverage.businessesWithElectricityData} dari ${coverage.activeBusinessCount} lokasi memiliki data pemakaian ${monthName}.`;
 
   // Card 2: Total Pemakaian
   const usageText =
