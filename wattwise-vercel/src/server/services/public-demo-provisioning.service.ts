@@ -184,36 +184,32 @@ export async function ensurePublicDemoAccount(): Promise<{
       return bId;
     };
 
-    // 3. DEMO 01 — Usaha Baru · 2 Bulan (FNB segment, unsupported for Cek Kenaikan)
+    // 3. DEMO 01 — Dapur Rasa (FNB, Perlu Dicek)
     const demo01Id = await upsertBusiness('DEMO 01', 'FNB', 'FNB', 'Bandung', 2200);
-    // 4. DEMO 02 — Histori Berkembang · 5 Bulan (LAUNDRY segment)
+    // 4. DEMO 02 — Laundry Kilat (LAUNDRY, Perlu Perhatian / Boros)
     const demo02Id = await upsertBusiness('DEMO 02', 'LAUNDRY', 'LAUNDRY', 'Surabaya', 3500);
-    // 5. DEMO 03 — Prediksi AI · 6 Bulan (KOS segment, N-BEATS AI active)
+    // 5. DEMO 03 — Kos Nyaman (KOS_PROPERTY, Aman, N-BEATS AI active)
     const demo03Id = await upsertBusiness('DEMO 03', 'KOS_PROPERTY', 'KOS', 'Jakarta Selatan', 4400, 15);
+    // 6. DEMO 04 — Gudang Es (COLD_STORAGE, Data Belum Lengkap)
+    const demo04Id = await upsertBusiness('DEMO 04', 'COLD_STORAGE', 'COLD_STORAGE', 'Semarang', 5500);
 
-    // Helper to seed bills for a business if not already present
-    const seedBillsForBusiness = async (
-      bId: string,
-      monthCount: number,
-      baseKwh: number,
-      stepKwh: number
-    ) => {
-      // Check existing bills count
+    // Helper to seed custom bill series for a business
+    const seedBillSeries = async (bId: string, kwhSeries: number[], endOffsetMonths: number = 0) => {
       const existingBills = await tx.select().from(schema.electricityBill)
         .where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
-      if (existingBills.length < monthCount) {
-        // Delete partial/existing bills to guarantee continuous clean history
+      if (existingBills.length < kwhSeries.length) {
         await tx.delete(schema.electricityBill).where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
-        for (let i = 0; i < monthCount; i++) {
-          const monthStr = subMonthsStr(anchorMonth, monthCount - 1 - i);
+        for (let i = 0; i < kwhSeries.length; i++) {
+          const offset = kwhSeries.length - 1 - i + endOffsetMonths;
+          const monthStr = subMonthsStr(anchorMonth, offset);
           const { start, end } = getMonthDateBounds(monthStr);
-          const usageKwh = baseKwh + i * stepKwh;
+          const usageKwh = kwhSeries[i];
           const totalAmount = BigInt(Math.round(usageKwh * 1444.70));
 
           await tx.insert(schema.electricityBill).values({
-            id: `bill-jury-${bId.slice(0, 12)}-${i + 1}-${crypto.randomUUID()}`,
+            id: `bill-jury-${bId.slice(0, 10)}-${i + 1}-${crypto.randomUUID()}`,
             businessId: bId,
             periodStart: start,
             periodEnd: end,
@@ -230,12 +226,14 @@ export async function ensurePublicDemoAccount(): Promise<{
       }
     };
 
-    // Seed 2 months for DEMO 01
-    await seedBillsForBusiness(demo01Id, 2, 350, 40);
-    // Seed 5 months for DEMO 02
-    await seedBillsForBusiness(demo02Id, 5, 380, 25);
-    // Seed 6 months for DEMO 03 (continuous 6 months triggers H06_12 phase -> N-BEATS AI active)
-    await seedBillsForBusiness(demo03Id, 6, 450, 30);
+    // Seed bills for DEMO 01 (2 months: 350, 395 kWh -> +12.8% -> Perlu Dicek)
+    await seedBillSeries(demo01Id, [350, 395]);
+    // Seed bills for DEMO 02 (5 months: 380, 400, 410, 420, 530 kWh -> +26.2% vs baseline -> Perlu Perhatian)
+    await seedBillSeries(demo02Id, [380, 400, 410, 420, 530]);
+    // Seed bills for DEMO 03 (6 months: 450, 455, 460, 465, 470, 475 kWh -> Aman, N-BEATS AI active)
+    await seedBillSeries(demo03Id, [450, 455, 460, 465, 470, 475]);
+    // Seed bills for DEMO 04 (3 months history ending 1 month prior -> Data Belum Lengkap for current month)
+    await seedBillSeries(demo04Id, [620, 640, 650], 1);
 
     return {
       userId,
@@ -244,6 +242,7 @@ export async function ensurePublicDemoAccount(): Promise<{
         demo01: demo01Id,
         demo02: demo02Id,
         demo03: demo03Id,
+        demo04: demo04Id,
       },
     };
   });

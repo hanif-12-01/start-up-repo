@@ -44,6 +44,7 @@ credentials.json
 !docs/runbooks/*.md
 !docs/product/meter-ocr-manual-qa.md
 !docs/product/pdf-reports-manual-qa.md
+!docs/product/IT-P0-09_portfolio-intelligence-v1.md
 !wattwise-laravel/docs/ui/IT-UI-02_authenticated-app-shell.md
 !docs/ml/*.md
 !docs/ml/**/*.md
