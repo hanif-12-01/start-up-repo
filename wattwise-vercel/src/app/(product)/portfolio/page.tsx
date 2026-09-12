@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getOptionalSession } from '@/server/auth/session';
-import { resolveJourneyStep, getJourneyRedirect } from '@/server/services/journey.service';
-import { getPortfolioOverview } from '@/server/services/portfolio-intelligence.service';
+import { resolveJourneyStep, getJourneyRedirect, type JourneyStep } from '@/server/services/journey.service';
+import { getPortfolioOverview, isValidYearMonth } from '@/server/services/portfolio-intelligence.service';
 import { PortfolioSummary } from '@/components/portfolio/PortfolioSummary';
 import { PortfolioHealth } from '@/components/portfolio/PortfolioHealth';
 import { PortfolioAttentionList } from '@/components/portfolio/PortfolioAttentionList';
@@ -12,6 +12,34 @@ import { PortfolioFilters } from '@/components/portfolio/PortfolioFilters';
 import { getDb } from '@/server/db';
 import * as schema from '@/server/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
+
+export interface PortfolioRouteDecision {
+  action: 'redirect' | 'render';
+  destination?: string;
+}
+
+export function resolvePortfolioRouteDecision(
+  sessionUser: { id: string } | null | undefined,
+  journeyStep: JourneyStep,
+  ownedBusinesses: Array<{ id: string; name: string }>
+): PortfolioRouteDecision {
+  if (!sessionUser) {
+    return { action: 'redirect', destination: '/login' };
+  }
+  if (journeyStep !== 'COMPLETE') {
+    return { action: 'redirect', destination: getJourneyRedirect(journeyStep) };
+  }
+  if (ownedBusinesses.length === 0) {
+    return { action: 'redirect', destination: '/onboarding' };
+  }
+  if (ownedBusinesses.length === 1) {
+    return {
+      action: 'redirect',
+      destination: `/dashboard?businessId=${encodeURIComponent(ownedBusinesses[0].id)}`,
+    };
+  }
+  return { action: 'render' };
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -45,20 +73,14 @@ export default async function PortfolioPage({
       )
     );
 
-  // Business count routing rules
-  if (ownedBusinesses.length === 0) {
-    redirect('/onboarding');
-  }
-
-  if (ownedBusinesses.length === 1) {
-    redirect(`/dashboard?businessId=${encodeURIComponent(ownedBusinesses[0].id)}`);
+  const decision = resolvePortfolioRouteDecision(session.user, journeyStep, ownedBusinesses);
+  if (decision.action === 'redirect' && decision.destination) {
+    redirect(decision.destination);
   }
 
   const query = await searchParams;
-  const requestedMonth =
-    typeof query.month === 'string' && /^\d{4}-\d{2}$/.test(query.month)
-      ? query.month
-      : undefined;
+  const rawMonth = typeof query.month === 'string' ? query.month : undefined;
+  const requestedMonth = rawMonth && isValidYearMonth(rawMonth) ? rawMonth : undefined;
 
   const portfolio = await getPortfolioOverview(userId, requestedMonth);
 

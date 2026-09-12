@@ -38,7 +38,7 @@ function getMonthDateBounds(monthStr: string): { start: string; end: string } {
 export async function ensurePublicDemoAccount(): Promise<{
   userId: string;
   email: string;
-  businessIds: { demo01: string; demo02: string; demo03: string };
+  businessIds: { demo01: string; demo02: string; demo03: string; demo04: string };
 }> {
   const db = getDb();
   const email = PUBLIC_DEMO_EMAIL;
@@ -193,12 +193,31 @@ export async function ensurePublicDemoAccount(): Promise<{
     // 6. DEMO 04 — Gudang Es (COLD_STORAGE, Data Belum Lengkap)
     const demo04Id = await upsertBusiness('DEMO 04', 'COLD_STORAGE', 'COLD_STORAGE', 'Semarang', 5500);
 
-    // Helper to seed custom bill series for a business
+    // Helper to seed custom bill series for a business with full idempotence
     const seedBillSeries = async (bId: string, kwhSeries: number[], endOffsetMonths: number = 0) => {
       const existingBills = await tx.select().from(schema.electricityBill)
         .where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
-      if (existingBills.length < kwhSeries.length) {
+      let isConverged = existingBills.length === kwhSeries.length;
+      if (isConverged) {
+        const sortedExisting = [...existingBills].sort((a, b) => a.periodEnd.localeCompare(b.periodEnd));
+        for (let i = 0; i < kwhSeries.length; i++) {
+          const offset = kwhSeries.length - 1 - i + endOffsetMonths;
+          const monthStr = subMonthsStr(anchorMonth, offset);
+          const { end } = getMonthDateBounds(monthStr);
+          const currentKwh = sortedExisting[i].kwh !== null ? Number(sortedExisting[i].kwh) : null;
+          if (
+            sortedExisting[i].periodEnd !== end ||
+            currentKwh === null ||
+            Math.abs(currentKwh - kwhSeries[i]) > 0.01
+          ) {
+            isConverged = false;
+            break;
+          }
+        }
+      }
+
+      if (!isConverged) {
         await tx.delete(schema.electricityBill).where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
         for (let i = 0; i < kwhSeries.length; i++) {

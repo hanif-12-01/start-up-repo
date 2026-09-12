@@ -11,10 +11,12 @@ import {
   getPreviousMonth,
   getPastNMonths,
   formatMonthLabel,
+  isValidYearMonth,
   type BusinessDataLike,
   type BillDataLike,
   type ProcessedLocationData,
 } from '@/server/services/portfolio-intelligence.service';
+import { resolvePortfolioRouteDecision } from '@/app/(product)/portfolio/page';
 
 describe('Portfolio Intelligence V1 — Unit Tests', () => {
   const dummyBusiness: BusinessDataLike = {
@@ -439,6 +441,357 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       expect(getPreviousMonth('2026-08')).toBe('2026-07');
       expect(getPastNMonths('2026-08', 3)).toEqual(['2026-06', '2026-07', '2026-08']);
       expect(formatMonthLabel('2026-08')).toBe('Agu 2026');
+    });
+  });
+
+  describe('Regression: Selected-Month Health Must Strictly Use Selected-Month Usage (Issue 1 & 2)', () => {
+    it('does NOT silently classify an earlier usable month when selected-month bill has unusable kWh/tariff', () => {
+      // Historical bills have valid data in June and July
+      // Selected bill (August) exists, but kwh is null and tariff is null (unresolvable usage)
+      const bills: BillDataLike[] = [
+        { id: 'b1', businessId: 'biz-1', periodStart: '2026-06-01', periodEnd: '2026-06-30', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+        { id: 'b2', businessId: 'biz-1', periodStart: '2026-07-01', periodEnd: '2026-07-31', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+        { id: 'b3', businessId: 'biz-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', totalAmountRupiah: 1500000, kwh: null, tariffRupiahPerKwh: null },
+      ];
+
+      const res = processSingleLocation(dummyBusiness, bills, '2026-08', '2026-07');
+      // Must NOT produce Aman, Perlu Dicek, or Perlu Perhatian based on July
+      expect(res.status).toBe('Data Belum Lengkap');
+      expect(res.statusDescription).toBe('Data listrik bulan ini belum tersedia/lengkap.');
+      expect(res.currentUsageKwh).toBeNull();
+      expect(res.trend).toBeNull();
+    });
+
+    it('distinguishes Condition A (selected data missing/unusable) vs Condition B (insufficient history)', () => {
+      // Condition A: Selected month has no bill at all
+      const billsA: BillDataLike[] = [
+        { id: 'b1', businessId: 'biz-1', periodStart: '2026-06-01', periodEnd: '2026-06-30', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+        { id: 'b2', businessId: 'biz-1', periodStart: '2026-07-01', periodEnd: '2026-07-31', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+      ];
+      const resA = processSingleLocation(dummyBusiness, billsA, '2026-08', '2026-07');
+      expect(resA.status).toBe('Data Belum Lengkap');
+      expect(resA.statusDescription).toBe('Data listrik bulan ini belum tersedia/lengkap.');
+
+      // Attention item preserves reason A
+      const itemsA = buildAttentionItems([resA]);
+      expect(itemsA.length).toBe(1);
+      expect(itemsA[0].primaryReason).toBe('Data listrik bulan ini belum tersedia/lengkap.');
+
+      // Condition B: Selected month has valid bill & resolvable usage, but only 1 month total (no historical baseline)
+      const billsB: BillDataLike[] = [
+        { id: 'b3', businessId: 'biz-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', totalAmountRupiah: 1444700, kwh: 1000, tariffRupiahPerKwh: 1444.7 },
+      ];
+      const resB = processSingleLocation(dummyBusiness, billsB, '2026-08', '2026-07');
+      expect(resB.status).toBe('Data Belum Lengkap');
+      expect(resB.statusDescription).toBe('Histori penggunaan belum cukup untuk menentukan pola.');
+      expect(resB.currentUsageKwh).toBe(1000);
+
+      // Attention item preserves reason B without overwriting
+      const itemsB = buildAttentionItems([resB]);
+      expect(itemsB.length).toBe(1);
+      expect(itemsB[0].primaryReason).toBe('Histori penggunaan belum cukup untuk menentukan pola.');
+    });
+  });
+
+  describe('Regression: Comparable-Population Semantics (Issue 3 & 4)', () => {
+    it('excludes businesses with unusable kWh from usage comparability even when bills exist', () => {
+      // Biz 1: both months have valid kWh
+      // Biz 2: both months have bills, but August has null kWh & null tariff
+      const p1: ProcessedLocationData = {
+        business: { id: 'b1', name: 'Biz 1', businessType: 'FNB', city: null },
+        status: 'Aman',
+        statusDescription: 'Ok',
+        trend: 'Stabil',
+        currentUsageKwh: 1000,
+        previousUsageKwh: 1000,
+        usageChangePercent: 0,
+        currentCostIdr: 1500000,
+        previousCostIdr: 1500000,
+        costChangePercent: 0,
+        costImpactIdr: 0,
+        diagnosticHint: null,
+        hasSelectedMonthData: true,
+        hasPreviousMonthData: true,
+      };
+
+      const p2: ProcessedLocationData = {
+        business: { id: 'b2', name: 'Biz 2', businessType: 'LAUNDRY', city: null },
+        status: 'Data Belum Lengkap',
+        statusDescription: 'Data listrik bulan ini belum tersedia/lengkap.',
+        trend: null,
+        currentUsageKwh: null, // Unusable kWh!
+        previousUsageKwh: 800,
+        usageChangePercent: null,
+        currentCostIdr: 1300000, // Valid cost exists
+        previousCostIdr: 1200000, // Valid cost exists
+        costChangePercent: 8.3,
+        costImpactIdr: 100000,
+        diagnosticHint: null,
+        hasSelectedMonthData: true,
+        hasPreviousMonthData: true,
+      };
+
+      const comp = calculateComparison([p1, p2]);
+      // Usage comparable must only include p1
+      expect(comp.usageComparableBusinessCount).toBe(1);
+      expect(comp.comparableBusinessCount).toBe(1);
+      expect(comp.currentComparableUsageKwh).toBe(1000);
+      expect(comp.previousComparableUsageKwh).toBe(1000);
+      expect(comp.usageDifferenceKwh).toBe(0);
+
+      // Cost comparable includes both p1 and p2
+      expect(comp.costComparableBusinessCount).toBe(2);
+      expect(comp.currentComparableCostIdr).toBe(2800000);
+      expect(comp.previousComparableCostIdr).toBe(2700000);
+      expect(comp.costDifferenceIdr).toBe(100000);
+    });
+
+    it('ensures tariff/cost increase does NOT derive usage Naik trend', () => {
+      // kWh stays identical (1000 kWh both months), but cost increases by 40% due to tariff hike
+      const bills: BillDataLike[] = [
+        { id: 'b1', businessId: 'biz-1', periodStart: '2026-07-01', periodEnd: '2026-07-31', totalAmountRupiah: 1000000, kwh: 1000, tariffRupiahPerKwh: 1000 },
+        { id: 'b2', businessId: 'biz-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', totalAmountRupiah: 1400000, kwh: 1000, tariffRupiahPerKwh: 1400 },
+      ];
+
+      const res = processSingleLocation(dummyBusiness, bills, '2026-08', '2026-07');
+      expect(res.usageChangePercent).toBe(0);
+      expect(res.costChangePercent).toBe(40);
+      // Trend must reflect usage (Stabil), NOT cost (Naik)
+      expect(res.trend).toBe('Stabil');
+    });
+
+    it('ensures null usageChangePercent results in null trend even if cost changed', () => {
+      const bills: BillDataLike[] = [
+        { id: 'b1', businessId: 'biz-1', periodStart: '2026-07-01', periodEnd: '2026-07-31', totalAmountRupiah: 1000000, kwh: null, tariffRupiahPerKwh: null },
+        { id: 'b2', businessId: 'biz-1', periodStart: '2026-08-01', periodEnd: '2026-08-31', totalAmountRupiah: 1500000, kwh: null, tariffRupiahPerKwh: null },
+      ];
+
+      const res = processSingleLocation(dummyBusiness, bills, '2026-08', '2026-07');
+      expect(res.usageChangePercent).toBeNull();
+      expect(res.trend).toBeNull();
+    });
+  });
+
+  describe('Regression: Health Summary Narrative (Issue 5)', () => {
+    it('produces majority-safe wording when safeCount > needsReview', () => {
+      // 7 Aman / 2 review (1 check, 1 attention) / 1 incomplete
+      const list: ProcessedLocationData[] = [
+        ...Array(7).fill(null).map((_, i) => ({
+          business: { id: `safe-${i}`, name: `Safe ${i}`, businessType: 'FNB', city: null },
+          status: 'Aman' as const,
+          statusDescription: 'Ok',
+          trend: 'Stabil' as const,
+          currentUsageKwh: 100,
+          previousUsageKwh: 100,
+          usageChangePercent: 0,
+          currentCostIdr: 100,
+          previousCostIdr: 100,
+          costChangePercent: 0,
+          costImpactIdr: 0,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        })),
+        {
+          business: { id: 'check-1', name: 'Check 1', businessType: 'FNB', city: null },
+          status: 'Perlu Dicek' as const,
+          statusDescription: 'Check',
+          trend: 'Naik' as const,
+          currentUsageKwh: 115,
+          previousUsageKwh: 100,
+          usageChangePercent: 15,
+          currentCostIdr: 115,
+          previousCostIdr: 100,
+          costChangePercent: 15,
+          costImpactIdr: 15,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        },
+        {
+          business: { id: 'att-1', name: 'Att 1', businessType: 'FNB', city: null },
+          status: 'Perlu Perhatian' as const,
+          statusDescription: 'Attention',
+          trend: 'Naik' as const,
+          currentUsageKwh: 130,
+          previousUsageKwh: 100,
+          usageChangePercent: 30,
+          currentCostIdr: 130,
+          previousCostIdr: 100,
+          costChangePercent: 30,
+          costImpactIdr: 30,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        },
+        {
+          business: { id: 'inc-1', name: 'Inc 1', businessType: 'FNB', city: null },
+          status: 'Data Belum Lengkap' as const,
+          statusDescription: 'Incomplete',
+          trend: null,
+          currentUsageKwh: null,
+          previousUsageKwh: null,
+          usageChangePercent: null,
+          currentCostIdr: null,
+          previousCostIdr: null,
+          costChangePercent: null,
+          costImpactIdr: null,
+          diagnosticHint: null,
+          hasSelectedMonthData: false,
+          hasPreviousMonthData: false,
+        },
+      ];
+
+      const health = calculateHealth(list);
+      expect(health.safeCount).toBe(7);
+      expect(health.checkCount).toBe(1);
+      expect(health.attentionCount).toBe(1);
+      expect(health.incompleteCount).toBe(1);
+      expect(health.summaryText).toContain('Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar.');
+      expect(health.summaryText).toContain('Ada 2 lokasi yang sebaiknya Anda tinjau.');
+    });
+
+    it('produces majority-needs-review wording when needsReview > safeCount', () => {
+      // 1 Aman / 8 review (5 attention, 3 check) / 1 incomplete
+      const list: ProcessedLocationData[] = [
+        {
+          business: { id: 'safe-1', name: 'Safe 1', businessType: 'FNB', city: null },
+          status: 'Aman' as const,
+          statusDescription: 'Ok',
+          trend: 'Stabil' as const,
+          currentUsageKwh: 100,
+          previousUsageKwh: 100,
+          usageChangePercent: 0,
+          currentCostIdr: 100,
+          previousCostIdr: 100,
+          costChangePercent: 0,
+          costImpactIdr: 0,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        },
+        ...Array(5).fill(null).map((_, i) => ({
+          business: { id: `att-${i}`, name: `Att ${i}`, businessType: 'FNB', city: null },
+          status: 'Perlu Perhatian' as const,
+          statusDescription: 'Attention',
+          trend: 'Naik' as const,
+          currentUsageKwh: 130,
+          previousUsageKwh: 100,
+          usageChangePercent: 30,
+          currentCostIdr: 130,
+          previousCostIdr: 100,
+          costChangePercent: 30,
+          costImpactIdr: 30,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        })),
+        ...Array(3).fill(null).map((_, i) => ({
+          business: { id: `check-${i}`, name: `Check ${i}`, businessType: 'FNB', city: null },
+          status: 'Perlu Dicek' as const,
+          statusDescription: 'Check',
+          trend: 'Naik' as const,
+          currentUsageKwh: 115,
+          previousUsageKwh: 100,
+          usageChangePercent: 15,
+          currentCostIdr: 115,
+          previousCostIdr: 100,
+          costChangePercent: 15,
+          costImpactIdr: 15,
+          diagnosticHint: null,
+          hasSelectedMonthData: true,
+          hasPreviousMonthData: true,
+        })),
+        {
+          business: { id: 'inc-1', name: 'Inc 1', businessType: 'FNB', city: null },
+          status: 'Data Belum Lengkap' as const,
+          statusDescription: 'Incomplete',
+          trend: null,
+          currentUsageKwh: null,
+          previousUsageKwh: null,
+          usageChangePercent: null,
+          currentCostIdr: null,
+          previousCostIdr: null,
+          costChangePercent: null,
+          costImpactIdr: null,
+          diagnosticHint: null,
+          hasSelectedMonthData: false,
+          hasPreviousMonthData: false,
+        },
+      ];
+
+      const health = calculateHealth(list);
+      expect(health.safeCount).toBe(1);
+      expect(health.checkCount).toBe(3);
+      expect(health.attentionCount).toBe(5);
+      expect(health.incompleteCount).toBe(1);
+      // Must NOT state "Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar."
+      expect(health.summaryText).not.toContain('pola penggunaan yang wajar');
+      expect(health.summaryText).toContain('Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (8 dari 10 lokasi).');
+    });
+  });
+
+  describe('Regression: Strict Calendar Month Validation (Issue 6)', () => {
+    it('validates genuine YYYY-MM months strictly and rejects invalid values', () => {
+      // Valid months
+      expect(isValidYearMonth('2026-01')).toBe(true);
+      expect(isValidYearMonth('2026-08')).toBe(true);
+      expect(isValidYearMonth('2026-12')).toBe(true);
+      expect(isValidYearMonth('  2026-05  ')).toBe(true);
+
+      // Invalid months (out of bounds, malformed, non-calendar)
+      expect(isValidYearMonth('2026-00')).toBe(false);
+      expect(isValidYearMonth('2026-13')).toBe(false);
+      expect(isValidYearMonth('2026-99')).toBe(false);
+      expect(isValidYearMonth('abcd-12')).toBe(false);
+      expect(isValidYearMonth('2026-8')).toBe(false);
+      expect(isValidYearMonth('2026/08')).toBe(false);
+      expect(isValidYearMonth('')).toBe(false);
+      expect(isValidYearMonth(null)).toBe(false);
+      expect(isValidYearMonth(undefined)).toBe(false);
+      expect(isValidYearMonth(202608)).toBe(false);
+      expect(isValidYearMonth('1800-05')).toBe(false);
+    });
+  });
+
+  describe('Portfolio Route Redirection and Decision Logic (Issue 9)', () => {
+    it('redirects unauthenticated user to /login', () => {
+      const decision = resolvePortfolioRouteDecision(null, 'COMPLETE', []);
+      expect(decision).toEqual({ action: 'redirect', destination: '/login' });
+    });
+
+    it('redirects incomplete journey user to corresponding journey step', () => {
+      const decision = resolvePortfolioRouteDecision({ id: 'u1' }, 'ONBOARDING', []);
+      expect(decision).toEqual({ action: 'redirect', destination: '/onboarding' });
+    });
+
+    it('redirects user with 0 active businesses to /onboarding', () => {
+      const decision = resolvePortfolioRouteDecision({ id: 'u1' }, 'COMPLETE', []);
+      expect(decision).toEqual({ action: 'redirect', destination: '/onboarding' });
+    });
+
+    it('redirects user with exactly 1 active business to single-business dashboard', () => {
+      const decision = resolvePortfolioRouteDecision(
+        { id: 'u1' },
+        'COMPLETE',
+        [{ id: 'biz-single-1', name: 'Toko Satu' }]
+      );
+      expect(decision).toEqual({
+        action: 'redirect',
+        destination: '/dashboard?businessId=biz-single-1',
+      });
+    });
+
+    it('renders portfolio page for user with 2 or more active businesses', () => {
+      const decision = resolvePortfolioRouteDecision(
+        { id: 'u1' },
+        'COMPLETE',
+        [
+          { id: 'biz-1', name: 'Toko Satu' },
+          { id: 'biz-2', name: 'Toko Dua' },
+        ]
+      );
+      expect(decision).toEqual({ action: 'render' });
     });
   });
 });

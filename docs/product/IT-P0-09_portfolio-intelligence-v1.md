@@ -85,26 +85,40 @@ Portfolio Intelligence V1 is strictly focused on **electricity monitoring and de
   - `1 active business` → redirect to `/dashboard?businessId=<ownedBusinessId>`.
   - `2+ active businesses` → render Portfolio Command Center.
 
-### 4.2 Data Query Strategy (O(1) Batched Queries)
-To support 50+ locations without N+1 query bottlenecks:
-1. Query active businesses owned by user in 1 query.
-2. Extract `businessIds = businesses.map(b => b.id)`.
-3. Fetch all electricity bills for these businesses using `inArray(schema.electricityBill.businessId, businessIds)` in 1 batched query.
-4. In-memory grouping by `businessId` via `Map<string, BillDataLike[]>`.
-5. Pure mathematical aggregation and status mapping.
+### 4.2 Data Query Strategy (O(1) Batched Queries, No N+1)
+To support 50+ locations without per-business N+1 query bottlenecks:
+1. The Portfolio service (`getPortfolioOverview`) executes **2 batched database queries**:
+   - Query 1: Fetch active businesses owned by the authenticated user (`schema.business.userId = userId`).
+   - Query 2: Fetch all electricity bills for these businesses using a single `inArray(schema.electricityBill.businessId, businessIds)` query.
+2. While the overall page request executes additional constant queries for session validation, user journey status, and route guards, the entire page request executes in constant O(1) query time with **zero per-business N+1 queries**.
+3. In-memory grouping by `businessId` via `Map<string, BillDataLike[]>` ensures O(N) memory aggregation with pure mathematical classification.
 
 ### 4.3 Same-Month Aggregation & Fallback Semantics
-- If `?month=YYYY-MM` is provided, it is validated and applied.
-- If omitted, default selected month is the latest calendar month with electricity data for at least one active owned business.
+- Strict calendar month validation (`isValidYearMonth`) ensures only genuine calendar months (`YYYY-MM` with months 01-12) are processed; invalid inputs such as `2026-00`, `2026-13`, `2026-99`, `abcd-12` safely fall back to the latest recorded month.
+- If `?month=YYYY-MM` is omitted, the default selected month is the latest calendar month with electricity data for at least one active owned business.
 - Month metrics aggregate **only** bills where `periodEnd.slice(0, 7) === selectedMonth`. Bills from other months are never summed into the selected month total.
 
-### 4.4 Comparable Month-over-Month (MoM) Population
-When calculating percentage and absolute changes vs. previous month:
-- A business is considered comparable **only** if it has valid data in **both** `selectedMonth` and `previousMonth`.
-- `comparableBusinessCount` is explicitly disclosed in the UI (`Berdasarkan X dari Y lokasi yang sebanding`).
-- Non-comparable locations are excluded from the denominator to prevent distorted percentages.
+### 4.4 Authoritative Anomaly Evaluation & Incomplete Reason Separation
+- Location health strictly evaluates the selected month's usage. If the selected month lacks resolvable electricity usage (unusable kWh and no tariff derivation), the location is marked `Data Belum Lengkap` ("Data listrik bulan ini belum tersedia/lengkap."). `analyzeLatestAnomaly()` never evaluates an earlier usable month as a proxy for the selected month.
+- Incomplete reasons are preserved:
+  - Missing or unusable selected-month bill: "Data listrik bulan ini belum tersedia/lengkap."
+  - Selected-month usage exists but historical baseline is insufficient (< 2 usable samples): "Histori penggunaan belum cukup untuk menentukan pola."
+- Attention items preserve the specific incomplete reason rather than collapsing into a single generic message.
 
-### 4.5 Top Contributors to Electricity Increase (Section 17)
+### 4.5 Comparable Month-over-Month (MoM) Population
+When calculating percentage and absolute changes vs. previous month:
+- **Usage comparability:** A business is considered usage-comparable **only** when **both** `selectedMonth` and `previousMonth` have resolvable electricity usage (kWh). If a bill exists but kWh is unusable, the business is excluded from the usage comparable population.
+- **Cost comparability:** Modeled and tracked separately (`costComparableBusinessCount`) so that monetary comparisons do not distort kWh comparisons.
+- `usageComparableBusinessCount` is explicitly disclosed in the UI (`Berdasarkan X dari Y lokasi yang memiliki data sebanding`).
+- Trend labels (`Naik`, `Stabil`, `Turun`) strictly represent electricity usage movement. When electricity usage change is unavailable, trend is `null` (never falls back to cost percentage change, preventing tariff changes from falsely indicating "Pemakaian Naik").
+
+### 4.6 Count-Aware Health Summary Narrative
+The health summary narrative ("Kondisi Semua Usaha") strictly reflects actual counts:
+- Majority safe (`safeCount > needsReview`): *"Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar. Ada X lokasi yang sebaiknya Anda tinjau."* (or *"Semua lokasi terpantau berada dalam batas pola penggunaan yang wajar."* if 0 need review).
+- Majority needs review (`needsReview > safeCount`): *"Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (X dari Y lokasi)."* It never falsely claims most locations are normal when the review count exceeds the safe count.
+- Equal / tied: *"Ada X lokasi yang sebaiknya Anda tinjau."*
+
+### 4.7 Top Contributors to Electricity Increase (Section 17)
 - Evaluates comparable locations where `increaseKwh = (currentUsageKwh - previousUsageKwh) > 0`.
 - Calculates total increase: `totalIncreaseKwh = sum(increaseKwh)`.
 - Contribution percent: `(increaseKwh / totalIncreaseKwh) * 100`.
@@ -125,22 +139,14 @@ When calculating percentage and absolute changes vs. previous month:
 
 ## 6. Verification & Quality Evidence
 
-### 6.1 Automated Unit Tests (`vitest run tests/unit/portfolio.test.ts`)
-18 unit tests passing with 100% coverage of portfolio core logic:
-- `deriveTrendDirection`: verifies Naik (>2%), Turun (<-2%), Stabil (-2% to 2%), and null handling.
-- `processSingleLocation`: verifies Aman, Perlu Dicek, Perlu Perhatian, and Data Belum Lengkap mappings.
-- `calculateSummary`: verifies active locations count, reporting locations count, coverage %, and null fallback when no data exists.
-- `calculateComparison`: verifies strict comparable population matching and null handling for zero-comparable sets.
-- `calculateHealth`: verifies status breakdown and safe narrative generation.
-- `buildAttentionItems`: verifies prioritization (Perlu Perhatian > Perlu Dicek > Data Belum Lengkap), exclusion of Aman, and cap of 5 items.
-- `buildTopIncreaseContributors`: verifies absolute kWh increases, contribution percentages, and exclusion of decreasing locations.
-- `buildTrend`: verifies 6-month historical trend point generation with reporting count metadata.
-
-**Full Repository Suite Results:**
-- `npm test`: **34 test files passed (448 tests)**
-- `npm run typecheck`: **0 errors**
-- `npm run lint`: **0 errors, 0 warnings**
-- `npm run build`: **Next.js 16.2.11 production build compiled cleanly (`/portfolio` registered as dynamic SSR route)**
+### 6.1 Automated Tests
+- **Unit Tests (`tests/unit/portfolio.test.ts`):** 30 passing unit tests covering all core functions, health narratives, strict month validation, comparable populations, trend isolation, and route decisions.
+- **Integration Tests (`tests/integration/portfolio.test.ts`):** Verifies PostgreSQL tenant ownership isolation, 0 business fallback, and batched execution.
+- **Public Demo Provisioning Tests (`tests/integration/public-demo-provisioning.test.ts`):** Verifies idempotent convergence against stale records.
+- **Full Repository Test Suite:** All test suites passing.
+- **TypeScript:** `npm run typecheck` passing (0 errors).
+- **ESLint:** `npm run lint` passing (0 errors, 0 warnings).
+- **Production Build:** `npm run build` compiling cleanly with `/portfolio` as dynamic SSR route.
 
 ### 6.2 Browser QA Screenshots
 - Desktop Portfolio Command Center: `desktop_portfolio_view.png`
@@ -149,10 +155,12 @@ When calculating percentage and absolute changes vs. previous month:
 
 ---
 
-## 7. Protected Boundaries Confirmation
+## 7. Protected Boundaries & Deployment Confirmation
 
-- `wattwise-laravel/**`: **Zero files modified**.
+- `wattwise-laravel/**`: **Zero files modified** (confirmed read-only).
 - `wattwise-vercel/**`: All changes and additions reside exclusively in the Next.js runtime.
 - No ML forecasting models modified or retrained.
-- No production database or DNS modified.
-- No deployment performed.
+- No revenue / omzet / financial margin metrics added to Portfolio V1.
+- No production database or production DNS modified.
+- **No production deployment performed** (distinct from automatic ephemeral Vercel preview builds triggered on PR pushes; production remains untouched).
+- Draft PR #26 remains in DRAFT status.

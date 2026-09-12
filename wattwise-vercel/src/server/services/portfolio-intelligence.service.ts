@@ -2,7 +2,6 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { getDb } from '@/server/db';
 import * as schema from '@/server/db/schema';
 import { analyzeLatestAnomaly, type UsageSample } from './product-analysis';
-import { env } from '@/config/env';
 
 export type PortfolioHealthStatus =
   | 'Aman'
@@ -25,6 +24,8 @@ export interface PortfolioSummary {
 
 export interface PortfolioComparison {
   comparableBusinessCount: number;
+  usageComparableBusinessCount: number;
+  costComparableBusinessCount: number;
   currentComparableUsageKwh: number | null;
   previousComparableUsageKwh: number | null;
   usageDifferenceKwh: number | null;
@@ -142,8 +143,18 @@ export interface ProcessedLocationData {
   hasPreviousMonthData: boolean;
 }
 
-export function isPortfolioFeatureEnabled(): boolean {
-  return process.env.BUSINESS_PORTFOLIO_ENABLED === 'true' || env.BUSINESS_PORTFOLIO_ENABLED;
+/**
+ * Strictly validate that a string is a valid calendar month in YYYY-MM format (months 01-12).
+ */
+export function isValidYearMonth(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isInteger(year) || year < 1900 || year > 2100) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  return true;
 }
 
 export function getPreviousMonth(yearMonth: string): string {
@@ -240,18 +251,25 @@ export function processSingleLocation(
     }
   }
 
-  // Trend direction uses electricity usage change if available, otherwise cost change
-  const trend = deriveTrendDirection(usageChangePercent ?? costChangePercent);
+  // Trend direction strictly represents electricity usage movement.
+  // Never derive usage trend from electricity cost when kWh is unavailable.
+  const trend = usageChangePercent !== null ? deriveTrendDirection(usageChangePercent) : null;
 
   let status: PortfolioHealthStatus = 'Data Belum Lengkap';
-  let statusDescription = 'Data pemakaian bulan ini belum tersedia.';
+  let statusDescription = 'Data listrik bulan ini belum tersedia/lengkap.';
   let diagnosticHint: string | null = null;
 
-  if (hasSelectedMonthData) {
-    // Build UsageSample list up to selectedMonth to feed existing pure classifier
+  if (!hasSelectedMonthData || currentUsageKwh === null) {
+    // Condition A: Selected-month electricity record or usable usage is missing/unusable
+    status = 'Data Belum Lengkap';
+    statusDescription = 'Data listrik bulan ini belum tersedia/lengkap.';
+    diagnosticHint = null;
+  } else {
+    // Selected-month has resolvable electricity usage.
+    // Build UsageSample list up to selectedMonth to feed existing pure classifier.
     const relevantBills = sortedBills.filter((x) => x.periodEnd.slice(0, 7) <= selectedMonth);
     const samples: UsageSample[] = relevantBills.map((bill) => ({
-      period: bill.periodEnd,
+      period: bill.periodEnd.slice(0, 7),
       usageKwh: resolveUsage(bill),
       billAmount: Number(bill.totalAmountRupiah),
       tariff: bill.tariffRupiahPerKwh ? Number(bill.tariffRupiahPerKwh) : null,
@@ -277,8 +295,10 @@ export function processSingleLocation(
       status = 'Aman';
       statusDescription = 'Pemakaian listrik berada dalam batas wajar.';
     } else {
+      // Condition B: Selected-month usage exists but historical baseline is insufficient (< 2 usable samples)
       status = 'Data Belum Lengkap';
-      statusDescription = 'Data historis belum cukup untuk analisis baseline.';
+      statusDescription = 'Histori penggunaan belum cukup untuk menentukan pola.';
+      diagnosticHint = null;
     }
   }
 
@@ -339,57 +359,57 @@ export function calculateSummary(
 export function calculateComparison(
   processedList: ProcessedLocationData[]
 ): PortfolioComparison {
-  const comparable = processedList.filter(
-    (p) => p.hasSelectedMonthData && p.hasPreviousMonthData
+  const usageComparable = processedList.filter(
+    (p) => p.currentUsageKwh !== null && p.previousUsageKwh !== null
+  );
+  const costComparable = processedList.filter(
+    (p) => p.currentCostIdr !== null && p.previousCostIdr !== null
   );
 
-  const comparableBusinessCount = comparable.length;
-  if (comparableBusinessCount === 0) {
-    return {
-      comparableBusinessCount: 0,
-      currentComparableUsageKwh: null,
-      previousComparableUsageKwh: null,
-      usageDifferenceKwh: null,
-      usageDifferencePercent: null,
-      currentComparableCostIdr: null,
-      previousComparableCostIdr: null,
-      costDifferenceIdr: null,
-      costDifferencePercent: null,
-    };
-  }
+  const usageComparableBusinessCount = usageComparable.length;
+  const costComparableBusinessCount = costComparable.length;
+  const comparableBusinessCount = usageComparableBusinessCount;
 
   let currentUsageSum: number | null = null;
   let prevUsageSum: number | null = null;
-  let currentCostSum = 0;
-  let prevCostSum = 0;
-
-  for (const c of comparable) {
-    if (c.currentUsageKwh !== null && c.previousUsageKwh !== null) {
-      currentUsageSum = (currentUsageSum ?? 0) + c.currentUsageKwh;
-      prevUsageSum = (prevUsageSum ?? 0) + c.previousUsageKwh;
-    }
-    if (c.currentCostIdr !== null) {
-      currentCostSum += c.currentCostIdr;
-    }
-    if (c.previousCostIdr !== null) {
-      prevCostSum += c.previousCostIdr;
-    }
-  }
-
   let usageDifferenceKwh: number | null = null;
   let usageDifferencePercent: number | null = null;
-  if (currentUsageSum !== null && prevUsageSum !== null) {
+
+  if (usageComparableBusinessCount > 0) {
+    currentUsageSum = 0;
+    prevUsageSum = 0;
+    for (const c of usageComparable) {
+      currentUsageSum += c.currentUsageKwh!;
+      prevUsageSum += c.previousUsageKwh!;
+    }
     usageDifferenceKwh = currentUsageSum - prevUsageSum;
     if (prevUsageSum > 0) {
       usageDifferencePercent = (usageDifferenceKwh / prevUsageSum) * 100;
     }
   }
 
-  const costDifferenceIdr = currentCostSum - prevCostSum;
-  const costDifferencePercent = prevCostSum > 0 ? (costDifferenceIdr / prevCostSum) * 100 : null;
+  let currentCostSum: number | null = null;
+  let prevCostSum: number | null = null;
+  let costDifferenceIdr: number | null = null;
+  let costDifferencePercent: number | null = null;
+
+  if (costComparableBusinessCount > 0) {
+    currentCostSum = 0;
+    prevCostSum = 0;
+    for (const c of costComparable) {
+      currentCostSum += c.currentCostIdr!;
+      prevCostSum += c.previousCostIdr!;
+    }
+    costDifferenceIdr = currentCostSum - prevCostSum;
+    if (prevCostSum > 0) {
+      costDifferencePercent = (costDifferenceIdr / prevCostSum) * 100;
+    }
+  }
 
   return {
     comparableBusinessCount,
+    usageComparableBusinessCount,
+    costComparableBusinessCount,
     currentComparableUsageKwh: currentUsageSum !== null ? Math.round(currentUsageSum) : null,
     previousComparableUsageKwh: prevUsageSum !== null ? Math.round(prevUsageSum) : null,
     usageDifferenceKwh: usageDifferenceKwh !== null ? Math.round(usageDifferenceKwh) : null,
@@ -414,12 +434,26 @@ export function calculateHealth(processedList: ProcessedLocationData[]): Portfol
     else incompleteCount += 1;
   }
 
+  const total = processedList.length;
   const needsReview = attentionCount + checkCount;
-  let summaryText = 'Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar.';
-  if (needsReview > 0) {
-    summaryText = `Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar. Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
-  } else if (incompleteCount > 0 && safeCount === 0) {
-    summaryText = 'Data listrik belum tercatat lengkap untuk sebagian besar lokasi usaha.';
+
+  let summaryText = 'Belum ada lokasi usaha aktif.';
+  if (total > 0) {
+    if (incompleteCount === total) {
+      summaryText = 'Data listrik belum tercatat lengkap untuk lokasi usaha aktif.';
+    } else if (safeCount > needsReview) {
+      if (needsReview > 0) {
+        summaryText = `Sebagian besar lokasi masih berada dalam pola penggunaan yang wajar. Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
+      } else {
+        summaryText = 'Semua lokasi terpantau berada dalam batas pola penggunaan yang wajar.';
+      }
+    } else if (needsReview > safeCount) {
+      summaryText = `Sebagian besar lokasi memerlukan peninjauan pemakaian listrik (${needsReview} dari ${total} lokasi).`;
+    } else if (needsReview === safeCount && needsReview > 0) {
+      summaryText = `Ada ${needsReview} lokasi yang sebaiknya Anda tinjau.`;
+    } else {
+      summaryText = 'Data listrik belum tercatat lengkap untuk sebagian besar lokasi usaha.';
+    }
   }
 
   return {
@@ -475,7 +509,7 @@ export function buildAttentionItems(
         ? `Pemakaian listrik ${pct}% lebih tinggi dari pola baseline.`
         : 'Pemakaian meningkat dibanding pola sebelumnya.';
     } else if (p.status === 'Data Belum Lengkap') {
-      primaryReason = 'Data listrik bulan ini belum tersedia.';
+      primaryReason = p.statusDescription;
       ctaText = 'Lengkapi Data';
     }
 
@@ -643,6 +677,8 @@ export async function getPortfolioOverview(
       },
       comparison: {
         comparableBusinessCount: 0,
+        usageComparableBusinessCount: 0,
+        costComparableBusinessCount: 0,
         currentComparableUsageKwh: null,
         previousComparableUsageKwh: null,
         usageDifferenceKwh: null,
@@ -692,7 +728,7 @@ export async function getPortfolioOverview(
   const currentCalendarMonth = new Date().toISOString().slice(0, 7);
 
   let selectedMonth = currentCalendarMonth;
-  if (requestedMonth && /^\d{4}-\d{2}$/.test(requestedMonth)) {
+  if (requestedMonth && isValidYearMonth(requestedMonth)) {
     selectedMonth = requestedMonth;
   } else if (sortedRecordedMonths.length > 0) {
     // Default to latest calendar month with electricity data

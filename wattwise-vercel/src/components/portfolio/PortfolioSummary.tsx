@@ -56,9 +56,9 @@ export function PortfolioSummary({
   }
 
   const comparisonNote =
-    comparison.comparableBusinessCount > 0
-      ? `Berdasarkan ${comparison.comparableBusinessCount} dari ${coverage.activeBusinessCount} lokasi yang sebanding.`
-      : 'Belum cukup data di kedua bulan untuk perbandingan.';
+    comparison.usageComparableBusinessCount > 0
+      ? `Berdasarkan ${comparison.usageComparableBusinessCount} dari ${coverage.activeBusinessCount} lokasi yang memiliki data sebanding.`
+      : 'Belum cukup data di kedua bulan untuk perbandingan pemakaian.';
 
   return (
     <section aria-labelledby="portfolio-summary-heading" className="space-y-3">
