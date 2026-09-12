@@ -187,7 +187,7 @@ export default async function DashboardPage({
           </Link>
         )}
 
-        <section aria-label="Ringkasan utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section data-tour-id="dashboard-summary" aria-label="Ringkasan utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard Icon={ReceiptText} label="Tagihan terbaru" value={dashboard.latestBillSummary?.totalCost ?? 'Belum ada data'} note={dashboard.latestBillSummary?.period ?? 'Masukkan tagihan untuk memulai'} accent />
           <KpiCard Icon={CalendarDays} label="Biaya per hari" value={dashboard.latestBillSummary?.dailyCost ?? 'Belum tersedia'} note={dashboard.billComparisonSummary?.dailyCostChange ?? 'Perlu satu periode tagihan'} />
           <KpiCard Icon={WalletCards} label="Pendapatan bulan sama" value={support.matchingRevenue ? rupiah.format(support.matchingRevenue.amountRupiah) : 'Belum dicatat'} note={support.matchingRevenue?.inputMode === 'ESTIMATE' ? 'Perkiraan pengguna' : 'Gunakan untuk konteks cash flow'} />
@@ -195,11 +195,16 @@ export default async function DashboardPage({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-          <SoftCard>
-            <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Riwayat biaya</p><h2 className="mt-1 text-xl font-black">Tren tagihan tercatat</h2></div><Link href={`/bills${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)]">Lihat semua →</Link></div>
+          <SoftCard data-tour-id="dashboard-chart">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-[var(--muted)]">Pemantauan Mandiri</span>
+              <Link href={`/bills${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)] hover:underline">
+                Kelola semua tagihan →
+              </Link>
+            </div>
             {support.bills.length === 0
               ? <p className="mt-6 rounded-2xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">Belum ada tagihan untuk ditampilkan.</p>
-              : <div className="mt-4"><TrendChart points={billTrendPoints} metric="rupiah" /></div>}
+              : <TrendChart points={billTrendPoints} metric="rupiah" />}
           </SoftCard>
 
           <SoftCard>
@@ -216,14 +221,14 @@ export default async function DashboardPage({
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
-          <SoftCard>
+          <SoftCard data-tour-id="dashboard-candidates">
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Cek Kenaikan</p><h2 className="mt-1 text-xl font-black">Bagian yang perlu dicek</h2></div><Search aria-hidden="true" className="h-6 w-6 text-[var(--primary)]" /></div>
             {dashboard.candidateSummaries.length === 0
               ? <p className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm leading-6 text-[var(--muted)]">Belum ada kandidat. Jalankan Cek Kenaikan setelah dua periode tagihan tersedia.</p>
               : <ol className="mt-5 space-y-3">{dashboard.candidateSummaries.map((candidate) => <li key={`${candidate.rankLabel}-${candidate.title}`} className="rounded-2xl bg-[var(--surface-muted)] p-4"><div className="flex items-center justify-between gap-3"><span className="text-[10px] font-extrabold uppercase tracking-wide text-[var(--primary)]">{candidate.rankLabel}</span><span className="text-[10px] font-bold text-[var(--muted)]">{candidate.inspectionStatusLabel}</span></div><h3 className="mt-2 font-extrabold">{candidate.title}</h3><p className="mt-2 text-xs leading-5 text-[var(--muted)]">{candidate.explanation}</p></li>)}</ol>}
           </SoftCard>
 
-          <SoftCard>
+          <SoftCard data-tour-id="dashboard-actions">
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Tindakan berjalan</p><h2 className="mt-1 text-xl font-black">Rencana Hemat</h2></div><BadgeCheck aria-hidden="true" className="h-6 w-6 text-[var(--primary)]" /></div>
             {dashboard.actionPlanSummaries.length === 0
               ? <p className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm leading-6 text-[var(--muted)]">Belum ada Rencana Hemat. Rencana dapat dibuat setelah pemeriksaan kandidat.</p>

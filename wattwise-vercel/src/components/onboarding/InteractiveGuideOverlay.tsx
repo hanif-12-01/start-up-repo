@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   HelpCircle,
   MousePointerClick,
+  Sparkles,
 } from 'lucide-react';
 import { useBeginnerGuide } from './BeginnerGuideContext';
 import { SESSION_TOUR_PENDING_STEP_KEY } from './guide-steps';
@@ -42,11 +43,24 @@ export function InteractiveGuideOverlay() {
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [targetFound, setTargetFound] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [cardHeight, setCardHeight] = useState<number>(290);
   const cardRef = useRef<HTMLDivElement>(null);
   const targetElRef = useRef<Element | null>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
-  // Derived state without cascading setState in effect
   const isTargetClickStep = currentStepData?.advanceMode === 'target-click';
+
+  // Store trigger element for accessible focus restoration upon closing
+  useEffect(() => {
+    if (isTourActive) {
+      if (document.activeElement instanceof HTMLElement) {
+        previousActiveElementRef.current = document.activeElement;
+      }
+    } else if (previousActiveElementRef.current) {
+      previousActiveElementRef.current.focus?.();
+      previousActiveElementRef.current = null;
+    }
+  }, [isTourActive]);
 
   // Check viewport width for responsive mobile layout
   useEffect(() => {
@@ -101,13 +115,22 @@ export function InteractiveGuideOverlay() {
         right: rect.right,
       });
       setTargetFound(true);
+      if (cardRef.current && cardRef.current.offsetHeight > 0) {
+        setCardHeight(cardRef.current.offsetHeight);
+      }
     } else {
       setTargetRect(null);
       setTargetFound(false);
     }
   }, [isTourActive, currentStepData]);
 
-  // Attach scoped temporary click listener to the active target element ONLY
+  useEffect(() => {
+    if (cardRef.current && cardRef.current.offsetHeight > 0) {
+      setCardHeight(cardRef.current.offsetHeight);
+    }
+  }, [currentStep, targetRect]);
+
+  // Attach scoped temporary click listener to the active target element
   useEffect(() => {
     if (!isTourActive || !currentStepData || currentStepData.advanceMode !== 'target-click') {
       return;
@@ -117,7 +140,6 @@ export function InteractiveGuideOverlay() {
     if (!el) return;
 
     const handleTargetClick = () => {
-      // Do NOT call preventDefault or stopPropagation
       try {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(SESSION_TOUR_PENDING_STEP_KEY, String(currentStep + 1));
@@ -131,7 +153,7 @@ export function InteractiveGuideOverlay() {
     };
   }, [isTourActive, currentStep, currentStepData, targetFound]);
 
-  // Route confirmation: observe pathname and searchParams to auto-advance target-click steps
+  // Route confirmation: auto-advance target-click steps when route changes
   useEffect(() => {
     if (!isTourActive || !currentStepData) return;
 
@@ -151,7 +173,6 @@ export function InteractiveGuideOverlay() {
       }
 
       if (pathnameMatched && searchParamMatched) {
-        // Check if this step was pending or we're on the step and target was clicked/reached
         let wasPending = false;
         try {
           if (typeof window !== 'undefined') {
@@ -163,7 +184,6 @@ export function InteractiveGuideOverlay() {
           }
         } catch {}
 
-        // If route matches expected destination for a target-click navigation step, advance to next step
         if (wasPending || currentStepData.expectedSearchParam) {
           const timer = setTimeout(() => {
             nextStep();
@@ -188,10 +208,14 @@ export function InteractiveGuideOverlay() {
     }
 
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (window.innerWidth < 640) {
+        // On mobile, scroll so target is positioned in the upper portion above bottom sheet
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
 
-    // Delay slightly to account for smooth scroll & dynamic render
     const timer = setTimeout(updateTargetPosition, 100);
 
     const handleScrollOrResize = () => {
@@ -216,51 +240,112 @@ export function InteractiveGuideOverlay() {
   const isLastStep = currentStep === steps.length - 1;
 
   const stageColorMap: Record<string, string> = {
-    DATA: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
-    UNDERSTAND: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
-    PREDICT: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-    'DECIDE / ACT': 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-    MEASURE: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
+    DATA: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
+    UNDERSTAND: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30',
+    PREDICT: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+    'DECIDE / ACT': 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    MEASURE: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30',
   };
 
   const badgeClass =
     stageColorMap[currentStepData.stage] ||
     'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/30';
 
-  // Desktop positioning calculation with viewport clamping
+  // Smart Adaptive Collision-Free Positioning (B4, B5)
   const getCardStyle = (): React.CSSProperties => {
     if (isMobile || !targetRect) {
       return {};
     }
 
     const cardWidth = 380;
-    const cardHeight = 270;
     const padding = 16;
-    const placement = currentStepData.placement || 'bottom';
+    const preferredPlacement = currentStepData.placement || 'bottom';
 
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const spaceTop = targetRect.top;
+    const spaceBottom = vh - targetRect.bottom;
+    const spaceLeft = targetRect.left;
+    const spaceRight = vw - targetRect.right;
+
+    // Check clearances
+    const fitsBottom = spaceBottom >= cardHeight + padding;
+    const fitsTop = spaceTop >= cardHeight + padding;
+    const fitsRight = spaceRight >= cardWidth + padding;
+    const fitsLeft = spaceLeft >= cardWidth + padding;
+
+    let resolvedPlacement = preferredPlacement;
+
+    // Adaptive flip to prevent covering the target element
+    if (preferredPlacement === 'bottom') {
+      if (!fitsBottom && fitsTop) {
+        resolvedPlacement = 'top';
+      } else if (!fitsBottom && fitsRight) {
+        resolvedPlacement = 'right';
+      } else if (!fitsBottom && fitsLeft) {
+        resolvedPlacement = 'left';
+      }
+    } else if (preferredPlacement === 'top') {
+      if (!fitsTop && fitsBottom) {
+        resolvedPlacement = 'bottom';
+      } else if (!fitsTop && fitsRight) {
+        resolvedPlacement = 'right';
+      } else if (!fitsTop && fitsLeft) {
+        resolvedPlacement = 'left';
+      }
+    } else if (preferredPlacement === 'right') {
+      if (!fitsRight && fitsLeft) {
+        resolvedPlacement = 'left';
+      } else if (!fitsRight && fitsBottom) {
+        resolvedPlacement = 'bottom';
+      } else if (!fitsRight && fitsTop) {
+        resolvedPlacement = 'top';
+      }
+    } else if (preferredPlacement === 'left') {
+      if (!fitsLeft && fitsRight) {
+        resolvedPlacement = 'right';
+      } else if (!fitsLeft && fitsBottom) {
+        resolvedPlacement = 'bottom';
+      } else if (!fitsLeft && fitsTop) {
+        resolvedPlacement = 'top';
+      }
+    }
+
+    // Compute coordinates
     let top = 0;
     let left = 0;
 
-    if (placement === 'bottom') {
-      top = targetRect.bottom + 12;
+    if (resolvedPlacement === 'bottom') {
+      top = targetRect.bottom + 14;
       left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
-    } else if (placement === 'top') {
-      top = targetRect.top - cardHeight - 12;
+    } else if (resolvedPlacement === 'top') {
+      top = targetRect.top - cardHeight - 14;
       left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
-    } else if (placement === 'right') {
+    } else if (resolvedPlacement === 'right') {
       top = targetRect.top + targetRect.height / 2 - cardHeight / 2;
       left = targetRect.right + 16;
-    } else if (placement === 'left') {
+    } else if (resolvedPlacement === 'left') {
       top = targetRect.top + targetRect.height / 2 - cardHeight / 2;
       left = targetRect.left - cardWidth - 16;
     }
 
-    // Viewport clamping
-    const maxLeft = window.innerWidth - cardWidth - padding;
-    const maxTop = window.innerHeight - cardHeight - padding;
-
-    left = Math.max(padding, Math.min(left, maxLeft));
-    top = Math.max(padding, Math.min(top, maxTop));
+    // Clamping along non-placement axis, ensuring we NEVER overlap the target
+    if (resolvedPlacement === 'bottom' || resolvedPlacement === 'top') {
+      left = Math.max(padding, Math.min(left, vw - cardWidth - padding));
+      if (resolvedPlacement === 'bottom') {
+        top = Math.max(targetRect.bottom + 8, Math.min(top, vh - cardHeight - padding));
+      } else {
+        top = Math.min(targetRect.top - cardHeight - 8, Math.max(padding, top));
+      }
+    } else {
+      top = Math.max(padding, Math.min(top, vh - cardHeight - padding));
+      if (resolvedPlacement === 'right') {
+        left = Math.max(targetRect.right + 8, Math.min(left, vw - cardWidth - padding));
+      } else {
+        left = Math.min(targetRect.left - cardWidth - 8, Math.max(padding, left));
+      }
+    }
 
     return {
       position: 'fixed',
@@ -274,20 +359,21 @@ export function InteractiveGuideOverlay() {
   return (
     <div
       className="fixed inset-0 z-50 pointer-events-none"
-      role="region"
+      role="dialog"
+      aria-modal="false"
       aria-label="Panduan Interaktif WattWise"
     >
-      {/* Target Highlight Spotlight (pointer-events: none allows clicking the actual target underneath) */}
+      {/* Target Highlight Spotlight (pointer-events: none keeps target clickable) */}
       {targetFound && targetRect && (
         <div
-          className="fixed pointer-events-none transition-all duration-200 rounded-xl"
+          className="fixed pointer-events-none transition-all duration-200 rounded-2xl"
           style={{
-            top: `${targetRect.top - 4}px`,
-            left: `${targetRect.left - 4}px`,
-            width: `${targetRect.width + 8}px`,
-            height: `${targetRect.height + 8}px`,
+            top: `${targetRect.top - 6}px`,
+            left: `${targetRect.left - 6}px`,
+            width: `${targetRect.width + 12}px`,
+            height: `${targetRect.height + 12}px`,
             border: '2.5px solid var(--primary)',
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.50), 0 0 20px rgba(16, 185, 129, 0.45)',
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.52), 0 0 24px rgba(16, 185, 129, 0.45)',
             zIndex: 45,
           }}
           aria-hidden="true"
@@ -297,7 +383,7 @@ export function InteractiveGuideOverlay() {
       {/* Dimmed backdrop when target is not found on current page */}
       {!targetFound && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-2xs pointer-events-none transition-opacity"
+          className="fixed inset-0 bg-black/45 backdrop-blur-2xs pointer-events-none transition-opacity"
           aria-hidden="true"
         />
       )}
@@ -306,13 +392,15 @@ export function InteractiveGuideOverlay() {
       <div
         ref={cardRef}
         style={getCardStyle()}
-        className={`pointer-events-auto rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5 sm:p-6 shadow-2xl transition-all ${
-          isMobile || !targetFound
-            ? 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-60'
-            : ''
+        className={`pointer-events-auto transition-all ${
+          isMobile
+            ? 'fixed bottom-0 left-0 right-0 z-60 rounded-t-3xl border-t border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5 shadow-2xl max-h-[52vh] overflow-y-auto'
+            : !targetFound
+            ? 'fixed bottom-6 right-6 z-60 w-[380px] rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 shadow-2xl'
+            : 'rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5 sm:p-6 shadow-2xl'
         }`}
       >
-        {/* Header: Stage Badge, Step Count, Close */}
+        {/* Header: Stage Badge, Step Count, Close Button */}
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
           <div className="flex items-center gap-2">
             <span
@@ -335,7 +423,7 @@ export function InteractiveGuideOverlay() {
           </button>
         </div>
 
-        {/* Stepper Progress Indicator */}
+        {/* Stepper Progress Bar */}
         <div
           className="mt-3 flex items-center justify-between gap-1"
           aria-label="Progres panduan"
@@ -359,7 +447,7 @@ export function InteractiveGuideOverlay() {
         </div>
 
         {/* Body Content */}
-        <div className="mt-3.5 space-y-2">
+        <div className="mt-3.5 space-y-2.5">
           <h3 className="text-base font-black tracking-tight text-[var(--foreground)]">
             {currentStepData.title}
           </h3>
@@ -371,7 +459,7 @@ export function InteractiveGuideOverlay() {
           {/* Missing target helper */}
           {!targetFound && (
             <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-700 dark:text-amber-300">
-              <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <p className="font-bold">Bagian ini berada di halaman lain.</p>
                 <p className="mt-0.5">
@@ -381,19 +469,28 @@ export function InteractiveGuideOverlay() {
             </div>
           )}
 
+          {/* Context Explainer */}
           {targetFound && currentStepData.detailedContext && (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/70 p-2.5 text-[11px] leading-relaxed text-[var(--muted)]">
               {currentStepData.detailedContext}
             </div>
           )}
+
+          {/* Benefit Badge */}
+          {currentStepData.benefit && (
+            <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <span>{currentStepData.benefit}</span>
+            </div>
+          )}
         </div>
 
-        {/* Target-click visual helper or route CTA */}
+        {/* Target click helper or route navigation */}
         <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between">
           {targetFound && isTargetClickStep ? (
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--primary)]">
               <MousePointerClick className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Klik bagian yang disorot untuk melanjutkan</span>
+              <span>Klik bagian yang disorot atau tombol Lanjut</span>
             </div>
           ) : (
             <Link
@@ -436,9 +533,6 @@ export function InteractiveGuideOverlay() {
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Selesai
               </button>
-            ) : isTargetClickStep && targetFound ? (
-              // For target-click steps when target exists: DO NOT show competing primary Lanjut button!
-              null
             ) : (
               <button
                 type="button"
