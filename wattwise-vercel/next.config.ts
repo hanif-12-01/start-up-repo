@@ -4,6 +4,10 @@ const scriptPolicy = process.env.NODE_ENV === 'development'
   ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
   : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'";
 
+const connectPolicy = process.env.NODE_ENV === 'development'
+  ? "connect-src 'self' ws: wss: http: https:"
+  : "connect-src 'self'";
+
 const securityHeaders = [
   // Prevent browsers from MIME-sniffing the content type
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -36,7 +40,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self'",
+      connectPolicy,
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
@@ -51,6 +55,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   async headers() {
     return [
       {
