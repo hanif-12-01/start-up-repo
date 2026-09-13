@@ -8,6 +8,7 @@ import {
   Building2,
   ChartNoAxesCombined,
   FileText,
+  Layers,
   LayoutDashboard,
   Menu,
   PackageOpen,
@@ -29,45 +30,54 @@ import {
 
 type Item = { href: string; label: string; icon: LucideIcon; tourId?: string };
 
-const groups: Array<{ label: string; items: Item[] }> = [
-  {
-    label: 'UTAMA',
-    items: [
-      { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, tourId: 'sidebar-dashboard' },
-      { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined, tourId: 'sidebar-analysis' },
-    ],
-  },
-  {
-    label: 'DATA',
-    items: [
-      { href: '/bills', label: 'Tagihan Listrik', icon: ReceiptText, tourId: 'sidebar-bills' },
-      { href: '/revenue', label: 'Pendapatan', icon: WalletCards, tourId: 'sidebar-revenue' },
-      { href: '/appliances', label: 'Peralatan', icon: PlugZap, tourId: 'sidebar-appliances' },
-      { href: '/businesses', label: 'Usaha Saya', icon: Building2, tourId: 'sidebar-businesses' },
-    ],
-  },
-  {
-    label: 'TINDAKAN',
-    items: [
-      { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search, tourId: 'sidebar-diagnostics' },
-      { href: '/reports/monthly', label: 'Laporan', icon: FileText, tourId: 'sidebar-reports' },
-    ],
-  },
-  {
-    label: 'AKUN',
-    items: [
-      { href: '/plans', label: 'Paket Saya', icon: PackageOpen },
-      { href: '/settings/profile', label: 'Pengaturan', icon: Settings },
-    ],
-  },
-];
+function getNavGroups(businessCount: number): Array<{ label: string; items: Item[] }> {
+  const isMulti = businessCount >= 2;
+  return [
+    {
+      label: 'UTAMA',
+      items: isMulti
+        ? [
+            { href: '/portfolio', label: 'Semua Usaha', icon: Layers, tourId: 'sidebar-portfolio' },
+            { href: '/dashboard', label: 'Lokasi Aktif', icon: LayoutDashboard, tourId: 'sidebar-dashboard' },
+            { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined, tourId: 'sidebar-analysis' },
+          ]
+        : [
+            { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, tourId: 'sidebar-dashboard' },
+            { href: '/analysis', label: 'Analisis', icon: ChartNoAxesCombined, tourId: 'sidebar-analysis' },
+          ],
+    },
+    {
+      label: 'DATA',
+      items: [
+        { href: '/bills', label: 'Tagihan Listrik', icon: ReceiptText, tourId: 'sidebar-bills' },
+        { href: '/revenue', label: 'Pendapatan', icon: WalletCards, tourId: 'sidebar-revenue' },
+        { href: '/appliances', label: 'Peralatan', icon: PlugZap, tourId: 'sidebar-appliances' },
+        { href: '/businesses', label: isMulti ? 'Kelola Usaha' : 'Usaha Saya', icon: Building2, tourId: 'sidebar-businesses' },
+      ],
+    },
+    {
+      label: 'TINDAKAN',
+      items: [
+        { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search, tourId: 'sidebar-diagnostics' },
+        { href: '/reports/monthly', label: 'Laporan', icon: FileText, tourId: 'sidebar-reports' },
+      ],
+    },
+    {
+      label: 'AKUN',
+      items: [
+        { href: '/plans', label: 'Paket Saya', icon: PackageOpen },
+        { href: '/settings/profile', label: 'Pengaturan', icon: Settings },
+      ],
+    },
+  ];
+}
 
 const shellBypass = ['/plan', '/onboarding', '/setup'];
 
 function NavLink({ item, pathname, close }: { item: Item; pathname: string; close: () => void }) {
   const active =
     pathname === item.href ||
-    (item.href !== '/dashboard' && pathname.startsWith(`${item.href}`));
+    (item.href !== '/dashboard' && item.href !== '/portfolio' && pathname.startsWith(`${item.href}`));
   const Icon = item.icon;
 
   return (
@@ -93,16 +103,19 @@ export function ProductShell({
   userName,
   userEmail,
   plan = 'FREE',
+  businessCount = 1,
 }: {
   children: React.ReactNode;
   userName?: string;
   userEmail?: string;
   plan?: string;
+  businessCount?: number;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const groups = getNavGroups(businessCount);
 
   useEffect(() => {
     if (!menuOpen) return;

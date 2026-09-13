@@ -31,12 +31,13 @@ describe('Public Demo Provisioning Integration Tests', () => {
     if (pool) await pool.end();
   });
 
-  it('provisions public demo account and verifies login and 3 demo businesses', async () => {
+  it('provisions public demo account and verifies login and 4 demo businesses', async () => {
     const res = await ensurePublicDemoAccount();
     expect(res.email).toBe(PUBLIC_DEMO_EMAIL);
     expect(res.businessIds.demo01).toBeDefined();
     expect(res.businessIds.demo02).toBeDefined();
     expect(res.businessIds.demo03).toBeDefined();
+    expect(res.businessIds.demo04).toBeDefined();
 
     // Verify Better Auth sign in works with demo credentials
     const signInRes = await auth.api.signInEmail({
@@ -63,5 +64,25 @@ describe('Public Demo Provisioning Integration Tests', () => {
     const res1 = await ensurePublicDemoAccount();
     const res2 = await ensurePublicDemoAccount();
     expect(res1.userId).toBe(res2.userId);
+  });
+
+  it('converges bills idempotently even if existing records have stale data with same row count', async () => {
+    const res = await ensurePublicDemoAccount();
+    // Tamper with demo01's bill kwh to simulate an existing account with old values
+    await pool.query(
+      `UPDATE electricity_bill SET kwh = '999.000' WHERE business_id = $1`,
+      [res.businessIds.demo01]
+    );
+
+    // Call ensurePublicDemoAccount again -> must re-converge to the desired series
+    await ensurePublicDemoAccount();
+
+    const billsRes = await pool.query(
+      `SELECT kwh, period_end FROM electricity_bill WHERE business_id = $1 ORDER BY period_end ASC`,
+      [res.businessIds.demo01]
+    );
+    expect(billsRes.rows.length).toBe(2);
+    expect(Number(billsRes.rows[0].kwh)).toBe(350);
+    expect(Number(billsRes.rows[1].kwh)).toBe(395);
   });
 });

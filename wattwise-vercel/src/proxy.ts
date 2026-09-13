@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { sanitizeCorrelationId } from '@/server/logger';
 
 const PROTECTED_PREFIXES = [
+  '/portfolio',
   '/dashboard',
   '/analysis',
   '/anomalies',
@@ -40,6 +41,7 @@ export function proxy(request: NextRequest) {
 
   let response: NextResponse;
 
+  // Protect private application routes when no session cookie is present
   if (isProtected && !hasCookie) {
     response = NextResponse.redirect(new URL('/login', request.url));
   } else {
@@ -57,6 +59,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/portfolio/:path*',
     '/dashboard/:path*',
     '/analysis/:path*',
     '/anomalies/:path*',

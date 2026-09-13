@@ -52,6 +52,15 @@ export function businessSegmentLabel(segment: string): string {
   }[segment] ?? segment;
 }
 
+export function formatMonthLabel(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
+  return `${monthNames[month - 1] ?? ''} ${year}`;
+}
+
 export function compactRupiah(value: number): string {
   if (!Number.isFinite(value)) return 'Rp 0';
   const abs = Math.abs(value);
@@ -85,3 +94,4 @@ export function compactDecimal(value: number): string {
   }
   return `${sign}${decimal.format(abs)}`;
 }
+
