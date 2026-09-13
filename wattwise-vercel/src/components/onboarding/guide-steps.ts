@@ -118,7 +118,7 @@ export const CORE_TOUR_STEPS: TourStep[] = [
       'Jika ada kenaikan yang perlu diperiksa, WattWise akan membantu menandai peralatan terkait.',
     detailedContext:
       'WattWise tidak membuat vonis sepihak, melainkan memberikan kandidat terarah untuk Anda periksa langsung di lokasi usaha.',
-    benefit: 'Fokus memeriksa peralatan yang paling berpotensi menyebabkan pemborosan.',
+    benefit: 'Fokus memeriksa peralatan yang paling relevan dengan kenaikan pemakaian.',
     actionLabel: 'Lanjut ke Tindakan',
     ctaLabel: 'Buka Cek Kenaikan',
     ctaHref: '/diagnostics',

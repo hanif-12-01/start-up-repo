@@ -865,7 +865,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       const location: ProcessedLocationData = {
         business: { id: 'biz-anomaly-test', name: 'Warung Kopi', businessType: 'FNB', city: 'Surabaya' },
         status: 'Perlu Dicek',
-        statusDescription: 'Pemakaian listrik 15% lebih tinggi dari pola baseline.',
+        statusDescription: 'Pemakaian listrik 15% lebih tinggi dari pola sebelumnya.',
         trend: null, // July usage unavailable -> trend is null
         currentUsageKwh: 1150,
         previousUsageKwh: null, // July usage missing
@@ -884,7 +884,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       expect(items.length).toBe(1);
       expect(items[0].status).toBe('Perlu Dicek');
       // Explanatory wording MUST use anomaly deviation (15%), NOT cost change (150%)
-      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola baseline.');
+      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola sebelumnya.');
       expect(items[0].primaryReason).not.toContain('150%');
       expect(items[0].usageChangePercent).toBeNull();
       expect(items[0].anomalyDifferencePercent).toBe(15.0);
@@ -898,7 +898,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       const locA: ProcessedLocationData = {
         business: { id: 'loc-a', name: 'Toko A', businessType: 'RETAIL', city: null },
         status: 'Perlu Dicek',
-        statusDescription: 'Pemakaian listrik 12% lebih tinggi dari pola baseline.',
+        statusDescription: 'Pemakaian listrik 12% lebih tinggi dari pola sebelumnya.',
         trend: null,
         currentUsageKwh: 1120,
         previousUsageKwh: null,
@@ -916,7 +916,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       const locB: ProcessedLocationData = {
         business: { id: 'loc-b', name: 'Toko B', businessType: 'RETAIL', city: null },
         status: 'Perlu Dicek',
-        statusDescription: 'Pemakaian listrik 18% lebih tinggi dari pola baseline.',
+        statusDescription: 'Pemakaian listrik 18% lebih tinggi dari pola sebelumnya.',
         trend: null,
         currentUsageKwh: 1180,
         previousUsageKwh: null,
@@ -957,7 +957,7 @@ describe('Portfolio Intelligence V1 — Unit Tests', () => {
       expect(res.anomalyDifferencePercent).toBe(15);
 
       const items = buildAttentionItems([res]);
-      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola baseline.');
+      expect(items[0].primaryReason).toBe('Pemakaian listrik 15% lebih tinggi dari pola sebelumnya.');
       expect(items[0].usageChangePercent).toBeNull();
       expect(items[0].anomalyDifferencePercent).toBe(15);
     });

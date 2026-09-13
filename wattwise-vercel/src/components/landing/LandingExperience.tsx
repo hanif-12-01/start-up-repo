@@ -68,7 +68,7 @@ const problems = [
   [Activity, 'Biaya periode ini berbeda', 'Bandingkan biaya harian agar perubahan nominal tidak menyesatkan.'],
   [FileQuestion, 'Penyebab belum jelas', 'Kumpulkan konteks usaha dan susun kandidat tanpa menyatakan penyebab pasti.'],
   [Wrench, 'Tidak tahu harus mengecek apa', 'Ikuti pemeriksaan observasional yang aman dan mudah dipahami.'],
-  [RefreshCw, 'Sulit melihat hasil nyata', 'Bandingkan periode berikutnya dengan baseline dan catat perubahan konteksnya.'],
+  [RefreshCw, 'Sulit melihat hasil nyata', 'Bandingkan periode berikutnya dengan pola sebelumnya dan catat perubahan konteksnya.'],
 ] as const;
 
 const benefits = [

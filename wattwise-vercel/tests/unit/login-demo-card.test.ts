@@ -32,7 +32,7 @@ describe('JURY-DEMO-03 — Public Demo Access Card on Login', () => {
     expect(cardContent).toContain('DEMO 01');
     expect(cardContent).toContain('DEMO 02');
     expect(cardContent).toContain('DEMO 03');
-    expect(cardContent).toContain('Prediksi AI N-BEATS');
+    expect(cardContent).toContain('Prediksi WattWise');
 
     // Login page embeds DemoAccessCard and maintains standard authClient submission
     expect(loginContent).toContain('<DemoAccessCard');

@@ -68,7 +68,7 @@ export function CreateActionPlanForm({
           className="mt-2 block w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-[var(--foreground)] outline-none focus:border-[var(--info)] disabled:opacity-60"
         />
         <span className="mt-2 block text-xs font-normal text-[var(--muted)]">
-          Tanggal tidak boleh sebelum akhir periode tagihan baseline.
+          Tanggal tidak boleh sebelum akhir periode tagihan acuan.
         </span>
       </label>
 

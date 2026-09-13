@@ -206,7 +206,7 @@ export function generateAnalysisRecommendations(input: {
       id: 'rec-anomaly-med',
       priority: 'SEDANG',
       title: 'Pantau potensi lonjakan pemakaian pada periode ini',
-      reason: `Terdeteksi kenaikan indikatif sebesar ${input.differencePercent?.toFixed(1)}% dari baseline harian.`,
+      reason: `Terdeteksi kenaikan indikatif sebesar ${input.differencePercent?.toFixed(1)}% dari pola pemakaian sebelumnya.`,
       limitation: 'Kenaikan dapat dipengaruhi oleh perubahan musiman atau variasi jumlah hari tagihan.',
       nextAction: 'Bandingkan rincian tarif dan periksa apakah ada alat listrik baru yang beroperasi.',
     });

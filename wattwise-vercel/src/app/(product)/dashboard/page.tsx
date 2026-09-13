@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { businessSegmentLabel, decimal, formatMonth, rupiah } from '@/lib/format';
+import { getHealthNarrative } from '@/lib/presentation';
 import { TrendChart, type TrendPoint } from '@/components/analysis/TrendChart';
 import { SoftCard, secondaryButton } from '@/components/product/WorkspaceUI';
 import { getOptionalSession } from '@/server/auth/session';
@@ -161,31 +162,28 @@ export default async function DashboardPage({
           </nav>
         </section>
 
-        {anomaly.hasData && (anomaly.status === 'Perlu Dicek' || anomaly.status === 'Boros') && (
-          <Link
-            href={`/analysis?businessId=${encodeURIComponent(selectedBusinessId)}&tab=anomaly`}
-            className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center sm:justify-between ${
-              anomaly.status === 'Boros'
-                ? 'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)] hover:brightness-95'
-                : 'border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)] hover:brightness-95'
-            }`}
-          >
-            <span className="flex items-start gap-3">
-              <TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
-              <span>
-                <strong className="block text-sm">
-                  {anomaly.status === 'Boros' ? 'Indikasi pemakaian boros' : 'Pemakaian perlu ditinjau'}
-                </strong>
-                <span className="mt-1 block text-xs leading-5">
-                  {anomaly.status === 'Boros'
-                    ? `Terdeteksi kenaikan pemakaian signifikan sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`
-                    : `Terdeteksi kenaikan pemakaian indikatif sebesar ${anomaly.differencePercent?.toFixed(1)}% dari baseline tercatat.`}
+        {anomaly.hasData && (anomaly.status === 'Perlu Dicek' || anomaly.status === 'Boros') && (() => {
+          const narrative = getHealthNarrative(anomaly.status, anomaly.differencePercent);
+          return (
+            <Link
+              href={`/analysis?businessId=${encodeURIComponent(selectedBusinessId)}&tab=anomaly`}
+              className="flex flex-col gap-3 rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-surface)] text-[var(--warning)] p-4 transition hover:brightness-95 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="flex items-start gap-3">
+                <TriangleAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+                <span>
+                  <strong className="block text-sm">
+                    {narrative.title}
+                  </strong>
+                  <span className="mt-1 block text-xs leading-5">
+                    {narrative.description}
+                  </span>
                 </span>
               </span>
-            </span>
-            <span className="text-xs font-extrabold text-[var(--warning)]">Lihat analisis indikasi →</span>
-          </Link>
-        )}
+              <span className="text-xs font-extrabold text-[var(--warning)]">Lihat analisis indikasi →</span>
+            </Link>
+          );
+        })()}
 
         <section data-tour-id="dashboard-summary" aria-label="Ringkasan utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard Icon={ReceiptText} label="Tagihan terbaru" value={dashboard.latestBillSummary?.totalCost ?? 'Belum ada data'} note={dashboard.latestBillSummary?.period ?? 'Masukkan tagihan untuk memulai'} accent />
