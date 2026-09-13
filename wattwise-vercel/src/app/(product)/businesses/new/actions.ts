@@ -44,8 +44,9 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
     return { error: 'Mohon periksa data yang dimasukkan.', fieldErrors: errors };
   }
 
+  let created;
   try {
-    await createBusiness(userId, parsed.data);
+    created = await createBusiness(userId, parsed.data);
   } catch (error) {
     if (error instanceof BusinessLimitExceededError) {
       return { error: error.message };
@@ -53,5 +54,9 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
     throw error;
   }
 
-  redirect(step === 'COMPLETE' ? '/businesses?created=1' : '/dashboard');
+  redirect(
+    step === 'COMPLETE'
+      ? '/businesses?created=1'
+      : `/dashboard?firstBusiness=1&businessId=${encodeURIComponent(created.id)}`
+  );
 }

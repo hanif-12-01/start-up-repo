@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getOptionalSession } from '@/server/auth/session';
-import { resolveJourneyStep, getJourneyRedirect } from '@/server/services/journey.service';
+import { resolveJourneyStep } from '@/server/services/journey.service';
 import { BusinessForm } from './BusinessForm';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
@@ -12,7 +12,7 @@ export default async function NewBusinessPage() {
   if (!sessionResult?.user) redirect('/login');
 
   const step = await resolveJourneyStep(sessionResult.user.id);
-  if (step !== 'BUSINESS' && step !== 'COMPLETE') redirect(getJourneyRedirect(step));
+  const isFirstBusiness = step === 'BUSINESS';
 
   return (
     <main className="min-h-screen bg-[var(--background)] p-4 py-10 text-[var(--foreground)]">
@@ -26,7 +26,7 @@ export default async function NewBusinessPage() {
           </div>
         </Reveal>
 
-        <BusinessForm />
+        <BusinessForm isFirstBusiness={isFirstBusiness} />
       </PageReveal>
     </main>
   );

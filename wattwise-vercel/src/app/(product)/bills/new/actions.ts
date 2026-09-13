@@ -75,5 +75,10 @@ export async function createBillAction(
     };
   }
 
-  redirect(`/bills?businessId=${encodeURIComponent(businessId)}`);
+  const isFirstBill = formData.get('isFirstBill') === '1';
+  redirect(
+    isFirstBill
+      ? `/dashboard?firstBillSuccess=1&businessId=${encodeURIComponent(businessId)}`
+      : `/bills?businessId=${encodeURIComponent(businessId)}`
+  );
 }

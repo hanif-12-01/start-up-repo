@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 import { Reveal } from '@/components/motion/Reveal';
 import { createBillAction } from './actions';
 import { MeterOcrInput } from './MeterOcrInput';
+import { FirstBillGuide } from '@/components/onboarding/FirstBillGuide';
 import {
   errorTextClass,
   fieldClass,
@@ -15,13 +17,44 @@ import {
   secondaryButton,
 } from '@/components/product/WorkspaceUI';
 
-export function BillForm({ businessId, previousMeterEnd }: { businessId: string; previousMeterEnd?: string | null }) {
+export function BillForm({
+  businessId,
+  previousMeterEnd,
+  isFirstBill = false,
+  isGuided = false,
+}: {
+  businessId: string;
+  previousMeterEnd?: string | null;
+  isFirstBill?: boolean;
+  isGuided?: boolean;
+}) {
   const [state, formAction, isPending] = useActionState(createBillAction, null);
+  const [guidedActive, setGuidedActive] = useState<boolean>(isGuided);
   const fieldError = (name: string) => state?.fieldErrors?.[name];
   const previousValue = (name: string) => state?.values?.[name] ?? '';
 
   return (
     <>
+      {isFirstBill && (
+        <FirstBillGuide
+          isActive={guidedActive}
+          onDismiss={() => setGuidedActive(false)}
+        />
+      )}
+
+      {isFirstBill && !guidedActive && (
+        <div className="flex justify-end pb-2">
+          <button
+            type="button"
+            onClick={() => setGuidedActive(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--primary)]/30 bg-[var(--primary-soft)]/50 px-3 py-1.5 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary-soft)] transition"
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            Panduan pengisian tagihan
+          </button>
+        </div>
+      )}
+
       {state?.error && (
         <Reveal direction="up" duration={0.2}>
           <div role="alert" className="rounded-xl border border-[var(--danger-border)] bg-[var(--danger-surface)] p-3 text-sm text-[var(--danger)]">
@@ -32,8 +65,9 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
 
       <form data-tour-id="bill-entry-form" action={formAction} className="space-y-5">
         <input type="hidden" name="businessId" value={businessId} />
+        <input type="hidden" name="isFirstBill" value={isFirstBill ? '1' : '0'} />
         <fieldset disabled={isPending} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div data-tour-id="bill-period" className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="periodStart" className={labelClass}>
                 Awal periode <span className="text-[var(--danger)]" aria-hidden="true">*</span>
@@ -67,7 +101,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
             Tanggal awal dan akhir dihitung inklusif. Periode tidak boleh bertumpang tindih dengan tagihan lain.
           </p>
 
-          <div>
+          <div data-tour-id="bill-amount">
             <label htmlFor="totalAmountRupiah" className={labelClass}>
               Total tagihan (Rupiah) <span className="text-[var(--danger)]" aria-hidden="true">*</span>
             </label>
@@ -91,7 +125,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div data-tour-id="bill-kwh" className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="kwh" className={labelClass}>
                 Pemakaian kWh
@@ -156,7 +190,7 @@ export function BillForm({ businessId, previousMeterEnd }: { businessId: string;
           </div>
         </fieldset>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div data-tour-id="bill-submit" className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Link
             href={`/bills?businessId=${encodeURIComponent(businessId)}`}
             className={secondaryButton}
