@@ -51,3 +51,37 @@ export function businessSegmentLabel(segment: string): string {
     OTHER: 'Usaha lainnya',
   }[segment] ?? segment;
 }
+
+export function compactRupiah(value: number): string {
+  if (!Number.isFinite(value)) return 'Rp 0';
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) {
+    const val = Math.round((abs / 1_000_000_000) * 10) / 10;
+    return `${sign}Rp ${decimal.format(val)} M`;
+  }
+  if (abs >= 1_000_000) {
+    const val = Math.round((abs / 1_000_000) * 10) / 10;
+    return `${sign}Rp ${decimal.format(val)} jt`;
+  }
+  if (abs >= 1_000) {
+    const val = Math.round(abs / 1_000);
+    return `${sign}Rp ${decimal.format(val)} rb`;
+  }
+  return `${sign}Rp ${decimal.format(abs)}`;
+}
+
+export function compactDecimal(value: number): string {
+  if (!Number.isFinite(value)) return '0';
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    const val = Math.round((abs / 1_000_000) * 10) / 10;
+    return `${sign}${decimal.format(val)}M`;
+  }
+  if (abs >= 1_000) {
+    const val = Math.round((abs / 1_000) * 10) / 10;
+    return `${sign}${decimal.format(val)}k`;
+  }
+  return `${sign}${decimal.format(abs)}`;
+}
