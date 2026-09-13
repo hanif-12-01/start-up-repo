@@ -42,9 +42,10 @@ export function proxy(request: NextRequest) {
 
   if (isProtected && !hasCookie) {
     response = NextResponse.redirect(new URL('/login', request.url));
-  } else if ((pathname === '/login' || pathname === '/register') && hasCookie) {
-    response = NextResponse.redirect(new URL('/dashboard', request.url));
   } else {
+    // Note: Do not blindly redirect /login or /register to /dashboard solely based on cookie existence.
+    // If the cookie belongs to an expired/invalid session, blindly redirecting causes a fatal
+    // ERR_TOO_MANY_REDIRECTS loop between proxy (redirect to /dashboard) and server page (redirect to /login).
     response = NextResponse.next();
   }
 
