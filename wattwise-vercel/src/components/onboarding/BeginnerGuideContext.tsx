@@ -93,7 +93,13 @@ function getServerNumberSnapshot(): number {
   return 0;
 }
 
-export function BeginnerGuideProvider({ children }: { children: React.ReactNode }) {
+export function BeginnerGuideProvider({
+  children,
+  steps = TOUR_STEPS,
+}: {
+  children: React.ReactNode;
+  steps?: TourStep[];
+}) {
   const isCompleted = useSyncExternalStore(
     subscribeStorage,
     getCompletedSnapshot,
@@ -112,11 +118,13 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
     getServerBooleanSnapshot
   );
 
-  const currentStep = useSyncExternalStore(
+  const rawStep = useSyncExternalStore(
     subscribeStorage,
     getTourStepSnapshot,
     getServerNumberSnapshot
   );
+
+  const currentStep = Math.min(rawStep, Math.max(0, steps.length - 1));
 
   const notifyChange = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -125,7 +133,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const startTour = useCallback((step = 0) => {
-    const validStep = Math.max(0, Math.min(step, TOUR_STEPS.length - 1));
+    const validStep = Math.max(0, Math.min(step, steps.length - 1));
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(SESSION_TOUR_ACTIVE_KEY, 'true');
@@ -133,7 +141,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
       }
     } catch {}
     notifyChange();
-  }, [notifyChange]);
+  }, [notifyChange, steps.length]);
 
   const stopTour = useCallback(() => {
     try {
@@ -147,7 +155,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
 
   const nextStep = useCallback(() => {
     const next = currentStep + 1;
-    if (next >= TOUR_STEPS.length) {
+    if (next >= steps.length) {
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_TOUR_V2_COMPLETED_KEY, 'true');
@@ -164,7 +172,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
       }
     } catch {}
     notifyChange();
-  }, [currentStep, notifyChange]);
+  }, [currentStep, notifyChange, steps.length]);
 
   const prevStep = useCallback(() => {
     const next = Math.max(0, currentStep - 1);
@@ -177,14 +185,14 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
   }, [currentStep, notifyChange]);
 
   const goToStep = useCallback((step: number) => {
-    const validStep = Math.max(0, Math.min(step, TOUR_STEPS.length - 1));
+    const validStep = Math.max(0, Math.min(step, steps.length - 1));
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(SESSION_TOUR_STEP_KEY, String(validStep));
       }
     } catch {}
     notifyChange();
-  }, [notifyChange]);
+  }, [notifyChange, steps.length]);
 
   const dismissBanner = useCallback(() => {
     try {
@@ -218,7 +226,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTourActive, stopTour]);
 
-  const currentStepData = TOUR_STEPS[currentStep] || TOUR_STEPS[0];
+  const currentStepData = steps[currentStep] || steps[0];
 
   return (
     <BeginnerGuideContext.Provider
@@ -228,7 +236,7 @@ export function BeginnerGuideProvider({ children }: { children: React.ReactNode 
         currentStepData,
         isCompleted,
         isBannerDismissed,
-        steps: TOUR_STEPS,
+        steps,
         startTour,
         stopTour,
         nextStep,
