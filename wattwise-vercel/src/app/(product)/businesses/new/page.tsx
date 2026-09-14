@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getOptionalSession } from '@/server/auth/session';
-import { resolveJourneyStep } from '@/server/services/journey.service';
+import { resolveJourneyStep, getJourneyRedirect } from '@/server/services/journey.service';
 import { BusinessForm } from './BusinessForm';
 import { PageReveal } from '@/components/motion/PageReveal';
 import { Reveal } from '@/components/motion/Reveal';
@@ -11,7 +11,13 @@ export default async function NewBusinessPage() {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
 
-  const step = await resolveJourneyStep(sessionResult.user.id);
+  const userId = sessionResult.user.id;
+  const step = await resolveJourneyStep(userId);
+
+  if (step !== 'BUSINESS' && step !== 'COMPLETE') {
+    redirect(getJourneyRedirect(step));
+  }
+
   const isFirstBusiness = step === 'BUSINESS';
 
   return (
@@ -26,7 +32,7 @@ export default async function NewBusinessPage() {
           </div>
         </Reveal>
 
-        <BusinessForm isFirstBusiness={isFirstBusiness} />
+        <BusinessForm isFirstBusiness={isFirstBusiness} userId={userId} />
       </PageReveal>
     </main>
   );

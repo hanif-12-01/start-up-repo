@@ -8,36 +8,26 @@ import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 import { FirstRunWelcomeModal } from '@/components/onboarding/FirstRunWelcomeModal';
 import { BusinessSetupGuide } from '@/components/onboarding/BusinessSetupGuide';
 
-const STORAGE_FIRST_RUN_CHOICE_KEY = 'wattwise:guided-setup:choice';
+export const STORAGE_FIRST_RUN_CHOICE_KEY = 'wattwise:guided-setup:choice';
+export const getGuidedSetupStorageKey = (userId?: string) =>
+  userId ? `wattwise:guided-setup:v1:${userId}` : STORAGE_FIRST_RUN_CHOICE_KEY;
 
 const BUSINESS_TYPES = [
   { value: 'KOS_PROPERTY', label: 'Kos / Properti' },
   { value: 'FNB', label: 'F&B / Restoran' },
   { value: 'LAUNDRY', label: 'Laundry' },
   { value: 'RETAIL', label: 'Retail / Toko' },
-  { value: 'OFFICE', label: 'Kantor' },
-  { value: 'WORKSHOP', label: 'Bengkel / Workshop' },
-  { value: 'OTHER', label: 'Lainnya' },
-];
-
-const SEGMENTS = [
-  { value: 'KOS', label: 'Kos' },
-  { value: 'FNB', label: 'F&B' },
-  { value: 'LAUNDRY', label: 'Laundry' },
-  { value: 'RETAIL', label: 'Retail' },
   { value: 'COLD_STORAGE', label: 'Cold Storage' },
-  { value: 'OTHER', label: 'Lainnya' },
+  { value: 'OTHER', label: 'Lainnya (mis. kantor, bengkel, jasa)' },
 ];
 
 const ELECTRICAL_SYSTEMS = [
-  { value: 'ALL_IN', label: 'Listrik Ditanggung Pemilik' },
+  { value: 'ALL_IN', label: 'Listrik Ditanggung Pemilik (All-in)' },
   { value: 'TOKEN_PER_KAMAR', label: 'Token per Kamar / Unit' },
   { value: 'SUB_METER', label: 'Sub-Meter per Kamar / Unit' },
   { value: 'PATUNGAN', label: 'Biaya Listrik Patungan' },
   { value: 'CAMPURAN', label: 'Sistem Campuran' },
 ] as const;
-
-
 
 const PAYMENT_METHODS = [
   { value: 'POSTPAID', label: 'Pascabayar (Bayar di Akhir Bulan)' },
@@ -58,20 +48,42 @@ const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wider te
 
 const helperClass = 'mt-1 block text-xs leading-relaxed text-[var(--muted)]';
 
-export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: boolean }) {
+export function BusinessForm({
+  isFirstBusiness = false,
+  userId,
+}: {
+  isFirstBusiness?: boolean;
+  userId?: string;
+}) {
   const [state, formAction, isPending] = useActionState(createBusinessAction, null);
+
+  const storageKey = getGuidedSetupStorageKey(userId);
 
   // First-run welcome & guided mode state
   const [showWelcome, setShowWelcome] = useState<boolean>(false);
   const [isGuideActive, setIsGuideActive] = useState<boolean>(false);
-  const [isOptionalExpanded, setIsOptionalExpanded] = useState<boolean>(true);
+  const [isOptionalManuallyExpanded, setIsOptionalManuallyExpanded] = useState<boolean>(false);
+
+  // Declarative expansion: opened manually or automatically when validation errors affect optional fields
+  const hasOptionalError = Boolean(
+    state?.fieldErrors &&
+      [
+        'occupiedRoomCount',
+        'roomCount',
+        'employeeCount',
+        'operatingDaysPerMonth',
+        'businessNotes',
+        'electricityNotes',
+      ].some((f) => Boolean(state.fieldErrors?.[f]))
+  );
+  const isOptionalExpanded = isOptionalManuallyExpanded || hasOptionalError;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isFirstBusiness) {
       const timer = setTimeout(() => {
         try {
-          const savedChoice = localStorage.getItem(STORAGE_FIRST_RUN_CHOICE_KEY);
+          const savedChoice = localStorage.getItem(storageKey);
           if (!savedChoice) {
             setShowWelcome(true);
           } else if (savedChoice === 'guided') {
@@ -81,11 +93,11 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [isFirstBusiness]);
+  }, [isFirstBusiness, storageKey]);
 
   const handleSelectGuided = () => {
     try {
-      localStorage.setItem(STORAGE_FIRST_RUN_CHOICE_KEY, 'guided');
+      localStorage.setItem(storageKey, 'guided');
     } catch {}
     setShowWelcome(false);
     setIsGuideActive(true);
@@ -93,10 +105,15 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
 
   const handleSelectSelf = () => {
     try {
-      localStorage.setItem(STORAGE_FIRST_RUN_CHOICE_KEY, 'self');
+      localStorage.setItem(storageKey, 'self');
     } catch {}
     setShowWelcome(false);
     setIsGuideActive(false);
+  };
+
+  const handleDismissWelcome = () => {
+    // Dismiss without writing to localStorage so user is not locked into self-service
+    setShowWelcome(false);
   };
 
   const fieldErr = (name: string) => state?.fieldErrors?.[name];
@@ -107,12 +124,18 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
         isOpen={showWelcome}
         onSelectGuided={handleSelectGuided}
         onSelectSelf={handleSelectSelf}
+        onDismiss={handleDismissWelcome}
       />
 
       {/* Guide Stepper when active */}
       <BusinessSetupGuide
         isActive={isGuideActive}
         onDismiss={() => setIsGuideActive(false)}
+        onStepChange={(stepIdx) => {
+          if (stepIdx === 2) {
+            setIsOptionalManuallyExpanded(true);
+          }
+        }}
       />
 
       <div className="flex items-center justify-between pb-2">
@@ -179,44 +202,16 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
 
             <div>
               <label htmlFor="businessType" className={labelClass}>
-                Tipe Usaha <span className="text-[var(--danger)]">*</span>
+                Jenis Usaha <span className="text-[var(--danger)]">*</span>
               </label>
               <select id="businessType" name="businessType" required disabled={isPending} className={inputClass} defaultValue="">
-                <option value="" disabled>Pilih tipe usaha</option>
+                <option value="" disabled>Pilih jenis usaha</option>
                 {BUSINESS_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
-              <span className={helperClass}>Bidang aktivitas utama di lokasi ini.</span>
+              <span className={helperClass}>Bidang aktivitas utama di lokasi usaha ini.</span>
               {fieldErr('businessType') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('businessType')}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="segment" className={labelClass}>
-                Segmen Analisis <span className="text-[var(--danger)]">*</span>
-              </label>
-              <select id="segment" name="segment" required disabled={isPending} className={inputClass} defaultValue="">
-                <option value="" disabled>Pilih segmen</option>
-                {SEGMENTS.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-              <span className={helperClass}>Digunakan untuk acuan perbandingan pola konsumsi yang serupa.</span>
-              {fieldErr('segment') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('segment')}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="electricalSystem" className={labelClass}>
-                Sistem Listrik <span className="text-[var(--danger)]">*</span>
-              </label>
-              <select id="electricalSystem" name="electricalSystem" required disabled={isPending} className={inputClass} defaultValue="">
-                <option value="" disabled>Pilih sistem listrik</option>
-                {ELECTRICAL_SYSTEMS.map((e) => (
-                  <option key={e.value} value={e.value}>{e.label}</option>
-                ))}
-              </select>
-              <span className={helperClass}>Cara pembagian dan tanggung jawab biaya listrik di lokasi.</span>
-              {fieldErr('electricalSystem') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('electricalSystem')}</p>}
             </div>
 
             <div>
@@ -263,11 +258,25 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
               </h2>
             </div>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Informasi ini membantu WattWise membaca tagihan dengan lebih tepat. Belum tahu? Anda bisa melewati bagian ini.
+              Informasi ini membantu WattWise membaca tagihan dengan lebih tepat. Kolom opsional dapat dilewati jika belum diketahui.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label htmlFor="electricalSystem" className={labelClass}>
+                Pengaturan Biaya Listrik <span className="text-[var(--danger)]">*</span>
+              </label>
+              <select id="electricalSystem" name="electricalSystem" required disabled={isPending} className={inputClass} defaultValue="">
+                <option value="" disabled>Pilih pengaturan biaya listrik</option>
+                {ELECTRICAL_SYSTEMS.map((e) => (
+                  <option key={e.value} value={e.value}>{e.label}</option>
+                ))}
+              </select>
+              <span className={helperClass}>Pilih cara biaya listrik dikelola di lokasi usaha Anda.</span>
+              {fieldErr('electricalSystem') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('electricalSystem')}</p>}
+            </div>
+
             <div>
               <label htmlFor="powerVa" className={labelClass}>
                 Daya Terpasang (VA)
@@ -317,10 +326,10 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
                 step="0.01"
                 disabled={isPending}
                 className={inputClass}
-                placeholder="Contoh: 1444.70"
+                placeholder="Opsional — masukkan jika Anda mengetahuinya"
               />
               <span className={helperClass}>
-                Biaya rata-rata untuk setiap kWh listrik. Jika Anda belum mengetahuinya, Anda dapat melengkapinya nanti.
+                Gunakan nilai dari informasi atau tagihan listrik Anda jika tersedia. Belum tahu? Anda bisa melewatinya.
               </span>
               {fieldErr('tariffRupiahPerKwh') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('tariffRupiahPerKwh')}</p>}
             </div>
@@ -336,6 +345,7 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
                 className={inputClass}
                 defaultValue=""
               >
+                <option value="">Belum tahu / isi nanti</option>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
@@ -355,6 +365,7 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
                 className={inputClass}
                 defaultValue=""
               >
+                <option value="">Belum tahu / isi nanti</option>
                 {METER_TYPES.map((mt) => (
                   <option key={mt.value} value={mt.value}>{mt.label}</option>
                 ))}
@@ -389,7 +400,7 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
             </div>
             <button
               type="button"
-              onClick={() => setIsOptionalExpanded((prev) => !prev)}
+              onClick={() => setIsOptionalManuallyExpanded((prev) => !prev)}
               className="rounded-xl border border-[var(--border)] p-1.5 text-xs text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] transition"
               aria-expanded={isOptionalExpanded}
               title={isOptionalExpanded ? 'Sembunyikan bagian opsional' : 'Buka bagian opsional'}
@@ -398,9 +409,8 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
             </button>
           </div>
 
-          {isOptionalExpanded && (
-            <div className="grid gap-4 md:grid-cols-2 pt-1 animate-in fade-in duration-150">
-              <div>
+          <div className={isOptionalExpanded ? 'grid gap-4 md:grid-cols-2 pt-1 animate-in fade-in duration-150' : 'hidden'}>
+            <div>
                 <label htmlFor="occupiedRoomCount" className={labelClass}>
                   Kamar / Unit Terisi
                 </label>
@@ -514,7 +524,6 @@ export function BusinessForm({ isFirstBusiness = false }: { isFirstBusiness?: bo
                 {fieldErr('electricityNotes') && <p className="text-xs text-[var(--danger)] mt-1">{fieldErr('electricityNotes')}</p>}
               </div>
             </div>
-          )}
         </section>
 
         {/* SUBMIT BUTTON SECTION */}

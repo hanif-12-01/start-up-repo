@@ -1,39 +1,73 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Sparkles, ArrowRight, Check } from 'lucide-react';
+import { Sparkles, ArrowRight, Check, X } from 'lucide-react';
 import { InteractiveMotion } from '@/components/motion/InteractiveMotion';
 
 export interface FirstRunWelcomeModalProps {
   isOpen: boolean;
   onSelectGuided: () => void;
   onSelectSelf: () => void;
+  onDismiss?: () => void;
 }
 
 export function FirstRunWelcomeModal({
   isOpen,
   onSelectGuided,
   onSelectSelf,
+  onDismiss,
 }: FirstRunWelcomeModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      previousActiveElement.current = document.activeElement as HTMLElement | null;
       primaryButtonRef.current?.focus();
+    } else {
+      previousActiveElement.current?.focus();
     }
   }, [isOpen]);
 
-  // Keyboard navigation: Escape selects self-service / closes
+  // Keyboard navigation: Escape closes/dismisses without saving self-service; Tab traps focus
   useEffect(() => {
     if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onSelectSelf();
+        e.preventDefault();
+        onDismiss?.();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!modalRef.current) return;
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusableElements.length) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onSelectSelf]);
+  }, [isOpen, onDismiss]);
 
   if (!isOpen) return null;
 
@@ -43,27 +77,47 @@ export function FirstRunWelcomeModal({
       aria-modal="true"
       aria-labelledby="first-run-welcome-title"
       aria-describedby="first-run-welcome-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onDismiss?.();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 shadow-2xl space-y-6">
-        <div className="flex items-start gap-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs">
-            <Sparkles className="h-6 w-6" aria-hidden="true" />
+      <div
+        ref={modalRef}
+        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 shadow-2xl space-y-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xs">
+              <Sparkles className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <h2
+                id="first-run-welcome-title"
+                className="text-xl sm:text-2xl font-black tracking-tight text-[var(--foreground)]"
+              >
+                Selamat datang di WattWise 👋
+              </h2>
+              <p
+                id="first-run-welcome-desc"
+                className="text-sm leading-relaxed text-[var(--muted)]"
+              >
+                WattWise membantu Anda memahami biaya listrik usaha, melihat perubahan yang perlu diperiksa, dan menentukan langkah yang bisa dilakukan berdasarkan data usaha Anda.
+              </p>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <h2
-              id="first-run-welcome-title"
-              className="text-xl sm:text-2xl font-black tracking-tight text-[var(--foreground)]"
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="rounded-xl p-1.5 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shrink-0"
+              aria-label="Tutup jendela orientasi"
             >
-              Selamat datang di WattWise 👋
-            </h2>
-            <p
-              id="first-run-welcome-desc"
-              className="text-sm leading-relaxed text-[var(--muted)]"
-            >
-              WattWise membantu Anda memahami biaya listrik usaha, melihat perubahan yang perlu diperiksa, dan menentukan langkah yang bisa dilakukan berdasarkan data usaha Anda.
-            </p>
-          </div>
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary-soft)]/50 p-4 space-y-2 text-xs sm:text-sm text-[var(--foreground)]">

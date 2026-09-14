@@ -51,9 +51,11 @@ const SETUP_STEPS: SetupStep[] = [
 export function BusinessSetupGuide({
   isActive,
   onDismiss,
+  onStepChange,
 }: {
   isActive: boolean;
   onDismiss: () => void;
+  onStepChange?: (stepIndex: number) => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -72,11 +74,12 @@ export function BusinessSetupGuide({
 
   useEffect(() => {
     if (!isActive) return;
+    onStepChange?.(currentStep);
     const step = SETUP_STEPS[currentStep];
     if (step) {
       scrollToTarget(step.targetId);
     }
-  }, [isActive, currentStep, scrollToTarget]);
+  }, [isActive, currentStep, scrollToTarget, onStepChange]);
 
   // Escape key closes the guide
   useEffect(() => {
