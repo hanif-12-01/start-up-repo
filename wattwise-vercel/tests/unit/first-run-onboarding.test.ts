@@ -247,13 +247,29 @@ describe('Guided First-Run Onboarding & Simple Business Setup Tests', () => {
       expect(formContent).toContain('name="businessType"');
     });
 
-    it('actions.ts derives segment server-side so createBusinessSchema always receives valid segment', () => {
+    it('actions.ts derives segment server-side and completely ignores any client-posted segment', () => {
       const actionsFilePath = join(process.cwd(), 'src', 'app', '(product)', 'businesses', 'new', 'actions.ts');
       const actionsContent = readFileSync(actionsFilePath, 'utf8');
 
+      // Proves FormData segment is never read
+      expect(actionsContent).not.toContain("formData.get('segment')");
       expect(actionsContent).toContain('deriveSegmentFromBusinessType(businessType)');
 
-      // Verify schema succeeds with derived segments for all 6 types
+      // Malicious/stale payload 1: businessType = FNB, client sends segment = KOS
+      const clientType1 = 'FNB';
+      const fakePostedSegment1 = 'KOS';
+      const derivedSegment1 = deriveSegmentFromBusinessType(clientType1);
+      expect(derivedSegment1).toBe('FNB');
+      expect(derivedSegment1).not.toBe(fakePostedSegment1);
+
+      // Malicious/stale payload 2: businessType = KOS_PROPERTY, client sends segment = RETAIL
+      const clientType2 = 'KOS_PROPERTY';
+      const fakePostedSegment2 = 'RETAIL';
+      const derivedSegment2 = deriveSegmentFromBusinessType(clientType2);
+      expect(derivedSegment2).toBe('KOS');
+      expect(derivedSegment2).not.toBe(fakePostedSegment2);
+
+      // Verify schema succeeds with derived segments for all 6 authoritative types
       const types = ['KOS_PROPERTY', 'FNB', 'LAUNDRY', 'RETAIL', 'COLD_STORAGE', 'OTHER'];
       for (const t of types) {
         const derived = deriveSegmentFromBusinessType(t);
@@ -264,6 +280,32 @@ describe('Guided First-Run Onboarding & Simple Business Setup Tests', () => {
           electricalSystem: 'ALL_IN',
         });
         expect(result.success).toBe(true);
+      }
+    });
+
+    it('enforces validation order: unsupported businessType must fail validation even if derive helper returns fallback', () => {
+      // OFFICE is not in BUSINESS_TYPES
+      const officeParsed = createBusinessSchema.safeParse({
+        name: 'Kantor Uji',
+        businessType: 'OFFICE',
+        segment: deriveSegmentFromBusinessType('OFFICE'),
+        electricalSystem: 'ALL_IN',
+      });
+      expect(officeParsed.success).toBe(false);
+      if (!officeParsed.success) {
+        expect(officeParsed.error.issues.some((i) => i.path[0] === 'businessType')).toBe(true);
+      }
+
+      // WORKSHOP is not in BUSINESS_TYPES
+      const workshopParsed = createBusinessSchema.safeParse({
+        name: 'Bengkel Uji',
+        businessType: 'WORKSHOP',
+        segment: deriveSegmentFromBusinessType('WORKSHOP'),
+        electricalSystem: 'ALL_IN',
+      });
+      expect(workshopParsed.success).toBe(false);
+      if (!workshopParsed.success) {
+        expect(workshopParsed.error.issues.some((i) => i.path[0] === 'businessType')).toBe(true);
       }
     });
   });

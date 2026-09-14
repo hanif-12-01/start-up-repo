@@ -14,11 +14,7 @@ export async function createBusinessAction(_prev: unknown, formData: FormData) {
   if (step !== 'BUSINESS' && step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
   const businessType = formData.get('businessType')?.toString() || '';
-  const explicitSegment = formData.get('segment')?.toString();
-  const segment =
-    explicitSegment && explicitSegment.trim()
-      ? explicitSegment
-      : deriveSegmentFromBusinessType(businessType);
+  const segment = deriveSegmentFromBusinessType(businessType);
 
   const raw = {
     name: formData.get('name'),
