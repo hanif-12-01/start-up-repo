@@ -20,15 +20,15 @@ const SETUP_STEPS: SetupStep[] = [
     targetId: 'setup-basic-info',
     title: 'Kenali usaha Anda',
     instruction: 'Mulai dari informasi dasar. Ini membantu WattWise membedakan lokasi usaha Anda.',
-    note: 'Nama usaha, tipe, segmen, dan sistem listrik wajib diisi untuk analisis yang tepat.',
+    note: 'Nama usaha dan jenis usaha wajib diisi. Informasi lokasi lainnya dapat dilengkapi jika tersedia.',
   },
   {
     id: 'setup-step-2',
     stepNumber: 2,
     targetId: 'setup-electricity-info',
     title: 'Kenali listrik usaha',
-    instruction: 'Jika Anda tahu daya atau golongan listrik, masukkan di sini. Informasi biasanya ada di tagihan listrik. Kalau belum tahu, tidak apa-apa.',
-    note: 'Seluruh bagian ini dapat dilewati jika Anda belum mengetahui detailnya.',
+    instruction: 'Pilih cara biaya listrik dikelola di lokasi usaha Anda. Jika Anda tahu detail listrik seperti daya atau golongan, Anda juga bisa melengkapinya di sini.',
+    note: 'Pengaturan biaya listrik wajib dipilih. Detail lain seperti daya, golongan, tarif, metode pembayaran, dan tipe meter dapat dilewati jika belum diketahui.',
   },
   {
     id: 'setup-step-3',

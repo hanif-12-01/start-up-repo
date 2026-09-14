@@ -37,7 +37,7 @@ describe('Guided First-Run Onboarding & Simple Business Setup Tests', () => {
   });
 
   describe('Phase 2: Simplified Business Setup Presentation & Domain Safety', () => {
-    it('structures business setup form into 3 clear, distinct visual sections', () => {
+    it('structures business setup form into 4 sections: basic info, electricity info, optional context, and submit', () => {
       const formFilePath = join(process.cwd(), 'src', 'app', '(product)', 'businesses', 'new', 'BusinessForm.tsx');
       const formContent = readFileSync(formFilePath, 'utf8');
 
@@ -85,6 +85,39 @@ describe('Guided First-Run Onboarding & Simple Business Setup Tests', () => {
       expect(guideContent).toContain('setup-context-info');
       expect(guideContent).toContain('Simpan profil usaha');
       expect(guideContent).toContain('setup-submit');
+
+      // Verify counter says "dari 4" — business setup guide is 4 steps
+      expect(guideContent).toContain('SETUP_STEPS.length');
+    });
+
+    it('Step 1 copy does not mention segment and correctly communicates required owner-facing fields', () => {
+      const guideFilePath = join(process.cwd(), 'src', 'components', 'onboarding', 'BusinessSetupGuide.tsx');
+      const guideContent = readFileSync(guideFilePath, 'utf8');
+
+      // Step 1 note must NOT mention segment
+      expect(guideContent).not.toMatch(/segmen/i);
+      expect(guideContent).not.toContain('Segmen Analisis');
+
+      // Step 1 note must communicate required owner-facing fields
+      expect(guideContent).toContain('Nama usaha dan jenis usaha wajib diisi');
+      expect(guideContent).toContain('Informasi lokasi lainnya dapat dilengkapi jika tersedia');
+    });
+
+    it('Step 2 copy correctly separates required electricalSystem from optional electricity details', () => {
+      const guideFilePath = join(process.cwd(), 'src', 'components', 'onboarding', 'BusinessSetupGuide.tsx');
+      const guideContent = readFileSync(guideFilePath, 'utf8');
+
+      // Step 2 must NOT say the entire section is optional
+      expect(guideContent).not.toContain('Seluruh bagian ini dapat dilewati');
+
+      // Step 2 note must explicitly require electricalSystem
+      expect(guideContent).toContain('Pengaturan biaya listrik wajib dipilih');
+
+      // Step 2 note must explain optional fields
+      expect(guideContent).toContain('Detail lain seperti daya, golongan, tarif, metode pembayaran, dan tipe meter dapat dilewati jika belum diketahui');
+
+      // Step 2 instruction must direct owner to electricalSystem first
+      expect(guideContent).toContain('Pilih cara biaya listrik dikelola di lokasi usaha Anda');
     });
 
     it('strictly preserves createBusinessSchema validation contracts', () => {
