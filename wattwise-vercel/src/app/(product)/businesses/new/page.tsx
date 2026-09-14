@@ -11,8 +11,14 @@ export default async function NewBusinessPage() {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
 
-  const step = await resolveJourneyStep(sessionResult.user.id);
-  if (step !== 'BUSINESS' && step !== 'COMPLETE') redirect(getJourneyRedirect(step));
+  const userId = sessionResult.user.id;
+  const step = await resolveJourneyStep(userId);
+
+  if (step !== 'BUSINESS' && step !== 'COMPLETE') {
+    redirect(getJourneyRedirect(step));
+  }
+
+  const isFirstBusiness = step === 'BUSINESS';
 
   return (
     <main className="min-h-screen bg-[var(--background)] p-4 py-10 text-[var(--foreground)]">
@@ -26,7 +32,7 @@ export default async function NewBusinessPage() {
           </div>
         </Reveal>
 
-        <BusinessForm />
+        <BusinessForm isFirstBusiness={isFirstBusiness} userId={userId} />
       </PageReveal>
     </main>
   );

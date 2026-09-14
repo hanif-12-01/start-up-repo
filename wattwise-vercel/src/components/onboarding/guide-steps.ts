@@ -95,9 +95,9 @@ export const CORE_TOUR_STEPS: TourStep[] = [
     placement: 'top',
     title: 'Tren pemakaian & biaya',
     instruction:
-      'Lihat apakah penggunaan atau biaya listrik cenderung naik, stabil, atau turun dari bulan ke bulan.',
+      'Di sini Anda bisa melihat apakah biaya atau pemakaian listrik berubah dari bulan ke bulan.',
     detailedContext:
-      'Grafik membedakan data tagihan tercatat dengan perkiraan periode berikutnya agar Anda dapat bersiap sebelum tagihan jatuh tempo.',
+      'Setelah data mencukupi, WattWise dapat membantu memperkirakan periode berikutnya agar Anda dapat bersiap sebelum tagihan jatuh tempo.',
     benefit: 'Menghindari kejutan lonjakan tagihan pada akhir bulan.',
     actionLabel: 'Lanjut ke Cek Kenaikan',
     ctaLabel: 'Buka Riwayat',
@@ -115,7 +115,7 @@ export const CORE_TOUR_STEPS: TourStep[] = [
     placement: 'top',
     title: 'Cek bagian yang perlu diperiksa',
     instruction:
-      'Jika ada kenaikan yang perlu diperiksa, WattWise akan membantu menandai peralatan terkait.',
+      'Gunakan bagian ini ketika Anda ingin memahami perubahan yang terjadi dan apa yang perlu diperiksa.',
     detailedContext:
       'WattWise tidak membuat vonis sepihak, melainkan memberikan kandidat terarah untuk Anda periksa langsung di lokasi usaha.',
     benefit: 'Fokus memeriksa peralatan yang paling relevan dengan kenaikan pemakaian.',

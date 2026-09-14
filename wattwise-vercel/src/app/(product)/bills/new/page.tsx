@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function NewBillPage({
   searchParams,
 }: {
-  searchParams: Promise<{ businessId?: string | string[] }>;
+  searchParams: Promise<{ businessId?: string | string[]; guided?: string | string[] }>;
 }) {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
@@ -33,6 +33,8 @@ export default async function NewBillPage({
   if (requestedBusinessId && !currentBusiness) notFound();
   if (!currentBusiness) redirect('/businesses/new');
   const overview = await getBillOverview(userId, currentBusiness.id);
+  const isFirstBill = !overview.current;
+  const isGuided = query.guided === '1' || isFirstBill;
 
   return (
     <main className="min-h-screen bg-[var(--background)] p-4 text-[var(--foreground)] md:p-10">
@@ -48,7 +50,12 @@ export default async function NewBillPage({
           </div>
         </Reveal>
 
-        <BillForm businessId={currentBusiness.id} previousMeterEnd={overview.current?.meterEnd} />
+        <BillForm
+          businessId={currentBusiness.id}
+          previousMeterEnd={overview.current?.meterEnd}
+          isFirstBill={isFirstBill}
+          isGuided={isGuided}
+        />
       </PageReveal>
     </main>
   );

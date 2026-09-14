@@ -29,7 +29,7 @@ import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journe
 import { getDecisionSupport } from '@/server/services/workspace.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
-import { BeginnerWelcomeBanner } from '@/components/onboarding';
+import { BeginnerWelcomeBanner, DashboardActivationModals } from '@/components/onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +72,11 @@ function KpiCard({
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ businessId?: string | string[] }>;
+  searchParams: Promise<{
+    businessId?: string | string[];
+    firstBusiness?: string | string[];
+    firstBillSuccess?: string | string[];
+  }>;
 }) {
   const session = await getOptionalSession();
   if (!session?.user) redirect('/login');
@@ -85,6 +89,8 @@ export default async function DashboardPage({
   const requestedBusinessId = typeof query.businessId === 'string' && query.businessId.trim()
     ? query.businessId
     : undefined;
+  const initialFirstBusiness = query.firstBusiness === '1';
+  const initialFirstBillSuccess = query.firstBillSuccess === '1';
 
   let dashboard;
   try {
@@ -117,6 +123,11 @@ export default async function DashboardPage({
     <main className="min-h-screen bg-[var(--background)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-10 lg:py-9">
       <div className="mx-auto max-w-7xl space-y-6">
         <BeginnerWelcomeBanner />
+        <DashboardActivationModals
+          businessId={selectedBusinessId}
+          initialFirstBusiness={initialFirstBusiness}
+          initialFirstBillSuccess={initialFirstBillSuccess}
+        />
 
         <header data-tour-id="dashboard-header" className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
           <div>

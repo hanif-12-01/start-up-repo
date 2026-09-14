@@ -1,8 +1,26 @@
 import { eq, and, count, sql } from 'drizzle-orm';
 import { isEntitlementsEnabled } from '@/config/env';
 import { getDb } from '@/server/db/client';
-import { business } from '@/server/db/schema/journey';
+import { business, type BusinessSegment, type BusinessType } from '@/server/db/schema/journey';
 import { getUserEntitlements, BusinessLimitExceededError } from '@/server/services/entitlement.service';
+
+export function deriveSegmentFromBusinessType(businessType: BusinessType | string): BusinessSegment {
+  switch (businessType) {
+    case 'KOS_PROPERTY':
+      return 'KOS';
+    case 'FNB':
+      return 'FNB';
+    case 'LAUNDRY':
+      return 'LAUNDRY';
+    case 'RETAIL':
+      return 'RETAIL';
+    case 'COLD_STORAGE':
+      return 'COLD_STORAGE';
+    case 'OTHER':
+    default:
+      return 'OTHER';
+  }
+}
 
 export interface CreateBusinessInput {
   name: string;
