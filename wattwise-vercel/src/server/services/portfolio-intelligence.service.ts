@@ -2,14 +2,14 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { getDb } from '@/server/db';
 import * as schema from '@/server/db/schema';
 import { analyzeLatestAnomaly, type UsageSample } from './product-analysis';
+import {
+  type OwnerFacingHealthStatus,
+  type OwnerFacingTrendDirection,
+  getOwnerFacingHealthStatus,
+} from '@/lib/presentation';
 
-export type PortfolioHealthStatus =
-  | 'Aman'
-  | 'Perlu Dicek'
-  | 'Perlu Perhatian'
-  | 'Data Belum Lengkap';
-
-export type PortfolioTrendDirection = 'Naik' | 'Stabil' | 'Turun';
+export type PortfolioHealthStatus = OwnerFacingHealthStatus;
+export type PortfolioTrendDirection = OwnerFacingTrendDirection;
 
 export interface PortfolioCoverage {
   activeBusinessCount: number;
@@ -282,26 +282,23 @@ export function processSingleLocation(
     const anomaly = analyzeLatestAnomaly(samples);
     anomalyDifferencePercent = anomaly.differencePercent !== null ? anomaly.differencePercent : null;
 
+    status = getOwnerFacingHealthStatus(anomaly.status);
     if (anomaly.status === 'Boros') {
-      status = 'Perlu Perhatian';
       const pct = anomaly.differencePercent !== null ? Math.round(anomaly.differencePercent) : null;
       statusDescription = pct !== null
         ? `Pemakaian listrik ${pct}% lebih tinggi dari pola sebelumnya.`
         : 'Pemakaian meningkat cukup besar dibanding pola sebelumnya.';
       diagnosticHint = 'Ada indikasi kenaikan signifikan yang perlu diperiksa.';
     } else if (anomaly.status === 'Perlu Dicek') {
-      status = 'Perlu Dicek';
       const pct = anomaly.differencePercent !== null ? Math.round(anomaly.differencePercent) : null;
       statusDescription = pct !== null
-        ? `Pemakaian listrik ${pct}% lebih tinggi dari pola baseline.`
+        ? `Pemakaian listrik ${pct}% lebih tinggi dari pola sebelumnya.`
         : 'Pemakaian meningkat dibanding pola sebelumnya.';
       diagnosticHint = 'Ada bagian yang disarankan untuk diperiksa.';
     } else if (anomaly.status === 'Normal') {
-      status = 'Aman';
       statusDescription = 'Pemakaian listrik berada dalam batas wajar.';
     } else {
       // Condition B: Selected-month usage exists but historical baseline is insufficient (< 2 usable samples)
-      status = 'Data Belum Lengkap';
       statusDescription = 'Histori penggunaan belum cukup untuk menentukan pola.';
       diagnosticHint = null;
     }
@@ -527,7 +524,7 @@ export function buildAttentionItems(
         ? Math.round(p.usageChangePercent)
         : null;
       primaryReason = pct !== null
-        ? `Pemakaian listrik ${pct}% lebih tinggi dari pola baseline.`
+        ? `Pemakaian listrik ${pct}% lebih tinggi dari pola sebelumnya.`
         : 'Pemakaian meningkat dibanding pola sebelumnya.';
     } else if (p.status === 'Data Belum Lengkap') {
       primaryReason = p.statusDescription;

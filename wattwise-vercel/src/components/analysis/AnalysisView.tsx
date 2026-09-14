@@ -38,11 +38,18 @@ import {
   getDataReadinessStatus,
   getRuntimePredictionStatus,
 } from '@/lib/ai/prediction-display';
+import {
+  getOwnerFacingHealthStatus,
+  getOwnerFacingPredictionLabel,
+  getOwnerFacingPredictionMethod,
+  formatPatternComparison,
+  ENERGY_CONDITION_DISCLAIMER,
+} from '@/lib/presentation';
 
 const tabs = [
   ['overview', Gauge, 'Ringkasan'],
   ['trend', LineChart, 'Tren'],
-  ['anomaly', AlertTriangle, 'Anomali'],
+  ['anomaly', AlertTriangle, 'Kondisi Pemakaian'],
   ['forecast', TrendingUp, 'Proyeksi'],
   ['recommendations', Lightbulb, 'Rekomendasi'],
   ['simulator', SlidersHorizontal, 'Simulasi'],
@@ -254,13 +261,9 @@ export function AnalysisView({
       {/* Key Diagnostic & Prediction Cards */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard
-          label="Indikasi Anomali"
-          value={anomaly.status}
-          secondary={
-            anomaly.differencePercent === null
-              ? 'Butuh baseline 2 periode'
-              : `${anomaly.differencePercent >= 0 ? '+' : ''}${decimal.format(anomaly.differencePercent)}% dari baseline`
-          }
+          label="Kondisi Pemakaian"
+          value={getOwnerFacingHealthStatus(anomaly.status)}
+          secondary={formatPatternComparison(anomaly.differencePercent)}
           icon={Activity}
           trend={
             anomaly.differencePercent !== null
@@ -283,7 +286,7 @@ export function AnalysisView({
           }
           secondary={
             isInferring
-              ? 'Menyiapkan prediksi WattWise...'
+              ? 'Menyiapkan estimasi...'
               : prediction.estimatedBill
                 ? rupiah.format(prediction.estimatedBill)
                 : `Kesiapan Data: ${prediction.confidence ?? '—'}`
@@ -291,12 +294,19 @@ export function AnalysisView({
           icon={TrendingUp}
         />
         <MetricCard
-          label="Skor Efisiensi"
-          value={score.score !== null ? score.score : '—'}
-          secondary={`${score.label} · Kesiapan Data: ${score.confidence}`}
+          label="Kondisi Energi"
+          value={score.label}
+          secondary={
+            score.score !== null
+              ? `Indikator data: ${score.score}/100 · Kesiapan: ${score.confidence}`
+              : 'Data operasional belum lengkap'
+          }
           icon={Gauge}
         />
       </section>
+      <p className="text-[11px] text-[var(--muted)] -mt-2 sm:-mt-1">
+        {ENERGY_CONDITION_DISCLAIMER}
+      </p>
 
       {/* Priority Action Banner */}
       <Surface data-tour-id="analysis-next-action" variant="elevated" className="border-l-4 border-l-[var(--primary)]">
@@ -380,10 +390,10 @@ export function AnalysisView({
             <Surface variant="default">
               <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-xs uppercase tracking-wider">
                 <AlertTriangle className="h-4 w-4" />
-                Deteksi Anomali
+                Kondisi Pemakaian
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-                Mengidentifikasi perbedaan pemakaian listrik terhadap baseline untuk mendeteksi potensi pemborosan lebih dini.
+                Mengidentifikasi perbedaan pemakaian listrik dibanding pola sebelumnya untuk menemukan kenaikan yang perlu diperiksa lebih dini.
               </p>
             </Surface>
             <Surface variant="default">
@@ -409,7 +419,7 @@ export function AnalysisView({
                 </h3>
               </div>
               <StatusBadge variant={runtimeStatus.variant}>
-                {runtimeStatus.label}
+                {getOwnerFacingPredictionLabel(runtimeStatus.label)}
               </StatusBadge>
             </div>
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
@@ -455,13 +465,13 @@ export function AnalysisView({
       {activeTab === 'anomaly' && (
         <SoftCard>
           <SectionHeader
-            title="Status & Indikasi Anomali"
-            description="Perbandingan pemakaian periode terkini terhadap rata-rata historis sebelumnya."
+            title="Status & Kondisi Pemakaian"
+            description="Perbandingan pemakaian periode terkini terhadap pola beberapa periode sebelumnya."
           />
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Surface variant="muted">
-              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Status Anomali</p>
-              <p className="mt-2 text-xl font-black text-[var(--foreground)]">{anomaly.status}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Status Kondisi</p>
+              <p className="mt-2 text-xl font-black text-[var(--foreground)]">{getOwnerFacingHealthStatus(anomaly.status)}</p>
             </Surface>
             <Surface variant="muted">
               <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Perubahan Pemakaian</p>
@@ -470,9 +480,9 @@ export function AnalysisView({
               </p>
             </Surface>
             <Surface variant="muted">
-              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Pemakaian vs Baseline</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Pemakaian vs Pola Sebelumnya</p>
               <p className="mt-2 text-sm font-semibold tabular-nums text-[var(--muted)]">
-                {anomaly.observed !== null ? `${decimal.format(anomaly.observed)} kWh` : '—'} (Baseline: {anomaly.baseline !== null ? `${decimal.format(anomaly.baseline)} kWh` : '—'})
+                {anomaly.observed !== null ? `${decimal.format(anomaly.observed)} kWh` : '—'} (Pola sebelumnya: {anomaly.baseline !== null ? `${decimal.format(anomaly.baseline)} kWh` : '—'})
               </p>
             </Surface>
           </div>
@@ -503,8 +513,8 @@ export function AnalysisView({
           )}
 
           <div className="mt-6">
-            <DataNotice title="Definisi Sinyal Anomali" variant="warning">
-              Ini adalah indikasi awal berbasis perbandingan data input Anda. Angka ini bukan diagnosis teknis, bukan bukti kerusakan peralatan, dan bukan klaim resmi PLN.
+            <DataNotice title="Catatan Indikasi Pemakaian" variant="warning">
+              Ini adalah indikasi awal berbasis perbandingan data yang Anda masukkan. Angka ini bukan vonis pemborosan, bukan diagnosis teknis atau bukti kerusakan alat, dan bukan data resmi PLN.
             </DataNotice>
           </div>
         </SoftCard>
@@ -527,7 +537,7 @@ export function AnalysisView({
           />
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <StatusBadge variant={fallbackUsed ? 'warning' : 'primary'}>
-              {sourceLabel}
+              {getOwnerFacingPredictionLabel(sourceLabel)}
             </StatusBadge>
             <span className="text-xs text-[var(--muted)]">
               {forecastPlan.continuousHistoryMonths} bulan histori valid berurutan
@@ -546,7 +556,7 @@ export function AnalysisView({
                 </h4>
               </div>
               <StatusBadge variant={runtimeStatus.variant}>
-                {runtimeStatus.label}
+                {getOwnerFacingPredictionLabel(runtimeStatus.label)}
               </StatusBadge>
             </div>
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
@@ -560,7 +570,7 @@ export function AnalysisView({
                 <span className="animate-pulse">●</span> Menyiapkan prediksi WattWise...
               </div>
               <p className="mt-2 text-xs text-[var(--muted)]">
-                Memproses inferensi model N-BEATS secara aman di browser Anda tanpa pengiriman data ke server eksternal.
+                Memproses estimasi secara aman di browser Anda tanpa pengiriman data ke server eksternal.
               </p>
             </div>
           ) : prediction.hasPrediction ? (
@@ -639,16 +649,25 @@ export function AnalysisView({
           )}
 
           <p className="mt-5 text-xs text-[var(--muted)]">
-            Metode: {prediction.method ?? 'Belum tersedia'} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
+            Metode: {getOwnerFacingPredictionMethod(prediction.method)} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
             {' '}Prediksi ini bukan data resmi PLN dan perlu dibaca sebagai indikasi.
           </p>
 
           {displayedEngine === 'nbeats' && !fallbackUsed && inferenceLatencyMs !== null && (
-            <div className="mt-4 flex items-center gap-2 text-xs text-[var(--muted)]">
-              <span className="font-semibold text-[var(--primary)]">Runtime:</span> ONNX Runtime Web (WASM) ·
-              <span className="font-semibold text-[var(--primary)]">Latensi:</span> {decimal.format(inferenceLatencyMs)} ms ·
-              <span className="font-semibold text-[var(--primary)]">Model:</span> {modelVersion ?? 'nbeats-ai02-1.0.0'}
-            </div>
+            <details className="mt-4 text-xs text-[var(--muted)]">
+              <summary className="cursor-pointer font-semibold text-[var(--primary)] hover:underline">
+                Detail Teknis Perhitungan
+              </summary>
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+                <span><strong className="text-[var(--foreground)]">Model:</strong> {modelVersion ?? 'nbeats-ai02-1.0.0'}</span>
+                <span>·</span>
+                <span><strong className="text-[var(--foreground)]">Runtime:</strong> ONNX Runtime Web (WASM)</span>
+                <span>·</span>
+                <span><strong className="text-[var(--foreground)]">Latensi:</strong> {decimal.format(inferenceLatencyMs)} ms</span>
+                <span>·</span>
+                <span><strong className="text-[var(--foreground)]">Metode:</strong> {prediction.method}</span>
+              </div>
+            </details>
           )}
         </SoftCard>
       )}

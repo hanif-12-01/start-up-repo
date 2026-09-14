@@ -113,7 +113,7 @@ export default async function ActionPlanDetailPage({
           <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-6">
             <h2 className="text-lg font-semibold">Kondisi Sebelum Tindakan</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Periode baseline</dt><dd className="mt-1 text-sm text-[var(--foreground)]">{formatDate(plan.baseline.periodStart)}–{formatDate(plan.baseline.periodEnd)}</dd></div>
+              <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Periode acuan</dt><dd className="mt-1 text-sm text-[var(--foreground)]">{formatDate(plan.baseline.periodStart)}–{formatDate(plan.baseline.periodEnd)}</dd></div>
               <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Total biaya</dt><dd className="mt-1 text-sm text-[var(--foreground)]">{formatRupiah(plan.baseline.totalCostRupiah)}</dd></div>
               <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Biaya per hari</dt><dd className="mt-1 text-sm text-[var(--foreground)]">{formatRupiah(plan.baseline.costPerDayRupiah)}</dd></div>
               {baselineKwh && <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Pemakaian tercatat</dt><dd className="mt-1 text-sm text-[var(--foreground)]">{baselineKwh}</dd></div>}

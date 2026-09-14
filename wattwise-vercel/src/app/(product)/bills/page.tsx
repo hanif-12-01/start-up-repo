@@ -128,7 +128,7 @@ export default async function BillsPage({
             <section className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-8 text-center">
               <h2 className="text-xl font-extrabold">Belum ada tagihan</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
-                Masukkan tagihan pertama untuk menyimpan baseline biaya. WattWise tidak akan menebak kWh,
+                Masukkan tagihan pertama untuk mulai mencatat riwayat biaya. WattWise tidak akan menebak kWh,
                 tarif, atau penyebab perubahan.
               </p>
               <Link

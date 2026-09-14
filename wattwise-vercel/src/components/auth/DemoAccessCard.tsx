@@ -49,7 +49,7 @@ export function DemoAccessCard({
             <span className="font-medium text-[var(--foreground)]">DEMO 02</span> — Histori Berkembang · 5 Bulan (estimasi historis)
           </li>
           <li>
-            <span className="font-medium text-[var(--foreground)]">DEMO 03</span> — Prediksi AI · 6 Bulan (Prediksi AI N-BEATS)
+            <span className="font-medium text-[var(--foreground)]">DEMO 03</span> — Prediksi AI · 6 Bulan (Prediksi WattWise Aktif)
           </li>
         </ul>
       </div>

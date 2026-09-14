@@ -85,7 +85,7 @@ export function getRuntimePredictionStatus(params: {
       label: 'Memproses Prediksi AI...',
       isAiActive: false,
       variant: 'primary',
-      description: 'Sedang memproses model inferensi AI di browser.',
+      description: 'Sedang menyiapkan estimasi prediksi di browser.',
     };
   }
 
@@ -142,7 +142,7 @@ export function getDataReadinessStatus(continuousHistoryMonths: number): DataRea
       phaseKey: 'H06_12',
       label: 'Siap untuk Prediksi AI',
       description: 'Prediksi AI aktif menggunakan pola konsumsi 6 bulan berurutan.',
-      milestoneMessage: 'Histori konsumsi mencukupi untuk pemodelan deret waktu N-BEATS.',
+      milestoneMessage: 'Histori konsumsi mencukupi untuk prediksi AI WattWise.',
       isAiReady: true,
     };
   }
@@ -150,7 +150,7 @@ export function getDataReadinessStatus(continuousHistoryMonths: number): DataRea
     phaseKey: 'H13_PLUS',
     label: 'Histori panjang',
     description: 'Histori konsumsi Anda sudah matang. Prediksi AI saat ini menggunakan 6 bulan terbaru yang berurutan.',
-    milestoneMessage: 'Anda memiliki histori yang panjang. Model N-BEATS menggunakan 6 bulan terbaru sebagai input inferensi.',
+    milestoneMessage: 'Anda memiliki histori yang panjang. Prediksi WattWise menggunakan 6 bulan terbaru sebagai acuan.',
     isAiReady: true,
   };
 }
