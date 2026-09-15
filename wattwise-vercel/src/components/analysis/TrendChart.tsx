@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef, useEffect } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -37,6 +37,102 @@ export interface TrendChartProps {
   title?: string;
   description?: string;
   className?: string;
+  initialHoveredIndex?: number | null;
+}
+
+export interface TooltipPlacementInput {
+  anchorX: number;
+  anchorY: number;
+  tooltipWidth: number;
+  tooltipHeight: number;
+  containerWidth: number;
+  containerHeight: number;
+  preferredPlacement?: 'above' | 'below';
+  gap?: number;
+  margin?: number;
+}
+
+export interface TooltipPlacementResult {
+  x: number;
+  y: number;
+  placement: 'above' | 'below';
+  align: 'center' | 'left' | 'right';
+}
+
+export function calculateTooltipPlacement({
+  anchorX,
+  anchorY,
+  tooltipWidth,
+  tooltipHeight,
+  containerWidth,
+  containerHeight,
+  preferredPlacement,
+  gap = 12,
+  margin = 10,
+}: TooltipPlacementInput): TooltipPlacementResult {
+  const safeMargin = Math.max(0, margin);
+  const safeGap = Math.max(0, gap);
+
+  // Vertical placement preference:
+  // If preferredPlacement is specified, respect it; otherwise:
+  // If point is in upper half of container (< containerHeight / 2), prefer below.
+  // If point is in lower half (>= containerHeight / 2), prefer above.
+  const defaultPreferred = anchorY < containerHeight / 2 ? 'below' : 'above';
+  const preferred = preferredPlacement ?? defaultPreferred;
+
+  const fitsAbove = anchorY - safeGap - tooltipHeight >= safeMargin;
+  const fitsBelow = anchorY + safeGap + tooltipHeight <= containerHeight - safeMargin;
+
+  let placement: 'above' | 'below';
+  if (preferred === 'above') {
+    if (fitsAbove) {
+      placement = 'above';
+    } else if (fitsBelow) {
+      placement = 'below';
+    } else {
+      const spaceAbove = anchorY - safeGap - safeMargin;
+      const spaceBelow = containerHeight - anchorY - safeGap - safeMargin;
+      placement = spaceBelow > spaceAbove ? 'below' : 'above';
+    }
+  } else {
+    if (fitsBelow) {
+      placement = 'below';
+    } else if (fitsAbove) {
+      placement = 'above';
+    } else {
+      const spaceAbove = anchorY - safeGap - safeMargin;
+      const spaceBelow = containerHeight - anchorY - safeGap - safeMargin;
+      placement = spaceAbove > spaceBelow ? 'above' : 'below';
+    }
+  }
+
+  // Calculate clamped Y
+  const rawY = placement === 'above' ? anchorY - safeGap - tooltipHeight : anchorY + safeGap;
+  const minY = safeMargin;
+  const maxY = Math.max(minY, containerHeight - tooltipHeight - safeMargin);
+  const clampedY = Math.max(0, Math.max(minY, Math.min(rawY, maxY)));
+
+  // Horizontal placement:
+  // Default: centered on anchorX
+  const desiredX = anchorX - tooltipWidth / 2;
+  const minX = safeMargin;
+  const maxX = Math.max(minX, containerWidth - tooltipWidth - safeMargin);
+
+  let align: 'center' | 'left' | 'right' = 'center';
+  if (desiredX < minX) {
+    align = 'left';
+  } else if (desiredX > maxX) {
+    align = 'right';
+  }
+
+  const clampedX = Math.max(0, Math.max(minX, Math.min(desiredX, maxX)));
+
+  return {
+    x: clampedX,
+    y: clampedY,
+    placement,
+    align,
+  };
 }
 
 function formatExactValue(value: number, metric: Metric): string {
@@ -55,10 +151,17 @@ export function TrendChart({
   title,
   description,
   className = '',
+  initialHoveredIndex,
 }: TrendChartProps) {
   const titleId = useId();
   const descriptionId = useId();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(initialHoveredIndex ?? null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<TooltipPlacementResult | null>(null);
 
   // Default headers if not provided by caller
   const defaultEyebrow = metric === 'rupiah' ? 'RIWAYAT BIAYA' : 'RIWAYAT PENGGUNAAN';
@@ -84,23 +187,6 @@ export function TrendChart({
     (p) => p.type !== 'forecast' && getPointValue(p) !== null && Number.isFinite(getPointValue(p))
   );
 
-  // Empty state: 0 points or 0 valid values
-  if (!points.length || !validPoints.length) {
-    return (
-      <div className={`w-full rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)]/60 p-8 text-center ${className}`}>
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)] text-[var(--muted)] shadow-xs">
-          <Calendar className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <h3 className="mt-3 text-sm font-black text-[var(--foreground)]">
-          Belum ada data tagihan untuk ditampilkan
-        </h3>
-        <p className="mt-1 text-xs text-[var(--muted)] max-w-md mx-auto">
-          Tambahkan tagihan listrik pertama Anda untuk mulai memantau tren dan pola pengeluaran bulanan.
-        </p>
-      </div>
-    );
-  }
-
   // Decision Summary calculation (A3)
   const latestRecorded = historicalPoints[historicalPoints.length - 1] ?? null;
   const prevRecorded = historicalPoints.length > 1 ? historicalPoints[historicalPoints.length - 2] : null;
@@ -124,8 +210,8 @@ export function TrendChart({
 
   // Value domain calculations
   const values = validPoints.map(getPointValue) as number[];
-  const rawMax = Math.max(...values);
-  const rawMin = Math.min(...values);
+  const rawMax = values.length ? Math.max(...values) : 0;
+  const rawMin = values.length ? Math.min(...values) : 0;
   const rawRange = rawMax - rawMin;
   const domainPadding = rawRange > 0 ? rawRange * 0.15 : Math.max(rawMax * 0.15, 1);
   const minValue = rawMin === 0 ? 0 : Math.max(0, rawMin - domainPadding);
@@ -143,7 +229,7 @@ export function TrendChart({
   const chartHeight = svgHeight - paddingTop - paddingBottom;
 
   const getX = (index: number) => {
-    if (points.length === 1) {
+    if (points.length <= 1) {
       return paddingLeft + chartWidth / 2;
     }
     return paddingLeft + (index / (points.length - 1)) * chartWidth;
@@ -185,7 +271,108 @@ export function TrendChart({
 
   // Active hover/touch coordinate for tooltip
   const activeCoordinate =
-    hoveredIndex !== null ? coordinates[hoveredIndex] : null;
+    hoveredIndex !== null && hoveredIndex >= 0 && hoveredIndex < coordinates.length
+      ? coordinates[hoveredIndex]
+      : null;
+
+  useEffect(() => {
+    if (hoveredIndex === null || !points.length || !validPoints.length) {
+      return;
+    }
+
+    const updatePlacement = () => {
+      const coord = coordinates[hoveredIndex];
+      if (!coord || coord.value === null || coord.y === null) return;
+
+      const container = containerRef.current;
+      const svg = svgRef.current;
+      if (!container || !svg) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+
+      // Active coordinate rendered anchor in container coordinates
+      const anchorX = svgRect.left + (coord.x / svgWidth) * svgRect.width - containerRect.left;
+      const anchorY = svgRect.top + (coord.y / svgHeight) * svgRect.height - containerRect.top;
+
+      const tooltipEl = tooltipRef.current;
+      const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 220;
+      const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 80;
+
+      const result = calculateTooltipPlacement({
+        anchorX,
+        anchorY,
+        tooltipWidth,
+        tooltipHeight,
+        containerWidth: containerRect.width,
+        containerHeight: containerRect.height,
+        gap: 12,
+        margin: 10,
+      });
+
+      setTooltipPos(result);
+    };
+
+    const rafId = requestAnimationFrame(updatePlacement);
+
+    const scrollEl = scrollContainerRef.current;
+    if (scrollEl) {
+      scrollEl.addEventListener('scroll', updatePlacement, { passive: true });
+    }
+    window.addEventListener('resize', updatePlacement, { passive: true });
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updatePlacement();
+      });
+      resizeObserver.observe(containerRef.current);
+      if (tooltipRef.current) {
+        resizeObserver.observe(tooltipRef.current);
+      }
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (scrollEl) {
+        scrollEl.removeEventListener('scroll', updatePlacement);
+      }
+      window.removeEventListener('resize', updatePlacement);
+      resizeObserver?.disconnect();
+    };
+  }, [hoveredIndex, points.length, validPoints.length, coordinates, svgWidth, svgHeight]);
+
+  // Empty state: 0 points or 0 valid values
+  if (!points.length || !validPoints.length) {
+    return (
+      <div className={`w-full rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)]/60 p-8 text-center ${className}`}>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)] text-[var(--muted)] shadow-xs">
+          <Calendar className="h-6 w-6" aria-hidden="true" />
+        </div>
+        <h3 className="mt-3 text-sm font-black text-[var(--foreground)]">
+          Belum ada data tagihan untuk ditampilkan
+        </h3>
+        <p className="mt-1 text-xs text-[var(--muted)] max-w-md mx-auto">
+          Tambahkan tagihan listrik pertama Anda untuk mulai memantau tren dan pola pengeluaran bulanan.
+        </p>
+      </div>
+    );
+  }
+
+  const currentPlacement =
+    tooltipPos ??
+    (activeCoordinate && activeCoordinate.value !== null && activeCoordinate.y !== null
+      ? calculateTooltipPlacement({
+          anchorX: activeCoordinate.x,
+          anchorY: activeCoordinate.y,
+          tooltipWidth: 220,
+          tooltipHeight: 80,
+          containerWidth: svgWidth,
+          containerHeight: svgHeight,
+          gap: 12,
+          margin: 10,
+        })
+      : null);
 
   // Direction badge styling
   const directionConfig = {
@@ -323,23 +510,25 @@ export function TrendChart({
       )}
 
       {/* Interactive Chart Canvas & Tooltip Container (A4, A5, A6, A7, A11) */}
-      <div className="relative mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 sm:p-4 shadow-xs">
+      <div
+        ref={containerRef}
+        className="relative mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2 sm:p-4 shadow-xs"
+      >
         <div
+          ref={scrollContainerRef}
           className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-xl"
           tabIndex={0}
           aria-label="Area grafik tren listrik interaktif"
         >
           <div className="min-w-[560px]">
             <svg
+              ref={svgRef}
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
               className="h-auto w-full font-sans text-[var(--foreground)] select-none"
               role="img"
               aria-labelledby={`${titleId} ${descriptionId}`}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              <title id={titleId}>{displayTitle}</title>
-              <desc id={descriptionId}>{displayDesc}</desc>
-
               {/* Horizontal Grid lines & Y-axis ticks with compact formatting */}
               {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
                 const y = paddingTop + chartHeight * ratio;
@@ -482,6 +671,7 @@ export function TrendChart({
                       }`}
                       onMouseEnter={() => setHoveredIndex(c.index)}
                       onFocus={() => setHoveredIndex(c.index)}
+                      onBlur={() => setHoveredIndex(null)}
                       onClick={() => setHoveredIndex(hoveredIndex === c.index ? null : c.index)}
                     />
                   </g>
@@ -492,12 +682,15 @@ export function TrendChart({
         </div>
 
         {/* Floating Tooltip Card (A7) */}
-        {activeCoordinate && activeCoordinate.value !== null && activeCoordinate.y !== null && (
+        {activeCoordinate && activeCoordinate.value !== null && activeCoordinate.y !== null && currentPlacement && (
           <div
-            className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] px-3 py-2 text-xs shadow-xl transition-all"
+            ref={tooltipRef}
+            role="tooltip"
+            className="pointer-events-none absolute z-20 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] px-3 py-2 text-xs shadow-md whitespace-normal break-words"
             style={{
-              left: `${(activeCoordinate.x / svgWidth) * 100}%`,
-              top: `${Math.max(12, (activeCoordinate.y / svgHeight) * 100 - 6)}%`,
+              left: `${currentPlacement.x}px`,
+              top: `${currentPlacement.y}px`,
+              maxWidth: 'min(280px, calc(100vw - 32px))',
             }}
           >
             <div className="flex items-center gap-1.5">
@@ -521,7 +714,7 @@ export function TrendChart({
 
             {/* Delta context */}
             {activeCoordinate.index > 0 && coordinates[activeCoordinate.index - 1].value !== null && (
-              <div className="mt-0.5 text-[10px] text-[var(--muted)]">
+              <div className="mt-0.5 text-[10px] text-[var(--muted)] leading-normal">
                 {(() => {
                   const prev = coordinates[activeCoordinate.index - 1].value!;
                   const diff = activeCoordinate.value - prev;
