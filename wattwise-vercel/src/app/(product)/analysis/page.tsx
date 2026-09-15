@@ -22,13 +22,14 @@ export default async function AnalysisPage({
     getUserEntitlements(userId),
   ]);
 
-  const { data, tariff, samples, forecastPlan, anomaly, efficiency: score, recommendations } = analysisModel;
+  const { data, tariff, tariffContext, samples, forecastPlan, anomaly, efficiency: score, recommendations } = analysisModel;
   const businessQuery = `businessId=${encodeURIComponent(data.business.id)}`;
 
   return (
     <AnalysisView
       data={data}
       tariff={tariff}
+      tariffContext={tariffContext}
       samples={samples}
       forecastPlan={forecastPlan}
       anomaly={anomaly}

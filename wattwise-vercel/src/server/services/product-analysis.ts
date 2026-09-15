@@ -1,3 +1,5 @@
+import { parseValidTariff, resolveTariffContext } from '@/lib/tariff';
+
 export type UsageSource = 'USER_ENTERED' | 'METER_DERIVED' | 'BILL_TARIFF_DERIVED' | 'LEGACY_UNKNOWN';
 
 export interface UsageSample {
@@ -133,11 +135,11 @@ export function predictUsage(samples: UsageSample[], fallbackTariff: number | nu
   if (hasGaps) confidenceScore -= 1;
   if (highVolatility) confidenceScore -= 1;
   const confidence = confidenceScore >= 3 ? 'Tinggi' : confidenceScore === 2 ? 'Sedang' : 'Rendah';
-  const tariff = fallbackTariff ?? [...samples].reverse().find((item) => item.tariff !== null)?.tariff ?? null;
+  const tariff = parseValidTariff(fallbackTariff);
   return {
     hasPrediction: true,
     predictedUsageKwh: round(predicted),
-    estimatedBill: tariff && tariff > 0 ? round(predicted * tariff) : null,
+    estimatedBill: tariff !== null ? round(predicted * tariff) : null,
     previousUsageKwh: round(previous),
     changePercent,
     risk,
@@ -282,7 +284,11 @@ export async function getProductAnalysisReadModel(
   const { getDecisionSupport } = await import('./workspace.service');
   const data = await getDecisionSupport(userId, requestedBusinessId);
 
-  const tariff = Number(data.business.tariffRupiahPerKwh ?? data.latestBill?.tariffRupiahPerKwh ?? 0) || null;
+  const tariffContext = resolveTariffContext({
+    businessTariff: data.business.tariffRupiahPerKwh,
+    latestBillTariff: data.latestBill?.tariffRupiahPerKwh,
+  });
+  const tariff = tariffContext.value;
 
   const samples = buildUsageSamplesFromBills(data.bills);
   const deterministicPrediction = predictUsage(samples, tariff);
@@ -350,6 +356,7 @@ export async function getProductAnalysisReadModel(
   return {
     data,
     tariff,
+    tariffContext,
     samples,
     prediction,
     deterministicPrediction,
