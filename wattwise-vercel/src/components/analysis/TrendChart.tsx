@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useId, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import {
   TrendingUp,
   TrendingDown,
@@ -18,6 +19,7 @@ import {
   compactRupiah,
   compactDecimal,
 } from '@/lib/format';
+import { buildContiguousTrendSegments } from '@/lib/electricity-insights';
 
 export interface TrendPoint {
   period: string;
@@ -39,6 +41,9 @@ export interface TrendChartProps {
   description?: string;
   className?: string;
   initialHoveredIndex?: number | null;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  manageBillsHref?: string;
 }
 
 export interface TooltipPlacementInput {
@@ -174,6 +179,9 @@ export function TrendChart({
   description,
   className = '',
   initialHoveredIndex,
+  emptyTitle,
+  emptyDescription,
+  manageBillsHref,
 }: TrendChartProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -247,6 +255,7 @@ export function TrendChart({
   const paddingRight = 32;
   const paddingTop = 44;
   const paddingBottom = 54;
+
   const chartWidth = svgWidth - paddingLeft - paddingRight;
   const chartHeight = svgHeight - paddingTop - paddingBottom;
 
@@ -277,18 +286,25 @@ export function TrendChart({
       c.value !== null && c.y !== null && Number.isFinite(c.value)
   );
 
-  const historicalCoordinates = plottedCoordinates.filter((c) => c.point.type !== 'forecast');
+  const historicalCoordinates = coordinates.filter((c) => c.point.type !== 'forecast');
+  const historicalSegments = buildContiguousTrendSegments(historicalCoordinates);
   const forecastCoordinates = plottedCoordinates.filter((c) => c.point.type === 'forecast');
 
-  const pathFor = (items: typeof plottedCoordinates) =>
-    items.length
+  const pathFor = (items: Array<{ x: number; y: number }>) =>
+    items.length >= 2
       ? `M ${items[0].x} ${items[0].y}${items.slice(1).map((item) => ` L ${item.x} ${item.y}`).join('')}`
       : '';
 
-  const historicalPath = pathFor(historicalCoordinates);
+  const lastHistoricalCoord = historicalCoordinates.slice(-1)[0];
   const forecastPath =
-    forecastCoordinates.length && historicalCoordinates.length
-      ? pathFor([historicalCoordinates[historicalCoordinates.length - 1], ...forecastCoordinates])
+    forecastCoordinates.length &&
+    lastHistoricalCoord &&
+    lastHistoricalCoord.value !== null &&
+    lastHistoricalCoord.y !== null
+      ? pathFor([
+          lastHistoricalCoord as typeof lastHistoricalCoord & { value: number; y: number },
+          ...forecastCoordinates,
+        ])
       : '';
 
   // Active hover/touch coordinate for tooltip
@@ -392,6 +408,10 @@ export function TrendChart({
     svgHeight,
   ]);
 
+  const defaultEmptyTitle = 'Belum ada data tagihan untuk ditampilkan';
+  const defaultEmptyDesc =
+    'Tambahkan tagihan listrik pertama Anda untuk mulai memantau tren dan pola pengeluaran bulanan.';
+
   // Empty state: 0 points or 0 valid values
   if (!points.length || !validPoints.length) {
     return (
@@ -400,11 +420,21 @@ export function TrendChart({
           <Calendar className="h-6 w-6" aria-hidden="true" />
         </div>
         <h3 className="mt-3 text-sm font-black text-[var(--foreground)]">
-          Belum ada data tagihan untuk ditampilkan
+          {emptyTitle || defaultEmptyTitle}
         </h3>
         <p className="mt-1 text-xs text-[var(--muted)] max-w-md mx-auto">
-          Tambahkan tagihan listrik pertama Anda untuk mulai memantau tren dan pola pengeluaran bulanan.
+          {emptyDescription || defaultEmptyDesc}
         </p>
+        {manageBillsHref && (
+          <div className="mt-4">
+            <Link
+              href={manageBillsHref}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition shadow-xs"
+            >
+              Kelola tagihan
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
@@ -549,7 +579,11 @@ export function TrendChart({
       {historicalPoints.length === 1 && (
         <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--primary)]/30 bg-[var(--primary-soft)]/60 px-3.5 py-2.5 text-xs text-[var(--primary-dark)] dark:text-[var(--primary)]">
           <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>Tambahkan data bulan berikutnya untuk mulai melihat perubahan dan perbandingan tren.</span>
+          <span>
+            {metric === 'kwh'
+              ? 'Pemakaian mulai tercatat. Anda baru memiliki 1 periode dengan data kWh. Tambahkan periode lain untuk melihat tren pemakaian.'
+              : 'Tambahkan data bulan berikutnya untuk mulai melihat perubahan dan perbandingan tren.'}
+          </span>
         </div>
       )}
 
@@ -608,17 +642,22 @@ export function TrendChart({
                 );
               })}
 
-              {/* Actual Series Solid Line */}
-              {historicalPath && (
-                <path
-                  d={historicalPath}
-                  fill="none"
-                  stroke="var(--chart-series-primary)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
+              {/* Actual Series Solid Line Segments (breaks across missing data gaps) */}
+              {historicalSegments.map((segment, idx) => {
+                const segPath = pathFor(segment);
+                if (!segPath) return null;
+                return (
+                  <path
+                    key={`hist-seg-${idx}`}
+                    d={segPath}
+                    fill="none"
+                    stroke="var(--chart-series-primary)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              })}
 
               {/* Forecast Series Dashed Line */}
               {forecastPath && (
@@ -692,6 +731,19 @@ export function TrendChart({
                       </>
                     )}
 
+                    {/* Missing Data Marker (Neutral indicator near x-axis, never placed at y=0) */}
+                    {c.value === null && !isForecast && (
+                      <text
+                        x={c.x}
+                        y={svgHeight - paddingBottom - 10}
+                        textAnchor="middle"
+                        className="fill-[var(--muted)] text-[13px] font-bold select-none opacity-60"
+                        aria-hidden="true"
+                      >
+                        —
+                      </text>
+                    )}
+
                     {/* X-axis Month Label */}
                     <text
                       x={c.x}
@@ -711,14 +763,14 @@ export function TrendChart({
                     {/* Accessible Interactive Hit Target */}
                     <circle
                       cx={c.x}
-                      cy={c.y ?? paddingTop + chartHeight / 2}
+                      cy={c.y ?? svgHeight - paddingBottom - 10}
                       r={18}
                       fill="transparent"
                       className="cursor-pointer outline-none"
                       tabIndex={0}
                       role="button"
                       aria-label={`${c.point.label}: ${
-                        c.value !== null ? formatExactValue(c.value, metric) : 'Tidak ada data'
+                        c.value !== null ? formatExactValue(c.value, metric) : 'Data belum tersedia'
                       }`}
                       onMouseEnter={() => setHoveredIndex(c.index)}
                       onFocus={() => setHoveredIndex(c.index)}

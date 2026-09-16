@@ -76,9 +76,10 @@ export async function createBillAction(
   }
 
   const isFirstBill = formData.get('isFirstBill') === '1';
+  const isKwhMissing = parsed.data.kwh === null || parsed.data.kwh === undefined;
   redirect(
     isFirstBill
       ? `/dashboard?firstBillSuccess=1&businessId=${encodeURIComponent(businessId)}`
-      : `/bills?businessId=${encodeURIComponent(businessId)}`
+      : `/bills?businessId=${encodeURIComponent(businessId)}&saved=1&kwhMissing=${isKwhMissing ? '1' : '0'}`
   );
 }

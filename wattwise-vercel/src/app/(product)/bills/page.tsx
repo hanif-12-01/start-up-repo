@@ -64,7 +64,7 @@ function decimalChangeLabel(difference: string, percentage: string | null, unit:
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ businessId?: string | string[] }>;
+  searchParams: Promise<{ businessId?: string | string[]; saved?: string; kwhMissing?: string }>;
 }) {
   const sessionResult = await getOptionalSession();
   if (!sessionResult?.user) redirect('/login');
@@ -74,6 +74,8 @@ export default async function BillsPage({
   if (step !== 'COMPLETE') redirect(getJourneyRedirect(step));
 
   const query = await searchParams;
+  const isSaved = query.saved === '1';
+  const isKwhMissing = query.kwhMissing === '1';
   const requestedBusinessId =
     typeof query.businessId === 'string' && query.businessId.trim()
       ? query.businessId
@@ -123,6 +125,27 @@ export default async function BillsPage({
           </header>
         </Reveal>
 
+        {isSaved && (
+          <Reveal direction="down">
+            <section
+              aria-label="Status penyimpanan tagihan"
+              className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--primary-soft)]/60 p-5"
+            >
+              <h2 className="font-extrabold text-[var(--foreground)] text-sm">
+                Tagihan berhasil dicatat
+              </h2>
+              <p className="mt-1 text-xs text-[var(--muted)] leading-relaxed">
+                Data biaya sudah dapat digunakan untuk melihat tren pengeluaran listrik.
+              </p>
+              {isKwhMissing && (
+                <p className="mt-2 text-xs text-[var(--primary-dark)] dark:text-[var(--primary)] font-medium leading-relaxed border-t border-[var(--primary)]/20 pt-2">
+                  Pemakaian kWh belum tersedia. Tambahkan kWh kapan saja jika Anda ingin membandingkan konsumsi listrik antarperiode.
+                </p>
+              )}
+            </section>
+          </Reveal>
+        )}
+
         {!current && (
           <Reveal direction="up">
             <section className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-8 text-center">
@@ -157,7 +180,7 @@ export default async function BillsPage({
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                 <p className="text-xs uppercase text-[var(--muted)]">Pemakaian</p>
                 <p className="mt-2 text-xl font-semibold">
-                  {current.kwh === null ? 'Tidak diisi' : `${formatDecimal(current.kwh)} kWh`}
+                  {current.kwh === null ? 'Pemakaian kWh belum tersedia' : `${formatDecimal(current.kwh)} kWh`}
                 </p>
               </div>
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
@@ -286,9 +309,16 @@ export default async function BillsPage({
                   <article key={bill.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium">{periodLabel(bill)}</p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        {bill.kwh === null ? 'kWh tidak diisi' : `${formatDecimal(bill.kwh)} kWh`}
-                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-xs text-[var(--muted)]">
+                          {bill.kwh === null ? 'Pemakaian kWh belum tersedia' : `${formatDecimal(bill.kwh)} kWh`}
+                        </span>
+                        {bill.kwh === null && (
+                          <span className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
+                            Biaya tersedia
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between gap-4 sm:justify-end">
                       <p className="font-semibold text-[var(--primary)]">{rupiah.format(bill.totalAmountRupiah)}</p>
