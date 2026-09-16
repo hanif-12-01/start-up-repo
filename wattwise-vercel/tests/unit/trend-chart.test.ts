@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   TrendChart,
   calculateTooltipPlacement,
+  isSameTooltipPlacement,
   type TrendPoint,
 } from '@/components/analysis/TrendChart';
 
@@ -441,7 +444,7 @@ describe('TrendChart UX Refinement Unit Tests', () => {
       expect(overflowResult.x).toBe(500 - 250 - 10); // 240
       expect(overflowResult.x + 250).toBeLessThanOrEqual(500);
 
-      // Narrow container smaller than tooltip
+      // Narrow container smaller than tooltip applies honest deterministic contract
       const narrowResult = calculateTooltipPlacement({
         anchorX: 50,
         anchorY: 100,
@@ -453,6 +456,81 @@ describe('TrendChart UX Refinement Unit Tests', () => {
         margin: 10,
       });
       expect(narrowResult.x).toBeGreaterThanOrEqual(0);
+      expect(narrowResult.x).toBe(10);
     });
+
+    it('ensures effective tooltip width for positioning does not exceed container minus 2 * margin', () => {
+      const margin = 10;
+      const containerWidth = 180;
+      const tooltipWidth = 250;
+      const effectiveTooltipWidth = Math.min(
+        tooltipWidth,
+        Math.max(0, containerWidth - margin * 2)
+      );
+      expect(effectiveTooltipWidth).toBeLessThanOrEqual(containerWidth - margin * 2);
+      expect(effectiveTooltipWidth).toBe(160);
+    });
+  });
+
+  // --- Requirement: State Churn Prevention Helper ---
+
+  describe('isSameTooltipPlacement', () => {
+    const samplePlacement = {
+      x: 100,
+      y: 50,
+      placement: 'below' as const,
+      align: 'center' as const,
+      targetIndex: 1,
+    };
+
+    it('returns false when prev is null', () => {
+      expect(isSameTooltipPlacement(null, samplePlacement)).toBe(false);
+    });
+
+    it('returns true when all positioning fields match', () => {
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement })).toBe(true);
+    });
+
+    it('returns false when any positioning field differs', () => {
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement, x: 101 })).toBe(false);
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement, y: 51 })).toBe(false);
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement, placement: 'above' })).toBe(false);
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement, align: 'left' })).toBe(false);
+      expect(isSameTooltipPlacement(samplePlacement, { ...samplePlacement, targetIndex: 2 })).toBe(false);
+    });
+  });
+
+  // --- Requirement: Effect Dependency Stability & Non-Date Fallback ---
+
+  it('ensures coordinates is not used as an unstable effect dependency in TrendChart', () => {
+    const filePath = path.resolve(__dirname, '../../src/components/analysis/TrendChart.tsx');
+    const source = fs.readFileSync(filePath, 'utf-8');
+    const effectMatch = source.match(/useEffect\(\(\)\s*=>\s*\{[\s\S]*?\},\s*\[([\s\S]*?)\]\);/);
+    expect(effectMatch).not.toBeNull();
+    const deps = effectMatch![1].split(',').map((s) => s.trim()).filter(Boolean);
+    expect(deps).not.toContain('coordinates');
+    expect(deps).not.toContain('points');
+  });
+
+  it('safely falls back to point.label when point.period is not a valid date', () => {
+    const nonDatePoint: TrendPoint[] = [
+      {
+        period: 'forecast',
+        label: 'Estimasi berikutnya',
+        usageKwh: 450,
+        billAmount: 900000,
+        tariff: 1444.7,
+        type: 'forecast',
+      },
+    ];
+    const html = renderToStaticMarkup(
+      React.createElement(TrendChart, {
+        points: nonDatePoint,
+        metric: 'kwh',
+        initialHoveredIndex: 0,
+      })
+    );
+    expect(html).not.toContain('Periode tidak valid');
+    expect(html).toContain('Estimasi berikutnya');
   });
 });

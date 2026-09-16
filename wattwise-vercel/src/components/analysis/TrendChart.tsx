@@ -58,6 +58,21 @@ export interface TooltipPlacementResult {
   y: number;
   placement: 'above' | 'below';
   align: 'center' | 'left' | 'right';
+  targetIndex?: number;
+}
+
+export function isSameTooltipPlacement(
+  prev: TooltipPlacementResult | null,
+  next: TooltipPlacementResult
+): boolean {
+  if (!prev) return false;
+  return (
+    prev.x === next.x &&
+    prev.y === next.y &&
+    prev.placement === next.placement &&
+    prev.align === next.align &&
+    prev.targetIndex === next.targetIndex
+  );
 }
 
 export function calculateTooltipPlacement({
@@ -114,10 +129,16 @@ export function calculateTooltipPlacement({
   const clampedY = Math.max(0, Math.max(minY, Math.min(rawY, maxY)));
 
   // Horizontal placement:
-  // Default: centered on anchorX
-  const desiredX = anchorX - tooltipWidth / 2;
+  // Use effective tooltip width bounded by container minus margins to ensure
+  // honest, deterministic placement math even if tooltip is wider than container.
+  const effectiveTooltipWidth = Math.min(
+    tooltipWidth,
+    Math.max(0, containerWidth - safeMargin * 2)
+  );
+
+  const desiredX = anchorX - effectiveTooltipWidth / 2;
   const minX = safeMargin;
-  const maxX = Math.max(minX, containerWidth - tooltipWidth - safeMargin);
+  const maxX = Math.max(minX, containerWidth - effectiveTooltipWidth - safeMargin);
 
   let align: 'center' | 'left' | 'right' = 'center';
   if (desiredX < minX) {
@@ -276,15 +297,29 @@ export function TrendChart({
       ? coordinates[hoveredIndex]
       : null;
 
+  const activeX = activeCoordinate?.x;
+  const activeY = activeCoordinate?.y;
+  const activeValue = activeCoordinate?.value;
+  const activePeriod = activeCoordinate?.point.period;
+  const activeType = activeCoordinate?.point.type;
+
   useEffect(() => {
-    if (hoveredIndex === null || !points.length || !validPoints.length) {
+    if (
+      hoveredIndex === null ||
+      activeX === undefined ||
+      activeY === null ||
+      activeY === undefined ||
+      activeValue === null ||
+      activeValue === undefined
+    ) {
       return;
     }
 
-    const updatePlacement = () => {
-      const coord = coordinates[hoveredIndex];
-      if (!coord || coord.value === null || coord.y === null) return;
+    const anchorCoordX = activeX;
+    const anchorCoordY = activeY;
+    const targetIdx = hoveredIndex;
 
+    const updatePlacement = () => {
       const container = containerRef.current;
       const svg = svgRef.current;
       if (!container || !svg) return;
@@ -293,8 +328,8 @@ export function TrendChart({
       const svgRect = svg.getBoundingClientRect();
 
       // Active coordinate rendered anchor in container coordinates
-      const anchorX = svgRect.left + (coord.x / svgWidth) * svgRect.width - containerRect.left;
-      const anchorY = svgRect.top + (coord.y / svgHeight) * svgRect.height - containerRect.top;
+      const anchorX = svgRect.left + (anchorCoordX / svgWidth) * svgRect.width - containerRect.left;
+      const anchorY = svgRect.top + (anchorCoordY / svgHeight) * svgRect.height - containerRect.top;
 
       const tooltipEl = tooltipRef.current;
       const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 220;
@@ -311,7 +346,12 @@ export function TrendChart({
         margin: 10,
       });
 
-      setTooltipPos(result);
+      const nextResult: TooltipPlacementResult = {
+        ...result,
+        targetIndex: targetIdx,
+      };
+
+      setTooltipPos((prev) => (isSameTooltipPlacement(prev, nextResult) ? prev : nextResult));
     };
 
     const rafId = requestAnimationFrame(updatePlacement);
@@ -341,7 +381,16 @@ export function TrendChart({
       window.removeEventListener('resize', updatePlacement);
       resizeObserver?.disconnect();
     };
-  }, [hoveredIndex, points.length, validPoints.length, coordinates, svgWidth, svgHeight]);
+  }, [
+    hoveredIndex,
+    activeX,
+    activeY,
+    activeValue,
+    activePeriod,
+    activeType,
+    svgWidth,
+    svgHeight,
+  ]);
 
   // Empty state: 0 points or 0 valid values
   if (!points.length || !validPoints.length) {
@@ -361,8 +410,9 @@ export function TrendChart({
   }
 
   const currentPlacement =
-    tooltipPos ??
-    (activeCoordinate && activeCoordinate.value !== null && activeCoordinate.y !== null
+    tooltipPos && tooltipPos.targetIndex === hoveredIndex
+      ? tooltipPos
+      : activeCoordinate && activeCoordinate.value !== null && activeCoordinate.y !== null
       ? calculateTooltipPlacement({
           anchorX: activeCoordinate.x,
           anchorY: activeCoordinate.y,
@@ -373,7 +423,7 @@ export function TrendChart({
           gap: 12,
           margin: 10,
         })
-      : null);
+      : null;
 
   // Direction badge styling
   const directionConfig = {
@@ -691,7 +741,7 @@ export function TrendChart({
             style={{
               left: `${currentPlacement.x}px`,
               top: `${currentPlacement.y}px`,
-              maxWidth: 'min(280px, calc(100vw - 32px))',
+              maxWidth: 'min(280px, calc(100vw - 32px), calc(100% - 20px))',
             }}
           >
             <div className="flex items-center gap-1.5">
