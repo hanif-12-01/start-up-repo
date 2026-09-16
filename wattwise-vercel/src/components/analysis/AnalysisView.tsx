@@ -45,6 +45,11 @@ import {
   formatPatternComparison,
   ENERGY_CONDITION_DISCLAIMER,
 } from '@/lib/presentation';
+import {
+  getOwnerFacingTariffLabel,
+  resolveTariffContext,
+  type TariffContext,
+} from '@/lib/tariff';
 
 const tabs = [
   ['overview', Gauge, 'Ringkasan'],
@@ -65,6 +70,7 @@ interface BusinessSummary {
 interface BillSummary {
   totalAmountRupiah: bigint | number;
   periodEnd: string;
+  tariffRupiahPerKwh?: string | null;
 }
 
 interface ApplianceSummary {
@@ -82,6 +88,7 @@ interface DecisionSupportData {
 interface AnalysisViewProps {
   data: DecisionSupportData;
   tariff: number | null;
+  tariffContext?: TariffContext;
   samples: Array<{ period: string; usageKwh: number | null; billAmount: number; tariff: number | null }>;
   forecastPlan: EmbeddedForecastPlan;
   anomaly: {
@@ -125,6 +132,7 @@ interface AiPredictionState {
 export function AnalysisView({
   data,
   tariff,
+  tariffContext,
   samples,
   forecastPlan,
   anomaly,
@@ -251,8 +259,18 @@ export function AnalysisView({
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BusinessSelector businesses={data.businesses} selectedId={data.business.id} route="/analysis" />
-            <StatusBadge variant="info">
-              Tarif {data.business.tariffRupiahPerKwh ? `${rupiah.format(Number(data.business.tariffRupiahPerKwh))}/kWh` : 'Belum diatur'}
+            <StatusBadge
+              variant={
+                (tariffContext?.value ?? tariff) !== null ? 'info' : 'neutral'
+              }
+            >
+              {getOwnerFacingTariffLabel(
+                tariffContext ??
+                  resolveTariffContext({
+                    businessTariff: data.business.tariffRupiahPerKwh,
+                    latestBillTariff: data.latestBill?.tariffRupiahPerKwh,
+                  })
+              )}
             </StatusBadge>
           </div>
         }
@@ -289,7 +307,9 @@ export function AnalysisView({
               ? 'Menyiapkan estimasi...'
               : prediction.estimatedBill
                 ? rupiah.format(prediction.estimatedBill)
-                : `Kesiapan Data: ${prediction.confidence ?? '—'}`
+                : prediction.predictedUsageKwh !== null
+                  ? 'Tarif belum tersedia'
+                  : `Kesiapan Data: ${prediction.confidence ?? '—'}`
           }
           icon={TrendingUp}
         />
@@ -585,8 +605,11 @@ export function AnalysisView({
                 <Surface variant="muted">
                   <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Tagihan</p>
                   <p className="mt-2 text-xl font-black tabular-nums text-[var(--foreground)]">
-                    {prediction.estimatedBill === null ? 'Tarif belum diisi' : rupiah.format(prediction.estimatedBill)}
+                    {prediction.estimatedBill === null ? 'Tarif belum tersedia' : rupiah.format(prediction.estimatedBill)}
                   </p>
+                  {prediction.estimatedBill === null && prediction.predictedUsageKwh !== null && (
+                    <p className="mt-1 text-[11px] text-[var(--muted)]">Estimasi biaya belum dihitung</p>
+                  )}
                 </Surface>
                 <Surface variant="muted">
                   <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Risiko Kenaikan</p>
@@ -714,7 +737,7 @@ export function AnalysisView({
           <div className="mt-6">
             <Simulator
               baseBill={data.latestBill ? Number(data.latestBill.totalAmountRupiah) : null}
-              defaultTariff={tariff ?? 1444.7}
+              defaultTariff={tariff}
               applianceOptions={data.appliances
                 .filter((item) => item.powerWatts !== null)
                 .map((item) => ({ name: item.name, powerWatts: item.powerWatts as number }))}
