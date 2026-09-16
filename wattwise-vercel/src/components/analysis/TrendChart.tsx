@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import {
   decimal,
+  parseMonth,
   formatMonth,
   formatMonthCompact,
   rupiah,
@@ -695,7 +696,9 @@ export function TrendChart({
           >
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-[var(--foreground)]">
-                {activeCoordinate.point.period ? formatMonth(activeCoordinate.point.period) : activeCoordinate.point.label}
+                {activeCoordinate.point.period && parseMonth(activeCoordinate.point.period)
+                  ? formatMonth(activeCoordinate.point.period)
+                  : activeCoordinate.point.label}
               </span>
               <span
                 className={`rounded-full px-1.5 py-0.2 text-[9px] font-black uppercase ${
