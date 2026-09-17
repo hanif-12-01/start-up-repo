@@ -6,6 +6,7 @@ import {
   ensurePublicDemoAccount,
   PUBLIC_DEMO_EMAIL,
   PUBLIC_DEMO_PASSWORD,
+  SYNTHETIC_DEMO_NOTES,
 } from '@/server/services/public-demo-provisioning.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { auth } from '@/server/auth';
@@ -210,5 +211,99 @@ describe('Public Demo Provisioning Integration Tests', () => {
     const count2 = await pool.query(`SELECT COUNT(*)::int as count FROM electricity_bill`);
 
     expect(count1.rows[0].count).toBe(count2.rows[0].count);
+  });
+
+  // TEST H: Partial start-only match (periodStart matches, but periodEnd differs)
+  // Expected: Not treated as the exact synthetic period; synthetic period inserted independently; manual bill preserved untouched.
+  it('TEST H: Partial start-only match is not treated as exact period; manual bill preserved', async () => {
+    const res = await ensurePublicDemoAccount();
+    const demo01Id = res.businessIds.demo01;
+
+    // Delete existing synthetic September bill (2026-09-01 to 2026-09-30)
+    await pool.query(
+      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
+      [demo01Id]
+    );
+
+    // Insert a manual partial bill: start matches 2026-09-01, but end is mid-month 2026-09-15
+    const manualPartialId = `bill-partial-start-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
+       ) VALUES ($1, $2, '2026-09-01', '2026-09-15', 250000, '175.000', '1444.70', 'USER_ENTERED', 'Manual mid-month partial bill')`,
+      [manualPartialId, demo01Id]
+    );
+
+    // Run provisioning
+    await ensurePublicDemoAccount();
+
+    // 1. Manual bill must NOT be deleted or overwritten
+    const manualCheck = await pool.query(
+      `SELECT id, period_start::text, period_end::text, total_amount_rupiah::text, notes FROM electricity_bill WHERE id = $1`,
+      [manualPartialId]
+    );
+    expect(manualCheck.rows.length).toBe(1);
+    expect(manualCheck.rows[0].period_start).toBe('2026-09-01');
+    expect(manualCheck.rows[0].period_end).toBe('2026-09-15');
+    expect(manualCheck.rows[0].notes).toBe('Manual mid-month partial bill');
+
+    // 2. Exact synthetic period (2026-09-01 to 2026-09-30) must be inserted independently
+    const syntheticCheck = await pool.query(
+      `SELECT id, period_start::text, period_end::text, notes FROM electricity_bill
+       WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
+      [demo01Id]
+    );
+    expect(syntheticCheck.rows.length).toBe(1);
+    expect(syntheticCheck.rows[0].notes).toBe(SYNTHETIC_DEMO_NOTES);
+
+    // Cleanup
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [manualPartialId]);
+  });
+
+  // TEST I: Partial end-only match (periodEnd matches, but periodStart differs)
+  // Expected: Not treated as the exact synthetic period; manual bill preserved untouched; exact synthetic period handled independently.
+  it('TEST I: Partial end-only match is not treated as exact period; manual bill preserved', async () => {
+    const res = await ensurePublicDemoAccount();
+    const demo01Id = res.businessIds.demo01;
+
+    // Delete existing synthetic September bill (2026-09-01 to 2026-09-30)
+    await pool.query(
+      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
+      [demo01Id]
+    );
+
+    // Insert a manual partial bill: start is 2026-09-16, end matches 2026-09-30
+    const manualPartialId = `bill-partial-end-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
+       ) VALUES ($1, $2, '2026-09-16', '2026-09-30', 275000, '190.000', '1444.70', 'USER_ENTERED', 'Manual second-half partial bill')`,
+      [manualPartialId, demo01Id]
+    );
+
+    // Run provisioning
+    await ensurePublicDemoAccount();
+
+    // 1. Manual bill must NOT be deleted or overwritten
+    const manualCheck = await pool.query(
+      `SELECT id, period_start::text, period_end::text, total_amount_rupiah::text, notes FROM electricity_bill WHERE id = $1`,
+      [manualPartialId]
+    );
+    expect(manualCheck.rows.length).toBe(1);
+    expect(manualCheck.rows[0].period_start).toBe('2026-09-16');
+    expect(manualCheck.rows[0].period_end).toBe('2026-09-30');
+    expect(manualCheck.rows[0].notes).toBe('Manual second-half partial bill');
+
+    // 2. Exact synthetic period (2026-09-01 to 2026-09-30) must be inserted independently
+    const syntheticCheck = await pool.query(
+      `SELECT id, period_start::text, period_end::text, notes FROM electricity_bill
+       WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
+      [demo01Id]
+    );
+    expect(syntheticCheck.rows.length).toBe(1);
+    expect(syntheticCheck.rows[0].notes).toBe(SYNTHETIC_DEMO_NOTES);
+
+    // Cleanup
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [manualPartialId]);
   });
 });

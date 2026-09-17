@@ -211,7 +211,7 @@ export async function ensurePublicDemoAccount(): Promise<{
 
         // Find existing bill covering this exact period
         const matchingBill = existingBills.find(
-          (b) => b.periodEnd === end || b.periodStart === start
+          (b) => b.periodStart === start && b.periodEnd === end
         );
 
         if (matchingBill) {

@@ -113,7 +113,9 @@ async function main() {
     console.log('✅ PostgreSQL database ready.');
 
     const vitestPath = resolve(process.cwd(), 'node_modules', 'vitest', 'vitest.mjs');
-    const command = `"${process.execPath}" "${vitestPath}" run tests/integration --no-file-parallelism`;
+    const extraArgsIndex = process.argv.indexOf('--');
+    const customCommand = extraArgsIndex !== -1 ? process.argv.slice(extraArgsIndex + 1).join(' ') : null;
+    const command = customCommand || `"${process.execPath}" "${vitestPath}" run tests/integration --no-file-parallelism`;
 
     console.log(`▶ Executing: ${command}`);
     const env = {

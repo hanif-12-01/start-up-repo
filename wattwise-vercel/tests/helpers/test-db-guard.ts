@@ -54,7 +54,6 @@ export function assertDestructiveTestDb(dbUrl: string | undefined): string {
 export function getSafeTestDbUrl(): string {
   const dbUrl =
     process.env.TEST_DATABASE_URL ||
-    process.env.DATABASE_URL ||
     'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
   return assertDestructiveTestDb(dbUrl);
 }
