@@ -13,11 +13,10 @@ import {
   getMonthlyReportReadModel,
 } from '../../src/server/services/monthly-report.service';
 import { applyAllForwardMigrations, readRollbackMigration } from '../helpers/migrations';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
-const dbUrl =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+const dbUrl = getSafeTestDbUrl();
 const NOW = new Date('2026-08-03T05:00:00.000Z');
 
 describe('IT-DIAG-07B monthly report integration', () => {

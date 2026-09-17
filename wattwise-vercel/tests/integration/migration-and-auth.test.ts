@@ -3,11 +3,13 @@ import pg from 'pg';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
+
 const { Pool } = pg;
 
 describe('Database Migration & Auth Integration Tests', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   beforeAll(async () => {
     pool = new Pool({

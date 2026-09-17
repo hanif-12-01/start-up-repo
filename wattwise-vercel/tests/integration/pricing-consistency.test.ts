@@ -2,12 +2,13 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import { applyAllForwardMigrations } from '../helpers/migrations';
 import { getPlanCenter, createSandboxCheckout, startProTrial } from '@/server/services/plan.service';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
 
 describe('PRICING-CONSISTENCY-01 — Pricing Integration Tests', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, max: 2 });

@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import pg from 'pg';
 import { applyAllForwardMigrations } from '../helpers/migrations';
-import { ensurePublicDemoAccount, PUBLIC_DEMO_EMAIL, PUBLIC_DEMO_PASSWORD } from '@/server/services/public-demo-provisioning.service';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
+import {
+  ensurePublicDemoAccount,
+  PUBLIC_DEMO_EMAIL,
+  PUBLIC_DEMO_PASSWORD,
+} from '@/server/services/public-demo-provisioning.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { auth } from '@/server/auth';
 
@@ -9,7 +14,7 @@ const { Pool } = pg;
 
 describe('Public Demo Provisioning Integration Tests', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, max: 2 });
@@ -66,23 +71,144 @@ describe('Public Demo Provisioning Integration Tests', () => {
     expect(res1.userId).toBe(res2.userId);
   });
 
-  it('converges bills idempotently even if existing records have stale data with same row count', async () => {
+  // TEST A: Demo starts with synthetic Aug + Sep. Run ensurePublicDemoAccount(). Expected: Aug + Sep remain. No duplicates.
+  it('TEST A: Demo starts with synthetic Aug + Sep; ensurePublicDemoAccount preserves them without duplicates', async () => {
     const res = await ensurePublicDemoAccount();
-    // Tamper with demo01's bill kwh to simulate an existing account with old values
-    await pool.query(
-      `UPDATE electricity_bill SET kwh = '999.000' WHERE business_id = $1`,
+    const initialBills = await pool.query(
+      `SELECT id, period_start, period_end, total_amount_rupiah::text, kwh, notes
+       FROM electricity_bill WHERE business_id = $1 ORDER BY period_end ASC`,
       [res.businessIds.demo01]
     );
+    expect(initialBills.rows.length).toBe(2);
 
-    // Call ensurePublicDemoAccount again -> must re-converge to the desired series
+    // Re-run provisioning
     await ensurePublicDemoAccount();
 
-    const billsRes = await pool.query(
-      `SELECT kwh, period_end FROM electricity_bill WHERE business_id = $1 ORDER BY period_end ASC`,
+    const afterBills = await pool.query(
+      `SELECT id, period_start, period_end, total_amount_rupiah::text, kwh, notes
+       FROM electricity_bill WHERE business_id = $1 ORDER BY period_end ASC`,
       [res.businessIds.demo01]
     );
-    expect(billsRes.rows.length).toBe(2);
-    expect(Number(billsRes.rows[0].kwh)).toBe(350);
-    expect(Number(billsRes.rows[1].kwh)).toBe(395);
+    expect(afterBills.rows.length).toBe(2);
+    expect(afterBills.rows[0].id).toBe(initialBills.rows[0].id);
+    expect(afterBills.rows[1].id).toBe(initialBills.rows[1].id);
+  });
+
+  // TEST B: Demo contains July manual bill + August synthetic + September synthetic. Run ensurePublicDemoAccount(). Expected: July manual remains, August remains, September remains. Total remains 3.
+  it('TEST B: Demo contains July manual bill + Aug synth + Sep synth; ensurePublicDemoAccount preserves all 3', async () => {
+    const res = await ensurePublicDemoAccount();
+    const demo01Id = res.businessIds.demo01;
+
+    // Insert manually entered July 2026 bill (USER_ENTERED, notes !== SYNTHETIC_DEMO_NOTES)
+    const manualJulyId = `bill-manual-july-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
+       ) VALUES ($1, $2, '2026-07-01', '2026-07-31', 1510000, NULL, NULL, 'USER_ENTERED', 'Tagihan manual Juli')`,
+      [manualJulyId, demo01Id]
+    );
+
+    // Verify 3 bills exist before re-provisioning
+    const countBefore = await pool.query(
+      `SELECT COUNT(*)::int as count FROM electricity_bill WHERE business_id = $1`,
+      [demo01Id]
+    );
+    expect(countBefore.rows[0].count).toBe(3);
+
+    // Re-run provisioning (simulating login)
+    await ensurePublicDemoAccount();
+
+    // Verify July manual bill STILL exists and total remains 3!
+    const billsAfter = await pool.query(
+      `SELECT id, period_start, period_end, total_amount_rupiah::text, kwh, notes
+       FROM electricity_bill WHERE business_id = $1 ORDER BY period_end ASC`,
+      [demo01Id]
+    );
+    expect(billsAfter.rows.length).toBe(3);
+
+    const julyBill = billsAfter.rows.find((b) => b.id === manualJulyId);
+    expect(julyBill).toBeDefined();
+    expect(julyBill?.total_amount_rupiah).toBe('1510000');
+    expect(julyBill?.notes).toBe('Tagihan manual Juli');
+
+    // Clean up the manual July bill so it doesn't leak into subsequent tests
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [manualJulyId]);
+  });
+
+  // TEST C: Demo contains an extra manually entered historical bill. Run ensurePublicDemoAccount() repeatedly. Expected: Manual bill is never deleted.
+  it('TEST C: Demo contains extra manually entered historical bill; repeated ensurePublicDemoAccount never deletes it', async () => {
+    const res = await ensurePublicDemoAccount();
+    const demo01Id = res.businessIds.demo01;
+
+    const manualJuneId = `bill-manual-june-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
+       ) VALUES ($1, $2, '2026-06-01', '2026-06-30', 1420000, '310.500', '1444.70', 'USER_ENTERED', 'Tagihan manual Juni')`,
+      [manualJuneId, demo01Id]
+    );
+
+    // Call repeatedly 3 times
+    await ensurePublicDemoAccount();
+    await ensurePublicDemoAccount();
+    await ensurePublicDemoAccount();
+
+    const juneCheck = await pool.query(
+      `SELECT id, total_amount_rupiah::text, notes FROM electricity_bill WHERE id = $1`,
+      [manualJuneId]
+    );
+    expect(juneCheck.rows.length).toBe(1);
+    expect(juneCheck.rows[0].notes).toBe('Tagihan manual Juni');
+
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [manualJuneId]);
+  });
+
+  // TEST D: Manual bill occupies a period expected by the seeder. Expected: Manual bill wins. Seeder must not delete/overwrite it.
+  it('TEST D: Manual bill occupies period expected by seeder; manual bill wins and is not overwritten', async () => {
+    const res = await ensurePublicDemoAccount();
+    const demo01Id = res.businessIds.demo01;
+
+    // Find the current second bill (September 2026) and delete only that synthetic bill
+    const existingBills = await pool.query(
+      `SELECT id, period_start, period_end FROM electricity_bill WHERE business_id = $1 ORDER BY period_end DESC LIMIT 1`,
+      [demo01Id]
+    );
+    const targetPeriod = existingBills.rows[0];
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [targetPeriod.id]);
+
+    // Insert a custom user bill on the exact same period
+    const customUserBillId = `bill-custom-user-sep-${Date.now()}`;
+    await pool.query(
+      `INSERT INTO electricity_bill (
+         id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
+       ) VALUES ($1, $2, $3, $4, 9999999, '888.888', '1444.70', 'USER_ENTERED', 'User manual custom bill')`,
+      [customUserBillId, demo01Id, targetPeriod.period_start, targetPeriod.period_end]
+    );
+
+    // Run provisioning: seeder must NOT overwrite the manual bill
+    await ensurePublicDemoAccount();
+
+    const checkRes = await pool.query(
+      `SELECT id, total_amount_rupiah::text, kwh, notes FROM electricity_bill WHERE id = $1`,
+      [customUserBillId]
+    );
+    expect(checkRes.rows.length).toBe(1);
+    expect(checkRes.rows[0].total_amount_rupiah).toBe('9999999');
+    expect(Number(checkRes.rows[0].kwh)).toBe(888.888);
+    expect(checkRes.rows[0].notes).toBe('User manual custom bill');
+
+    // Clean up
+    await pool.query(`DELETE FROM electricity_bill WHERE id = $1`, [customUserBillId]);
+  });
+
+  // TEST E: Run demo provisioning twice. Expected: Idempotent state. No duplicate synthetic records. No manual data lost.
+  it('TEST E: Run demo provisioning twice; idempotent state with no duplicate synthetic records', async () => {
+    await ensurePublicDemoAccount();
+    const count1 = await pool.query(`SELECT COUNT(*)::int as count FROM electricity_bill`);
+
+    await ensurePublicDemoAccount();
+    const count2 = await pool.query(`SELECT COUNT(*)::int as count FROM electricity_bill`);
+
+    expect(count1.rows[0].count).toBe(count2.rows[0].count);
   });
 });
