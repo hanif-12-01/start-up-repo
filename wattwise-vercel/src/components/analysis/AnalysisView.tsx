@@ -50,6 +50,12 @@ import {
   resolveTariffContext,
   type TariffContext,
 } from '@/lib/tariff';
+import {
+  buildElectricityCompleteness,
+  findHighestRecordedCost,
+  buildElectricityInsightSummary,
+} from '@/lib/electricity-insights';
+import type { BillRecord } from '@/server/repositories/bill.repository';
 
 const tabs = [
   ['overview', Gauge, 'Ringkasan'],
@@ -81,6 +87,15 @@ interface ApplianceSummary {
 interface DecisionSupportData {
   business: BusinessSummary;
   businesses: BusinessSummary[];
+  bills?: Array<{
+    id: string;
+    businessId?: string;
+    periodStart: string;
+    periodEnd: string;
+    totalAmountRupiah: bigint | number;
+    kwh?: string | null;
+    tariffRupiahPerKwh?: string | null;
+  }>;
   latestBill: BillSummary | null;
   appliances: ApplianceSummary[];
 }
@@ -207,20 +222,82 @@ export function AnalysisView({
     hasAiPrediction: Boolean(aiPrediction && !aiPrediction.fallbackUsed),
   });
 
-  // Construct trend points for visualization with single unified prediction
-  const trendPoints: TrendPoint[] = samples.map((s) => ({
-    period: s.period,
-    label: formatMonth(s.period),
-    usageKwh: s.usageKwh,
-    billAmount: s.billAmount,
-    tariff: s.tariff,
-    type: 'historical' as const,
-  }));
+  // Sorted bills for dual electricity signals
+  const rawBills = data.bills ?? [];
+  const sortedBills = [...rawBills].sort((a, b) => a.periodEnd.localeCompare(b.periodEnd));
 
+  // Data completeness, Highest cost context, and Insight Bridge
+  const completeness = buildElectricityCompleteness(
+    sortedBills.length > 0
+      ? sortedBills.map((b) => ({ totalAmountRupiah: b.totalAmountRupiah, kwh: b.kwh }))
+      : samples.map((s) => ({ totalAmountRupiah: s.billAmount, kwh: s.usageKwh }))
+  );
+  const highestCost = findHighestRecordedCost(
+    sortedBills.length > 0
+      ? sortedBills
+      : samples.map((s) => ({
+          id: s.period,
+          periodEnd: s.period,
+          totalAmountRupiah: BigInt(s.billAmount),
+          kwh: s.usageKwh,
+        }))
+  );
+
+  const currentBill = sortedBills.length > 0 ? (sortedBills[sortedBills.length - 1] as unknown as BillRecord) : null;
+  const prevBill = sortedBills.length > 1 ? (sortedBills[sortedBills.length - 2] as unknown as BillRecord) : null;
+  const insightBridge = buildElectricityInsightSummary(currentBill, prevBill);
+
+  // Sinyal 1: Cost Points (All valid bills with cost appear, even if kWh is null)
+  const costPoints: TrendPoint[] =
+    sortedBills.length > 0
+      ? sortedBills.map((b) => ({
+          period: b.periodEnd,
+          label: formatMonth(b.periodEnd),
+          usageKwh: b.kwh === null || b.kwh === undefined ? null : Number(b.kwh),
+          billAmount: Number(b.totalAmountRupiah),
+          tariff:
+            b.tariffRupiahPerKwh === null || b.tariffRupiahPerKwh === undefined
+              ? null
+              : Number(b.tariffRupiahPerKwh),
+          type: 'historical' as const,
+        }))
+      : samples.map((s) => ({
+          period: s.period,
+          label: formatMonth(s.period),
+          usageKwh: s.usageKwh,
+          billAmount: s.billAmount,
+          tariff: s.tariff,
+          type: 'historical' as const,
+        }));
+
+  // Sinyal 2: Usage Points (Only legitimate recorded kWh, missing remains null)
+  const usageHistoricalPoints: TrendPoint[] =
+    sortedBills.length > 0
+      ? sortedBills.map((b) => ({
+          period: b.periodEnd,
+          label: formatMonth(b.periodEnd),
+          usageKwh: b.kwh === null || b.kwh === undefined ? null : Number(b.kwh),
+          billAmount: Number(b.totalAmountRupiah),
+          tariff:
+            b.tariffRupiahPerKwh === null || b.tariffRupiahPerKwh === undefined
+              ? null
+              : Number(b.tariffRupiahPerKwh),
+          type: 'historical' as const,
+        }))
+      : samples.map((s) => ({
+          period: s.period,
+          label: formatMonth(s.period),
+          usageKwh: s.usageKwh,
+          billAmount: s.billAmount,
+          tariff: s.tariff,
+          type: 'historical' as const,
+        }));
+
+  const usageTrendPoints: TrendPoint[] = [...usageHistoricalPoints];
   if (!isInferring && prediction.hasPrediction && prediction.predictedUsageKwh !== null) {
-    trendPoints.push({
-      period: 'forecast-next',
-      label: 'Estimasi periode berikutnya',
+    usageTrendPoints.push({
+      period: forecastPlan.targetPeriod,
+      label: formatMonth(forecastPlan.targetPeriod),
       usageKwh: prediction.predictedUsageKwh,
       billAmount: prediction.estimatedBill,
       tariff,
@@ -348,25 +425,159 @@ export function AnalysisView({
         </div>
       </Surface>
 
-      {/* Primary Visual Trend Area */}
-      <SoftCard data-tour-id="analysis-trend-section">
-        <SectionHeader
-          title="Tren & Proyeksi Pemakaian Listrik"
-          description="Visualisasi perbandingan data tagihan historis dengan prediksi periode berikutnya berdasarkan metode yang sedang digunakan."
-          badge={
-            <StatusBadge variant="info">
-              {samples.length} Periode Data
-            </StatusBadge>
-          }
-        />
-        <div className="mt-6">
-          <TrendChart
-            points={trendPoints}
-            metric="kwh"
-            forecastLabel={isInferring ? 'Menyiapkan prediksi...' : sourceLabel}
-          />
+      {/* Electricity Insight Summary Layer */}
+      <Surface variant="elevated" className="space-y-5 rounded-2xl border border-[var(--border)] p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--border)] pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--primary)]">
+                Yang terlihat dari data Anda
+              </span>
+              <StatusBadge variant={completeness.isKwhComplete ? 'success' : 'info'}>
+                {completeness.costCount} Periode Tercatat
+              </StatusBadge>
+            </div>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--foreground)]">
+              {insightBridge.title}
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-[var(--muted)] leading-relaxed max-w-3xl">
+              {insightBridge.detail}
+            </p>
+          </div>
+          {completeness.hasMissingKwh && (
+            <Link
+              href={`/bills?${businessQuery}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--primary)]/30 bg-[var(--primary-soft)]/50 px-3.5 py-2 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary-soft)] transition shrink-0"
+            >
+              Lengkapi kWh yang belum tersedia
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          )}
         </div>
-      </SoftCard>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Signal Relationship (Latest Period Bridge) */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-4">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+              Hubungan Sinyal {insightBridge.periodTransition ? `(${insightBridge.periodTransition})` : ''}
+            </span>
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[var(--muted)]">Biaya:</span>
+                <span className="font-bold text-[var(--foreground)]">
+                  {insightBridge.costLabel ?? '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[var(--muted)]">Pemakaian:</span>
+                <span className="font-bold text-[var(--foreground)]">
+                  {insightBridge.usageLabel ?? '—'}
+                </span>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-[var(--muted)] leading-relaxed border-t border-[var(--border)]/60 pt-2">
+              Sinyal biaya dan konsumsi disajikan berdampingan tanpa mengasumsikan hubungan sebab-akibat langsung.
+            </p>
+          </div>
+
+          {/* Historical Cost Context */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-4">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+              {highestCost.wording?.title ?? 'Biaya tertinggi yang tercatat'}
+            </span>
+            <p className="mt-2 text-sm sm:text-base font-black text-[var(--foreground)]">
+              {highestCost.wording?.subtitle ?? 'Belum ada data tagihan'}
+            </p>
+            {highestCost.wording?.limitation && (
+              <p className="mt-2 text-[11px] text-[var(--warning)] leading-relaxed">
+                {highestCost.wording.limitation}
+              </p>
+            )}
+            {highestCost.highestBill?.isKwhMissing && (
+              <div className="mt-2">
+                <Link
+                  href={`/bills?${businessQuery}`}
+                  className="text-[11px] font-extrabold text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+                >
+                  Lengkapi data periode ini →
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Data Completeness */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-4 sm:col-span-2 lg:col-span-1">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+              Kelengkapan Data Tersedia
+            </span>
+            <div className="mt-2 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted)]">Biaya listrik:</span>
+                <span className="font-bold text-[var(--foreground)]">{completeness.costLabel}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted)]">Pemakaian kWh:</span>
+                <span className="font-bold text-[var(--foreground)]">{completeness.kwhLabel}</span>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-[var(--muted)] leading-relaxed border-t border-[var(--border)]/60 pt-2">
+              Pencatatan biaya tetap dapat dianalisis walau kWh belum diisi. Lengkapi kWh untuk membuka perbandingan konsumsi.
+            </p>
+          </div>
+        </div>
+      </Surface>
+
+      {/* Dual Electricity Signals Container */}
+      <section data-tour-id="analysis-trend-section" className="space-y-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+          <div>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--primary)]">
+              Tren listrik usaha
+            </span>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-[var(--foreground)]">
+              Dua Sinyal Listrik Usaha
+            </h2>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Biaya dan pemakaian energi adalah dua indikator terpisah. Biaya menjawab beban rupiah, sedangkan pemakaian menjawab konsumsi fisik kWh.
+            </p>
+          </div>
+          <Link
+            href={`/bills?${businessQuery}`}
+            className="text-xs font-bold text-[var(--primary)] hover:underline"
+          >
+            Kelola data tagihan →
+          </Link>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Signal 1: Cost Graph */}
+          <SoftCard className="p-4 sm:p-6">
+            <TrendChart
+              points={costPoints}
+              metric="rupiah"
+              eyebrow="Sinyal 1 · Pengeluaran"
+              title="Tren biaya listrik"
+              description="Berapa biaya listrik yang tercatat dari periode ke periode? Semua tagihan dengan nominal biaya ditampilkan di sini."
+              manageBillsHref={`/bills?${businessQuery}`}
+            />
+          </SoftCard>
+
+          {/* Signal 2: Usage Graph */}
+          <SoftCard className="p-4 sm:p-6">
+            <TrendChart
+              points={usageTrendPoints}
+              metric="kwh"
+              eyebrow="Sinyal 2 · Konsumsi Energi"
+              title="Tren pemakaian listrik"
+              description="Berapa energi listrik aktual yang tercatat dari periode ke periode? Periode tanpa data kWh tidak ditarik garis sambung."
+              forecastLabel={isInferring ? 'Menyiapkan prediksi...' : sourceLabel}
+              emptyTitle="Pemakaian kWh belum tercatat"
+              emptyDescription="Tagihan Anda tetap dapat dianalisis dari sisi biaya. Tambahkan kWh jika tersedia untuk memahami perubahan konsumsi listrik."
+              manageBillsHref={`/bills?${businessQuery}`}
+            />
+          </SoftCard>
+        </div>
+      </section>
 
       {/* Analysis Tabs Navigation */}
       <nav aria-label="Bagian analisis" className="flex gap-1.5 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">

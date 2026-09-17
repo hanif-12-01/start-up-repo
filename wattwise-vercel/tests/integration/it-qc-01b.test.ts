@@ -7,11 +7,10 @@ import { getMonthlyReportReadModel } from '../../src/server/services/monthly-rep
 import { getProductAnalysisReadModel } from '../../src/server/services/product-analysis';
 import { GET as csvRouteGET } from '../../src/app/api/reports/monthly.csv/route';
 import * as sessionModule from '../../src/server/auth/session';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
-const dbUrl =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+const dbUrl = getSafeTestDbUrl();
 
 describe('IT-QC-01B MVP Corrective Hardening Integration Tests', () => {
   let pool: pg.Pool;

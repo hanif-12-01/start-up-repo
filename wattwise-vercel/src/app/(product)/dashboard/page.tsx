@@ -205,15 +205,26 @@ export default async function DashboardPage({
 
         <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
           <SoftCard data-tour-id="dashboard-chart">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
               <span className="text-xs font-bold text-[var(--muted)]">Pemantauan Mandiri</span>
-              <Link href={`/bills${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)] hover:underline">
-                Kelola semua tagihan →
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link href={`/analysis${businessQuery}`} className="text-xs font-extrabold text-[var(--primary)] hover:underline">
+                  Lihat biaya & pemakaian →
+                </Link>
+                <Link href={`/bills${businessQuery}`} className="text-xs font-bold text-[var(--muted)] hover:text-[var(--foreground)] hover:underline">
+                  Kelola tagihan
+                </Link>
+              </div>
             </div>
             {support.bills.length === 0
               ? <p className="mt-6 rounded-2xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">Belum ada tagihan untuk ditampilkan.</p>
-              : <TrendChart points={billTrendPoints} metric="rupiah" />}
+              : <TrendChart
+                  points={billTrendPoints}
+                  metric="rupiah"
+                  title="Tren biaya listrik"
+                  eyebrow="Pemantauan Mandiri"
+                  description="Pergerakan total biaya listrik dari periode ke periode berdasarkan data tagihan."
+                />}
           </SoftCard>
 
           <SoftCard>

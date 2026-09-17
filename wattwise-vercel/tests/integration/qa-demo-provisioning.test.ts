@@ -9,12 +9,13 @@ import {
 } from '@/server/services/qa-demo-provisioning.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { getMonthlyReportReadModel } from '@/server/services/monthly-report.service';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
 
 describe('QA Demo Provisioning Integration Tests (IT-QC-DEMO-01B Hardened)', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
   const originalEnv = { ...process.env };
 
   beforeAll(async () => {

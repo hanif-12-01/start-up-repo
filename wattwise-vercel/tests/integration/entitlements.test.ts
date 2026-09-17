@@ -12,9 +12,10 @@ import {
   MonthlyReportHistoryGatedError,
 } from '../../src/server/services/monthly-report.service';
 import { applyAllForwardMigrations, readRollbackMigration } from '../helpers/migrations';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
-const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+const dbUrl = getSafeTestDbUrl();
 
 describe('IT-DIAG-08A Entitlements & Trial Integration Tests', () => {
   let pool: pg.Pool;

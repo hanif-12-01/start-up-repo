@@ -3,13 +3,13 @@ import pg from 'pg';
 import { applyAllForwardMigrations } from '../helpers/migrations';
 import { getPortfolioOverview } from '@/server/services/portfolio-intelligence.service';
 
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
+
 const { Pool } = pg;
 
 describe('Portfolio Intelligence V1 Integration Tests — Tenant Isolation & Overview', () => {
   let pool: pg.Pool;
-  const dbUrl =
-    process.env.DATABASE_URL ||
-    'postgresql://wattwise_test_user:synthetic_test_password_01b@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: dbUrl, max: 2 });

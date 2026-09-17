@@ -11,11 +11,13 @@ import {
   TRIAL_DURATION_MS,
 } from '../../src/server/services/journey.service';
 
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
+
 const { Pool } = pg;
 
 describe('Journey & Business Migration Integration Tests', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   function readMigration(name: string) {
     return readFileSync(join(process.cwd(), `drizzle/migrations/${name}`), 'utf-8');

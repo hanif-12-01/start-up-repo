@@ -5,12 +5,13 @@ import {
   readForwardMigration,
   readRollbackMigration,
 } from '../helpers/migrations';
+import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
 
 describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
   let pool: pg.Pool;
-  const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:testpass@127.0.0.1:5439/wattwise_test';
+  const dbUrl = getSafeTestDbUrl();
 
   beforeAll(async () => {
     pool = new Pool({

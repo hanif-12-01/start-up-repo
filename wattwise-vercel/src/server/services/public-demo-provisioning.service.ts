@@ -5,6 +5,7 @@ import * as schema from '@/server/db/schema';
 
 export const PUBLIC_DEMO_EMAIL = (process.env.NEXT_PUBLIC_DEMO_EMAIL || 'wattwise.jury.demo@example.com').trim().toLowerCase();
 export const PUBLIC_DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'password123';
+export const SYNTHETIC_DEMO_NOTES = 'Data sintetis akun demo WattWise AI.';
 
 function getMonthString(date: Date): string {
   const y = date.getFullYear();
@@ -193,40 +194,50 @@ export async function ensurePublicDemoAccount(): Promise<{
     // 6. DEMO 04 — Gudang Es (COLD_STORAGE, Data Belum Lengkap)
     const demo04Id = await upsertBusiness('DEMO 04', 'COLD_STORAGE', 'COLD_STORAGE', 'Semarang', 5500);
 
-    // Helper to seed custom bill series for a business with full idempotence
+    // Helper to seed custom bill series for a business with non-destructive idempotence
     const seedBillSeries = async (bId: string, kwhSeries: number[], endOffsetMonths: number = 0) => {
       const existingBills = await tx.select().from(schema.electricityBill)
         .where(sql`${schema.electricityBill.businessId} = ${bId}`);
 
-      let isConverged = existingBills.length === kwhSeries.length;
-      if (isConverged) {
-        const sortedExisting = [...existingBills].sort((a, b) => a.periodEnd.localeCompare(b.periodEnd));
-        for (let i = 0; i < kwhSeries.length; i++) {
-          const offset = kwhSeries.length - 1 - i + endOffsetMonths;
-          const monthStr = subMonthsStr(anchorMonth, offset);
-          const { end } = getMonthDateBounds(monthStr);
-          const currentKwh = sortedExisting[i].kwh !== null ? Number(sortedExisting[i].kwh) : null;
-          if (
-            sortedExisting[i].periodEnd !== end ||
-            currentKwh === null ||
-            Math.abs(currentKwh - kwhSeries[i]) > 0.01
-          ) {
-            isConverged = false;
-            break;
+      const isSynthetic = (b: typeof schema.electricityBill.$inferSelect) =>
+        b.notes === SYNTHETIC_DEMO_NOTES;
+
+      for (let i = 0; i < kwhSeries.length; i++) {
+        const offset = kwhSeries.length - 1 - i + endOffsetMonths;
+        const monthStr = subMonthsStr(anchorMonth, offset);
+        const { start, end } = getMonthDateBounds(monthStr);
+        const usageKwh = kwhSeries[i];
+        const totalAmount = BigInt(Math.round(usageKwh * 1444.70));
+
+        // Find existing bill covering this exact period
+        const matchingBill = existingBills.find(
+          (b) => b.periodStart === start && b.periodEnd === end
+        );
+
+        if (matchingBill) {
+          // Rule: If an existing bill is manually entered by a user, MANUAL BILL WINS!
+          // NEVER overwrite or delete manual data.
+          if (!isSynthetic(matchingBill)) {
+            continue;
           }
-        }
-      }
 
-      if (!isConverged) {
-        await tx.delete(schema.electricityBill).where(sql`${schema.electricityBill.businessId} = ${bId}`);
+          // If it is an existing synthetic bill, update only if corrupted/outdated
+          const currentKwh = matchingBill.kwh !== null ? Number(matchingBill.kwh) : null;
+          const kwhDiff = currentKwh === null || Math.abs(currentKwh - usageKwh) > 0.01;
+          const amountDiff = matchingBill.totalAmountRupiah !== totalAmount;
 
-        for (let i = 0; i < kwhSeries.length; i++) {
-          const offset = kwhSeries.length - 1 - i + endOffsetMonths;
-          const monthStr = subMonthsStr(anchorMonth, offset);
-          const { start, end } = getMonthDateBounds(monthStr);
-          const usageKwh = kwhSeries[i];
-          const totalAmount = BigInt(Math.round(usageKwh * 1444.70));
-
+          if (kwhDiff || amountDiff || matchingBill.periodStart !== start || matchingBill.periodEnd !== end) {
+            await tx.update(schema.electricityBill).set({
+              periodStart: start,
+              periodEnd: end,
+              totalAmountRupiah: totalAmount,
+              kwh: usageKwh.toFixed(3),
+              tariffRupiahPerKwh: '1444.70',
+              updatedAt: now,
+            }).where(sql`${schema.electricityBill.id} = ${matchingBill.id}`);
+          }
+        } else {
+          // Period not occupied: insert synthetic demo bill
           await tx.insert(schema.electricityBill).values({
             id: `bill-jury-${bId.slice(0, 10)}-${i + 1}-${crypto.randomUUID()}`,
             businessId: bId,
@@ -237,7 +248,7 @@ export async function ensurePublicDemoAccount(): Promise<{
             tariffRupiahPerKwh: '1444.70',
             kwhSource: 'USER_ENTERED',
             paymentMethod: 'Pascabayar',
-            notes: 'Data sintetis akun demo WattWise AI.',
+            notes: SYNTHETIC_DEMO_NOTES,
             createdAt: now,
             updatedAt: now,
           });
