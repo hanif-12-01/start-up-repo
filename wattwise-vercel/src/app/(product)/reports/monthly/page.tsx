@@ -163,7 +163,7 @@ export default async function MonthlyReportPage({
         {/* Filters */}
         <div className="report-print-hide grid gap-4 border-b border-[var(--border)] bg-[var(--surface-muted)] p-5 md:grid-cols-2 md:px-9">
           {report.businessSummary.options.length > 1 && (
-            <form action="/reports/monthly" method="get" className="flex items-end gap-2">
+            <form action="/reports/monthly" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <input type="hidden" name="month" value={report.reportMonth} />
               <label className="min-w-0 flex-1 text-xs font-extrabold uppercase text-[var(--muted)]">
                 <span className="mb-1.5 flex items-center gap-1.5 text-[var(--foreground)]">
@@ -184,13 +184,13 @@ export default async function MonthlyReportPage({
               </label>
               <button
                 type="submit"
-                className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
+                className="w-full sm:w-auto rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition text-center"
               >
                 Tampilkan
               </button>
             </form>
           )}
-          <form action="/reports/monthly" method="get" className="flex items-end gap-2">
+          <form action="/reports/monthly" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <input type="hidden" name="businessId" value={selectedBusinessId} />
             <label className="min-w-0 flex-1 text-xs font-extrabold uppercase text-[var(--muted)]">
               <span className="mb-1.5 flex items-center gap-1.5 text-[var(--foreground)]">
@@ -214,7 +214,7 @@ export default async function MonthlyReportPage({
             </label>
             <button
               type="submit"
-              className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
+              className="w-full sm:w-auto rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition text-center"
             >
               Tampilkan
             </button>

@@ -62,11 +62,12 @@ export function Surface({
   children,
   variant = 'default',
   className = '',
+  ...rest
 }: {
   children: React.ReactNode;
   variant?: 'default' | 'muted' | 'elevated';
   className?: string;
-}) {
+} & React.HTMLAttributes<HTMLElement>) {
   const bgClass =
     variant === 'muted'
       ? 'bg-[var(--surface-muted)]'
@@ -74,14 +75,25 @@ export function Surface({
         ? 'bg-[var(--surface-elevated)] shadow-[var(--shadow-medium)]'
         : 'bg-[var(--surface)]';
   return (
-    <section className={`min-w-0 rounded-2xl border border-[var(--border)] p-5 sm:p-6 ${bgClass} ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-[var(--border)] p-5 sm:p-6 ${bgClass} ${className}`} {...rest}>
       {children}
     </section>
   );
 }
 
-export function SoftCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <Surface variant="default" className={className}>{children}</Surface>;
+export function SoftCard({
+  children,
+  className = '',
+  ...rest
+}: {
+  children: React.ReactNode;
+  className?: string;
+} & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <Surface variant="default" className={className} {...rest}>
+      {children}
+    </Surface>
+  );
 }
 
 export function MetricCard({

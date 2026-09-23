@@ -129,7 +129,7 @@ export default async function DashboardPage({
           initialFirstBillSuccess={initialFirstBillSuccess}
         />
 
-        <header data-tour-id="dashboard-header" className="flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
+        <header data-tour-id="dashboard-header" className="scroll-mt-20 flex flex-col gap-5 border-b border-[var(--border)] pb-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">Dashboard kendali biaya</p>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">
@@ -141,17 +141,41 @@ export default async function DashboardPage({
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             {dashboard.businessSummary.options.length > 1 && (
-              <form data-tour-id="business-selector" action="/dashboard" method="get" className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2.5">
-                <label>
+              <form
+                data-tour-id="business-selector"
+                action="/dashboard"
+                method="get"
+                className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-2.5 w-full sm:w-auto sm:flex-row sm:items-end"
+              >
+                <label className="block w-full min-w-0 sm:w-auto">
                   <span className="mb-1 block text-[10px] font-bold uppercase text-[var(--primary)]">Usaha aktif</span>
-                  <select name="businessId" defaultValue={selectedBusinessId} className="min-w-48 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[var(--focus)]">
-                    {dashboard.businessSummary.options.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  <select
+                    name="businessId"
+                    defaultValue={selectedBusinessId}
+                    className="w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[var(--focus)] sm:w-auto sm:min-w-48"
+                  >
+                    {dashboard.businessSummary.options.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                <button className="rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-bold text-[var(--primary-foreground)]">Pilih</button>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto rounded-lg bg-[var(--primary)] px-3.5 py-2 text-sm font-bold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] transition text-center"
+                >
+                  Pilih
+                </button>
               </form>
             )}
-            <Link data-tour-id="manage-business" href="/businesses" className={secondaryButton}>Kelola Usaha</Link>
+            <Link
+              data-tour-id="manage-business"
+              href="/businesses"
+              className={`${secondaryButton} w-full sm:w-auto text-center`}
+            >
+              Kelola Usaha
+            </Link>
           </div>
         </header>
 
@@ -196,7 +220,7 @@ export default async function DashboardPage({
           );
         })()}
 
-        <section data-tour-id="dashboard-summary" aria-label="Ringkasan utama" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section data-tour-id="dashboard-summary" aria-label="Ringkasan utama" className="scroll-mt-20 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard Icon={ReceiptText} label="Tagihan terbaru" value={dashboard.latestBillSummary?.totalCost ?? 'Belum ada data'} note={dashboard.latestBillSummary?.period ?? 'Masukkan tagihan untuk memulai'} accent />
           <KpiCard Icon={CalendarDays} label="Biaya per hari" value={dashboard.latestBillSummary?.dailyCost ?? 'Belum tersedia'} note={dashboard.billComparisonSummary?.dailyCostChange ?? 'Perlu satu periode tagihan'} />
           <KpiCard Icon={WalletCards} label="Pendapatan bulan sama" value={support.matchingRevenue ? rupiah.format(support.matchingRevenue.amountRupiah) : 'Belum dicatat'} note={support.matchingRevenue?.inputMode === 'ESTIMATE' ? 'Perkiraan pengguna' : 'Gunakan untuk konteks cash flow'} />
@@ -204,7 +228,7 @@ export default async function DashboardPage({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-          <SoftCard data-tour-id="dashboard-chart">
+          <SoftCard data-tour-id="dashboard-chart" className="scroll-mt-20">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
               <span className="text-xs font-bold text-[var(--muted)]">Pemantauan Mandiri</span>
               <div className="flex items-center gap-3">
@@ -241,14 +265,14 @@ export default async function DashboardPage({
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
-          <SoftCard data-tour-id="dashboard-candidates">
+          <SoftCard data-tour-id="dashboard-candidates" className="scroll-mt-20">
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Cek Kenaikan</p><h2 className="mt-1 text-xl font-black">Bagian yang perlu dicek</h2></div><Search aria-hidden="true" className="h-6 w-6 text-[var(--primary)]" /></div>
             {dashboard.candidateSummaries.length === 0
               ? <p className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm leading-6 text-[var(--muted)]">Belum ada kandidat. Jalankan Cek Kenaikan setelah dua periode tagihan tersedia.</p>
               : <ol className="mt-5 space-y-3">{dashboard.candidateSummaries.map((candidate) => <li key={`${candidate.rankLabel}-${candidate.title}`} className="rounded-2xl bg-[var(--surface-muted)] p-4"><div className="flex items-center justify-between gap-3"><span className="text-[10px] font-extrabold uppercase tracking-wide text-[var(--primary)]">{candidate.rankLabel}</span><span className="text-[10px] font-bold text-[var(--muted)]">{candidate.inspectionStatusLabel}</span></div><h3 className="mt-2 font-extrabold">{candidate.title}</h3><p className="mt-2 text-xs leading-5 text-[var(--muted)]">{candidate.explanation}</p></li>)}</ol>}
           </SoftCard>
 
-          <SoftCard data-tour-id="dashboard-actions">
+          <SoftCard data-tour-id="dashboard-actions" className="scroll-mt-20">
             <div className="flex items-center justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">Tindakan berjalan</p><h2 className="mt-1 text-xl font-black">Rencana Hemat</h2></div><BadgeCheck aria-hidden="true" className="h-6 w-6 text-[var(--primary)]" /></div>
             {dashboard.actionPlanSummaries.length === 0
               ? <p className="mt-5 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm leading-6 text-[var(--muted)]">Belum ada Rencana Hemat. Rencana dapat dibuat setelah pemeriksaan kandidat.</p>
