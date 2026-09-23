@@ -212,13 +212,16 @@ export function ProductShell({
   );
 
   return (
-    <BeginnerGuideProvider>
+    <BeginnerGuideProvider
+      isMobileMenuOpen={menuOpen}
+      onSetMobileMenuOpen={setMenuOpen}
+    >
       <div className="product-shell min-h-screen lg:flex">
-        <div className="product-shell-sidebar fixed inset-y-0 left-0 z-50 hidden lg:block">
+        <div className="product-shell-sidebar fixed inset-y-0 left-0 z-40 hidden lg:block">
           {sidebar}
         </div>
 
-        <header className="product-shell-mobile sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
+        <header className="product-shell-mobile sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
           <Link href="/dashboard" className="flex items-center gap-2 font-extrabold text-sm">
             <WattWiseLogo size={24} />
             WattWise AI
@@ -240,7 +243,7 @@ export function ProductShell({
         {menuOpen && (
           <div
             id="product-mobile-menu"
-            className="fixed inset-0 z-50 lg:hidden"
+            className="fixed inset-0 z-40 lg:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Navigasi produk"

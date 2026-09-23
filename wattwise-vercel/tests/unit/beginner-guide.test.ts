@@ -105,13 +105,14 @@ describe('WattWise Guided Tutorial Improvement Unit Tests', () => {
     expect(overlayFile).toContain('Math.max(targetRect.bottom + 8');
   });
 
-  it('CASE 11: Mobile layout adopts bottom sheet panel pattern', () => {
+  it('CASE 11: Mobile layout adopts collision-aware placement pattern', () => {
     const overlayFile = readFileSync(
       join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'),
       'utf8'
     );
-    expect(overlayFile).toContain('window.innerWidth < 640');
-    expect(overlayFile).toContain('fixed bottom-0 left-0 right-0');
+    expect(overlayFile).toContain('window.innerWidth < 768');
+    expect(overlayFile).toContain('availableBelow');
+    expect(overlayFile).toContain('availableAbove');
     expect(overlayFile).toContain("block: 'start'");
   });
 

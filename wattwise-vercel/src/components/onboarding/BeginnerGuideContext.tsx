@@ -24,6 +24,8 @@ interface BeginnerGuideContextType {
   isCompleted: boolean;
   isBannerDismissed: boolean;
   steps: TourStep[];
+  isMobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
   startTour: (step?: number) => void;
   stopTour: () => void;
   nextStep: () => void;
@@ -96,10 +98,26 @@ function getServerNumberSnapshot(): number {
 export function BeginnerGuideProvider({
   children,
   steps = TOUR_STEPS,
+  isMobileMenuOpen: controlledMenuOpen,
+  onSetMobileMenuOpen,
 }: {
   children: React.ReactNode;
   steps?: TourStep[];
+  isMobileMenuOpen?: boolean;
+  onSetMobileMenuOpen?: (open: boolean) => void;
 }) {
+  const [internalMenuOpen, setInternalMenuOpen] = React.useState(false);
+  const isMobileMenuOpen = controlledMenuOpen ?? internalMenuOpen;
+  const setMobileMenuOpen = useCallback(
+    (open: boolean) => {
+      if (onSetMobileMenuOpen) {
+        onSetMobileMenuOpen(open);
+      } else {
+        setInternalMenuOpen(open);
+      }
+    },
+    [onSetMobileMenuOpen]
+  );
   const isCompleted = useSyncExternalStore(
     subscribeStorage,
     getCompletedSnapshot,
@@ -237,6 +255,8 @@ export function BeginnerGuideProvider({
         isCompleted,
         isBannerDismissed,
         steps,
+        isMobileMenuOpen,
+        setMobileMenuOpen,
         startTour,
         stopTour,
         nextStep,
@@ -258,6 +278,8 @@ const defaultGuideContext: BeginnerGuideContextType = {
   isCompleted: true,
   isBannerDismissed: true,
   steps: TOUR_STEPS,
+  isMobileMenuOpen: false,
+  setMobileMenuOpen: () => {},
   startTour: () => {},
   stopTour: () => {},
   nextStep: () => {},

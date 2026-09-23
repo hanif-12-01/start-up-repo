@@ -25,6 +25,45 @@ interface TargetRect {
   right: number;
 }
 
+function findVisibleTarget(tourId: string): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  const elements = document.querySelectorAll<HTMLElement>(`[data-tour-id="${tourId}"]`);
+  
+  // First priority: check if element is inside an active mobile drawer
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const drawerParent = el.closest('#product-mobile-menu');
+    if (drawerParent) {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      if (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        style.opacity !== '0' &&
+        (rect.width > 0 || rect.height > 0)
+      ) {
+        return el;
+      }
+    }
+  }
+
+  // Second priority: any visible element in DOM
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
+    if (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      style.opacity !== '0' &&
+      (rect.width > 0 || rect.height > 0 || el.getClientRects().length > 0)
+    ) {
+      return el;
+    }
+  }
+  return elements[0] || null;
+}
+
 export function InteractiveGuideOverlay() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,6 +72,8 @@ export function InteractiveGuideOverlay() {
     currentStep,
     currentStepData,
     steps,
+    isMobileMenuOpen,
+    setMobileMenuOpen,
     stopTour,
     nextStep,
     prevStep,
@@ -42,7 +83,6 @@ export function InteractiveGuideOverlay() {
 
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [targetFound, setTargetFound] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
   const [cardHeight, setCardHeight] = useState<number>(290);
   const cardRef = useRef<HTMLDivElement>(null);
   const targetElRef = useRef<Element | null>(null);
@@ -62,16 +102,6 @@ export function InteractiveGuideOverlay() {
     }
   }, [isTourActive]);
 
-  // Check viewport width for responsive mobile layout
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   const updateTargetPosition = useCallback(() => {
     if (!isTourActive || !currentStepData) {
       setTargetRect(null);
@@ -80,31 +110,15 @@ export function InteractiveGuideOverlay() {
       return;
     }
 
-    const mobile = window.innerWidth < 640;
-    let el: Element | null = document.querySelector(
-      `[data-tour-id="${currentStepData.targetTourId}"]`
-    );
+    let el = findVisibleTarget(currentStepData.targetTourId);
 
-    // On mobile, if target is in hidden sidebar, highlight mobile menu button if available
-    if (mobile && (!el || el.clientHeight === 0)) {
-      const isSidebarTarget = currentStepData.targetTourId.startsWith('sidebar-');
-      if (isSidebarTarget) {
-        const menuBtn = document.querySelector('[data-tour-id="mobile-menu-button"]');
-        if (menuBtn && menuBtn.clientHeight > 0) {
-          el = menuBtn;
-        }
-      }
-    }
-
-    if (!el && currentStepData.fallbackTourId) {
-      el = document.querySelector(
-        `[data-tour-id="${currentStepData.fallbackTourId}"]`
-      );
+    if ((!el || el.clientHeight === 0 || el.clientWidth === 0) && currentStepData.fallbackTourId) {
+      el = findVisibleTarget(currentStepData.fallbackTourId);
     }
 
     targetElRef.current = el;
 
-    if (el) {
+    if (el && el.clientHeight > 0 && el.clientWidth > 0) {
       const rect = el.getBoundingClientRect();
       setTargetRect({
         top: rect.top,
@@ -129,6 +143,21 @@ export function InteractiveGuideOverlay() {
       setCardHeight(cardRef.current.offsetHeight);
     }
   }, [currentStep, targetRect]);
+
+  // Close tour handlers that also ensure any tour-opened mobile drawer is closed cleanly
+  const handleStopTour = useCallback(() => {
+    if (isMobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+    stopTour();
+  }, [isMobileMenuOpen, setMobileMenuOpen, stopTour]);
+
+  const handleCompleteTour = useCallback(() => {
+    if (isMobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+    completeTour();
+  }, [isMobileMenuOpen, setMobileMenuOpen, completeTour]);
 
   // Attach scoped temporary click listener to the active target element
   useEffect(() => {
@@ -194,29 +223,69 @@ export function InteractiveGuideOverlay() {
     }
   }, [isTourActive, currentStep, currentStepData, pathname, searchParams, nextStep]);
 
-  // Scroll target into view smoothly and track position on step/route change
+  // Automatic UI state synchronization (Auto-Open / Auto-Close) + smooth scroll & highlight
   useEffect(() => {
     if (!isTourActive || !currentStepData) return;
 
-    let el: Element | null = document.querySelector(
-      `[data-tour-id="${currentStepData.targetTourId}"]`
-    );
-    if (!el && currentStepData.fallbackTourId) {
-      el = document.querySelector(
-        `[data-tour-id="${currentStepData.fallbackTourId}"]`
-      );
-    }
+    const isSidebarTarget = currentStepData.targetTourId.startsWith('sidebar-');
+    const isMobileNav = typeof window !== 'undefined' && window.innerWidth < 1024;
 
-    if (el) {
-      if (window.innerWidth < 640) {
-        // On mobile, scroll so target is positioned in the upper portion above bottom sheet
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (isMobileNav) {
+      if (isSidebarTarget && !isMobileMenuOpen) {
+        setMobileMenuOpen(true);
+      } else if (!isSidebarTarget && isMobileMenuOpen) {
+        setMobileMenuOpen(false);
       }
     }
 
-    const timer = setTimeout(updateTargetPosition, 100);
+    let cancelled = false;
+
+    const syncTargetAndScroll = () => {
+      if (cancelled) return;
+
+      let el = findVisibleTarget(currentStepData.targetTourId);
+      if ((!el || el.clientHeight === 0 || el.clientWidth === 0) && currentStepData.fallbackTourId) {
+        el = findVisibleTarget(currentStepData.fallbackTourId);
+      }
+
+      if (el && el.clientHeight > 0 && el.clientWidth > 0) {
+        const isInDrawer = !!el.closest('#product-mobile-menu');
+        if (isInDrawer) {
+          const drawerNav = el.closest('nav') || el.closest('#product-mobile-menu');
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (drawerNav) {
+            const handleDrawerScroll = () => {
+              window.requestAnimationFrame(updateTargetPosition);
+            };
+            drawerNav.addEventListener('scroll', handleDrawerScroll, { passive: true });
+            setTimeout(() => {
+              drawerNav.removeEventListener('scroll', handleDrawerScroll);
+            }, 500);
+          }
+        } else if (window.innerWidth < 768) {
+          // On mobile, scroll with start alignment (respecting scroll-margin-top)
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        updateTargetPosition();
+        setTimeout(updateTargetPosition, 80);
+        setTimeout(updateTargetPosition, 200);
+        setTimeout(updateTargetPosition, 350);
+      } else {
+        requestAnimationFrame(() => {
+          if (!cancelled) updateTargetPosition();
+        });
+      }
+    };
+
+    // Use double rAF to guarantee DOM mount and layout settlement
+    const frameId1 = requestAnimationFrame(() => {
+      const frameId2 = requestAnimationFrame(syncTargetAndScroll);
+      return () => cancelAnimationFrame(frameId2);
+    });
+
+    const timer = setTimeout(updateTargetPosition, 200);
 
     const handleScrollOrResize = () => {
       window.requestAnimationFrame(updateTargetPosition);
@@ -226,11 +295,21 @@ export function InteractiveGuideOverlay() {
     window.addEventListener('resize', handleScrollOrResize);
 
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId1);
       clearTimeout(timer);
       window.removeEventListener('scroll', handleScrollOrResize, true);
       window.removeEventListener('resize', handleScrollOrResize);
     };
-  }, [isTourActive, currentStep, currentStepData, pathname, updateTargetPosition]);
+  }, [
+    isTourActive,
+    currentStep,
+    currentStepData,
+    pathname,
+    isMobileMenuOpen,
+    setMobileMenuOpen,
+    updateTargetPosition,
+  ]);
 
   if (!isTourActive || !currentStepData) {
     return null;
@@ -251,25 +330,116 @@ export function InteractiveGuideOverlay() {
     stageColorMap[currentStepData.stage] ||
     'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/30';
 
-  // Smart Adaptive Collision-Free Positioning (B4, B5)
+  // Adaptive Collision-Aware Positioning (Mobile + Desktop)
   const getCardStyle = (): React.CSSProperties => {
-    if (isMobile || !targetRect) {
-      return {};
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const vh = typeof window !== 'undefined' ? (window.visualViewport?.height || window.innerHeight) : 768;
+
+    // Tablet layout with open mobile drawer (768 <= vw < 1024):
+    // The drawer occupies 0 to 256px on the left. Place coachmark in the ample space to the right (272px+)
+    if (vw >= 768 && vw < 1024 && isMobileMenuOpen) {
+      const cardWidth = Math.min(380, vw - 288);
+      const top = targetRect
+        ? Math.max(16, Math.min(targetRect.top + targetRect.height / 2 - cardHeight / 2, vh - cardHeight - 16))
+        : Math.max(16, vh / 2 - cardHeight / 2);
+      return {
+        position: 'fixed',
+        top: `${top}px`,
+        left: '272px',
+        width: `${cardWidth}px`,
+        zIndex: 70,
+      };
+    }
+
+    // Phone mobile layout (vw < 768): Vertical Partitioning Strategy
+    if (vw < 768) {
+      const SAFE_PADDING = 12; // 12px safe horizontal/vertical margin for mobile viewports (Section 8)
+      const targetPadding = 10;
+
+      // Safe fallback if target is not located on current screen
+      if (!targetRect) {
+        return {
+          position: 'fixed',
+          bottom: `${SAFE_PADDING}px`,
+          left: `${SAFE_PADDING}px`,
+          right: `${SAFE_PADDING}px`,
+          maxWidth: '440px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          maxHeight: `${Math.floor(vh * 0.52)}px`,
+          zIndex: 70,
+        };
+      }
+
+      // Compute target exclusion zone (including spotlight halo)
+      const targetTop = Math.max(0, targetRect.top - targetPadding);
+      const targetBottom = Math.min(vh, targetRect.bottom + targetPadding);
+
+      const availableBelow = Math.max(0, vh - targetBottom - SAFE_PADDING);
+      const availableAbove = Math.max(0, targetTop - SAFE_PADDING);
+
+      // Mobile Placement Strategy (Section 5):
+      // 1. If enough safe space exists BELOW target: place below
+      // 2. Else if enough safe space exists ABOVE target: place above
+      // 3. Otherwise pick the larger region and strictly constrain maxHeight with internal scroll
+      let placement: 'bottom' | 'top' = 'bottom';
+      if (availableBelow >= cardHeight + 16) {
+        placement = 'bottom';
+      } else if (availableAbove >= cardHeight + 16) {
+        placement = 'top';
+      } else {
+        placement = availableBelow >= availableAbove ? 'bottom' : 'top';
+      }
+
+      if (placement === 'bottom') {
+        const maxSafeHeight = Math.max(160, Math.min(380, availableBelow - 8));
+        return {
+          position: 'fixed',
+          bottom: `${SAFE_PADDING}px`,
+          left: `${SAFE_PADDING}px`,
+          right: `${SAFE_PADDING}px`,
+          maxWidth: '440px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          maxHeight: `${maxSafeHeight}px`,
+          zIndex: 70,
+        };
+      } else {
+        const maxSafeHeight = Math.max(160, Math.min(380, availableAbove - 8));
+        return {
+          position: 'fixed',
+          top: `${SAFE_PADDING}px`,
+          left: `${SAFE_PADDING}px`,
+          right: `${SAFE_PADDING}px`,
+          maxWidth: '440px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          maxHeight: `${maxSafeHeight}px`,
+          zIndex: 70,
+        };
+      }
+    }
+
+    // DESKTOP FLOATING PLACEMENT (>= 1024px without mobile drawer)
+    if (!targetRect) {
+      return {
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        width: '380px',
+        zIndex: 70,
+      };
     }
 
     const cardWidth = 380;
     const padding = 16;
     const preferredPlacement = currentStepData.placement || 'bottom';
 
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
     const spaceTop = targetRect.top;
     const spaceBottom = vh - targetRect.bottom;
     const spaceLeft = targetRect.left;
     const spaceRight = vw - targetRect.right;
 
-    // Check clearances
     const fitsBottom = spaceBottom >= cardHeight + padding;
     const fitsTop = spaceTop >= cardHeight + padding;
     const fitsRight = spaceRight >= cardWidth + padding;
@@ -277,44 +447,28 @@ export function InteractiveGuideOverlay() {
 
     let resolvedPlacement = preferredPlacement;
 
-    // Adaptive flip to prevent covering the target element
     if (preferredPlacement === 'bottom') {
-      if (!fitsBottom && fitsTop) {
-        resolvedPlacement = 'top';
-      } else if (!fitsBottom && fitsRight) {
-        resolvedPlacement = 'right';
-      } else if (!fitsBottom && fitsLeft) {
-        resolvedPlacement = 'left';
-      }
+      if (!fitsBottom && fitsTop) resolvedPlacement = 'top';
+      else if (!fitsBottom && fitsRight) resolvedPlacement = 'right';
+      else if (!fitsBottom && fitsLeft) resolvedPlacement = 'left';
     } else if (preferredPlacement === 'top') {
-      if (!fitsTop && fitsBottom) {
-        resolvedPlacement = 'bottom';
-      } else if (!fitsTop && fitsRight) {
-        resolvedPlacement = 'right';
-      } else if (!fitsTop && fitsLeft) {
-        resolvedPlacement = 'left';
-      }
+      if (!fitsTop && fitsBottom) resolvedPlacement = 'bottom';
+      else if (!fitsTop && fitsRight) resolvedPlacement = 'right';
+      else if (!fitsTop && fitsLeft) resolvedPlacement = 'left';
     } else if (preferredPlacement === 'right') {
-      if (!fitsRight && fitsLeft) {
-        resolvedPlacement = 'left';
-      } else if (!fitsRight && fitsBottom) {
-        resolvedPlacement = 'bottom';
-      } else if (!fitsRight && fitsTop) {
-        resolvedPlacement = 'top';
-      }
+      if (!fitsRight && fitsLeft) resolvedPlacement = 'left';
+      else if (!fitsRight && fitsBottom) resolvedPlacement = 'bottom';
+      else if (!fitsRight && fitsTop) resolvedPlacement = 'top';
     } else if (preferredPlacement === 'left') {
-      if (!fitsLeft && fitsRight) {
-        resolvedPlacement = 'right';
-      } else if (!fitsLeft && fitsBottom) {
-        resolvedPlacement = 'bottom';
-      } else if (!fitsLeft && fitsTop) {
-        resolvedPlacement = 'top';
-      }
+      if (!fitsLeft && fitsRight) resolvedPlacement = 'right';
+      else if (!fitsLeft && fitsBottom) resolvedPlacement = 'bottom';
+      else if (!fitsLeft && fitsTop) resolvedPlacement = 'top';
     }
 
-    // Compute coordinates
     let top = 0;
     let left = 0;
+
+    const isSidebarTarget = currentStepData.targetTourId.startsWith('sidebar-');
 
     if (resolvedPlacement === 'bottom') {
       top = targetRect.bottom + 14;
@@ -324,13 +478,12 @@ export function InteractiveGuideOverlay() {
       left = targetRect.left + targetRect.width / 2 - cardWidth / 2;
     } else if (resolvedPlacement === 'right') {
       top = targetRect.top + targetRect.height / 2 - cardHeight / 2;
-      left = targetRect.right + 16;
+      left = isSidebarTarget ? 272 : targetRect.right + 16;
     } else if (resolvedPlacement === 'left') {
       top = targetRect.top + targetRect.height / 2 - cardHeight / 2;
       left = targetRect.left - cardWidth - 16;
     }
 
-    // Clamping along non-placement axis, ensuring we NEVER overlap the target
     if (resolvedPlacement === 'bottom' || resolvedPlacement === 'top') {
       left = Math.max(padding, Math.min(left, vw - cardWidth - padding));
       if (resolvedPlacement === 'bottom') {
@@ -341,7 +494,8 @@ export function InteractiveGuideOverlay() {
     } else {
       top = Math.max(padding, Math.min(top, vh - cardHeight - padding));
       if (resolvedPlacement === 'right') {
-        left = Math.max(targetRect.right + 8, Math.min(left, vw - cardWidth - padding));
+        const minLeft = isSidebarTarget ? 272 : targetRect.right + 8;
+        left = Math.max(minLeft, Math.min(left, vw - cardWidth - padding));
       } else {
         left = Math.min(targetRect.left - cardWidth - 8, Math.max(padding, left));
       }
@@ -352,7 +506,7 @@ export function InteractiveGuideOverlay() {
       top: `${top}px`,
       left: `${left}px`,
       width: `${cardWidth}px`,
-      zIndex: 60,
+      zIndex: 70,
     };
   };
 
@@ -374,7 +528,7 @@ export function InteractiveGuideOverlay() {
             height: `${targetRect.height + 12}px`,
             border: '2.5px solid var(--primary)',
             boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.52), 0 0 24px rgba(16, 185, 129, 0.45)',
-            zIndex: 45,
+            zIndex: 65,
           }}
           aria-hidden="true"
         />
@@ -392,32 +546,26 @@ export function InteractiveGuideOverlay() {
       <div
         ref={cardRef}
         style={getCardStyle()}
-        className={`pointer-events-auto transition-all ${
-          isMobile
-            ? 'fixed bottom-0 left-0 right-0 z-60 rounded-t-3xl border-t border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5 shadow-2xl max-h-[52vh] overflow-y-auto'
-            : !targetFound
-            ? 'fixed bottom-6 right-6 z-60 w-[380px] rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 shadow-2xl'
-            : 'rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5 sm:p-6 shadow-2xl'
-        }`}
+        className="pointer-events-auto transition-all box-border rounded-2xl sm:rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-4 sm:p-5 shadow-2xl flex flex-col overflow-hidden"
       >
         {/* Header: Stage Badge, Step Count, Close Button */}
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
             <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide uppercase ${badgeClass}`}
+              className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase ${badgeClass}`}
             >
               {currentStepData.stage}
             </span>
-            <span className="text-xs font-bold text-[var(--muted)]">
+            <span className="truncate text-xs font-bold text-[var(--muted)]">
               Langkah {currentStep + 1} dari {steps.length}
             </span>
           </div>
 
           <button
             type="button"
-            onClick={stopTour}
+            onClick={handleStopTour}
             aria-label="Tutup panduan interaktif"
-            className="rounded-full p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition"
+            className="shrink-0 rounded-full p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -425,7 +573,7 @@ export function InteractiveGuideOverlay() {
 
         {/* Stepper Progress Bar */}
         <div
-          className="mt-3 flex items-center justify-between gap-1"
+          className="mt-2.5 flex items-center justify-between gap-1 w-full shrink-0"
           aria-label="Progres panduan"
         >
           {steps.map((step, idx) => (
@@ -446,13 +594,13 @@ export function InteractiveGuideOverlay() {
           ))}
         </div>
 
-        {/* Body Content */}
-        <div className="mt-3.5 space-y-2.5">
-          <h3 className="text-base font-black tracking-tight text-[var(--foreground)]">
+        {/* Scrollable Body Content */}
+        <div className="mt-2.5 space-y-2 overflow-y-auto pr-1 flex-1 min-h-0">
+          <h3 className="text-base font-black tracking-tight text-[var(--foreground)] break-words">
             {currentStepData.title}
           </h3>
 
-          <p className="text-xs leading-relaxed text-[var(--foreground)] font-medium">
+          <p className="text-xs leading-relaxed text-[var(--foreground)] font-medium break-words">
             {currentStepData.instruction}
           </p>
 
@@ -460,7 +608,7 @@ export function InteractiveGuideOverlay() {
           {!targetFound && (
             <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-700 dark:text-amber-300">
               <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-bold">Bagian ini berada di halaman lain.</p>
                 <p className="mt-0.5">
                   Gunakan tombol di bawah untuk menuju halaman target atau lanjutkan langkah.
@@ -471,64 +619,64 @@ export function InteractiveGuideOverlay() {
 
           {/* Context Explainer */}
           {targetFound && currentStepData.detailedContext && (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/70 p-2.5 text-[11px] leading-relaxed text-[var(--muted)]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/70 p-2.5 text-[11px] leading-relaxed text-[var(--muted)] break-words">
               {currentStepData.detailedContext}
             </div>
           )}
 
           {/* Benefit Badge */}
           {currentStepData.benefit && (
-            <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-              <span>{currentStepData.benefit}</span>
+            <div className="flex items-start gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              <span className="min-w-0 flex-1 break-words">{currentStepData.benefit}</span>
             </div>
           )}
         </div>
 
         {/* Target click helper or route navigation */}
-        <div className="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center justify-between">
+        <div className="mt-2.5 pt-2 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-2 shrink-0">
           {targetFound && isTargetClickStep ? (
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--primary)]">
-              <MousePointerClick className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Klik bagian yang disorot atau tombol Lanjut</span>
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--primary)] min-w-0">
+              <MousePointerClick className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate sm:overflow-visible sm:whitespace-normal">Klik target disorot atau Lanjut</span>
             </div>
           ) : (
             <Link
               href={currentStepData.ctaHref}
-              className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[var(--primary)] hover:underline decoration-[var(--primary)]/50 underline-offset-4 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded-md py-0.5"
+              className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[var(--primary)] hover:underline decoration-[var(--primary)]/50 underline-offset-4 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded-md py-0.5 min-w-0"
             >
-              <span>Buka: {currentStepData.ctaLabel}</span>
+              <span className="truncate sm:overflow-visible">Buka: {currentStepData.ctaLabel}</span>
               <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
             </Link>
           )}
 
           <button
             type="button"
-            onClick={stopTour}
-            className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)] ml-auto"
+            onClick={handleStopTour}
+            className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--foreground)] ml-auto shrink-0 py-0.5"
           >
             Lewati panduan
           </button>
         </div>
 
         {/* Footer Navigation Buttons */}
-        <div className="mt-3 flex items-center justify-between gap-2 pt-1">
+        <div className="mt-2.5 flex items-center justify-between gap-2 pt-1 flex-wrap shrink-0">
           <button
             type="button"
             disabled={isFirstStep}
             onClick={prevStep}
-            className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-bold text-[var(--foreground)] hover:bg-[var(--surface-muted)] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition"
+            className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-bold text-[var(--foreground)] hover:bg-[var(--surface-muted)] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shrink-0"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
             Kembali
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             {isLastStep ? (
               <button
                 type="button"
-                onClick={completeTour}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shadow-xs"
+                onClick={handleCompleteTour}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shadow-xs shrink-0"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Selesai
@@ -537,10 +685,12 @@ export function InteractiveGuideOverlay() {
               <button
                 type="button"
                 onClick={nextStep}
-                className="inline-flex items-center gap-1 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shadow-xs"
+                className="inline-flex items-center gap-1 rounded-xl bg-[var(--primary)] px-3.5 sm:px-4 py-2 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] transition shadow-xs min-w-0"
               >
-                {currentStepData.actionLabel || 'Lanjut'}
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="truncate max-w-[170px] sm:max-w-none">
+                  {currentStepData.actionLabel || 'Lanjut'}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               </button>
             )}
           </div>
