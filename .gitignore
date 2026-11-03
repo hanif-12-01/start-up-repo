@@ -62,6 +62,7 @@ ML/data/
 !docs/ml/benchmarks/*.csv
 !docs/ml/datasets/*.csv
 !docs/ml/qualification/*.csv
+!wattwise-vercel/public/demo/*.csv
 !**/monthly.csv/
 !**/monthly.csv/**
 

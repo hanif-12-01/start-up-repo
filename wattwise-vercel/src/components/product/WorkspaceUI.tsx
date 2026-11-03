@@ -210,13 +210,14 @@ export function BusinessSelector({
 }) {
   if (businesses.length < 2) return null;
   return (
-    <form action={route} method="get" className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 shadow-sm">
-      <label className="block">
+    <form action={route} method="get" className="flex flex-wrap items-end gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+      <label className="block flex-1 min-w-[200px]">
         <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">Usaha aktif</span>
         <select
           name="businessId"
           defaultValue={selectedId}
-          className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--control-background)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] focus:ring-2 focus:ring-[var(--focus-ring)]"
+          aria-label="Pilih usaha aktif"
+          className="w-full min-h-11 rounded-xl border border-[var(--border)] bg-[var(--control-background)] px-3 py-2 text-xs font-semibold text-[var(--foreground)] focus:ring-2 focus:ring-[var(--focus-ring)]"
         >
           {businesses.map((item) => (
             <option key={item.id} value={item.id}>
@@ -227,7 +228,7 @@ export function BusinessSelector({
       </label>
       <button
         type="submit"
-        className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-xs font-bold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
       >
         Pilih
       </button>

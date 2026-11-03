@@ -26,6 +26,8 @@
     "qa:demo:seed": "tsx scripts/qa-demo-seed.ts",
     "qa:demo:reset": "tsx scripts/qa-demo-reset.ts",
     "qa:demo:check": "tsx scripts/qa-demo-check.ts",
+    "demo:phase05:seed": "node scripts/prepare-phase05-demo.mjs",
+    "test:phase05:e2e": "node scripts/verify-phase05-full-e2e.mjs",
     "ai:validation:seed": "tsx scripts/ai-validation-seed.ts",
     "ai:validation:check": "tsx scripts/ai-validation-check.ts",
     "ai:validation:reset": "tsx scripts/ai-validation-reset.ts"
