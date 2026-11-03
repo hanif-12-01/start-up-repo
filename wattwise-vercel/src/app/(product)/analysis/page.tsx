@@ -22,7 +22,17 @@ export default async function AnalysisPage({
     getUserEntitlements(userId),
   ]);
 
-  const { data, tariff, tariffContext, samples, forecastPlan, anomaly, efficiency: score, recommendations } = analysisModel;
+  const {
+    data,
+    tariff,
+    tariffContext,
+    samples,
+    forecastPlan,
+    anomaly,
+    operationalComparison,
+    efficiency: score,
+    recommendations,
+  } = analysisModel;
   const businessQuery = `businessId=${encodeURIComponent(data.business.id)}`;
 
   return (
@@ -33,6 +43,7 @@ export default async function AnalysisPage({
       samples={samples}
       forecastPlan={forecastPlan}
       anomaly={anomaly}
+      operationalComparison={operationalComparison}
       score={score}
       recommendations={recommendations}
       entitlements={entitlements}

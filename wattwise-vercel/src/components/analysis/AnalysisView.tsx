@@ -31,7 +31,7 @@ import {
 import { decimal, formatMonth, rupiah } from '@/lib/format';
 import { Simulator } from '@/app/(product)/predictions/Simulator';
 import type { EmbeddedForecastPlan } from '@/server/services/product-analysis';
-import type { PredictionResult } from '@/server/services/product-analysis';
+import type { PredictionResult, OperationalComparisonResult } from '@/server/services/product-analysis';
 import { runEmbeddedNBeatsInference } from '@/lib/ai/embedded-nbeats';
 import {
   deriveDisplayedPrediction,
@@ -112,7 +112,17 @@ interface AnalysisViewProps {
     baseline: number | null;
     observed: number | null;
     differencePercent: number | null;
+    contextualExplanation?: {
+      hasOperationalContext: boolean;
+      headline: string;
+      explanation: string;
+      operationalProcessName?: string;
+      outputChangePercent?: number | null;
+      intensityChangePercent?: number | null;
+      boundaryNote?: string;
+    };
   };
+  operationalComparison?: OperationalComparisonResult | null;
   score: {
     score: number | null;
     label: string;
@@ -151,6 +161,7 @@ export function AnalysisView({
   samples,
   forecastPlan,
   anomaly,
+  operationalComparison,
   score,
   recommendations,
   entitlements,
@@ -657,6 +668,101 @@ export function AnalysisView({
               {dataReadiness.description} {dataReadiness.milestoneMessage}
             </p>
           </div>
+
+          {/* Operational Energy Context Section */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--primary)]">
+                  Intensitas & Konteks Usaha
+                </span>
+                <h3 className="mt-0.5 text-lg font-black text-[var(--foreground)]">
+                  Pemakaian Listrik & Aktivitas Usaha
+                </h3>
+              </div>
+              <Link
+                href={`/activities?${businessQuery}`}
+                className="text-xs font-bold text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+              >
+                Kelola aktivitas operasional →
+              </Link>
+            </div>
+
+            {operationalComparison?.hasComparison && operationalComparison.currentPeriod && operationalComparison.previousPeriod && operationalComparison.metrics ? (
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3.5">
+                    <span className="text-[11px] font-semibold text-[var(--muted)]">Pemakaian Listrik</span>
+                    <p className="mt-1 text-base font-black text-[var(--foreground)] tabular-nums">
+                      {operationalComparison.currentPeriod.energyKwh} kWh
+                    </p>
+                    <p className="mt-0.5 text-xs text-[var(--muted)]">
+                      Periode lalu: {operationalComparison.previousPeriod.energyKwh} kWh ({operationalComparison.metrics.energyChangePercent >= 0 ? '+' : ''}{operationalComparison.metrics.energyChangePercent}%)
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3.5">
+                    <span className="text-[11px] font-semibold text-[var(--muted)]">Hasil Operasional</span>
+                    <p className="mt-1 text-base font-black text-[var(--foreground)] tabular-nums">
+                      {operationalComparison.currentPeriod.outputQuantity} {operationalComparison.outputUnit}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[var(--muted)]">
+                      Periode lalu: {operationalComparison.previousPeriod.outputQuantity} {operationalComparison.outputUnit} ({operationalComparison.metrics.outputChangePercent >= 0 ? '+' : ''}{operationalComparison.metrics.outputChangePercent}%)
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-[var(--muted)]">Listrik per {operationalComparison.outputUnit}</span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        operationalComparison.metrics.intensityTrend === 'MORE_EFFICIENT'
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                          : operationalComparison.metrics.intensityTrend === 'LESS_EFFICIENT'
+                            ? 'bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                            : 'bg-zinc-500/10 text-zinc-700 dark:text-zinc-300'
+                      }`}>
+                        {operationalComparison.metrics.intensityTrend === 'MORE_EFFICIENT' ? 'Lebih Hemat' : operationalComparison.metrics.intensityTrend === 'LESS_EFFICIENT' ? 'Meningkat' : 'Stabil'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-base font-black text-[var(--foreground)] tabular-nums">
+                      {operationalComparison.currentPeriod.intensityFormatted} kWh/{operationalComparison.outputUnit}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[var(--muted)]">
+                      Periode lalu: {operationalComparison.previousPeriod.intensityFormatted} ({operationalComparison.metrics.intensityChangePercent >= 0 ? '+' : ''}{operationalComparison.metrics.intensityChangePercent}%)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/30 p-3.5 space-y-1.5">
+                  <p className="text-xs font-black text-[var(--foreground)]">
+                    {operationalComparison.headline}
+                  </p>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                    {operationalComparison.explanation}
+                  </p>
+                  {operationalComparison.boundaryNote && (
+                    <p className="text-[11px] text-[var(--muted)]/80 italic pt-1 border-t border-[var(--border)]/50">
+                      {operationalComparison.boundaryNote}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/30 p-4">
+                <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  Belum cukup data aktivitas operasional untuk membandingkan rasio efisiensi energi antarkerja. Catat hasil produksi (seperti berat cucian atau jumlah barang) di menu Aktivitas Usaha untuk mengaktifkan analisis intensitas energi.
+                </p>
+                <div className="mt-3">
+                  <Link
+                    href={`/activities?${businessQuery}`}
+                    className="inline-flex items-center text-xs font-bold text-[var(--primary)] hover:underline"
+                  >
+                    Mulai Catat Aktivitas Usaha →
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -717,6 +823,41 @@ export function AnalysisView({
               </p>
             </Surface>
           </div>
+
+          {/* Grounded Operational Context for Anomaly */}
+          {anomaly.contextualExplanation && (
+            <Surface variant="muted" className="mt-6 border border-[var(--border)]">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-[var(--primary)]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
+                    Konteks Aktivitas Operasional
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-[var(--foreground)]">
+                  {anomaly.contextualExplanation.headline}
+                </h4>
+                <p className="text-xs leading-relaxed text-[var(--muted)]">
+                  {anomaly.contextualExplanation.explanation}
+                </p>
+                {anomaly.contextualExplanation.boundaryNote && (
+                  <p className="text-[11px] text-[var(--muted)] italic pt-1 border-t border-[var(--border)]/60">
+                    {anomaly.contextualExplanation.boundaryNote}
+                  </p>
+                )}
+                {!anomaly.contextualExplanation.hasOperationalContext && (
+                  <div className="pt-2">
+                    <Link
+                      href={`/activities?${businessQuery}`}
+                      className="text-xs font-bold text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+                    >
+                      Buka Aktivitas Usaha untuk melengkapi data operasional →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </Surface>
+          )}
 
           {(anomaly.status === 'Boros' || anomaly.status === 'Perlu Dicek') && (
             <Surface variant="elevated" className="mt-6 border-l-4 border-l-[var(--warning)]">

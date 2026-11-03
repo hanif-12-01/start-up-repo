@@ -152,15 +152,115 @@ export function predictUsage(samples: UsageSample[], fallbackTariff: number | nu
   };
 }
 
-export function analyzeLatestAnomaly(samples: UsageSample[]) {
+export type { OperationalComparisonResult, ComparisonStatus } from './operational-energy-insights.service';
+
+export interface ContextualAnomalyExplanation {
+  hasOperationalContext: boolean;
+  headline: string;
+  explanation: string;
+  operationalProcessName?: string;
+  outputChangePercent?: number | null;
+  intensityChangePercent?: number | null;
+  boundaryNote?: string;
+}
+
+export interface AnomalyResult {
+  hasData: boolean;
+  status: string;
+  baseline: number | null;
+  observed: number | null;
+  differencePercent: number | null;
+  contextualExplanation?: ContextualAnomalyExplanation;
+}
+
+export function analyzeLatestAnomaly(
+  samples: UsageSample[],
+  operationalComparison?: import('./operational-energy-insights.service').OperationalComparisonResult | null
+): AnomalyResult {
   const values = usable(samples);
-  if (values.length === 0) return { hasData: false, status: 'Data belum cukup', baseline: null, observed: null, differencePercent: null };
+  if (values.length === 0)
+    return { hasData: false, status: 'Data belum cukup', baseline: null, observed: null, differencePercent: null };
   const latest = values.at(-1)!;
   const history = values.slice(0, -1);
-  if (history.length === 0) return { hasData: true, status: 'Data belum cukup', baseline: null, observed: round(latest.usage), differencePercent: null };
+  if (history.length === 0)
+    return {
+      hasData: true,
+      status: 'Data belum cukup',
+      baseline: null,
+      observed: round(latest.usage),
+      differencePercent: null,
+    };
   const baseline = history.reduce((sum, item) => sum + item.usage, 0) / history.length;
   const differencePercent = baseline === 0 ? (latest.usage === 0 ? 0 : 100) : ((latest.usage - baseline) / baseline) * 100;
-  return { hasData: true, status: differencePercent >= 20 ? 'Boros' : differencePercent >= 10 ? 'Perlu Dicek' : 'Normal', baseline: round(baseline), observed: round(latest.usage), differencePercent: round(differencePercent) };
+  const status = differencePercent >= 20 ? 'Boros' : differencePercent >= 10 ? 'Perlu Dicek' : 'Normal';
+
+  let contextualExplanation: ContextualAnomalyExplanation | undefined;
+
+  if (operationalComparison?.hasComparison && operationalComparison.metrics) {
+    const { energyTrend, outputTrend, intensityTrend, outputChangePercent, intensityChangePercent } =
+      operationalComparison.metrics;
+    const unit = operationalComparison.outputUnit ?? 'satuan';
+
+    if (differencePercent >= 10 || energyTrend === 'UP') {
+      if (intensityTrend === 'MORE_EFFICIENT') {
+        contextualExplanation = {
+          hasOperationalContext: true,
+          headline: 'Kenaikan Pemakaian Sejalan dengan Pertumbuhan Aktivitas',
+          explanation: `Pemakaian listrik bertambah bersamaan dengan meningkatnya hasil usaha (+${Math.abs(outputChangePercent)}%). Listrik per ${unit} justru lebih hemat ${Math.abs(intensityChangePercent)}%.`,
+          operationalProcessName: operationalComparison.processName,
+          outputChangePercent,
+          intensityChangePercent,
+          boundaryNote: operationalComparison.boundaryNote,
+        };
+      } else if (intensityTrend === 'LESS_EFFICIENT') {
+        contextualExplanation = {
+          hasOperationalContext: true,
+          headline: 'Kenaikan Pemakaian Lebih Tinggi dari Kenaikan Hasil Usaha',
+          explanation: `Pemakaian listrik meningkat sementara hasil usaha ${outputTrend === 'DOWN' ? `turun ${Math.abs(outputChangePercent)}%` : 'relatif sama'}. Listrik per ${unit} meningkat ${Math.abs(intensityChangePercent)}%. Kondisi ini layak diperiksa.`,
+          operationalProcessName: operationalComparison.processName,
+          outputChangePercent,
+          intensityChangePercent,
+          boundaryNote: operationalComparison.boundaryNote,
+        };
+      } else {
+        contextualExplanation = {
+          hasOperationalContext: true,
+          headline: 'Perubahan Pemakaian Relatif Seimbang',
+          explanation: `Perubahan pemakaian listrik sebanding dengan perubahan volume hasil produksi.`,
+          operationalProcessName: operationalComparison.processName,
+          outputChangePercent,
+          intensityChangePercent,
+          boundaryNote: operationalComparison.boundaryNote,
+        };
+      }
+    } else {
+      contextualExplanation = {
+        hasOperationalContext: true,
+        headline: operationalComparison.headline,
+        explanation: operationalComparison.explanation,
+        operationalProcessName: operationalComparison.processName,
+        outputChangePercent,
+        intensityChangePercent,
+        boundaryNote: operationalComparison.boundaryNote,
+      };
+    }
+  } else if (differencePercent >= 10) {
+    contextualExplanation = {
+      hasOperationalContext: false,
+      headline: 'Belum Ada Konteks Aktivitas Usaha',
+      explanation:
+        'Pemakaian listrik meningkat dibanding pola sebelumnya. Belum ada data aktivitas usaha yang cukup untuk membantu menjelaskan apakah kenaikan didorong oleh volume produksi.',
+    };
+  }
+
+  return {
+    hasData: true,
+    status,
+    baseline: round(baseline),
+    observed: round(latest.usage),
+    differencePercent: round(differencePercent),
+    contextualExplanation,
+  };
 }
 
 export function calculateEfficiencyScore(input: { bill: number | null; revenue: number | null; hasTariff: boolean; applianceShares: number[] }) {
@@ -329,8 +429,12 @@ export async function getProductAnalysisReadModel(
     dataProvenance: 'BUSINESS_DATA',
   };
 
+  const { getOperationalEnergyComparison } = await import('./operational-energy-insights.service');
+  const operationalCompRes = await getOperationalEnergyComparison(data.business.id).catch(() => null);
+  const operationalComparison = operationalCompRes?.ok ? operationalCompRes.data : null;
+
   const prediction = deterministicPrediction;
-  const anomaly = analyzeLatestAnomaly(samples);
+  const anomaly = analyzeLatestAnomaly(samples, operationalComparison);
 
   const estimates = data.applianceEstimates.filter((item) => item.monthlyKwh !== null);
   const totalEstimate = estimates.reduce((sum, item) => sum + (item.monthlyKwh ?? 0), 0);
@@ -362,6 +466,7 @@ export async function getProductAnalysisReadModel(
     deterministicPrediction,
     forecastPlan,
     anomaly,
+    operationalComparison,
     efficiency,
     recommendations,
   };
