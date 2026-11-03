@@ -218,20 +218,28 @@ describe('Public Demo Provisioning Integration Tests', () => {
   it('TEST H: Partial start-only match is not treated as exact period; manual bill preserved', async () => {
     const res = await ensurePublicDemoAccount();
     const demo01Id = res.businessIds.demo01;
+    const target = await pool.query(
+      `SELECT period_start::text, period_end::text FROM electricity_bill
+       WHERE business_id = $1 AND notes = $2 ORDER BY period_end DESC LIMIT 1`,
+      [demo01Id, SYNTHETIC_DEMO_NOTES]
+    );
+    expect(target.rows).toHaveLength(1);
+    const { period_start: start, period_end: end } = target.rows[0];
+    const middle = `${start.slice(0, 8)}15`;
 
-    // Delete existing synthetic September bill (2026-09-01 to 2026-09-30)
+    // Follow the seeder's current month; fixed September fixtures expire as time advances.
     await pool.query(
-      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
-      [demo01Id]
+      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = $2 AND period_end = $3`,
+      [demo01Id, start, end]
     );
 
-    // Insert a manual partial bill: start matches 2026-09-01, but end is mid-month 2026-09-15
+    // Same start, different end: exact-period matching must not consume the manual bill.
     const manualPartialId = `bill-partial-start-${Date.now()}`;
     await pool.query(
       `INSERT INTO electricity_bill (
          id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
-       ) VALUES ($1, $2, '2026-09-01', '2026-09-15', 250000, '175.000', '1444.70', 'USER_ENTERED', 'Manual mid-month partial bill')`,
-      [manualPartialId, demo01Id]
+        ) VALUES ($1, $2, $3, $4, 250000, '175.000', '1444.70', 'USER_ENTERED', 'Manual mid-month partial bill')`,
+      [manualPartialId, demo01Id, start, middle]
     );
 
     // Run provisioning
@@ -243,15 +251,15 @@ describe('Public Demo Provisioning Integration Tests', () => {
       [manualPartialId]
     );
     expect(manualCheck.rows.length).toBe(1);
-    expect(manualCheck.rows[0].period_start).toBe('2026-09-01');
-    expect(manualCheck.rows[0].period_end).toBe('2026-09-15');
+    expect(manualCheck.rows[0].period_start).toBe(start);
+    expect(manualCheck.rows[0].period_end).toBe(middle);
     expect(manualCheck.rows[0].notes).toBe('Manual mid-month partial bill');
 
-    // 2. Exact synthetic period (2026-09-01 to 2026-09-30) must be inserted independently
+    // 2. The exact original synthetic period must be restored independently.
     const syntheticCheck = await pool.query(
       `SELECT id, period_start::text, period_end::text, notes FROM electricity_bill
-       WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
-      [demo01Id]
+        WHERE business_id = $1 AND period_start = $2 AND period_end = $3`,
+      [demo01Id, start, end]
     );
     expect(syntheticCheck.rows.length).toBe(1);
     expect(syntheticCheck.rows[0].notes).toBe(SYNTHETIC_DEMO_NOTES);
@@ -265,20 +273,28 @@ describe('Public Demo Provisioning Integration Tests', () => {
   it('TEST I: Partial end-only match is not treated as exact period; manual bill preserved', async () => {
     const res = await ensurePublicDemoAccount();
     const demo01Id = res.businessIds.demo01;
+    const target = await pool.query(
+      `SELECT period_start::text, period_end::text FROM electricity_bill
+       WHERE business_id = $1 AND notes = $2 ORDER BY period_end DESC LIMIT 1`,
+      [demo01Id, SYNTHETIC_DEMO_NOTES]
+    );
+    expect(target.rows).toHaveLength(1);
+    const { period_start: start, period_end: end } = target.rows[0];
+    const middle = `${start.slice(0, 8)}16`;
 
-    // Delete existing synthetic September bill (2026-09-01 to 2026-09-30)
+    // Follow the actual synthetic period rather than a historical calendar fixture.
     await pool.query(
-      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
-      [demo01Id]
+      `DELETE FROM electricity_bill WHERE business_id = $1 AND period_start = $2 AND period_end = $3`,
+      [demo01Id, start, end]
     );
 
-    // Insert a manual partial bill: start is 2026-09-16, end matches 2026-09-30
+    // Different start, same end: retain the manual second-half bill.
     const manualPartialId = `bill-partial-end-${Date.now()}`;
     await pool.query(
       `INSERT INTO electricity_bill (
          id, business_id, period_start, period_end, total_amount_rupiah, kwh, tariff_rupiah_per_kwh, kwh_source, notes
-       ) VALUES ($1, $2, '2026-09-16', '2026-09-30', 275000, '190.000', '1444.70', 'USER_ENTERED', 'Manual second-half partial bill')`,
-      [manualPartialId, demo01Id]
+        ) VALUES ($1, $2, $3, $4, 275000, '190.000', '1444.70', 'USER_ENTERED', 'Manual second-half partial bill')`,
+      [manualPartialId, demo01Id, middle, end]
     );
 
     // Run provisioning
@@ -290,15 +306,15 @@ describe('Public Demo Provisioning Integration Tests', () => {
       [manualPartialId]
     );
     expect(manualCheck.rows.length).toBe(1);
-    expect(manualCheck.rows[0].period_start).toBe('2026-09-16');
-    expect(manualCheck.rows[0].period_end).toBe('2026-09-30');
+    expect(manualCheck.rows[0].period_start).toBe(middle);
+    expect(manualCheck.rows[0].period_end).toBe(end);
     expect(manualCheck.rows[0].notes).toBe('Manual second-half partial bill');
 
-    // 2. Exact synthetic period (2026-09-01 to 2026-09-30) must be inserted independently
+    // 2. The full synthetic period must coexist with the manual partial period.
     const syntheticCheck = await pool.query(
       `SELECT id, period_start::text, period_end::text, notes FROM electricity_bill
-       WHERE business_id = $1 AND period_start = '2026-09-01' AND period_end = '2026-09-30'`,
-      [demo01Id]
+        WHERE business_id = $1 AND period_start = $2 AND period_end = $3`,
+      [demo01Id, start, end]
     );
     expect(syntheticCheck.rows.length).toBe(1);
     expect(syntheticCheck.rows[0].notes).toBe(SYNTHETIC_DEMO_NOTES);
