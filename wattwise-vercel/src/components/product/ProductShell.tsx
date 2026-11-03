@@ -17,6 +17,7 @@ import {
   Search,
   Settings,
   WalletCards,
+  Activity,
   X,
 } from 'lucide-react';
 import { LogoutButton } from '@/components/LogoutButton';
@@ -51,6 +52,7 @@ function getNavGroups(businessCount: number): Array<{ label: string; items: Item
       items: [
         { href: '/bills', label: 'Tagihan Listrik', icon: ReceiptText, tourId: 'sidebar-bills' },
         { href: '/energy', label: 'Data Energi', icon: PlugZap },
+        { href: '/activities', label: 'Aktivitas Usaha', icon: Activity },
         { href: '/revenue', label: 'Pendapatan', icon: WalletCards, tourId: 'sidebar-revenue' },
         { href: '/appliances', label: 'Peralatan', icon: PlugZap, tourId: 'sidebar-appliances' },
         { href: '/businesses', label: isMulti ? 'Kelola Usaha' : 'Usaha Saya', icon: Building2, tourId: 'sidebar-businesses' },
