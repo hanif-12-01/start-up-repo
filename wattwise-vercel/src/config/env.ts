@@ -13,6 +13,9 @@ const authSecretSchema = z.string().min(32, 'BETTER_AUTH_SECRET must be at least
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  VERCEL: z.string().optional().default(''),
+  VERCEL_ENV: z.string().optional().default(''),
+  VERCEL_TARGET_ENV: z.string().optional().default(''),
 
   // Production-required secrets (enforced at runtime via validateProductionEnv)
   DATABASE_URL: z.string().optional().default(''),
@@ -22,6 +25,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional().default('http://localhost:3000'),
 
   // Feature Flags
+  MEASUREMENT_WRITE_ENABLED: booleanFlag,
+  MEASUREMENT_PILOT_ALLOWLIST: z.string().optional().default(''),
   DASHBOARD_ENABLED: booleanFlag,
   MONTHLY_REPORTS_ENABLED: booleanFlag,
   DIAGNOSTICS_ENABLED: booleanFlag,

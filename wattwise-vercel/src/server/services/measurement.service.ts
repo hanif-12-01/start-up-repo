@@ -1,7 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { requireUserId } from '@/server/auth/session';
-import { getUserEntitlements } from './entitlement.service';
+import { isMeasurementPilotAllowed } from './measurement-access';
 import {
   createEnergyMeasurementForUser, createMeasurementSourceForUser, findEnergyMeasurementForUser,
   listEnergyMeasurementsForUser, listMeasurementSourcesForUser, MeasurementError,
@@ -21,26 +21,24 @@ async function execute<T>(operation: (userId: string) => Promise<T>): Promise<Me
       issues: error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message })) } };
     if (error instanceof MeasurementError) return { ok: false, error: { code: error.code, message: error.message } };
     if (error instanceof Error && error.message === 'UNAUTHENTICATED') return { ok: false, error: { code: 'UNAUTHENTICATED', message: 'Silakan masuk terlebih dahulu' } };
-    if (error instanceof MeasurementPolicyPendingError) return { ok: false, error: { code: 'MEASUREMENT_POLICY_PENDING', message: error.message } };
+    if (error instanceof MeasurementAccessDeniedError) return { ok: false, error: { code: 'MEASUREMENT_WRITE_DENIED', message: error.message } };
     // Do not return SQL, credentials, infrastructure messages or other-tenant details.
     return { ok: false, error: { code: 'MEASUREMENT_UNAVAILABLE', message: 'Pengukuran belum dapat diproses; coba kembali' } };
   }
 }
 
-class MeasurementPolicyPendingError extends Error {
-  constructor() { super('Akses pencatatan pengukuran belum diaktifkan; kebijakan paket menunggu persetujuan'); }
+class MeasurementAccessDeniedError extends Error {
+  constructor() { super('Akses pencatatan pengukuran tidak tersedia untuk akun atau lingkungan ini'); }
 }
 
-async function requireMeasurementWriteAccess(userId: string) {
-  await getUserEntitlements(userId);
-  // ponytail: all plans closed until PO approves measurement access/quotas; replace this denial with approved policy, never infer bill quotas.
-  throw new MeasurementPolicyPendingError();
+function requireMeasurementWriteAccess(userId: string, businessId: string) {
+  if (!isMeasurementPilotAllowed(userId, businessId)) throw new MeasurementAccessDeniedError();
 }
 
 export async function createMeasurementSource(raw: unknown) {
   return execute(async userId => {
     const input = createMeasurementSourceSchema.parse(raw);
-    await requireMeasurementWriteAccess(userId);
+    requireMeasurementWriteAccess(userId, input.businessId);
     return createMeasurementSourceForUser(userId, input);
   });
 }
@@ -48,7 +46,7 @@ export async function createMeasurementSource(raw: unknown) {
 export async function createEnergyMeasurement(raw: unknown) {
   return execute(async userId => {
     const input = createEnergyMeasurementSchema.parse(raw);
-    await requireMeasurementWriteAccess(userId);
+    requireMeasurementWriteAccess(userId, input.businessId);
     return createEnergyMeasurementForUser(userId, input);
   });
 }
