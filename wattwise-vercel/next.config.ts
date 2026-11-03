@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "node:path";
 
 const scriptPolicy = process.env.NODE_ENV === 'development'
   ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
@@ -57,7 +56,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: path.resolve('.'),
+    root: import.meta.dirname,
   },
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   async headers() {
