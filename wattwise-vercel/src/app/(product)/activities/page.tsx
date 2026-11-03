@@ -48,9 +48,10 @@ export default async function ActivitiesPage({
   const records = recordsRes.ok ? recordsRes.data : [];
 
   const requestedRecordId = typeof query.recordId === 'string' ? query.recordId : undefined;
+  const requestedSourceId = typeof query.sourceId === 'string' ? query.sourceId : undefined;
   const targetRecordId = requestedRecordId || records[0]?.id;
 
-  const normalizationRes = targetRecordId ? await getEnergyNormalization(targetRecordId) : null;
+  const normalizationRes = targetRecordId ? await getEnergyNormalization(targetRecordId, requestedSourceId) : null;
   const canWrite = isMeasurementPilotAllowed(session.user.id, business.id);
 
   return (

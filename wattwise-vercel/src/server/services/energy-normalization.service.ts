@@ -10,6 +10,7 @@ export interface NormalizationOutput {
   statusLabel: string;
   production: {
     id: string;
+    businessId?: string;
     processName: string;
     outputUnit: string;
     outputQuantity: string;
@@ -34,11 +35,19 @@ export interface NormalizationOutput {
   boundaryNote: string;
   caveats: string[];
   guidance?: string;
+  availableSources?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    boundary: string;
+    recordCount: number;
+  }>;
 }
 
 export function computeNormalization(
   production: {
     id: string;
+    businessId?: string;
     processName: string;
     outputUnit: string;
     outputQuantity: string;
@@ -69,6 +78,7 @@ export function computeNormalization(
     statusLabel: 'Data Belum Cukup',
     production: {
       id: production.id,
+      businessId: production.businessId,
       processName: production.processName,
       outputUnit: production.outputUnit,
       outputQuantity: production.outputQuantity,
@@ -95,7 +105,7 @@ export function computeNormalization(
     return baseResult;
   }
 
-  // Filter or pick source
+  // Group measurements by source
   const sourceGroups = new Map<string, typeof measurements>();
   for (const m of measurements) {
     const list = sourceGroups.get(m.measurementSourceId) ?? [];
@@ -103,24 +113,29 @@ export function computeNormalization(
     sourceGroups.set(m.measurementSourceId, list);
   }
 
+  const availableSources = Array.from(sourceGroups.entries()).map(([sId, recs]) => ({
+    id: sId,
+    name: recs[0].sourceName,
+    type: recs[0].sourceType,
+    boundary: recs[0].measurementBoundary,
+    recordCount: recs.length,
+  }));
+  baseResult.availableSources = availableSources;
+
   let targetSourceId = selectedSourceId;
   if (!targetSourceId) {
     if (sourceGroups.size === 1) {
       targetSourceId = measurements[0].measurementSourceId;
     } else {
-      // Pick whole-site or the source with highest coverage
-      let bestSourceId = measurements[0].measurementSourceId;
-      let maxCount = 0;
-      for (const [sId, group] of sourceGroups.entries()) {
-        if (group.length > maxCount) {
-          maxCount = group.length;
-          bestSourceId = sId;
-        }
-      }
-      targetSourceId = bestSourceId;
+      // Finding A: Multiple sources exist; require explicit user selection.
+      baseResult.status = 'INSUFFICIENT_DATA';
+      baseResult.statusLabel = 'Data Belum Cukup';
+      baseResult.guidance =
+        'Ada beberapa sumber listrik pada periode ini. Pilih sumber yang ingin digunakan untuk perbandingan.';
       baseResult.caveats.push(
-        'Terdapat lebih dari satu sumber listrik pada periode ini. Menggunakan sumber dengan catatan terbanyak.'
+        'Terdapat lebih dari satu sumber listrik pada periode operasional ini.'
       );
+      return baseResult;
     }
   }
 
@@ -130,71 +145,77 @@ export function computeNormalization(
     return baseResult;
   }
 
-  // Check temporal coverage & overlap
+  // Sort chronologically
   selectedRecords.sort((a, b) => a.periodStart.getTime() - b.periodStart.getTime());
 
-  let totalMilliKwh = 0n;
-  let coveredMs = 0;
+  const firstRec = selectedRecords[0];
+  const lastRec = selectedRecords[selectedRecords.length - 1];
+  const firstStartMs = firstRec.periodStart.getTime();
+  const lastEndMs = lastRec.periodEnd.getTime();
+
   let hasEstimated = false;
   let hasOverlap = false;
-  let prevEndMs = 0;
+  let hasGap = false;
+  let coveredMs = 0;
+  let prevEndMs = firstStartMs;
 
-  for (const r of selectedRecords) {
+  for (let i = 0; i < selectedRecords.length; i++) {
+    const r = selectedRecords[i];
     const rStartMs = r.periodStart.getTime();
     const rEndMs = r.periodEnd.getTime();
-
-    // Check overlap with previous interval
-    if (prevEndMs > 0 && rStartMs < prevEndMs) {
-      hasOverlap = true;
-    }
-    prevEndMs = Math.max(prevEndMs, rEndMs);
-
-    // Compute effective overlap with production window
-    const effectiveStart = Math.max(rStartMs, prodStartMs);
-    const effectiveEnd = Math.min(rEndMs, prodEndMs);
-    if (effectiveEnd > effectiveStart) {
-      coveredMs += effectiveEnd - effectiveStart;
-    }
-
-    // Accumulate energy safely as milli-kWh (scale 3)
-    const [whole = '0', frac = '0'] = r.energyKwh.split('.');
-    const milliVal = BigInt(whole) * 1000n + BigInt(frac.padEnd(3, '0').slice(0, 3));
-    totalMilliKwh += milliVal;
 
     if (r.consumptionBasis === 'ESTIMATED' || r.qualityStatus === 'NEEDS_REVIEW') {
       hasEstimated = true;
     }
+
+    if (i > 0) {
+      if (rStartMs < prevEndMs) {
+        hasOverlap = true;
+      } else if (rStartMs > prevEndMs) {
+        hasGap = true;
+      }
+    }
+
+    const effStart = Math.max(rStartMs, prodStartMs);
+    const effEnd = Math.min(rEndMs, prodEndMs);
+    if (effEnd > effStart) {
+      coveredMs += effEnd - effStart;
+    }
+
+    prevEndMs = Math.max(prevEndMs, rEndMs);
   }
 
-  const coveragePercent = Math.min(100, Math.round((coveredMs / prodDurationMs) * 100));
-  const primaryRecord = selectedRecords[0];
+  // Floor to prevent rounding up to 100% when coverage is incomplete
+  const coveragePercent = Math.min(100, Math.floor((coveredMs / prodDurationMs) * 100));
 
+  let totalMilliKwh = 0n;
+  for (const r of selectedRecords) {
+    const [whole = '0', frac = '0'] = r.energyKwh.split('.');
+    const milliVal = BigInt(whole) * 1000n + BigInt(frac.padEnd(3, '0').slice(0, 3));
+    totalMilliKwh += milliVal;
+  }
   const totalKwhFloat = Number(totalMilliKwh) / 1000;
   const totalKwhStr = (Number(totalMilliKwh) / 1000).toFixed(3).replace(/\.?0+$/, '');
 
   baseResult.energy = {
     totalKwh: totalKwhStr || '0',
-    sourceName: primaryRecord.sourceName,
-    sourceType: primaryRecord.sourceType,
-    measurementBoundary: primaryRecord.measurementBoundary,
+    sourceName: firstRec.sourceName,
+    sourceType: firstRec.sourceType,
+    measurementBoundary: firstRec.measurementBoundary,
     hasEstimated,
     coveragePercent,
     recordCount: selectedRecords.length,
   };
 
   // Boundary note
-  if (primaryRecord.measurementBoundary === 'WHOLE_SITE') {
+  if (firstRec.measurementBoundary === 'WHOLE_SITE') {
     baseResult.boundaryNote =
       'Pengukuran menggunakan meter seluruh usaha. Angka ini mencakup seluruh pemakaian listrik tempat usaha dan tidak menunjukkan efisiensi khusus untuk mesin tertentu.';
-  } else if (primaryRecord.measurementBoundary === 'SUBMETER') {
+  } else if (firstRec.measurementBoundary === 'SUBMETER') {
     baseResult.boundaryNote = 'Pengukuran berasal dari meter bagian (submeter).';
   } else {
     baseResult.boundaryNote = 'Batas cakupan pengukuran belum terverifikasi.';
     baseResult.caveats.push('Cakupan meter tidak diketahui (UNKNOWN).');
-  }
-
-  if (hasOverlap) {
-    baseResult.caveats.push('Terdapat interval pencatatan listrik yang bertumpang tindih.');
   }
 
   if (hasEstimated) {
@@ -203,15 +224,49 @@ export function computeNormalization(
     );
   }
 
-  // If coverage is under 95%, data is insufficient
-  if (coveragePercent < 95) {
+  // Finding B: Measurements extending beyond production window
+  if (firstStartMs < prodStartMs || lastEndMs > prodEndMs) {
     baseResult.status = 'INSUFFICIENT_DATA';
     baseResult.statusLabel = 'Data Belum Cukup';
-    baseResult.guidance = `Catatan listrik baru mencakup ${coveragePercent}% dari periode aktivitas. Tambahkan data listrik untuk sisa waktu agar perbandingan akurat.`;
+    baseResult.guidance = 'Periode catatan listrik belum cocok dengan periode hasil usaha.';
+    baseResult.caveats.push('Rentang waktu catatan listrik melebihi batas periode operasional.');
     return baseResult;
   }
 
-  // Calculate intensity: kWh / output
+  // Finding D: Overlapping intervals double counting
+  if (hasOverlap) {
+    baseResult.status = 'NEEDS_REVIEW';
+    baseResult.statusLabel = 'Perlu Pemeriksaan';
+    baseResult.guidance =
+      'Terdapat catatan listrik yang saling tumpang tindih. Periksa dan perbaiki interval pencatatan listrik.';
+    baseResult.caveats.push('Terdapat interval pencatatan listrik yang bertumpang tindih.');
+    return baseResult;
+  }
+
+  // Finding C: Gaps in the middle
+  if (hasGap) {
+    baseResult.status = 'INSUFFICIENT_DATA';
+    baseResult.statusLabel = 'Data Belum Cukup';
+    baseResult.guidance =
+      'Terdapat jeda waktu pada catatan listrik di antara interval operasional. Lengkapi data agar berurutan tanpa jeda.';
+    baseResult.caveats.push('Terdapat celah waktu (gap) di antara interval catatan listrik.');
+    return baseResult;
+  }
+
+  // Finding C: Coverage must be complete (100% contiguous)
+  if (firstStartMs > prodStartMs || lastEndMs < prodEndMs || coveragePercent < 100) {
+    baseResult.status = 'INSUFFICIENT_DATA';
+    baseResult.statusLabel = 'Data Belum Cukup';
+    if (coveragePercent < 95) {
+      baseResult.guidance = `Catatan listrik baru mencakup ${coveragePercent}% dari periode aktivitas. Tambahkan data listrik untuk sisa waktu agar perbandingan akurat.`;
+    } else {
+      baseResult.guidance =
+        'Catatan listrik belum lengkap mencakup seluruh periode operasional. Diperlukan pencatatan penuh dari awal hingga akhir aktivitas.';
+    }
+    return baseResult;
+  }
+
+  // Certified Contiguous Normalization
   const intensityVal = totalKwhFloat / outputNum;
   const intensityStr = intensityVal.toFixed(3);
   const formattedIntensity = intensityVal.toLocaleString('id-ID', {
@@ -225,7 +280,7 @@ export function computeNormalization(
     unitLabel: `kWh/${production.outputUnit}`,
   };
 
-  if (hasEstimated || hasOverlap || primaryRecord.measurementBoundary === 'UNKNOWN') {
+  if (hasEstimated || firstRec.measurementBoundary === 'UNKNOWN') {
     baseResult.status = 'NEEDS_REVIEW';
     baseResult.statusLabel = 'Perlu Pemeriksaan';
   } else {

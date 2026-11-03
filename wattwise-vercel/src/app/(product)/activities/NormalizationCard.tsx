@@ -80,6 +80,31 @@ export function NormalizationCard({ result }: { result: NormalizationOutput }) {
           </div>
         )}
 
+        {result.availableSources && result.availableSources.length > 1 && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-xs leading-5">
+            <strong className="block text-[var(--foreground)] mb-1.5">Pilih Sumber Listrik:</strong>
+            <div className="flex flex-wrap gap-2">
+              {result.availableSources.map((s) => {
+                const isSelected = result.energy?.sourceName === s.name;
+                const bizQuery = result.production.businessId ? `businessId=${result.production.businessId}&` : '';
+                return (
+                  <a
+                    key={s.id}
+                    href={`?${bizQuery}recordId=${result.production.id}&sourceId=${s.id}`}
+                    className={`rounded-lg border px-2.5 py-1 font-semibold transition-colors ${
+                      isSelected
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
+                        : 'border-[var(--border)] bg-[var(--surface-muted)]/50 text-[var(--foreground)] hover:border-[var(--primary)]'
+                    }`}
+                  >
+                    {s.name} ({s.boundary === 'WHOLE_SITE' ? 'Meter Utama' : 'Submeter'}) · {s.recordCount} data
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {guidance && (
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 text-xs leading-5 text-blue-700 dark:text-blue-300">
             <strong>Langkah Selanjutnya:</strong> {guidance}
