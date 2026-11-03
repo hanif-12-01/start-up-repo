@@ -8,3 +8,4 @@ export * from './outcomes';
 export * from './workspace';
 export * from './billing';
 export * from './measurements';
+export * from './operational';

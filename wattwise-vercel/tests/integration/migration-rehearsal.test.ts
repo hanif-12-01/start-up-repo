@@ -178,6 +178,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0012)', () => {
 
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0013_operational_normalization_rollback.sql',
       '0012_measurement_foundation_rollback.sql',
       '0011_pilot_pricing_consistency_rollback.sql',
       '0010_kwh_provenance_rollback.sql',

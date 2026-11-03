@@ -27,6 +27,10 @@ export async function applyAllForwardMigrations(pool: pg.Pool): Promise<string[]
   getSafeTestDbUrl();
   // Legacy fixtures drop business CASCADE, leaving the new empty child tables without FKs.
   // Explicit guarded rollback preserves fail-fast migration SQL; never discard populated observations.
+  const operational = await pool.query(`SELECT to_regclass('public.production_record') AS present`);
+  if (operational.rows[0].present) {
+    await pool.query(readRollbackMigration('0013_operational_normalization_rollback.sql'));
+  }
   const measurement = await pool.query(`SELECT to_regclass('public.energy_measurement') AS present`);
   if (measurement.rows[0].present) {
     await pool.query(readRollbackMigration('0012_measurement_foundation_rollback.sql'));
