@@ -113,6 +113,7 @@ describe('IT-DIAG-01B PostgreSQL integration', () => {
       '0009_product_parity.sql',
       '0010_kwh_provenance.sql',
       '0011_pilot_pricing_consistency.sql',
+      '0012_measurement_foundation.sql',
     ]);
 
     const firstUp = await pool.query(`SELECT to_regclass('public.action_outcome_evaluation') AS table_name`);

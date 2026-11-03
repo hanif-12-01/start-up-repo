@@ -9,7 +9,7 @@ import { getSafeTestDbUrl } from '../helpers/test-db-guard';
 
 const { Pool } = pg;
 
-describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
+describe('Full Database Migration Up/Down/Up Rehearsal (0000–0012)', () => {
   let pool: pg.Pool;
   const dbUrl = getSafeTestDbUrl();
 
@@ -62,6 +62,8 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
     'billing_plan',
     'sandbox_invoice',
     'sandbox_payment',
+    'measurement_source',
+    'energy_measurement',
   ];
 
   async function getPublicTableNames(): Promise<string[]> {
@@ -176,6 +178,7 @@ describe('Full Database Migration Up/Down/Up Rehearsal (0000–0009)', () => {
 
   it('STEP 2: Apply all rollback migrations in reverse order (DOWN)', async () => {
     const rollbackFiles = [
+      '0012_measurement_foundation_rollback.sql',
       '0011_pilot_pricing_consistency_rollback.sql',
       '0010_kwh_provenance_rollback.sql',
       '0009_product_parity_rollback.sql',

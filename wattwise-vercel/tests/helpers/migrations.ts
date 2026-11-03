@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type pg from 'pg';
+import { getSafeTestDbUrl } from './test-db-guard';
 
 const FORWARD_DIRECTORY = join(process.cwd(), 'drizzle', 'migrations');
 const ROLLBACK_DIRECTORY = join(process.cwd(), 'drizzle', 'rollbacks');
@@ -23,6 +24,13 @@ export function readRollbackMigration(name: string): string {
 }
 
 export async function applyAllForwardMigrations(pool: pg.Pool): Promise<string[]> {
+  getSafeTestDbUrl();
+  // Legacy fixtures drop business CASCADE, leaving the new empty child tables without FKs.
+  // Explicit guarded rollback preserves fail-fast migration SQL; never discard populated observations.
+  const measurement = await pool.query(`SELECT to_regclass('public.energy_measurement') AS present`);
+  if (measurement.rows[0].present) {
+    await pool.query(readRollbackMigration('0012_measurement_foundation_rollback.sql'));
+  }
   const names = listForwardMigrationNames();
   for (const name of names) {
     await pool.query(readForwardMigration(name));
