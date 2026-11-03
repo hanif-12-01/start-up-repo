@@ -223,18 +223,32 @@ export function LandingExperience({ authenticated }: { authenticated: boolean })
         // Hero entrance — stagger child elements
         const heroTimeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
         heroTimeline
-          .from('[data-hero-copy] > *', { y: 20, autoAlpha: 0, duration: 0.65, stagger: 0.07 })
-          .from('[data-landing-visual]', { y: 28, autoAlpha: 0, duration: 0.7 }, '-=0.4');
+          .fromTo(
+            '[data-hero-copy] > *',
+            { y: 20, autoAlpha: 0 },
+            { y: 0, autoAlpha: 1, duration: 0.65, stagger: 0.07, clearProps: 'transform,visibility,opacity' }
+          )
+          .fromTo(
+            '[data-landing-visual]',
+            { y: 28, autoAlpha: 0 },
+            { y: 0, autoAlpha: 1, duration: 0.7, clearProps: 'transform,visibility,opacity' },
+            '-=0.4'
+          );
 
         // Section reveals — y + opacity only (no x drift)
         gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((el) => {
-          gsap.from(el, {
-            y: 20,
-            autoAlpha: 0,
-            duration: 0.6,
-            ease: 'power2.out',
-            scrollTrigger: { trigger: el, start: 'top 85%', once: true },
-          });
+          gsap.fromTo(
+            el,
+            { y: 20, autoAlpha: 0 },
+            {
+              y: 0,
+              autoAlpha: 1,
+              duration: 0.6,
+              ease: 'power2.out',
+              scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+              clearProps: 'transform,visibility,opacity',
+            }
+          );
         });
 
         // Step cards — staggered group reveal
@@ -245,13 +259,18 @@ export function LandingExperience({ authenticated }: { authenticated: boolean })
             start: 'top 85%',
             once: true,
             onEnter: () => {
-              gsap.from(stepCards, {
-                y: 20,
-                autoAlpha: 0,
-                duration: 0.55,
-                stagger: 0.1,
-                ease: 'power2.out',
-              });
+              gsap.fromTo(
+                stepCards,
+                { y: 20, autoAlpha: 0 },
+                {
+                  y: 0,
+                  autoAlpha: 1,
+                  duration: 0.55,
+                  stagger: 0.1,
+                  ease: 'power2.out',
+                  clearProps: 'transform,visibility,opacity',
+                }
+              );
             },
           });
         }
@@ -264,13 +283,18 @@ export function LandingExperience({ authenticated }: { authenticated: boolean })
             start: 'top 88%',
             once: true,
             onEnter: () => {
-              gsap.from(capItems, {
-                y: 16,
-                autoAlpha: 0,
-                duration: 0.45,
-                stagger: 0.07,
-                ease: 'power2.out',
-              });
+              gsap.fromTo(
+                capItems,
+                { y: 16, autoAlpha: 0 },
+                {
+                  y: 0,
+                  autoAlpha: 1,
+                  duration: 0.45,
+                  stagger: 0.07,
+                  ease: 'power2.out',
+                  clearProps: 'transform,visibility,opacity',
+                }
+              );
             },
           });
         }
@@ -283,13 +307,18 @@ export function LandingExperience({ authenticated }: { authenticated: boolean })
             start: 'top 88%',
             once: true,
             onEnter: () => {
-              gsap.from(personaCards, {
-                y: 20,
-                autoAlpha: 0,
-                duration: 0.55,
-                stagger: 0.1,
-                ease: 'power2.out',
-              });
+              gsap.fromTo(
+                personaCards,
+                { y: 20, autoAlpha: 0 },
+                {
+                  y: 0,
+                  autoAlpha: 1,
+                  duration: 0.55,
+                  stagger: 0.1,
+                  ease: 'power2.out',
+                  clearProps: 'transform,visibility,opacity',
+                }
+              );
             },
           });
         }
