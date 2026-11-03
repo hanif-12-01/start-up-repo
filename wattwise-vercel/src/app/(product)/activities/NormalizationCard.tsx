@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { NormalizationOutput } from '@/server/services/energy-normalization.service';
 import { formatDateTimeId } from '@/lib/operational-input';
 
@@ -87,18 +88,19 @@ export function NormalizationCard({ result }: { result: NormalizationOutput }) {
               {result.availableSources.map((s) => {
                 const isSelected = result.energy?.sourceName === s.name;
                 const bizQuery = result.production.businessId ? `businessId=${result.production.businessId}&` : '';
+                // ponytail: accessible 44px touch target on mobile; upgrade to segmented control if sources > 5
                 return (
-                  <a
+                  <Link
                     key={s.id}
-                    href={`?${bizQuery}recordId=${result.production.id}&sourceId=${s.id}`}
-                    className={`rounded-lg border px-2.5 py-1 font-semibold transition-colors ${
+                    href={`/activities?${bizQuery}recordId=${result.production.id}&sourceId=${s.id}`}
+                    className={`min-h-11 inline-flex items-center rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)] ${
                       isSelected
                         ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
                         : 'border-[var(--border)] bg-[var(--surface-muted)]/50 text-[var(--foreground)] hover:border-[var(--primary)]'
                     }`}
                   >
                     {s.name} ({s.boundary === 'WHOLE_SITE' ? 'Meter Utama' : 'Submeter'}) · {s.recordCount} data
-                  </a>
+                  </Link>
                 );
               })}
             </div>
