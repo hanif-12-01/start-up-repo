@@ -89,10 +89,10 @@ export default async function ActivitiesPage({
       {canWrite && (
         <Surface aria-labelledby="form-section-title">
           <h2 id="form-section-title" className="text-xl font-extrabold text-[var(--foreground)]">
-            Catat hasil produksi
+            Catat hasil usaha
           </h2>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            Masukkan jumlah output operasional dan rentang waktu pengerjaan untuk dihubungkan dengan data listrik.
+            {business.businessType === 'LAUNDRY' ? 'Berapa kilogram cucian yang selesai? ' : 'Berapa banyak hasil kegiatan usaha Anda? '}Catat jumlah dan waktu pengerjaan untuk melihat listrik yang digunakan per hasil usaha pada periode yang sama.
           </p>
           <ProductionForm
             key={business.id}
