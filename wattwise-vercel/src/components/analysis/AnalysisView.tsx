@@ -33,6 +33,7 @@ import { Simulator } from '@/app/(product)/predictions/Simulator';
 import type { EmbeddedForecastPlan } from '@/server/services/product-analysis';
 import type { PredictionResult, OperationalComparisonResult } from '@/server/services/product-analysis';
 import { runEmbeddedNBeatsInference } from '@/lib/ai/embedded-nbeats';
+import type { NBeatsSelection } from '@/lib/ai/local-candidate';
 import {
   deriveDisplayedPrediction,
   getDataReadinessStatus,
@@ -143,6 +144,7 @@ interface AnalysisViewProps {
   };
   activeTab: string;
   businessQuery: string;
+  modelSelection?: NBeatsSelection;
 }
 
 interface AiPredictionState {
@@ -167,6 +169,7 @@ export function AnalysisView({
   entitlements,
   activeTab,
   businessQuery,
+  modelSelection = 'original',
 }: AnalysisViewProps) {
   const [aiPrediction, setAiPrediction] = useState<AiPredictionState | null>(null);
   const [isInferring, setIsInferring] = useState<boolean>(forecastPlan.eligible && Boolean(forecastPlan.history6m));
@@ -178,7 +181,7 @@ export function AnalysisView({
 
     let cancelled = false;
 
-    runEmbeddedNBeatsInference(forecastPlan.history6m)
+    runEmbeddedNBeatsInference(forecastPlan.history6m, modelSelection)
       .then((res) => {
         if (cancelled) return;
         const updated = deriveDisplayedPrediction(
@@ -214,7 +217,7 @@ export function AnalysisView({
     return () => {
       cancelled = true;
     };
-  }, [forecastPlan, tariff]);
+  }, [forecastPlan, tariff, modelSelection]);
 
   const prediction = aiPrediction ? aiPrediction.prediction : forecastPlan.deterministicPrediction;
   const sourceLabel = aiPrediction ? aiPrediction.sourceLabel : forecastPlan.sourceLabel;
