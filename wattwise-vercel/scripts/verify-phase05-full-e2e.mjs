@@ -230,7 +230,7 @@ async function main() {
     if (!htmlContains(actHtml, 'Pencucian &amp; Pengeringan Kiloan') && !htmlContains(actHtml, 'Pencucian & Pengeringan Kiloan')) {
       throw new Error('/activities missing process "Pencucian & Pengeringan Kiloan"');
     }
-    if (!htmlContains(actHtml, 'Catat hasil produksi')) {
+    if (!htmlContains(actHtml, 'Catat hasil usaha')) {
       throw new Error('/activities missing ProductionForm for pilot user');
     }
     console.log('  ✅ Operational process and production record entry forms verified.');
@@ -369,7 +369,7 @@ async function main() {
     if (!htmlContains(nonPilotActHtml, 'Pencatatan belum tersedia')) {
       throw new Error('Non-pilot /activities did not display "Pencatatan belum tersedia" notice');
     }
-    if (htmlContains(nonPilotActHtml, 'Catat hasil produksi')) {
+    if (htmlContains(nonPilotActHtml, 'Catat hasil usaha')) {
       throw new Error('Non-pilot /activities erroneously rendered ProductionForm!');
     }
     console.log('  ✅ ADR-015 Gating verified: Non-pilot users receive polite notice; write forms cleanly hidden.');
