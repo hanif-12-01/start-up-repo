@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { and, eq } from 'drizzle-orm';
 import { env, isEntitlementsEnabled } from '@/config/env';
 import { getDb } from '@/server/db/client';
@@ -29,6 +30,27 @@ import {
   resolveReportMonth,
 } from '@/server/validation/monthly-report';
 import { getUserEntitlements } from '@/server/services/entitlement.service';
+
+export const sanitizeCell = (value: unknown): string => {
+  if (value === null || value === undefined) return '""';
+  const text = String(value);
+  const trimmed = text.replace(/^[\s\x00-\x1F]+/, '');
+  const guarded = /^[=+\-@\t\r\n]/.test(trimmed) ? `'${text}` : text;
+  return `"${guarded.replaceAll('"', '""')}"`;
+};
+
+export const formatCsvRow = (values: unknown[]): string =>
+  values.map(sanitizeCell).join(',');
+
+export const sanitizeFilename = (businessName: string, month: string): string => {
+  const safeName = businessName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_\-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'usaha';
+  return `wattwise-laporan-${safeName}-${month}.csv`;
+};
 
 export const REPORT_COMPLETENESS_CODES = [
   'NO_BILL',

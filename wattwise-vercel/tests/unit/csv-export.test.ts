@@ -3,7 +3,7 @@ import {
   formatCsvRow,
   sanitizeCell,
   sanitizeFilename,
-} from '@/app/api/reports/monthly.csv/route';
+} from '@/server/services/monthly-report.service';
 
 describe('CSV Export Serialization & Formula Injection Protection', () => {
   it('quotes normal text correctly', () => {

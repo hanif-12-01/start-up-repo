@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  isAuthorized,
-  validateEnvironmentGuard,
   GET,
   POST,
   DELETE,
 } from '@/app/api/internal/ai-validation/route';
 import * as demoService from '@/server/services/ai-validation-demo.service';
+import { isAuthorized, validateEnvironmentGuard } from '@/server/services/ai-validation-demo.service';
 
 describe('AI Validation Route Security & Guards', () => {
   const dummyAdminToken = 'test_admin_token_abcdef1234567890';

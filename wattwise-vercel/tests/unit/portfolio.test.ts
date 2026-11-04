@@ -12,11 +12,11 @@ import {
   getPastNMonths,
   formatMonthLabel,
   isValidYearMonth,
+  resolvePortfolioRouteDecision,
   type BusinessDataLike,
   type BillDataLike,
   type ProcessedLocationData,
 } from '@/server/services/portfolio-intelligence.service';
-import { resolvePortfolioRouteDecision } from '@/app/(product)/portfolio/page';
 
 describe('Portfolio Intelligence V1 — Unit Tests', () => {
   const dummyBusiness: BusinessDataLike = {

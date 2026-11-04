@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { timingSafeEqual } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import { getDb } from '@/server/db/client';
 import * as schema from '@/server/db/schema';
@@ -7,6 +8,58 @@ import { buildUsageSamplesFromBills } from './product-analysis';
 import { isDemoEnvironmentAllowed } from './qa-demo-provisioning.service';
 
 export const AI_VALIDATION_PREVIEW_PROJECT_ID = 'shy-art-58672693';
+
+export function isAuthorized(request: Request, env: Record<string, string | undefined> = process.env): boolean {
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const adminToken = env.AI_VALIDATION_ADMIN_TOKEN?.trim();
+
+  // Fail closed unconditionally when admin token is not configured or empty
+  if (!adminToken || !token) {
+    return false;
+  }
+
+  const tokenBuffer = Buffer.from(token, 'utf-8');
+  const adminBuffer = Buffer.from(adminToken, 'utf-8');
+  if (tokenBuffer.length !== adminBuffer.length) {
+    return false;
+  }
+
+  try {
+    return timingSafeEqual(tokenBuffer, adminBuffer);
+  } catch {
+    return false;
+  }
+}
+
+export function validateEnvironmentGuard(env: Record<string, string | undefined> = process.env): { allowed: boolean; reason?: string } {
+  const vercelEnv = env.VERCEL_ENV;
+  const qaDemoEnabled = env.QA_DEMO_ENABLED;
+  const validationProfileEnabled = env.WATTWISE_AI_VALIDATION_PROFILE_ENABLED;
+  const previewDbProjectId = env.WATTWISE_PREVIEW_DATABASE_PROJECT_ID;
+
+  if (vercelEnv === 'production') {
+    return { allowed: false, reason: 'AI validation route is strictly forbidden in Production.' };
+  }
+
+  if (vercelEnv !== 'preview') {
+    return { allowed: false, reason: 'AI validation route is restricted strictly to Preview runtime.' };
+  }
+
+  if (qaDemoEnabled !== 'true') {
+    return { allowed: false, reason: 'QA demo provisioning is disabled (QA_DEMO_ENABLED !== true).' };
+  }
+
+  if (validationProfileEnabled !== 'true') {
+    return { allowed: false, reason: 'AI validation profile is disabled (WATTWISE_AI_VALIDATION_PROFILE_ENABLED !== true).' };
+  }
+
+  if (previewDbProjectId !== AI_VALIDATION_PREVIEW_PROJECT_ID) {
+    return { allowed: false, reason: 'Preview database project ID mismatch.' };
+  }
+
+  return { allowed: true };
+}
 export const AI_VALIDATION_BUSINESS_NAMES = [
   'AI Validation H00',
   'AI Validation H01_02',

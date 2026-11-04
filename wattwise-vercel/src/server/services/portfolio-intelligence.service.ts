@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { getDb } from '@/server/db';
 import * as schema from '@/server/db/schema';
+import { getJourneyRedirect, type JourneyStep } from './journey.service';
 import { analyzeLatestAnomaly, type UsageSample } from './product-analysis';
 import {
   type OwnerFacingHealthStatus,
@@ -10,6 +11,34 @@ import {
 
 export type PortfolioHealthStatus = OwnerFacingHealthStatus;
 export type PortfolioTrendDirection = OwnerFacingTrendDirection;
+
+export interface PortfolioRouteDecision {
+  action: 'redirect' | 'render';
+  destination?: string;
+}
+
+export function resolvePortfolioRouteDecision(
+  sessionUser: { id: string } | null | undefined,
+  journeyStep: JourneyStep,
+  ownedBusinesses: Array<{ id: string; name: string }>
+): PortfolioRouteDecision {
+  if (!sessionUser) {
+    return { action: 'redirect', destination: '/login' };
+  }
+  if (journeyStep !== 'COMPLETE') {
+    return { action: 'redirect', destination: getJourneyRedirect(journeyStep) };
+  }
+  if (ownedBusinesses.length === 0) {
+    return { action: 'redirect', destination: '/onboarding' };
+  }
+  if (ownedBusinesses.length === 1) {
+    return {
+      action: 'redirect',
+      destination: `/dashboard?businessId=${encodeURIComponent(ownedBusinesses[0].id)}`,
+    };
+  }
+  return { action: 'render' };
+}
 
 export interface PortfolioCoverage {
   activeBusinessCount: number;

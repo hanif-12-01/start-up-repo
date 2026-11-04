@@ -4,28 +4,9 @@ import {
   MonthlyReportBusinessNotFoundError,
   MonthlyReportHistoryGatedError,
   MonthlyReportMonthError,
+  formatCsvRow,
+  sanitizeFilename,
 } from '@/server/services/monthly-report.service';
-
-export const sanitizeCell = (value: unknown): string => {
-  if (value === null || value === undefined) return '""';
-  const text = String(value);
-  const trimmed = text.replace(/^[\s\x00-\x1F]+/, '');
-  const guarded = /^[=+\-@\t\r\n]/.test(trimmed) ? `'${text}` : text;
-  return `"${guarded.replaceAll('"', '""')}"`;
-};
-
-export const formatCsvRow = (values: unknown[]): string =>
-  values.map(sanitizeCell).join(',');
-
-export const sanitizeFilename = (businessName: string, month: string): string => {
-  const safeName = businessName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9_\-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase() || 'usaha';
-  return `wattwise-laporan-${safeName}-${month}.csv`;
-};
 
 export async function GET(request: Request) {
   const session = await getOptionalSession();
