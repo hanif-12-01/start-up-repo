@@ -40,6 +40,14 @@ describe('computeNormalization (Unit)', () => {
     expect(res.caveats).toHaveLength(0);
   });
 
+  it('revalidates demo 125.5 kWh / 250 kg = 0.502 with source identity', () => {
+    const result = computeNormalization({ ...sampleProduction, outputQuantity: '250' }, [{ ...sampleMeasurements[0], energyKwh: '125.500' }]);
+    expect(result.status).toBe('VALID');
+    expect(result.intensity?.kwhPerUnit).toBe('0.502');
+    expect(result.intensity?.formatted).toBe('0,502');
+    expect(result.energy?.sourceId).toBe('source-1');
+  });
+
   it('marks status as NEEDS_REVIEW when energy measurement contains estimated basis', () => {
     const estimatedMeasurements = [
       {

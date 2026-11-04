@@ -168,7 +168,7 @@ describe('Operational Energy Insights (Unit)', () => {
     expect(res.caveats.some((c) => c.includes('perkiraan (estimasi)'))).toBe(true);
   });
 
-  it('flags caveat when measurement boundaries differ between periods', () => {
+  it('rejects comparison when measurement boundaries differ between periods', () => {
     const submeterB: NormalizationOutput = {
       ...periodB,
       energy: {
@@ -179,7 +179,47 @@ describe('Operational Energy Insights (Unit)', () => {
     };
 
     const res = compareNormalizedPeriods(periodA, submeterB);
-    expect(res.status).toBe('NEEDS_REVIEW');
+    expect(res.status).toBe('INSUFFICIENT_DATA');
+    expect(res.hasComparison).toBe(false);
     expect(res.caveats.some((c) => c.includes('Cakupan pengukuran berbeda'))).toBe(true);
+  });
+
+  it('rejects different source IDs even when meter names match', () => {
+    const result = compareNormalizedPeriods(
+      { ...periodA, energy: { ...periodA.energy!, sourceId: 'meter-a' } },
+      { ...periodB, energy: { ...periodB.energy!, sourceId: 'meter-b' } },
+    );
+    expect(result.hasComparison).toBe(false);
+  });
+
+  it('rejects different process IDs even when names match', () => {
+    expect(compareNormalizedPeriods(
+      { ...periodA, production: { ...periodA.production, processId: 'process-a' } },
+      { ...periodB, production: { ...periodB.production, processId: 'process-b' } },
+    ).hasComparison).toBe(false);
+  });
+
+  it('rejects overlapping or unequal-duration periods', () => {
+    for (const periodStart of ['2026-10-07T00:00:00.000Z', '2026-10-09T00:00:00.000Z']) {
+      expect(compareNormalizedPeriods(periodA, { ...periodB, production: { ...periodB.production, periodStart } }).hasComparison).toBe(false);
+    }
+  });
+
+  it('does not calculate change from rounded display intensities', () => {
+    const result = compareNormalizedPeriods(
+      { ...periodA, energy: { ...periodA.energy!, totalKwh: '0.08' }, intensity: { ...periodA.intensity!, kwhPerUnit: '0.000' } },
+      { ...periodB, energy: { ...periodB.energy!, totalKwh: '0.2' }, intensity: { ...periodB.intensity!, kwhPerUnit: '0.001' } },
+    );
+    expect(result.metrics?.intensityChangePercent).toBe(100);
+  });
+
+  it('rejects zero baseline energy instead of reporting stable consumption', () => {
+    expect(compareNormalizedPeriods({ ...periodA, energy: { ...periodA.energy!, totalKwh: '0' } }, periodB).hasComparison).toBe(false);
+  });
+
+  it('does not claim stable output when energy stays constant but production falls', () => {
+    const result = compareNormalizedPeriods(periodA, { ...periodB, energy: { ...periodB.energy!, totalKwh: '120' }, production: { ...periodB.production, outputQuantity: '100' } });
+    expect(result.metrics?.intensityChangePercent).toBe(100);
+    expect(result.headline).toBe('Pemakaian Listrik per Hasil Usaha Berubah');
   });
 });

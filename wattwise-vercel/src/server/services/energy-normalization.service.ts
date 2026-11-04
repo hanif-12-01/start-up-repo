@@ -11,6 +11,7 @@ export interface NormalizationOutput {
   production: {
     id: string;
     businessId?: string;
+    processId?: string;
     processName: string;
     outputUnit: string;
     outputQuantity: string;
@@ -19,6 +20,7 @@ export interface NormalizationOutput {
     durationDays: number;
   };
   energy?: {
+    sourceId?: string;
     totalKwh: string;
     sourceName: string;
     sourceType: string;
@@ -48,6 +50,7 @@ export function computeNormalization(
   production: {
     id: string;
     businessId?: string;
+    processId?: string;
     processName: string;
     outputUnit: string;
     outputQuantity: string;
@@ -79,6 +82,7 @@ export function computeNormalization(
     production: {
       id: production.id,
       businessId: production.businessId,
+      processId: production.processId,
       processName: production.processName,
       outputUnit: production.outputUnit,
       outputQuantity: production.outputQuantity,
@@ -91,7 +95,7 @@ export function computeNormalization(
   };
 
   const outputNum = Number(production.outputQuantity);
-  if (Number.isNaN(outputNum) || outputNum <= 0) {
+  if (!Number.isFinite(outputNum) || outputNum <= 0) {
     baseResult.guidance =
       outputNum === 0
         ? 'Hasil produksi 0 tidak dapat digunakan untuk membagi pemakaian listrik.'
@@ -198,6 +202,7 @@ export function computeNormalization(
   const totalKwhStr = (Number(totalMilliKwh) / 1000).toFixed(3).replace(/\.?0+$/, '');
 
   baseResult.energy = {
+    sourceId: targetSourceId,
     totalKwh: totalKwhStr || '0',
     sourceName: firstRec.sourceName,
     sourceType: firstRec.sourceType,
@@ -306,13 +311,14 @@ export async function getEnergyNormalization(
     const prodRes = await pool.query<{
       id: string;
       businessId: string;
+      processId: string;
       processName: string;
       outputUnit: string;
       outputQuantity: string;
       periodStart: Date;
       periodEnd: Date;
     }>(
-      `SELECT r.id, r.business_id AS "businessId", p.name AS "processName",
+      `SELECT r.id, r.business_id AS "businessId", p.id AS "processId", p.name AS "processName",
               p.output_unit AS "outputUnit", r.output_quantity::text AS "outputQuantity",
               r.period_start AS "periodStart", r.period_end AS "periodEnd"
        FROM production_record r

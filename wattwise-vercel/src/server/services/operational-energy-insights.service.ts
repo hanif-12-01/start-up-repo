@@ -77,6 +77,8 @@ export function compareNormalizedPeriods(
 
   // Eligibility check 2: Process and unit compatibility
   if (
+    (prev.production.processId && curr.production.processId && prev.production.processId !== curr.production.processId) ||
+    (prev.production.businessId && curr.production.businessId && prev.production.businessId !== curr.production.businessId) ||
     prev.production.processName !== curr.production.processName ||
     prev.production.outputUnit !== curr.production.outputUnit
   ) {
@@ -97,11 +99,25 @@ export function compareNormalizedPeriods(
   const currEnergy = Number(curr.energy.totalKwh);
   const prevOutput = Number(prev.production.outputQuantity);
   const currOutput = Number(curr.production.outputQuantity);
-  const prevIntensity = Number(prev.intensity.kwhPerUnit);
-  const currIntensity = Number(curr.intensity.kwhPerUnit);
+  const prevIntensity = prevEnergy / prevOutput;
+  const currIntensity = currEnergy / currOutput;
 
-  if (prevOutput <= 0 || currOutput <= 0 || Number.isNaN(prevIntensity) || Number.isNaN(currIntensity)) {
+  if (![prevEnergy, currEnergy, prevOutput, currOutput, prevIntensity, currIntensity].every(Number.isFinite) || prevOutput <= 0 || currOutput <= 0 || prevEnergy <= 0 || currEnergy < 0) {
     baseResult.explanation = 'Jumlah hasil produksi harus lebih besar dari 0 pada kedua periode.';
+    return baseResult;
+  }
+
+  const previousStart = Date.parse(prev.production.periodStart);
+  const previousEnd = Date.parse(prev.production.periodEnd);
+  const currentStart = Date.parse(curr.production.periodStart);
+  const currentEnd = Date.parse(curr.production.periodEnd);
+  if (![previousStart, previousEnd, currentStart, currentEnd].every(Number.isFinite) || previousEnd <= previousStart || currentEnd <= currentStart || previousEnd > currentStart || previousEnd - previousStart !== currentEnd - currentStart) {
+    baseResult.explanation = 'Pilih dua periode tanpa tumpang tindih dengan durasi yang sama.';
+    return baseResult;
+  }
+  if (prev.energy.coveragePercent !== 100 || curr.energy.coveragePercent !== 100 || prev.energy.measurementBoundary === 'UNKNOWN' || curr.energy.measurementBoundary === 'UNKNOWN' || prev.energy.measurementBoundary !== curr.energy.measurementBoundary || (prev.energy.sourceId && curr.energy.sourceId && prev.energy.sourceId !== curr.energy.sourceId)) {
+    baseResult.explanation = 'Perbandingan memerlukan sumber listrik dan cakupan meter yang sama serta catatan lengkap.';
+    baseResult.caveats.push('Cakupan pengukuran berbeda atau belum dapat dibandingkan.');
     return baseResult;
   }
 
@@ -120,7 +136,7 @@ export function compareNormalizedPeriods(
   const boundaryNote =
     curr.energy.measurementBoundary === 'WHOLE_SITE'
       ? 'Perbandingan berdasarkan meter seluruh tempat usaha, bukan pengukuran efisiensi mesin tertentu.'
-      : 'Perbandingan berdasarkan pembacaan meter bagian (submeter) untuk proses ini.';
+      : 'Perbandingan berdasarkan meter sebagian lokasi; belum membuktikan efisiensi mesin atau proses tertentu.';
 
   const caveats: string[] = [];
   if (prev.energy.hasEstimated || curr.energy.hasEstimated) {
@@ -164,6 +180,10 @@ export function compareNormalizedPeriods(
     headline = 'Penurunan Pemakaian Listrik Sejalan dengan Aktivitas';
     explanation = `Pemakaian listrik turun ${Math.abs(energyChangePercent)}% seiring berkurangnya hasil produksi sebesar ${Math.abs(outputChangePercent)}%.`;
     suggestedAction = 'Perhatikan beban standby (beban diam) saat volume produksi sedang menurun.';
+  } else if (intensityTrend !== 'STABLE') {
+    headline = 'Pemakaian Listrik per Hasil Usaha Berubah';
+    explanation = `Listrik per ${unit} ${intensityChangePercent > 0 ? 'naik' : 'turun'} ${Math.abs(intensityChangePercent)}%. Nilai ini mempertimbangkan perubahan hasil usaha, bukan total listrik saja.`;
+    suggestedAction = 'Periksa perubahan hasil usaha dan kondisi operasional sebelum menyimpulkan penyebabnya.';
   } else {
     headline = 'Konsumsi Listrik dan Hasil Usaha Stabil';
     explanation = `Pemakaian listrik dan hasil produksi berada pada tingkat yang stabil dengan perubahan di bawah 1%.`;
