@@ -41,6 +41,12 @@ describe('explicit local-only candidate boundary', () => {
     expect(EMBEDDED_NBEATS_MODEL.modelVersion).toBe('nbeats-ai02-1.0.0');
     expect(LOCAL_NBEATS_CANDIDATE.publicUrl).not.toMatch(/^\/models/);
   });
+  it('keeps runtime explanations on both analysis tabs and original-only parity warning', () => {
+    const view = readFileSync('src/components/analysis/AnalysisView.tsx', 'utf8');
+    expect(view.match(/role="status"[^>]*>\{runtimeStatus.description\}/g)).toHaveLength(2);
+    expect(view).toContain("modelSelection === 'original' && 'Model AI yang ditanam belum sepenuhnya cocok");
+    expect(view).toContain('Akurasi untuk UMKM Indonesia belum terverifikasi.');
+  });
   it.each(['localhost', '127.0.0.1:3122', '[::1]:3122'])('allows explicit test runtime at %s', host => {
     expect(isLocalNBeatsCandidateAllowed(host, config)).toBe(true);
   });

@@ -670,7 +670,7 @@ export function AnalysisView({
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
               {dataReadiness.description} {dataReadiness.milestoneMessage}
             </p>
-            <p className="mt-2 text-xs text-[var(--muted)]">{runtimeStatus.description}</p>
+            <p role="status" className="mt-2 text-xs text-[var(--muted)]">{runtimeStatus.description}</p>
           </div>
 
           {/* Operational Energy Context Section */}
@@ -940,6 +940,8 @@ export function AnalysisView({
             </p>
           </div>
 
+          <p role="status" className="mt-2 text-xs text-[var(--muted)]">{runtimeStatus.description}</p>
+
           {isInferring ? (
             <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center">
               <div className="inline-flex items-center gap-3 text-sm font-semibold text-[var(--primary)]">
@@ -1034,7 +1036,7 @@ export function AnalysisView({
           </p>
           {forecastPlan.eligible && (
             <p className="mt-2 text-xs text-[var(--muted)]">
-              Akurasi untuk UMKM Indonesia belum terverifikasi. Model AI yang ditanam belum sepenuhnya cocok dengan model riset pada beberapa pola pemakaian rendah. Gunakan hasil sebagai pembanding, bukan dasar keputusan tunggal.
+              Akurasi untuk UMKM Indonesia belum terverifikasi. {modelSelection === 'original' && 'Model AI yang ditanam belum sepenuhnya cocok dengan model riset pada beberapa pola pemakaian rendah. '}Gunakan hasil sebagai pembanding, bukan dasar keputusan tunggal.
             </p>
           )}
 
