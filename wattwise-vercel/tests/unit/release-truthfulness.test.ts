@@ -107,9 +107,9 @@ describe('D: H06_12 AI-ready wording', () => {
     expect(h6.isAiReady).toBe(true);
   });
 
-  it('H06_12 description references 6 bulan berurutan', () => {
+  it('H06_12 separates readiness from active inference and accuracy', () => {
     const h6 = getDataReadinessStatus(6);
-    expect(h6.description).toMatch(/6 bulan/i);
+    expect(h6.description).toContain('belum berarti AI sedang aktif atau hasilnya akurat');
   });
 
   it('H12 (12 months) also maps to H06_12 AI-ready', () => {
@@ -247,7 +247,7 @@ describe('I: Runtime Prediction Status Truthfulness', () => {
     expect(status.variant).toBe('success');
   });
 
-  it('CASE 4 — H06 forced inference failure: displays "Estimasi Historis (fallback)" and is NOT AI active', () => {
+  it('CASE 4 — H06 forced inference failure: displays "Estimasi historis pengganti" and is NOT AI active', () => {
     const status = getRuntimePredictionStatus({
       eligible: true,
       continuousHistoryMonths: 6,
@@ -256,7 +256,7 @@ describe('I: Runtime Prediction Status Truthfulness', () => {
       fallbackUsed: true,
       hasAiPrediction: false,
     });
-    expect(status.label).toBe('Estimasi Historis (fallback)');
+    expect(status.label).toBe('Estimasi historis pengganti');
     expect(status.isAiActive).toBe(false);
     expect(status.label).not.toContain('Prediksi AI Aktif');
     expect(status.variant).toBe('warning');
@@ -276,7 +276,7 @@ describe('I: Runtime Prediction Status Truthfulness', () => {
     expect(status.variant).toBe('success');
   });
 
-  it('CASE 6 — H13 fallback: displays "Estimasi Historis (fallback)" and is NOT AI active', () => {
+  it('CASE 6 — H13 fallback: displays "Estimasi historis pengganti" and is NOT AI active', () => {
     const status = getRuntimePredictionStatus({
       eligible: true,
       continuousHistoryMonths: 18,
@@ -285,7 +285,7 @@ describe('I: Runtime Prediction Status Truthfulness', () => {
       fallbackUsed: true,
       hasAiPrediction: false,
     });
-    expect(status.label).toBe('Estimasi Historis (fallback)');
+    expect(status.label).toBe('Estimasi historis pengganti');
     expect(status.isAiActive).toBe(false);
     expect(status.label).not.toContain('Prediksi AI Aktif');
     expect(status.variant).toBe('warning');
