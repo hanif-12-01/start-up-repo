@@ -19,7 +19,7 @@ EXPECTED_SHA256 = "541905740b790d39434774679ce3120338ecdabd3f13a8d95385f1d627219
 MODEL_PATH = Path("D:/WattWiseMLData/models/ai-02/nbeats/ai02-1.0.0/model.ckpt")
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "nbeats_fixtures.json"
 OUTPUT_DIR = Path(".onnx-artifacts")
-OUTPUT_FILE = OUTPUT_DIR / "nbeats-ai02-1.0.0.onnx"
+OUTPUT_FILE = OUTPUT_DIR / "nbeats-ai02-1.0.0-softplus-candidate.onnx"
 
 
 def sha256_file(path: Path) -> str:
@@ -32,9 +32,9 @@ class NBeatsInferenceWrapper(torch.nn.Module):
 
     Preserves exact mathematical transformations from PyTorch Forecasting:
     - Input: Sequence of last 6 continuous monthly usage values (kWh)
-    - Sequence-wise standard normalization (mean & sample std with ddof=1)
+    - Inverse softplus, then sequence mean & sample std with ddof=1
     - Forward pass through the exact loaded net_blocks
-    - Inverse affine normalization using sequence center & scale
+    - Inverse affine normalization, then softplus
     - Non-negative prediction clamp: max(0.0, y)
     """
 
@@ -45,6 +45,14 @@ class NBeatsInferenceWrapper(torch.nn.Module):
     def forward(self, y: torch.Tensor) -> torch.Tensor:
         # y: [batch_size, 6] in kWh
         eps = 1.1920928955078125e-07
+
+        # log(1-exp(-z)) = log(tanh(z/2)) + softplus(-z), stable at zero.
+        # Native ONNX operators; matches the checkpoint's epsilon and >20 branch.
+        z = y + eps
+        y = torch.where(
+            y > 20.0, y,
+            y + torch.log(torch.tanh(z / 2)) + torch.nn.functional.softplus(-z),
+        )
 
         # Standard scaling: center = mean, scale = sample standard deviation (ddof=1)
         center = y.mean(dim=-1, keepdim=True)
@@ -62,7 +70,7 @@ class NBeatsInferenceWrapper(torch.nn.Module):
             forecast = forecast + forecast_block
 
         # Denormalize output
-        y_pred = forecast * scale + center
+        y_pred = torch.nn.functional.softplus(forecast * scale + center)
 
         # Non-negative output constraint
         prediction = torch.clamp(y_pred, min=0.0)
@@ -70,6 +78,8 @@ class NBeatsInferenceWrapper(torch.nn.Module):
 
 
 def export_nbeats() -> tuple[Path, dict[str, Any]]:
+    if OUTPUT_FILE.exists():
+        raise FileExistsError(f"Refusing to overwrite candidate: {OUTPUT_FILE}")
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
 
