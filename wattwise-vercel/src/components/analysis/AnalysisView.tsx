@@ -667,6 +667,7 @@ export function AnalysisView({
             <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
               {dataReadiness.description} {dataReadiness.milestoneMessage}
             </p>
+            <p className="mt-2 text-xs text-[var(--muted)]">{runtimeStatus.description}</p>
           </div>
 
           {/* Operational Energy Context Section */}
@@ -968,8 +969,9 @@ export function AnalysisView({
                   <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
                 </Surface>
                 <Surface variant="muted">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Kesiapan Data</p>
-                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.confidence ?? 'Sedang'}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Kelengkapan Histori</p>
+                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{forecastPlan.continuousHistoryMonths} bulan berurutan</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">Bukan tingkat kepastian prediksi.</p>
                 </Surface>
               </div>
 
@@ -1027,6 +1029,11 @@ export function AnalysisView({
             Metode: {getOwnerFacingPredictionMethod(prediction.method)} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
             {' '}Prediksi ini bukan data resmi PLN dan perlu dibaca sebagai indikasi.
           </p>
+          {forecastPlan.eligible && (
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Akurasi untuk UMKM Indonesia belum terverifikasi. Model AI yang ditanam belum sepenuhnya cocok dengan model riset pada beberapa pola pemakaian rendah. Gunakan hasil sebagai pembanding, bukan dasar keputusan tunggal.
+            </p>
+          )}
 
           {displayedEngine === 'nbeats' && !fallbackUsed && inferenceLatencyMs !== null && (
             <details className="mt-4 text-xs text-[var(--muted)]">

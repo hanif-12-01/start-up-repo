@@ -73,7 +73,7 @@ export function getRuntimePredictionStatus(params: {
   // Case 1: Non-eligible history (H00, H01_02, H03_05)
   if (!eligible) {
     return {
-      label: 'Estimasi Historis',
+      label: params.continuousHistoryMonths === 0 ? 'Data belum cukup' : 'Estimasi Historis',
       isAiActive: false,
       variant: 'neutral',
     };
@@ -96,16 +96,16 @@ export function getRuntimePredictionStatus(params: {
       label: 'Prediksi AI Aktif',
       isAiActive: true,
       variant: 'success',
-      description: 'Prediksi AI aktif menggunakan pola konsumsi 6 bulan berurutan.',
+      description: 'AI N-BEATS menggunakan 6 bulan berurutan. Hasil berupa perkiraan, bukan jaminan akurasi.',
     };
   }
 
   // Case 4: N-BEATS Failure / Fallback
   return {
-    label: 'Estimasi Historis (fallback)',
+    label: 'Estimasi historis pengganti',
     isAiActive: false,
     variant: 'warning',
-    description: 'Prediksi AI tidak tersedia sementara. Menampilkan estimasi historis aman.',
+    description: 'AI tidak tersedia. Perkiraan memakai histori yang tersedia, bukan hasil AI.',
   };
 }
 
@@ -141,7 +141,7 @@ export function getDataReadinessStatus(continuousHistoryMonths: number): DataRea
     return {
       phaseKey: 'H06_12',
       label: 'Siap untuk Prediksi AI',
-      description: 'Prediksi AI aktif menggunakan pola konsumsi 6 bulan berurutan.',
+      description: 'Histori mencukupi untuk mencoba AI; belum berarti AI sedang aktif atau hasilnya akurat.',
       milestoneMessage: 'Histori konsumsi mencukupi untuk prediksi AI WattWise.',
       isAiReady: true,
     };

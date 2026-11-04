@@ -67,7 +67,7 @@ export async function runEmbeddedNBeatsInference(
 
   for (let i = 0; i < 6; i++) {
     const val = history6m[i];
-    if (val === null || val === undefined || !Number.isFinite(val) || val < 0) {
+    if (val === null || val === undefined || !Number.isFinite(Math.fround(val)) || val < 0) {
       throw new Error(`INVALID_INPUT_VALUE: value at index ${i} is not a valid non-negative number (${val})`);
     }
   }
@@ -84,7 +84,7 @@ export async function runEmbeddedNBeatsInference(
   const durationMs = performance.now() - start;
 
   const outputTensor = results[EMBEDDED_NBEATS_MODEL.outputName];
-  if (!outputTensor || !outputTensor.data || outputTensor.data.length === 0) {
+  if (!outputTensor || outputTensor.type !== 'float32' || outputTensor.dims.length !== 2 || outputTensor.dims[0] !== 1 || outputTensor.dims[1] !== 1 || outputTensor.data.length !== 1) {
     throw new Error('MISSING_OUTPUT_TENSOR: prediction_kwh not returned');
   }
 

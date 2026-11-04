@@ -301,6 +301,22 @@ describe('DATA READINESS BOUNDARIES & USER-FACING PRESENTATION (MVP-CORE-01)', (
 });
 
 describe('PRODUCT SAFE-WORDING & CLAIM INTEGRITY', () => {
+  it('separates history readiness, runtime success, failure and insufficient data', async () => {
+    const { getRuntimePredictionStatus, getDataReadinessStatus } = await import('@/lib/ai/prediction-display');
+    expect(getDataReadinessStatus(6).description).not.toContain('Prediksi AI aktif');
+    expect(getRuntimePredictionStatus({ eligible: false, continuousHistoryMonths: 0, isInferring: false }).label).toBe('Data belum cukup');
+    const failed = getRuntimePredictionStatus({ eligible: true, continuousHistoryMonths: 6, isInferring: false, fallbackUsed: true });
+    expect(failed.isAiActive).toBe(false);
+    expect(failed.label).toBe('Estimasi historis pengganti');
+    expect(failed.description).toContain('bukan hasil AI');
+    expect(getRuntimePredictionStatus({ eligible: true, continuousHistoryMonths: 6, isInferring: false, displayedEngine: 'nbeats', hasAiPrediction: true }).isAiActive).toBe(true);
+  });
+
+  it.each([NaN, Infinity, -1, Number.MAX_VALUE])('rejects invalid float32 input %s before model loading', async value => {
+    const { runEmbeddedNBeatsInference } = await import('@/lib/ai/embedded-nbeats');
+    await expect(runEmbeddedNBeatsInference([1, 2, 3, 4, 5, value])).rejects.toThrow('INVALID_INPUT_VALUE');
+  });
+
   it('confirms recommendation generators produce safe decision support wording', async () => {
     const { generateAnalysisRecommendations } = await import('@/server/services/product-analysis');
 
