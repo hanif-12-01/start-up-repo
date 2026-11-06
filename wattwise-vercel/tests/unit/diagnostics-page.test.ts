@@ -46,11 +46,10 @@ describe('Diagnostics Page & Capability Routing', () => {
     expect(pageContent).toContain('Kembali ke Dashboard');
   });
 
-  it('verifies diagnostics page conditionally hides StartDiagnosticButton for unsupported segments without session', () => {
-    expect(pageContent).toContain(
-      '!capability.available && !dashboard.latestDiagnosticSummary'
-    );
-    expect(pageContent).toContain('isUnsupportedWithoutSession ? (');
+  it('gates the overview before fetching and hides actions while unavailable', () => {
+    expect(pageContent).toContain('const dashboard = capability.available');
+    expect(pageContent).toContain('!dashboard || !nextAction ? (');
+    expect(pageContent).toContain('Cek Kenaikan belum diaktifkan');
   });
 
   it('preserves business ID query in unsupported analysis fallback link', () => {

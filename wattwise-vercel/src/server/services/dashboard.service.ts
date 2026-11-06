@@ -17,6 +17,7 @@ import {
   type DashboardNextActionInput,
 } from '@/server/services/dashboard-next-action';
 import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
+import { DiagnosticsUnavailableError } from '@/server/services/diagnostic.service';
 import { findInspectionDefinition } from '@/server/services/inspection-catalog';
 import { INSPECTION_ANSWER_LABELS } from '@/server/services/inspection-presentation';
 import {
@@ -189,6 +190,23 @@ export async function getDashboardReadModel(
   requestedBusinessId?: string
 ): Promise<DashboardReadModel> {
   if (!env.DASHBOARD_ENABLED) throw new DashboardUnavailableError();
+  return buildDashboardReadModel(userId, requestedBusinessId);
+}
+
+export async function getDiagnosticOverviewReadModel(
+  userId: string,
+  requestedBusinessId?: string
+): Promise<DashboardReadModel> {
+  if (!env.DIAGNOSTICS_ENABLED || !env.SEGMENT_TEMPLATES_ENABLED) {
+    throw new DiagnosticsUnavailableError();
+  }
+  return buildDashboardReadModel(userId, requestedBusinessId);
+}
+
+async function buildDashboardReadModel(
+  userId: string,
+  requestedBusinessId?: string
+): Promise<DashboardReadModel> {
   const snapshot = await readDashboardSnapshot(userId, requestedBusinessId);
   if (!snapshot.business || (requestedBusinessId && snapshot.business.id !== requestedBusinessId)) {
     throw new DashboardBusinessNotFoundError();

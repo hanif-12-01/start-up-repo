@@ -19,9 +19,8 @@ import {
   secondaryButton,
 } from '@/components/product/WorkspaceUI';
 import { readRequestedBusiness, requireWorkspacePage } from '@/server/services/workspace-page';
-import { getDashboardReadModel } from '@/server/services/dashboard.service';
+import { getDiagnosticOverviewReadModel } from '@/server/services/dashboard.service';
 import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
-import { getDecisionSupport } from '@/server/services/workspace.service';
 import { StartDiagnosticButton } from './StartDiagnosticButton';
 
 export const dynamic = 'force-dynamic';
@@ -32,18 +31,14 @@ export default async function DiagnosticsPage({
   searchParams: Promise<{ businessId?: string | string[] }>;
 }) {
   const requestedBusinessId = await readRequestedBusiness(searchParams);
-  const { userId } = await requireWorkspacePage(requestedBusinessId);
-
-  const [workspaceData, dashboard] = await Promise.all([
-    getDecisionSupport(userId, requestedBusinessId),
-    getDashboardReadModel(userId, requestedBusinessId),
-  ]);
+  const { userId, ...workspaceData } = await requireWorkspacePage(requestedBusinessId);
 
   const businessQuery = `?businessId=${encodeURIComponent(workspaceData.business.id)}`;
-  const { nextAction } = dashboard;
   const capability = getDiagnosticCapability(workspaceData.business.segment);
-  const isUnsupportedWithoutSession =
-    !capability.available && !dashboard.latestDiagnosticSummary;
+  const dashboard = capability.available
+    ? await getDiagnosticOverviewReadModel(userId, workspaceData.business.id)
+    : null;
+  const nextAction = dashboard?.nextAction;
 
   const steps = [
     {
@@ -93,7 +88,7 @@ export default async function DiagnosticsPage({
         }
       />
 
-      {isUnsupportedWithoutSession ? (
+      {!dashboard || !nextAction ? (
         <SoftCard className="relative overflow-hidden border-[var(--border-strong)] bg-[var(--surface-elevated)] p-6 sm:p-8">
           <div className="flex items-center gap-2">
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
@@ -104,7 +99,9 @@ export default async function DiagnosticsPage({
             </span>
           </div>
           <h2 className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">
-            Cek Kenaikan mendalam belum tersedia untuk segmen ini
+            {capability.reason === 'DISABLED'
+              ? 'Cek Kenaikan belum diaktifkan'
+              : 'Cek Kenaikan mendalam belum tersedia untuk segmen ini'}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
             Anda tetap dapat menggunakan Analisis, Proyeksi, dan Rekomendasi WattWise berdasarkan data usaha yang sudah dicatat.
