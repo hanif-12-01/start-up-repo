@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
@@ -78,6 +78,12 @@ function getNavGroups(businessCount: number): Array<{ label: string; items: Item
 const shellBypass = ['/plan', '/onboarding', '/setup'];
 
 function NavLink({ item, pathname, close }: { item: Item; pathname: string; close: () => void }) {
+  const searchParams = useSearchParams();
+  const businessIds = searchParams.getAll('businessId');
+  const businessId = businessIds.length === 1 ? businessIds[0] : '';
+  const href = item.href === '/dashboard' && businessId.trim()
+    ? `/dashboard?businessId=${encodeURIComponent(businessId)}`
+    : item.href;
   const active =
     pathname === item.href ||
     (item.href !== '/dashboard' && item.href !== '/portfolio' && pathname.startsWith(`${item.href}`));
@@ -85,7 +91,7 @@ function NavLink({ item, pathname, close }: { item: Item; pathname: string; clos
 
   return (
     <Link
-      href={item.href}
+      href={href}
       onClick={close}
       data-tour-id={item.tourId}
       aria-current={active ? 'page' : undefined}
