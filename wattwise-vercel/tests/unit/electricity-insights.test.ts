@@ -190,7 +190,7 @@ describe('Electricity Insight Foundation — Core Contract Tests', () => {
 
     expect(html).toContain('Pemakaian mulai tercatat');
     expect(html).toContain('1 periode dengan data kWh');
-    expect(html).toContain('Perlu 1 bulan lagi');
+    expect(html).toContain('Perlu 1 periode lagi');
     expect(html).toContain('395 kWh');
   });
 
@@ -225,7 +225,7 @@ describe('Electricity Insight Foundation — Core Contract Tests', () => {
     // Both points must be plotted
     expect(html).toContain('0 kWh');
     expect(html).toContain('100 kWh');
-    expect(html).toContain('2 bulan data tercatat');
+    expect(html).toContain('2 periode tercatat');
   });
 
   // 11, 12, 13. Null between two valid values splits line into separate segments, missing period remains on x-axis

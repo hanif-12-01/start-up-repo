@@ -28,11 +28,16 @@ import {
   InteractiveGuideOverlay,
   GuideReplayButton,
 } from '@/components/onboarding';
+import { withBusinessId } from '@/lib/business-query';
 
 type Item = { href: string; label: string; icon: LucideIcon; tourId?: string };
 
-function getNavGroups(businessCount: number): Array<{ label: string; items: Item[] }> {
+function getNavGroups(businessCount: number, diagnosticsEnabled: boolean): Array<{ label: string; items: Item[] }> {
   const isMulti = businessCount >= 2;
+  const actionItems: Item[] = [
+    { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search, tourId: 'sidebar-diagnostics' },
+    { href: '/reports/monthly', label: 'Laporan', icon: FileText, tourId: 'sidebar-reports' },
+  ].filter((item) => diagnosticsEnabled || item.href !== '/diagnostics');
   return [
     {
       label: 'UTAMA',
@@ -60,10 +65,7 @@ function getNavGroups(businessCount: number): Array<{ label: string; items: Item
     },
     {
       label: 'TINDAKAN',
-      items: [
-        { href: '/diagnostics', label: 'Cek Kenaikan', icon: Search, tourId: 'sidebar-diagnostics' },
-        { href: '/reports/monthly', label: 'Laporan', icon: FileText, tourId: 'sidebar-reports' },
-      ],
+      items: actionItems,
     },
     {
       label: 'AKUN',
@@ -81,9 +83,7 @@ function NavLink({ item, pathname, close }: { item: Item; pathname: string; clos
   const searchParams = useSearchParams();
   const businessIds = searchParams.getAll('businessId');
   const businessId = businessIds.length === 1 ? businessIds[0] : '';
-  const href = item.href === '/dashboard' && businessId.trim()
-    ? `/dashboard?businessId=${encodeURIComponent(businessId)}`
-    : item.href;
+  const href = withBusinessId(item.href, businessId);
   const active =
     pathname === item.href ||
     (item.href !== '/dashboard' && item.href !== '/portfolio' && pathname.startsWith(`${item.href}`));
@@ -97,7 +97,7 @@ function NavLink({ item, pathname, close }: { item: Item; pathname: string; clos
       aria-current={active ? 'page' : undefined}
       className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
         active
-          ? 'bg-[var(--primary-soft)] text-[var(--primary)] font-extrabold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-[var(--primary)]'
+          ? 'bg-[var(--primary-soft)] text-[var(--foreground)] font-extrabold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-[var(--primary)]'
           : 'text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]'
       }`}
     >
@@ -113,18 +113,24 @@ export function ProductShell({
   userEmail,
   plan = 'FREE',
   businessCount = 1,
+  diagnosticsEnabled = false,
 }: {
   children: React.ReactNode;
   userName?: string;
   userEmail?: string;
   plan?: string;
   businessCount?: number;
+  /** Server-supplied, non-secret capability flag; keeps disabled features out of nav. */
+  diagnosticsEnabled?: boolean;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const businessIds = searchParams.getAll('businessId');
+  const activeBusinessId = businessIds.length === 1 ? businessIds[0] : '';
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
-  const groups = getNavGroups(businessCount);
+  const groups = getNavGroups(businessCount, diagnosticsEnabled);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -132,26 +138,34 @@ export function ProductShell({
     document.body.style.overflow = 'hidden';
     const trigger = menuButtonRef.current;
     const drawer = drawerRef.current;
-    const focusable = drawer?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    focusable?.[0]?.focus();
+
+    // The open drawer and the tour coachmark share one focus boundary, so Tab
+    // can reach the coachmark controls while the drawer is modal.
+    const getFocusable = (): HTMLElement[] => {
+      const selector =
+        'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      const drawerNodes = drawer ? Array.from(drawer.querySelectorAll<HTMLElement>(selector)) : [];
+      const coachmark = document.querySelector<HTMLElement>('[data-tour-coachmark]');
+      const coachmarkNodes = coachmark
+        ? Array.from(coachmark.querySelectorAll<HTMLElement>(selector))
+        : [];
+      return [...drawerNodes, ...coachmarkNodes];
+    };
+
+    getFocusable()[0]?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMenuOpen(false);
         return;
       }
-      if (event.key !== 'Tab' || !focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
+      if (event.key !== 'Tab') return;
+      const nodes = getFocusable();
+      if (!nodes.length) return;
+      const active = document.activeElement;
+      const index = nodes.findIndex((node) => node === active);
+      event.preventDefault();
+      nodes[(index + (event.shiftKey ? -1 : 1) + nodes.length) % nodes.length].focus();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -168,8 +182,8 @@ export function ProductShell({
   const close = () => setMenuOpen(false);
 
   const sidebar = (
-    <aside className="flex h-full w-[256px] flex-col border-r border-[var(--border)] bg-[var(--surface-muted)] px-3.5 py-4 text-[var(--foreground)]">
-      <Link href="/dashboard" onClick={close} className="flex items-center gap-2.5 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] rounded-xl">
+    <aside className="flex h-full w-[256px] max-w-[85vw] flex-col border-r border-[var(--border)] bg-[var(--surface-muted)] px-3.5 py-4 text-[var(--foreground)]">
+      <Link href={withBusinessId('/dashboard', activeBusinessId)} onClick={close} className="flex items-center gap-2.5 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] rounded-xl">
         <WattWiseLogo size={36} />
         <div>
           <strong className="block text-base tracking-tight font-black">WattWise AI</strong>
@@ -180,7 +194,7 @@ export function ProductShell({
       <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--primary)]">Ruang kerja</p>
-          <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[9px] font-black text-[var(--primary)]">
+          <span className="rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[9px] font-black text-[var(--foreground)]">
             {plan}
           </span>
         </div>
@@ -231,7 +245,7 @@ export function ProductShell({
         </div>
 
         <header className="product-shell-mobile sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_90%,transparent)] px-4 py-2.5 backdrop-blur lg:hidden">
-          <Link href="/dashboard" className="flex items-center gap-2 font-extrabold text-sm">
+          <Link href={withBusinessId('/dashboard', activeBusinessId)} className="flex items-center gap-2 font-extrabold text-sm">
             <WattWiseLogo size={24} />
             WattWise AI
           </Link>
@@ -276,7 +290,7 @@ export function ProductShell({
         )}
 
         <div className="min-w-0 flex-1 lg:pl-[256px]">{children}</div>
-        <InteractiveGuideOverlay />
+        <InteractiveGuideOverlay diagnosticsEnabled={diagnosticsEnabled} />
       </div>
     </BeginnerGuideProvider>
   );

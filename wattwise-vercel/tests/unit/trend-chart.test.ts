@@ -5,8 +5,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   TrendChart,
+  calculatePeriodChanges,
   calculateTooltipPlacement,
   isSameTooltipPlacement,
+  summarizeValidValues,
   type TrendPoint,
 } from '@/components/analysis/TrendChart';
 
@@ -43,6 +45,13 @@ describe('TrendChart UX Refinement Unit Tests', () => {
       React.createElement(TrendChart, { points: [], metric: 'rupiah' })
     );
     expect(html).toContain('Belum ada data tagihan untuk ditampilkan');
+  });
+
+  it('renders a shrinkable chart frame so it cannot widen a mobile grid track', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(TrendChart, { points: samplePoints3, metric: 'rupiah' })
+    );
+    expect(html).toContain('w-full min-w-0 max-w-full');
   });
 
   it('renders graceful empty state when all points have null values', () => {
@@ -84,8 +93,8 @@ describe('TrendChart UX Refinement Unit Tests', () => {
     // Check decision summary
     expect(html).toContain('Tagihan terakhir');
     expect(html).toContain('950.000');
-    expect(html).toContain('Perlu 1 bulan lagi');
-    expect(html).toContain('1 bulan data tercatat');
+    expect(html).toContain('Perlu 1 periode lagi');
+    expect(html).toContain('1 periode tercatat');
 
     // Check guidance note
     expect(html).toContain('Tambahkan data bulan berikutnya untuk mulai melihat perubahan');
@@ -117,7 +126,7 @@ describe('TrendChart UX Refinement Unit Tests', () => {
     expect(html).toContain('920.000');
     expect(html).toContain('+15%');
     expect(html).toContain('Naik');
-    expect(html).toContain('2 bulan data tercatat');
+    expect(html).toContain('2 periode tercatat');
     expect(html).toContain('Data masih terbatas (2 bulan)');
   });
 
@@ -208,7 +217,7 @@ describe('TrendChart UX Refinement Unit Tests', () => {
     );
 
     expect(html).toContain('Estimasi berikutnya');
-    expect(html).toContain('stroke-dasharray="6 4"');
+    expect(html).toContain('stroke-dasharray="5 3"');
   });
 
   it('renders accessible table disclosure matching chart points', () => {
@@ -532,5 +541,61 @@ describe('TrendChart UX Refinement Unit Tests', () => {
     );
     expect(html).not.toContain('Periode tidak valid');
     expect(html).toContain('Estimasi berikutnya');
+  });
+});
+
+describe('TrendChart average and per-period change helpers', () => {
+  const point = (period: string, usageKwh: number | null): TrendPoint => ({
+    period,
+    label: period,
+    usageKwh,
+    billAmount: usageKwh,
+    tariff: 1500,
+    type: 'historical',
+  });
+
+  it('averages only finite values and reports coverage', () => {
+    const summary = summarizeValidValues([100, null, 300, Number.NaN]);
+    expect(summary.average).toBe(200);
+    expect(summary.count).toBe(2);
+    expect(summary.total).toBe(4);
+
+    expect(summarizeValidValues([null, null])).toEqual({ average: null, count: 0, total: 2 });
+  });
+
+  it('compares each period with the nearest earlier period that has a value', () => {
+    const changes = calculatePeriodChanges(
+      [
+        point('2026-01', 100),
+        point('2026-02', null),
+        point('2026-03', 150),
+        point('2026-04', 0),
+        point('2026-05', 90),
+      ],
+      'kwh'
+    );
+
+    expect(changes[0]).toEqual({ state: 'NO_PREVIOUS', percent: null, previousLabel: null });
+    expect(changes[1]).toEqual({ state: 'MISSING', percent: null, previousLabel: '2026-01' });
+    expect(changes[2]).toEqual({ state: 'CHANGE', percent: 50, previousLabel: '2026-01' });
+    expect(changes[3]).toEqual({ state: 'CHANGE', percent: -100, previousLabel: '2026-03' });
+    expect(changes[4]).toEqual({ state: 'ZERO_PREVIOUS', percent: null, previousLabel: '2026-04' });
+  });
+
+  it('never divides by zero or a blank comparator', () => {
+    const changes = calculatePeriodChanges([point('2026-01', 0), point('2026-02', 10)], 'kwh');
+    expect(changes[1].state).toBe('ZERO_PREVIOUS');
+    expect(changes[1].percent).toBeNull();
+  });
+
+  it('renders the 12-period cap and average coverage text', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(TrendChart, {
+        points: [point('2026-01', 100), point('2026-02', 300)],
+        metric: 'kwh',
+      })
+    );
+    expect(html).toContain('Data dibatasi hingga 12 periode terbaru.');
+    expect(html).toContain('Rata-rata 200 kWh dari 2 periode berisi data');
   });
 });

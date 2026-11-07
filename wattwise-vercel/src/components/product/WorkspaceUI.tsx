@@ -157,7 +157,7 @@ export function StatusBadge({
     danger: 'bg-[var(--danger-surface)] text-[var(--danger)] border-[var(--danger-border)]',
     info: 'bg-[var(--info-surface)] text-[var(--info)] border-[var(--info-border)]',
     neutral: 'bg-[var(--surface-muted)] text-[var(--muted)] border-[var(--border)]',
-    primary: 'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/20',
+    primary: 'bg-[var(--primary-soft)] text-[var(--foreground)] border-[var(--primary)]/20',
   };
   const sizeStyles = size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs';
   return (

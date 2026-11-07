@@ -38,7 +38,7 @@ export const CORE_TOUR_STEPS: TourStep[] = [
       'WattWise membantu Anda memantau perubahan penggunaan dan biaya listrik tanpa harus membaca data satu per satu.',
     detailedContext:
       'Mulai dari tagihan bulanan yang sudah Anda miliki, sistem akan merangkum kondisi listrik dan menandai hal yang layak diperiksa.',
-    benefit: 'Membantu bisnis menghemat biaya listrik operasional secara terarah.',
+    benefit: 'Membantu meninjau peluang efisiensi berdasarkan data yang Anda masukkan.',
     actionLabel: 'Mulai Pelajari',
     ctaLabel: 'Buka Ringkasan',
     ctaHref: '/dashboard',
@@ -98,8 +98,8 @@ export const CORE_TOUR_STEPS: TourStep[] = [
       'Di sini Anda bisa melihat apakah biaya atau pemakaian listrik berubah dari bulan ke bulan.',
     detailedContext:
       'Setelah data mencukupi, WattWise dapat membantu memperkirakan periode berikutnya agar Anda dapat bersiap sebelum tagihan jatuh tempo.',
-    benefit: 'Menghindari kejutan lonjakan tagihan pada akhir bulan.',
-    actionLabel: 'Lanjut ke Cek Kenaikan',
+    benefit: 'Memberi estimasi pembanding untuk merencanakan biaya, bukan jaminan tagihan.',
+    actionLabel: 'Lanjut',
     ctaLabel: 'Buka Riwayat',
     ctaHref: '/dashboard',
     advanceMode: 'manual',
@@ -118,7 +118,7 @@ export const CORE_TOUR_STEPS: TourStep[] = [
       'Gunakan bagian ini ketika Anda ingin memahami perubahan yang terjadi dan apa yang perlu diperiksa.',
     detailedContext:
       'WattWise tidak membuat vonis sepihak, melainkan memberikan kandidat terarah untuk Anda periksa langsung di lokasi usaha.',
-    benefit: 'Fokus memeriksa peralatan yang paling relevan dengan kenaikan pemakaian.',
+    benefit: 'Membantu memfokuskan pemeriksaan bila fitur ini tersedia untuk segmen usaha Anda.',
     actionLabel: 'Lanjut ke Tindakan',
     ctaLabel: 'Buka Cek Kenaikan',
     ctaHref: '/diagnostics',
@@ -135,10 +135,10 @@ export const CORE_TOUR_STEPS: TourStep[] = [
     placement: 'top',
     title: 'Rencana Hemat & evaluasi hasil',
     instruction:
-      'Buka Cek Kenaikan untuk melihat bagian yang layak diperiksa dan langkah selanjutnya.',
+      'Halaman ini merangkum rencana dan evaluasi. Cek Kenaikan hanya dapat dipakai bila fitur tersebut aktif untuk paket dan segmen usaha Anda.',
     detailedContext:
-      'Setelah tindakan dijalankan, catat tagihan bulan berikutnya untuk membuktikan apakah pengeluaran listrik berhasil dikendalikan.',
-    benefit: 'Memastikan setiap upaya efisiensi benar-benar menghasilkan penghematan nyata.',
+      'Setelah tindakan dijalankan, catat tagihan berikutnya dan perubahan operasional. Perbandingan ini belum membuktikan sebab-akibat.',
+    benefit: 'Membantu mengevaluasi perubahan biaya; hasil tetap perlu verifikasi manual.',
     actionLabel: 'Selesai',
     ctaLabel: 'Kembali ke Dashboard',
     ctaHref: '/dashboard',

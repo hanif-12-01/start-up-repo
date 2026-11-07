@@ -46,10 +46,37 @@ beforeEach(() => {
     return { business, businesses } as Awaited<ReturnType<typeof getWorkspaceContext>>;
   });
   vi.mocked(readDashboardSnapshot).mockResolvedValue({ business: owned, businesses: [owned], bills: [], diagnostic: null } as Awaited<ReturnType<typeof readDashboardSnapshot>>);
+  vi.mocked(getDecisionSupport).mockResolvedValue({
+    business: owned,
+    businesses: [owned],
+    bills: [],
+    revenues: [],
+    appliances: [],
+    applianceEstimates: [],
+    dailyCostComparisons: [],
+    latestBill: null,
+    matchingRevenue: null,
+    ratio: null,
+  } as unknown as Awaited<ReturnType<typeof getDecisionSupport>>);
 });
 afterEach(() => Object.assign(env, original));
 
 describe('Stage5G9 active location', () => {
+  it.each([
+    [false, true, 'KOS', false],
+    [true, false, 'KOS', false],
+    [true, true, 'FNB', false],
+    [true, true, 'KOS', true],
+  ])('uses real diagnostics flags %s/%s and segment %s without requiring a spike', async (diagnostics, templates, segment, visible) => {
+    env.DIAGNOSTICS_ENABLED = diagnostics;
+    env.SEGMENT_TEMPLATES_ENABLED = templates;
+    businesses = [{ ...owned, segment }];
+    const html = await render('owned');
+    expect(html.includes('href="/diagnostics?businessId=owned"')).toBe(visible);
+    if (visible) expect(html).toContain('minimal dua periode tagihan');
+    expect(getDecisionSupport).toHaveBeenCalledWith('owner', 'owned');
+    expect(readDashboardSnapshot).not.toHaveBeenCalled();
+  });
   it('reproduces completed FNB setup with Dashboard OFF without sending the user back to setup', async () => {
     const html = await render();
     expect(html).toContain('Ringkasan lokasi belum diaktifkan');

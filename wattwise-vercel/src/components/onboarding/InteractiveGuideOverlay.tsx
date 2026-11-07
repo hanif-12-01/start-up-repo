@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   X,
   ChevronLeft,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useBeginnerGuide } from './BeginnerGuideContext';
 import { SESSION_TOUR_PENDING_STEP_KEY } from './guide-steps';
+import { withBusinessId } from '@/lib/business-query';
 
 interface TargetRect {
   top: number;
@@ -25,48 +26,50 @@ interface TargetRect {
   right: number;
 }
 
+function isElementVisible(el: HTMLElement): boolean {
+  if (typeof window === 'undefined' || !el.isConnected) return false;
+  let node: HTMLElement | null = el;
+  while (node) {
+    const style = window.getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      return false;
+    }
+    node = node.parentElement;
+  }
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 || rect.height > 0 || el.getClientRects().length > 0;
+}
+
 function findVisibleTarget(tourId: string): HTMLElement | null {
   if (typeof document === 'undefined') return null;
   const elements = document.querySelectorAll<HTMLElement>(`[data-tour-id="${tourId}"]`);
-  
-  // First priority: check if element is inside an active mobile drawer
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
-    const drawerParent = el.closest('#product-mobile-menu');
-    if (drawerParent) {
-      const rect = el.getBoundingClientRect();
-      const style = window.getComputedStyle(el);
-      if (
-        style.display !== 'none' &&
-        style.visibility !== 'hidden' &&
-        style.opacity !== '0' &&
-        (rect.width > 0 || rect.height > 0)
-      ) {
-        return el;
-      }
-    }
-  }
 
-  // Second priority: any visible element in DOM
+  // First priority: a visible element inside the active mobile drawer.
   for (let i = 0; i < elements.length; i++) {
     const el = elements[i];
-    const rect = el.getBoundingClientRect();
-    const style = window.getComputedStyle(el);
-    if (
-      style.display !== 'none' &&
-      style.visibility !== 'hidden' &&
-      style.opacity !== '0' &&
-      (rect.width > 0 || rect.height > 0 || el.getClientRects().length > 0)
-    ) {
+    if (el.closest('#product-mobile-menu') && isElementVisible(el)) {
       return el;
     }
   }
-  return elements[0] || null;
+
+  // Second priority: any visible element, including the visibility of its ancestors.
+  for (let i = 0; i < elements.length; i++) {
+    if (isElementVisible(elements[i])) {
+      return elements[i];
+    }
+  }
+
+  // Never fall back to a hidden element: the caller renders an explicit
+  // "target unavailable" state instead of highlighting an invisible node.
+  return null;
 }
 
-export function InteractiveGuideOverlay() {
+export function InteractiveGuideOverlay({ diagnosticsEnabled = false }: { diagnosticsEnabled?: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const businessParams = searchParams.getAll('businessId');
+  const businessId = businessParams.length === 1 ? businessParams[0] : null;
   const {
     isTourActive,
     currentStep,
@@ -87,6 +90,9 @@ export function InteractiveGuideOverlay() {
   const cardRef = useRef<HTMLDivElement>(null);
   const targetElRef = useRef<Element | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
+  const returnToStepRouteRef = useRef(false);
+  const wasTourActiveRef = useRef(false);
+  const pushedHrefRef = useRef<string | null>(null);
 
   const isTargetClickStep = currentStepData?.advanceMode === 'target-click';
 
@@ -101,6 +107,62 @@ export function InteractiveGuideOverlay() {
       previousActiveElementRef.current = null;
     }
   }, [isTourActive]);
+
+  // On first activation, if the step belongs to another route, remember to return there.
+  useEffect(() => {
+    if (isTourActive && !wasTourActiveRef.current) {
+      const expected = currentStepData?.expectedPathname;
+      if (expected && pathname !== expected) returnToStepRouteRef.current = true;
+    }
+    wasTourActiveRef.current = isTourActive;
+  }, [isTourActive, currentStepData, pathname]);
+
+  // Reset route bookkeeping and stale pending markers when the tour stops, so
+  // reopening the tour can never be hijacked by a previous run's navigation.
+  useEffect(() => {
+    if (isTourActive) return;
+    returnToStepRouteRef.current = false;
+    pushedHrefRef.current = null;
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(SESSION_TOUR_PENDING_STEP_KEY);
+      }
+    } catch {}
+  }, [isTourActive]);
+
+  // Route sync for manual steps reached after a target-click navigation.
+  // Only runs when the user followed the tour's own target, never when they
+  // intentionally open a contextual CTA in another tab/route.
+  useEffect(() => {
+    if (!isTourActive || !currentStepData || !returnToStepRouteRef.current) return;
+    const expected = currentStepData.expectedPathname;
+    if (!expected) {
+      returnToStepRouteRef.current = false;
+      return;
+    }
+    if (pathname === expected) {
+      returnToStepRouteRef.current = false;
+      pushedHrefRef.current = null;
+      return;
+    }
+    if (currentStepData.advanceMode === 'target-click') return;
+    const href = withBusinessId(expected, businessId);
+    if (pushedHrefRef.current === href) return;
+    pushedHrefRef.current = href;
+    router.push(href);
+  }, [isTourActive, currentStep, currentStepData, pathname, businessId, router]);
+
+  // Keep keyboard focus inside the coachmark without stealing it on each step.
+  useEffect(() => {
+    if (!isTourActive) return;
+    const card = cardRef.current;
+    if (!card) return;
+    if (!card.contains(document.activeElement)) {
+      const timer = window.setTimeout(() => card.focus({ preventScroll: true }), 40);
+      return () => window.clearTimeout(timer);
+    }
+    return;
+  }, [isTourActive, currentStep]);
 
   const updateTargetPosition = useCallback(() => {
     if (!isTourActive || !currentStepData) {
@@ -159,28 +221,43 @@ export function InteractiveGuideOverlay() {
     completeTour();
   }, [isMobileMenuOpen, setMobileMenuOpen, completeTour]);
 
-  // Attach scoped temporary click listener to the active target element
+  // CTA fallback for a target-click step: treat it as the expected target click
+  // so the tour advances after the route change instead of stalling.
+  const markTargetClickPending = useCallback(() => {
+    if (!isTargetClickStep) return;
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(SESSION_TOUR_PENDING_STEP_KEY, String(currentStep + 1));
+      }
+    } catch {}
+  }, [isTargetClickStep, currentStep]);
+
+  // Record the pending advance when the user actually clicks the current target.
+  // Document-level capture avoids stale element refs when the step changes while
+  // the previous target is still mounted.
   useEffect(() => {
     if (!isTourActive || !currentStepData || currentStepData.advanceMode !== 'target-click') {
       return;
     }
+    const tourIds = [currentStepData.targetTourId, currentStepData.fallbackTourId].filter(
+      (value): value is string => Boolean(value)
+    );
 
-    const el = targetElRef.current;
-    if (!el) return;
-
-    const handleTargetClick = () => {
+    const handleTargetClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const matched = tourIds.some((tourId) => target.closest(`[data-tour-id="${tourId}"]`));
+      if (!matched) return;
       try {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(SESSION_TOUR_PENDING_STEP_KEY, String(currentStep + 1));
-        }
+        sessionStorage.setItem(SESSION_TOUR_PENDING_STEP_KEY, String(currentStep + 1));
       } catch {}
     };
 
-    el.addEventListener('click', handleTargetClick, { capture: true });
+    document.addEventListener('click', handleTargetClick, true);
     return () => {
-      el.removeEventListener('click', handleTargetClick, { capture: true });
+      document.removeEventListener('click', handleTargetClick, true);
     };
-  }, [isTourActive, currentStep, currentStepData, targetFound]);
+  }, [isTourActive, currentStep, currentStepData]);
 
   // Route confirmation: auto-advance target-click steps when route changes
   useEffect(() => {
@@ -202,19 +279,25 @@ export function InteractiveGuideOverlay() {
       }
 
       if (pathnameMatched && searchParamMatched) {
-        let wasPending = false;
+        const expectedPending = String(currentStep + 1);
+        let hasPending = false;
         try {
           if (typeof window !== 'undefined') {
-            const pending = sessionStorage.getItem(SESSION_TOUR_PENDING_STEP_KEY);
-            if (pending === String(currentStep + 1)) {
-              wasPending = true;
-              sessionStorage.removeItem(SESSION_TOUR_PENDING_STEP_KEY);
-            }
+            hasPending = sessionStorage.getItem(SESSION_TOUR_PENDING_STEP_KEY) === expectedPending;
           }
         } catch {}
 
-        if (wasPending || currentStepData.expectedSearchParam) {
+        if (hasPending || currentStepData.expectedSearchParam) {
+          returnToStepRouteRef.current = true;
+          // Consume the pending marker inside the callback, not before it. If
+          // this effect is cleaned up first (re-render/route change), the marker
+          // stays available so the advance is not silently lost.
           const timer = setTimeout(() => {
+            try {
+              const pending = sessionStorage.getItem(SESSION_TOUR_PENDING_STEP_KEY);
+              if (pending !== null && pending !== expectedPending) return;
+              sessionStorage.removeItem(SESSION_TOUR_PENDING_STEP_KEY);
+            } catch {}
             nextStep();
           }, 120);
           return () => clearTimeout(timer);
@@ -239,6 +322,25 @@ export function InteractiveGuideOverlay() {
     }
 
     let cancelled = false;
+    const timers: number[] = [];
+    let frameId1 = 0;
+    let frameId2 = 0;
+    let scrollFrameId = 0;
+    let drawerNav: Element | null = null;
+    let handleDrawerScroll: (() => void) | null = null;
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
+
+    const requestPositionUpdate = () => {
+      if (cancelled) return;
+      if (scrollFrameId) cancelAnimationFrame(scrollFrameId);
+      scrollFrameId = requestAnimationFrame(() => {
+        scrollFrameId = 0;
+        if (!cancelled) updateTargetPosition();
+      });
+    };
 
     const syncTargetAndScroll = () => {
       if (cancelled) return;
@@ -251,45 +353,40 @@ export function InteractiveGuideOverlay() {
       if (el && el.clientHeight > 0 && el.clientWidth > 0) {
         const isInDrawer = !!el.closest('#product-mobile-menu');
         if (isInDrawer) {
-          const drawerNav = el.closest('nav') || el.closest('#product-mobile-menu');
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          if (drawerNav) {
-            const handleDrawerScroll = () => {
-              window.requestAnimationFrame(updateTargetPosition);
-            };
-            drawerNav.addEventListener('scroll', handleDrawerScroll, { passive: true });
-            setTimeout(() => {
-              drawerNav.removeEventListener('scroll', handleDrawerScroll);
-            }, 500);
+          drawerNav = el.closest('nav') || el.closest('#product-mobile-menu');
+          el.scrollIntoView({ behavior: scrollBehavior, block: 'nearest' });
+          if (drawerNav && !handleDrawerScroll) {
+            const nav = drawerNav;
+            const handler = () => requestPositionUpdate();
+            handleDrawerScroll = handler;
+            nav.addEventListener('scroll', handler, { passive: true });
           }
         } else if (window.innerWidth < 768) {
           // On mobile, scroll with start alignment (respecting scroll-margin-top)
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
         } else {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.scrollIntoView({ behavior: scrollBehavior, block: 'center' });
         }
         updateTargetPosition();
-        setTimeout(updateTargetPosition, 80);
-        setTimeout(updateTargetPosition, 200);
-        setTimeout(updateTargetPosition, 350);
+        timers.push(window.setTimeout(updateTargetPosition, 80));
+        timers.push(window.setTimeout(updateTargetPosition, 200));
+        timers.push(window.setTimeout(updateTargetPosition, 350));
       } else {
-        requestAnimationFrame(() => {
+        frameId2 = requestAnimationFrame(() => {
           if (!cancelled) updateTargetPosition();
         });
       }
     };
 
-    // Use double rAF to guarantee DOM mount and layout settlement
-    const frameId1 = requestAnimationFrame(() => {
-      const frameId2 = requestAnimationFrame(syncTargetAndScroll);
-      return () => cancelAnimationFrame(frameId2);
+    // Use double rAF to guarantee DOM mount and layout settlement.
+    frameId1 = requestAnimationFrame(() => {
+      if (cancelled) return;
+      frameId2 = requestAnimationFrame(syncTargetAndScroll);
     });
 
     const timer = setTimeout(updateTargetPosition, 200);
 
-    const handleScrollOrResize = () => {
-      window.requestAnimationFrame(updateTargetPosition);
-    };
+    const handleScrollOrResize = () => requestPositionUpdate();
 
     window.addEventListener('scroll', handleScrollOrResize, true);
     window.addEventListener('resize', handleScrollOrResize);
@@ -297,7 +394,13 @@ export function InteractiveGuideOverlay() {
     return () => {
       cancelled = true;
       cancelAnimationFrame(frameId1);
+      cancelAnimationFrame(frameId2);
+      if (scrollFrameId) cancelAnimationFrame(scrollFrameId);
+      if (drawerNav && handleDrawerScroll) {
+        drawerNav.removeEventListener('scroll', handleDrawerScroll);
+      }
       clearTimeout(timer);
+      for (const id of timers) window.clearTimeout(id);
       window.removeEventListener('scroll', handleScrollOrResize, true);
       window.removeEventListener('resize', handleScrollOrResize);
     };
@@ -517,10 +620,15 @@ export function InteractiveGuideOverlay() {
       aria-modal="false"
       aria-label="Panduan Interaktif WattWise"
     >
+      {/* Screen-reader announcement for every step */}
+      <div className="sr-only" role="status" aria-live="polite">
+        Langkah {currentStep + 1} dari {steps.length}: {currentStepData.title}
+      </div>
+
       {/* Target Highlight Spotlight (pointer-events: none keeps target clickable) */}
       {targetFound && targetRect && (
         <div
-          className="fixed pointer-events-none transition-all duration-200 rounded-2xl"
+          className="fixed pointer-events-none transition-all motion-reduce:transition-none duration-200 rounded-2xl"
           style={{
             top: `${targetRect.top - 6}px`,
             left: `${targetRect.left - 6}px`,
@@ -545,14 +653,18 @@ export function InteractiveGuideOverlay() {
       {/* Interactive Coachmark Card (pointer-events: auto) */}
       <div
         ref={cardRef}
+        data-tour-coachmark
         style={getCardStyle()}
-        className="pointer-events-auto transition-all box-border rounded-2xl sm:rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-4 sm:p-5 shadow-2xl flex flex-col overflow-hidden"
+        tabIndex={-1}
+        role="group"
+        aria-labelledby="tour-coachmark-title"
+        className="pointer-events-auto transition-all motion-reduce:transition-none box-border rounded-2xl sm:rounded-3xl border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-4 sm:p-5 shadow-2xl flex flex-col overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
       >
         {/* Header: Stage Badge, Step Count, Close Button */}
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span
-              className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase ${badgeClass}`}
+              className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase ${badgeClass} !text-[var(--foreground)]`}
             >
               {currentStepData.stage}
             </span>
@@ -583,20 +695,22 @@ export function InteractiveGuideOverlay() {
               onClick={() => goToStep(idx)}
               aria-label={`Langkah ${idx + 1}: ${step.title}`}
               aria-current={idx === currentStep ? 'step' : undefined}
-              className={`h-1 flex-1 rounded-full transition-all ${
+              className="flex h-6 min-w-6 flex-1 items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            >
+              <span aria-hidden="true" className={`h-1 w-full rounded-full transition-all ${
                 idx === currentStep
                   ? 'bg-[var(--primary)]'
                   : idx < currentStep
                   ? 'bg-[var(--primary)]/50'
                   : 'bg-[var(--border)]'
-              }`}
-            />
+              }`} />
+            </button>
           ))}
         </div>
 
         {/* Scrollable Body Content */}
-        <div className="mt-2.5 space-y-2 overflow-y-auto pr-1 flex-1 min-h-0">
-          <h3 className="text-base font-black tracking-tight text-[var(--foreground)] break-words">
+        <div tabIndex={0} role="region" aria-label="Isi panduan" className="mt-2.5 space-y-2 overflow-y-auto pr-1 flex-1 min-h-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+          <h3 id="tour-coachmark-title" className="text-base font-black tracking-tight text-[var(--foreground)] break-words">
             {currentStepData.title}
           </h3>
 
@@ -604,15 +718,26 @@ export function InteractiveGuideOverlay() {
             {currentStepData.instruction}
           </p>
 
-          {/* Missing target helper */}
+          {/* Explicit unavailable fallback: never trap the user on a missing target */}
           {!targetFound && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-700 dark:text-amber-300">
+              <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-[var(--foreground)]">
               <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <p className="font-bold">Bagian ini berada di halaman lain.</p>
+                <p className="font-bold">Bagian ini tidak tersedia di halaman saat ini.</p>
                 <p className="mt-0.5">
-                  Gunakan tombol di bawah untuk menuju halaman target atau lanjutkan langkah.
+                  Anda tetap dapat melanjutkan langkah, membuka halaman terkait, atau melewati panduan.
                 </p>
+                {currentStepData.expectedPathname &&
+                  currentStepData.expectedPathname !== pathname && (
+                    <Link
+                      href={withBusinessId(currentStepData.expectedPathname, businessId)}
+                      onClick={markTargetClickPending}
+                      className="mt-1 inline-flex items-center gap-1 font-extrabold underline underline-offset-2 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded"
+                    >
+                      Buka halaman langkah ini
+                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </Link>
+                  )}
               </div>
             </div>
           )}
@@ -626,7 +751,7 @@ export function InteractiveGuideOverlay() {
 
           {/* Benefit Badge */}
           {currentStepData.benefit && (
-            <div className="flex items-start gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-start gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-[var(--foreground)]">
               <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               <span className="min-w-0 flex-1 break-words">{currentStepData.benefit}</span>
             </div>
@@ -641,13 +766,14 @@ export function InteractiveGuideOverlay() {
               <span className="truncate sm:overflow-visible sm:whitespace-normal">Klik target disorot atau Lanjut</span>
             </div>
           ) : (
-            <Link
-              href={currentStepData.ctaHref}
+            currentStepData.ctaHref !== '/diagnostics' || diagnosticsEnabled ? <Link
+              href={withBusinessId(currentStepData.ctaHref, businessId)}
+              onClick={markTargetClickPending}
               className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[var(--primary)] hover:underline decoration-[var(--primary)]/50 underline-offset-4 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] rounded-md py-0.5 min-w-0"
             >
               <span className="truncate sm:overflow-visible">Buka: {currentStepData.ctaLabel}</span>
               <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
-            </Link>
+            </Link> : <span className="text-[11px] text-[var(--muted)]">Cek Kenaikan belum diaktifkan.</span>
           )}
 
           <button

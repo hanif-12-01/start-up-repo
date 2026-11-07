@@ -1,6 +1,7 @@
 import { requireWorkspacePage } from '@/server/services/workspace-page';
 import { getUserEntitlements } from '@/server/services/entitlement.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
+import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
 import { AnalysisView } from '@/components/analysis/AnalysisView';
 import { headers } from 'next/headers';
 import { isLocalNBeatsCandidateAllowed } from '@/server/services/local-nbeats-candidate';
@@ -56,6 +57,7 @@ export default async function AnalysisPage({
       activeTab={requestedTab}
       businessQuery={businessQuery}
       modelSelection={modelSelection}
+      diagnosticsAvailable={getDiagnosticCapability(data.business.segment).available}
     />
   );
 }

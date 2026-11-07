@@ -17,8 +17,11 @@ import {
 } from 'lucide-react';
 import { businessSegmentLabel, decimal, formatMonth, rupiah } from '@/lib/format';
 import { getHealthNarrative } from '@/lib/presentation';
+import { env } from '@/config/env';
 import { TrendChart, type TrendPoint } from '@/components/analysis/TrendChart';
-import { BusinessSelector, SoftCard, WorkspacePage, secondaryButton } from '@/components/product/WorkspaceUI';
+import { ActiveLocationOverview } from '@/components/product/ActiveLocationOverview';
+import { ActiveLocationSelection } from '@/components/product/ActiveLocationSelection';
+import { SoftCard, WorkspacePage, secondaryButton } from '@/components/product/WorkspaceUI';
 import { getOptionalSession } from '@/server/auth/session';
 import {
   DashboardBusinessNotFoundError,
@@ -26,6 +29,7 @@ import {
   getDashboardReadModel,
 } from '@/server/services/dashboard.service';
 import { getJourneyRedirect, resolveJourneyStep } from '@/server/services/journey.service';
+import { getDiagnosticCapability } from '@/server/services/diagnostic-capability';
 import { getDecisionSupport, getWorkspaceContext, WorkspaceBusinessNotFoundError, WorkspaceUnavailableError } from '@/server/services/workspace.service';
 import { getProductAnalysisReadModel } from '@/server/services/product-analysis';
 import { StartDiagnosticButton } from '../diagnostics/StartDiagnosticButton';
@@ -108,21 +112,25 @@ export default async function DashboardPage({
     );
   }
   if (!requestedBusinessId && context.businesses.length > 1) {
+    return <ActiveLocationSelection businesses={context.businesses} />;
+  }
+
+  // Dashboard-OFF is an informational view for a completed setup. Never call the
+  // gated dashboard read model just to render the fallback.
+  // Feature availability comes from the existing capability check (flags + segment
+  // catalog), never from "a spike exists". The spike only adds context wording.
+  const diagnostics = getDiagnosticCapability(context.business.segment);
+  if (!env.DASHBOARD_ENABLED) {
+    const support = await getDecisionSupport(userId, context.business.id);
     return (
-      <WorkspacePage>
-        <h1 className="text-2xl font-bold">Pilih lokasi aktif</h1>
-        <p>Anda memiliki beberapa lokasi. Pilih lokasi yang ingin ditinjau.</p>
-        <form action="/dashboard" method="get" className="flex flex-wrap items-end gap-3">
-          <label>
-            <span className="mb-2 block">Lokasi aktif</span>
-            <select name="businessId" required defaultValue="" className="min-h-11 max-w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 focus:ring-2 focus:ring-[var(--focus)]">
-              <option value="" disabled>Pilih lokasi</option>
-              {context.businesses.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
-          <button type="submit" className={secondaryButton}>Pilih</button>
-        </form>
-      </WorkspacePage>
+      <ActiveLocationOverview
+        business={context.business}
+        businesses={context.businesses}
+        bills={support.bills}
+        diagnostics={diagnostics}
+        comparisonCount={Math.max(0, support.bills.length - 1)}
+        costIncreaseDetected={support.dailyCostComparisons.length > 0}
+      />
     );
   }
 
@@ -132,16 +140,16 @@ export default async function DashboardPage({
   } catch (error) {
     if (error instanceof DashboardBusinessNotFoundError) notFound();
     if (error instanceof DashboardUnavailableError) {
+      const support = await getDecisionSupport(userId, context.business.id);
       return (
-        <WorkspacePage>
-          <h1 className="text-2xl font-bold">Ringkasan lokasi belum diaktifkan</h1>
-          <p>Setup awal sudah selesai. Anda tetap dapat meninjau Analisis untuk {context.business.name}.</p>
-          <BusinessSelector businesses={context.businesses} selectedId={context.business.id} route="/dashboard" />
-          <div className="flex flex-wrap gap-3">
-            <Link href={`/analysis?businessId=${encodeURIComponent(context.business.id)}`} className={secondaryButton}>Lihat Analisis</Link>
-            <Link href="/businesses" className={secondaryButton}>Kelola Usaha</Link>
-          </div>
-        </WorkspacePage>
+        <ActiveLocationOverview
+          business={context.business}
+          businesses={context.businesses}
+          bills={support.bills}
+          diagnostics={diagnostics}
+          comparisonCount={Math.max(0, support.bills.length - 1)}
+          costIncreaseDetected={support.dailyCostComparisons.length > 0}
+        />
       );
     }
     throw error;

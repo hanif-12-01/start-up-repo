@@ -148,7 +148,7 @@ describe('WattWise Guided Tutorial Improvement Unit Tests', () => {
       join(process.cwd(), 'src/components/onboarding/InteractiveGuideOverlay.tsx'),
       'utf8'
     );
-    expect(overlayFile).toContain('Bagian ini berada di halaman lain');
+    expect(overlayFile).toContain('Bagian ini tidak tersedia di halaman saat ini.');
     expect(overlayFile).toContain('!targetFound');
   });
 

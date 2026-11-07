@@ -166,6 +166,67 @@ function formatExactValue(value: number, metric: Metric): string {
   return metric === 'kwh' ? `${decimal.format(value)} kWh` : rupiah.format(value);
 }
 
+/** Average of only the finite values; count/coverage stay explicit. */
+export function summarizeValidValues(values: Array<number | null>): {
+  average: number | null;
+  count: number;
+  total: number;
+} {
+  const valid = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  return {
+    average: valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null,
+    count: valid.length,
+    total: values.length,
+  };
+}
+
+export type PeriodChangeState = 'CHANGE' | 'NO_PREVIOUS' | 'ZERO_PREVIOUS' | 'MISSING';
+
+export interface PeriodChange {
+  state: PeriodChangeState;
+  percent: number | null;
+  /** Real label of the compared period, never an implied adjacent month. */
+  previousLabel: string | null;
+}
+
+/**
+ * Per-period change against the nearest earlier period that actually has a
+ * value in the same metric. Blank, zero and missing comparators never produce
+ * a percentage, and gaps keep their real period labels.
+ */
+export function calculatePeriodChanges(points: TrendPoint[], metric: Metric): PeriodChange[] {
+  const values = points.map((point) => {
+    const raw = metric === 'kwh' ? point.usageKwh : point.billAmount;
+    return raw !== null && Number.isFinite(raw) ? raw : null;
+  });
+
+  return points.map((_, index) => {
+    const current = values[index];
+    let prevIndex = index - 1;
+    while (prevIndex >= 0 && values[prevIndex] === null) prevIndex -= 1;
+    const previous = prevIndex >= 0 ? values[prevIndex] : null;
+
+    if (current === null) {
+      return {
+        state: 'MISSING',
+        percent: null,
+        previousLabel: prevIndex >= 0 ? points[prevIndex].label : null,
+      };
+    }
+    if (previous === null || prevIndex < 0) {
+      return { state: 'NO_PREVIOUS', percent: null, previousLabel: null };
+    }
+    if (previous <= 0) {
+      return { state: 'ZERO_PREVIOUS', percent: null, previousLabel: points[prevIndex].label };
+    }
+    return {
+      state: 'CHANGE',
+      percent: Number((((current - previous) / previous) * 100).toFixed(1)),
+      previousLabel: points[prevIndex].label,
+    };
+  });
+}
+
 function formatAxisTick(value: number, metric: Metric): string {
   return metric === 'kwh' ? `${compactDecimal(value)} kWh` : compactRupiah(value);
 }
@@ -224,6 +285,11 @@ export function TrendChart({
   const latestVal = latestRecorded ? getPointValue(latestRecorded) : null;
   const prevVal = prevRecorded ? getPointValue(prevRecorded) : null;
 
+  const historicalValueSummary = summarizeValidValues(
+    historicalPoints.map((point) => getPointValue(point))
+  );
+  const periodChanges = calculatePeriodChanges(points, metric);
+
   let momChangePercent: number | null = null;
   let momDirection: 'Naik' | 'Stabil' | 'Turun' | null = null;
 
@@ -239,14 +305,17 @@ export function TrendChart({
   }
 
   // Value domain calculations
+  const isBarChart = metric === 'rupiah';
   const values = validPoints.map(getPointValue) as number[];
   const rawMax = values.length ? Math.max(...values) : 0;
   const rawMin = values.length ? Math.min(...values) : 0;
   const rawRange = rawMax - rawMin;
   const domainPadding = rawRange > 0 ? rawRange * 0.15 : Math.max(rawMax * 0.15, 1);
-  const minValue = rawMin === 0 ? 0 : Math.max(0, rawMin - domainPadding);
+  const minValue = isBarChart || rawMin === 0 ? 0 : Math.max(0, rawMin - domainPadding);
   const maxValue = rawMax + domainPadding;
   const valueRange = maxValue - minValue || 1;
+
+  const historicalPeriodCount = new Set(historicalPoints.map((point) => point.period)).size;
 
   // SVG Geometry
   const svgWidth = 760;
@@ -263,11 +332,18 @@ export function TrendChart({
     if (points.length <= 1) {
       return paddingLeft + chartWidth / 2;
     }
+    if (isBarChart) {
+      return paddingLeft + ((index + 0.5) / points.length) * chartWidth;
+    }
     return paddingLeft + (index / (points.length - 1)) * chartWidth;
   };
 
   const getY = (val: number) =>
     paddingTop + chartHeight - ((val - minValue) / valueRange) * chartHeight;
+
+  const baselineY = paddingTop + chartHeight;
+  const barSlotWidth = chartWidth / Math.max(points.length, 1);
+  const barWidth = Math.max(10, Math.min(56, barSlotWidth * 0.55));
 
   // Map coordinates
   const coordinates = points.map((point, index) => {
@@ -459,23 +535,48 @@ export function TrendChart({
   const directionConfig = {
     Naik: {
       label: 'Naik',
-      badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      badgeClass: 'bg-[var(--surface)] text-[var(--foreground)] border-amber-500/40',
       Icon: TrendingUp,
     },
     Turun: {
       label: 'Turun',
-      badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+      badgeClass: 'bg-[var(--surface)] text-[var(--foreground)] border-emerald-500/40',
       Icon: TrendingDown,
     },
     Stabil: {
       label: 'Stabil',
-      badgeClass: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-500/30',
+      badgeClass: 'bg-[var(--surface)] text-[var(--foreground)] border-slate-500/40',
       Icon: Minus,
     },
   };
 
+  const handlePointKeyDown = (
+    event: React.KeyboardEvent<SVGElement>,
+    index: number
+  ) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End', 'Escape'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Escape') {
+      setHoveredIndex(null);
+      return;
+    }
+    const nodes = svgRef.current?.querySelectorAll<SVGElement>('[data-chart-point]');
+    if (!nodes?.length) return;
+    const lastIndex = nodes.length - 1;
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? lastIndex
+          : event.key === 'ArrowLeft'
+            ? Math.max(0, index - 1)
+            : Math.min(lastIndex, index + 1);
+    nodes[nextIndex]?.focus();
+    setHoveredIndex(nextIndex);
+  };
+
   return (
-    <figure className={`w-full ${className}`}>
+    <figure className={`w-full min-w-0 max-w-full ${className}`}>
       {/* Header with clear Information Hierarchy (A2) */}
       <div className="flex flex-col gap-1 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-baseline sm:justify-between">
         <div>
@@ -493,7 +594,11 @@ export function TrendChart({
         {/* Legend (A9) */}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--muted)] sm:mt-0">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-1 w-3.5 rounded-full bg-[var(--chart-series-primary)]" aria-hidden="true" />
+            {isBarChart ? (
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--chart-series-primary)]" aria-hidden="true" />
+            ) : (
+              <span className="inline-block h-1 w-3.5 rounded-full bg-[var(--chart-series-primary)]" aria-hidden="true" />
+            )}
             <span className="font-semibold text-[11px] text-[var(--foreground)]">
               {metric === 'rupiah' ? 'Tagihan tercatat' : 'Pemakaian tercatat'}
             </span>
@@ -527,7 +632,7 @@ export function TrendChart({
 
         <div>
           <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
-            Perubahan vs bulan lalu
+            Perubahan vs periode sebelumnya
           </span>
           <div className="mt-1 flex items-center gap-2">
             {momChangePercent !== null && momDirection ? (
@@ -549,7 +654,7 @@ export function TrendChart({
               </>
             ) : (
               <span className="text-xs text-[var(--muted)]">
-                {historicalPoints.length <= 1 ? 'Perlu 1 bulan lagi' : 'Stabil'}
+                {historicalPeriodCount <= 1 ? 'Perlu 1 periode lagi' : 'Stabil'}
               </span>
             )}
           </div>
@@ -565,10 +670,23 @@ export function TrendChart({
             Cakupan data
           </span>
           <span className="mt-0.5 block text-sm sm:text-base font-extrabold text-[var(--foreground)]">
-            {historicalPoints.length} bulan data tercatat
+            {historicalPeriodCount} periode tercatat
           </span>
           <span className="block text-[11px] text-[var(--muted)]">
-            {historicalPoints.length >= 3
+            {historicalValueSummary.average !== null ? (
+              <>
+                Rata-rata {formatExactValue(historicalValueSummary.average, metric)} dari{' '}
+                {historicalValueSummary.count} periode berisi data
+              </>
+            ) : (
+              'Belum ada nilai yang bisa dirata-ratakan'
+            )}
+          </span>
+          <span className="block text-[11px] text-[var(--muted)]">
+            Data dibatasi hingga 12 periode terbaru.
+          </span>
+          <span className="block text-[11px] text-[var(--muted)]">
+            {historicalPeriodCount >= 3
               ? 'Pola tren sudah dapat diamati'
               : 'Tambah data untuk pola lebih akurat'}
           </span>
@@ -576,7 +694,7 @@ export function TrendChart({
       </div>
 
       {/* Low-data Guidance Banner (A8) */}
-      {historicalPoints.length === 1 && (
+      {historicalPeriodCount === 1 && (
         <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--primary)]/30 bg-[var(--primary-soft)]/60 px-3.5 py-2.5 text-xs text-[var(--primary-dark)] dark:text-[var(--primary)]">
           <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
@@ -587,7 +705,7 @@ export function TrendChart({
         </div>
       )}
 
-      {historicalPoints.length === 2 && (
+      {historicalPeriodCount === 2 && (
         <div className="mt-3 flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3.5 py-2 text-xs text-blue-700 dark:text-blue-300">
           <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>Data masih terbatas (2 bulan). Setelah beberapa bulan pencatatan, grafik akan lebih membantu melihat pola penggunaan listrik.</span>
@@ -610,7 +728,7 @@ export function TrendChart({
               ref={svgRef}
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
               className="h-auto w-full font-sans text-[var(--foreground)] select-none"
-              role="img"
+              role="group"
               aria-labelledby={`${titleId} ${descriptionId}`}
               onMouseLeave={() => setHoveredIndex(null)}
             >
@@ -642,25 +760,49 @@ export function TrendChart({
                 );
               })}
 
+              {/* Cost metric: bars keep Rupiah on its own scale. Usage metric: solid line. */}
+              {isBarChart &&
+                coordinates.map((c) => {
+                  if (c.value === null || c.y === null) return null;
+                  const isForecast = c.point.type === 'forecast';
+                  const height = Math.max(2, baselineY - c.y);
+                  return (
+                    <rect
+                      key={`bar-${c.point.period}-${c.point.type}-${c.index}`}
+                      x={c.x - barWidth / 2}
+                      y={baselineY - height}
+                      width={barWidth}
+                      height={height}
+                      rx={4}
+                      fill={isForecast ? 'var(--chart-series-forecast)' : 'var(--chart-series-primary)'}
+                      fillOpacity={isForecast ? 0.35 : 0.8}
+                      stroke={isForecast ? 'var(--chart-series-forecast)' : 'none'}
+                      strokeDasharray={isForecast ? '5 3' : undefined}
+                      strokeWidth={isForecast ? 2 : 0}
+                    />
+                  );
+                })}
+
               {/* Actual Series Solid Line Segments (breaks across missing data gaps) */}
-              {historicalSegments.map((segment, idx) => {
-                const segPath = pathFor(segment);
-                if (!segPath) return null;
-                return (
-                  <path
-                    key={`hist-seg-${idx}`}
-                    d={segPath}
-                    fill="none"
-                    stroke="var(--chart-series-primary)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                );
-              })}
+              {!isBarChart &&
+                historicalSegments.map((segment, idx) => {
+                  const segPath = pathFor(segment);
+                  if (!segPath) return null;
+                  return (
+                    <path
+                      key={`hist-seg-${idx}`}
+                      d={segPath}
+                      fill="none"
+                      stroke="var(--chart-series-primary)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                })}
 
               {/* Forecast Series Dashed Line */}
-              {forecastPath && (
+              {!isBarChart && forecastPath && (
                 <path
                   d={forecastPath}
                   fill="none"
@@ -761,22 +903,46 @@ export function TrendChart({
                     </text>
 
                     {/* Accessible Interactive Hit Target */}
-                    <circle
-                      cx={c.x}
-                      cy={c.y ?? svgHeight - paddingBottom - 10}
-                      r={18}
-                      fill="transparent"
-                      className="cursor-pointer outline-none"
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`${c.point.label}: ${
-                        c.value !== null ? formatExactValue(c.value, metric) : 'Data belum tersedia'
-                      }`}
-                      onMouseEnter={() => setHoveredIndex(c.index)}
-                      onFocus={() => setHoveredIndex(c.index)}
-                      onBlur={() => setHoveredIndex(null)}
-                      onClick={() => setHoveredIndex(hoveredIndex === c.index ? null : c.index)}
-                    />
+                    {isBarChart ? (
+                      <rect
+                        x={c.x - barWidth / 2 - 4}
+                        y={paddingTop}
+                        width={barWidth + 8}
+                        height={chartHeight}
+                        fill="transparent"
+                        className="cursor-pointer outline-none focus-visible:stroke-[var(--focus-ring)]"
+                        tabIndex={0}
+                        role="button"
+                        data-chart-point={c.index}
+                        aria-label={`${c.point.label}: ${
+                          c.value !== null ? formatExactValue(c.value, metric) : 'Data belum tersedia'
+                        }`}
+                        onMouseEnter={() => setHoveredIndex(c.index)}
+                        onFocus={() => setHoveredIndex(c.index)}
+                        onBlur={() => setHoveredIndex(null)}
+                        onClick={() => setHoveredIndex(hoveredIndex === c.index ? null : c.index)}
+                        onKeyDown={(event) => handlePointKeyDown(event, c.index)}
+                      />
+                    ) : (
+                      <circle
+                        cx={c.x}
+                        cy={c.y ?? svgHeight - paddingBottom - 10}
+                        r={18}
+                        fill="transparent"
+                        className="cursor-pointer outline-none focus-visible:stroke-[var(--focus-ring)]"
+                        tabIndex={0}
+                        role="button"
+                        data-chart-point={c.index}
+                        aria-label={`${c.point.label}: ${
+                          c.value !== null ? formatExactValue(c.value, metric) : 'Data belum tersedia'
+                        }`}
+                        onMouseEnter={() => setHoveredIndex(c.index)}
+                        onFocus={() => setHoveredIndex(c.index)}
+                        onBlur={() => setHoveredIndex(null)}
+                        onClick={() => setHoveredIndex(hoveredIndex === c.index ? null : c.index)}
+                        onKeyDown={(event) => handlePointKeyDown(event, c.index)}
+                      />
+                    )}
                   </g>
                 );
               })}
@@ -806,7 +972,7 @@ export function TrendChart({
                 className={`rounded-full px-1.5 py-0.2 text-[9px] font-black uppercase ${
                   activeCoordinate.point.type === 'forecast'
                     ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                    : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-[var(--primary-soft)] text-[var(--foreground)]'
                 }`}
               >
                 {activeCoordinate.point.type === 'forecast' ? 'Estimasi' : 'Tercatat'}
@@ -839,6 +1005,14 @@ export function TrendChart({
         )}
       </div>
 
+      <p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">
+        {isBarChart
+          ? 'Batang menampilkan biaya tagihan dalam Rupiah. Tinggi batang tidak dapat dibandingkan langsung dengan kWh.'
+          : 'Garis menampilkan pemakaian dalam kWh. Skala kWh terpisah dari skala biaya Rupiah.'}{' '}
+        Data tercatat tampil solid; estimasi periode berikutnya tampil putus-putus. Arahkan kursor, ketuk, atau gunakan
+        tombol panah pada titik data untuk membaca nilai dan periode.
+      </p>
+
       {/* Accessible Chart -> Table Disclosure (A10) */}
       <details className="group mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]/60 transition">
         <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-black text-[var(--foreground)] hover:bg-[var(--surface-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] rounded-2xl select-none">
@@ -862,12 +1036,17 @@ export function TrendChart({
             <tbody className="divide-y divide-[var(--border)]">
               {points.map((point, idx) => {
                 const val = getPointValue(point);
-                const prevPointVal = idx > 0 ? getPointValue(points[idx - 1]) : null;
-                let changeStr = '-';
-                if (val !== null && prevPointVal !== null && prevPointVal > 0) {
-                  const pct = ((val - prevPointVal) / prevPointVal) * 100;
-                  changeStr = `${pct >= 0 ? '+' : ''}${decimal.format(pct)}%`;
-                }
+                const change = periodChanges[idx];
+                const changeStr =
+                  change.state === 'CHANGE' && change.percent !== null
+                    ? `${change.percent >= 0 ? '+' : ''}${decimal.format(change.percent)}% vs ${
+                        change.previousLabel ?? 'periode sebelumnya'
+                      }`
+                    : change.state === 'ZERO_PREVIOUS'
+                      ? `Pembanding 0 (${change.previousLabel ?? 'periode sebelumnya'})`
+                      : change.state === 'NO_PREVIOUS'
+                        ? 'Tidak ada pembanding'
+                        : 'Tidak tersedia';
 
                 return (
                   <tr key={`${point.period}-${point.type}`} className="hover:bg-[var(--surface)] transition">
@@ -887,7 +1066,7 @@ export function TrendChart({
                             ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                             : point.type === 'derived'
                             ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400'
-                            : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-[var(--primary-soft)] text-[var(--foreground)]'
                         }`}
                       >
                         {point.type === 'forecast'

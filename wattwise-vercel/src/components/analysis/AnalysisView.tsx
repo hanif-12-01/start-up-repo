@@ -29,6 +29,7 @@ import {
   primaryButton,
 } from '@/components/product/WorkspaceUI';
 import { decimal, formatMonth, rupiah } from '@/lib/format';
+import { buildForecastExplanation } from '@/lib/forecast-explanation';
 import { Simulator } from '@/app/(product)/predictions/Simulator';
 import type { EmbeddedForecastPlan } from '@/server/services/product-analysis';
 import type { PredictionResult, OperationalComparisonResult } from '@/server/services/product-analysis';
@@ -42,7 +43,6 @@ import {
 import {
   getOwnerFacingHealthStatus,
   getOwnerFacingPredictionLabel,
-  getOwnerFacingPredictionMethod,
   formatPatternComparison,
   ENERGY_CONDITION_DISCLAIMER,
 } from '@/lib/presentation';
@@ -71,6 +71,7 @@ interface BusinessSummary {
   id: string;
   name: string;
   businessType: string;
+  segment?: string;
   tariffRupiahPerKwh?: string | null;
 }
 
@@ -145,6 +146,7 @@ interface AnalysisViewProps {
   activeTab: string;
   businessQuery: string;
   modelSelection?: NBeatsSelection;
+  diagnosticsAvailable: boolean;
 }
 
 interface AiPredictionState {
@@ -170,6 +172,7 @@ export function AnalysisView({
   activeTab,
   businessQuery,
   modelSelection = 'original',
+  diagnosticsAvailable,
 }: AnalysisViewProps) {
   const [aiPrediction, setAiPrediction] = useState<AiPredictionState | null>(null);
   const [isInferring, setIsInferring] = useState<boolean>(forecastPlan.eligible && Boolean(forecastPlan.history6m));
@@ -221,7 +224,7 @@ export function AnalysisView({
 
   const prediction = aiPrediction ? aiPrediction.prediction : forecastPlan.deterministicPrediction;
   const sourceLabel = aiPrediction ? aiPrediction.sourceLabel : forecastPlan.sourceLabel;
-  const displayedEngine = aiPrediction ? aiPrediction.displayedEngine : forecastPlan.requestedEngine;
+  const displayedEngine = aiPrediction ? aiPrediction.displayedEngine : 'deterministic_baseline';
   const modelVersion = aiPrediction ? aiPrediction.modelVersion : forecastPlan.modelVersion;
   const fallbackUsed = aiPrediction ? aiPrediction.fallbackUsed : false;
   const inferenceLatencyMs = aiPrediction ? aiPrediction.latencyMs : null;
@@ -234,6 +237,14 @@ export function AnalysisView({
     displayedEngine,
     fallbackUsed,
     hasAiPrediction: Boolean(aiPrediction && !aiPrediction.fallbackUsed),
+  });
+
+  const forecastExplanation = buildForecastExplanation({
+    targetPeriod: forecastPlan.targetPeriod,
+    continuousHistoryMonths: forecastPlan.continuousHistoryMonths,
+    diagnosticsAvailable,
+    tariff,
+    prediction,
   });
 
   // Sorted bills for dual electricity signals
@@ -313,7 +324,7 @@ export function AnalysisView({
       period: forecastPlan.targetPeriod,
       label: formatMonth(forecastPlan.targetPeriod),
       usageKwh: prediction.predictedUsageKwh,
-      billAmount: prediction.estimatedBill,
+      billAmount: forecastExplanation.estimatedCost,
       tariff,
       type: 'forecast' as const,
     });
@@ -327,14 +338,21 @@ export function AnalysisView({
         href: `/bills?${businessQuery}`,
         btnText: 'Tambah Tagihan',
       }
-    : anomaly.status !== 'Normal' && anomaly.status !== 'Data belum cukup'
+    : anomaly.status !== 'Normal' && anomaly.status !== 'Data belum cukup' && diagnosticsAvailable
       ? {
           title: `Indikasi Perubahan Biaya (${anomaly.status})`,
           desc: `Pemakaian tercatat naik ${decimal.format(Math.abs(anomaly.differencePercent ?? 0))}% dibanding baseline. Jalankan Cek Kenaikan untuk pemeriksaan terstruktur.`,
           href: `/diagnostics?${businessQuery}`,
           btnText: 'Jalankan Cek Kenaikan',
         }
-      : {
+      : anomaly.status !== 'Normal' && anomaly.status !== 'Data belum cukup'
+        ? {
+            title: `Indikasi Perubahan Biaya (${anomaly.status})`,
+            desc: `Pemakaian tercatat naik ${decimal.format(Math.abs(anomaly.differencePercent ?? 0))}% dibanding baseline. Cek Kenaikan belum aktif untuk paket atau segmen ini; tinjau rekomendasi yang tersedia.`,
+            href: `/analysis?${businessQuery}&tab=recommendations`,
+            btnText: 'Lihat Rekomendasi',
+          }
+        : {
           title: 'Ruang Kerja Terorganisir Dengan Baik',
           desc: 'Data tagihan Anda teratur. Anda dapat mensimulasikan tambahan peralatan atau meninjau laporan bulanan.',
           href: `/predictions?${businessQuery}`,
@@ -396,11 +414,11 @@ export function AnalysisView({
           secondary={
             isInferring
               ? 'Menyiapkan estimasi...'
-              : prediction.estimatedBill
-                ? rupiah.format(prediction.estimatedBill)
+              : forecastExplanation.estimatedCost !== null
+                ? rupiah.format(forecastExplanation.estimatedCost)
                 : prediction.predictedUsageKwh !== null
                   ? 'Tarif belum tersedia'
-                  : `Kesiapan Data: ${prediction.confidence ?? '—'}`
+                  : `Histori: ${forecastPlan.continuousHistoryMonths} bulan`
           }
           icon={TrendingUp}
         />
@@ -777,7 +795,7 @@ export function AnalysisView({
             title="Tabel Riwayat Pemakaian"
             description="Detail catatan histori bulanan yang digunakan sebagai dasar perhitungan tren dan prediksi."
           />
-          <div className="mt-6 overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Tabel riwayat pemakaian, geser untuk melihat kolom" className="mt-6 overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
             <table className="w-full text-left text-xs text-[var(--foreground)]">
               <thead className="border-b border-[var(--border)] text-[var(--muted)] uppercase font-extrabold">
                 <tr>
@@ -963,22 +981,71 @@ export function AnalysisView({
                 <Surface variant="muted">
                   <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Estimasi Tagihan</p>
                   <p className="mt-2 text-xl font-black tabular-nums text-[var(--foreground)]">
-                    {prediction.estimatedBill === null ? 'Tarif belum tersedia' : rupiah.format(prediction.estimatedBill)}
+                    {forecastExplanation.estimatedCost === null
+                      ? 'Tarif belum tersedia'
+                      : rupiah.format(forecastExplanation.estimatedCost)}
                   </p>
-                  {prediction.estimatedBill === null && prediction.predictedUsageKwh !== null && (
-                    <p className="mt-1 text-[11px] text-[var(--muted)]">Estimasi biaya belum dihitung</p>
+                  {forecastExplanation.estimatedCost === null && (
+                    <p className="mt-1 text-[11px] text-[var(--muted)]">
+                      Estimasi biaya hanya ditampilkan bila tarif valid tersedia.
+                    </p>
                   )}
                 </Surface>
                 <Surface variant="muted">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Tingkat Risiko Kenaikan</p>
-                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{prediction.risk ?? 'Rendah'}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Arah Perubahan Estimasi</p>
+                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">
+                    {forecastExplanation.direction === null
+                      ? 'Belum bisa dibandingkan'
+                      : forecastExplanation.direction === 'naik'
+                        ? 'Perkiraan naik'
+                        : forecastExplanation.direction === 'turun'
+                          ? 'Perkiraan turun'
+                          : 'Perkiraan stabil'}
+                  </p>
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    {forecastExplanation.changePercent === null
+                      ? 'Perlu periode pemakaian pembanding'
+                      : `${forecastExplanation.changePercent > 0 ? '+' : ''}${decimal.format(forecastExplanation.changePercent)}% vs periode sebelumnya`}
+                  </p>
                 </Surface>
                 <Surface variant="muted">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Kelengkapan Histori</p>
-                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{forecastPlan.continuousHistoryMonths} bulan berurutan</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">Bukan tingkat kepastian prediksi.</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Periode Target</p>
+                  <p className="mt-2 text-lg font-extrabold text-[var(--foreground)]">{forecastExplanation.targetPeriodLabel}</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Histori valid berurutan {forecastPlan.continuousHistoryMonths} bulan. Bukan tingkat kepastian.
+                  </p>
                 </Surface>
               </div>
+
+              <Surface variant="elevated" className="space-y-3">
+                <h3 className="text-sm font-black text-[var(--foreground)]">Cara membaca estimasi ini</h3>
+                <div className="grid gap-3 text-xs leading-relaxed text-[var(--muted)] sm:grid-cols-2">
+                  <div>
+                    <p className="font-extrabold text-[var(--foreground)]">Fakta perhitungan</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {forecastExplanation.facts.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-[var(--foreground)]">Pengamatan statistik</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {forecastExplanation.observations.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-[var(--foreground)]">Hipotesis yang perlu diperiksa</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {forecastExplanation.hypotheses.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-[var(--foreground)]">Batas dan ketidakpastian</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {forecastExplanation.limits.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </Surface>
 
               {/* Contextual Next Step Handoff */}
               <Surface variant="elevated" className="border-l-4 border-l-[var(--primary)]">
@@ -988,18 +1055,16 @@ export function AnalysisView({
                       Langkah Selanjutnya
                     </p>
                     <h3 className="mt-1 text-base font-black text-[var(--foreground)]">
-                      {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM'
-                        ? 'Periksa Potensi Kenaikan (Cek Kenaikan)'
-                        : 'Tinjau Rekomendasi Efisiensi Energi'}
+                      {forecastExplanation.nextStep === 'DIAGNOSTICS'
+                        ? 'Periksa kandidat kenaikan (Cek Kenaikan)'
+                        : 'Tinjau rekomendasi efisiensi energi'}
                     </h3>
                     <p className="mt-1 text-xs text-[var(--muted)]">
-                      {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM'
-                        ? 'Prediksi menunjukkan potensi kenaikan beban biaya/pemakaian. Jalankan Cek Kenaikan untuk memeriksa faktor yang mungkin berkontribusi.'
-                        : 'Proyeksi pemakaian berada dalam rentang wajar. Tinjau rekomendasi operasional atau lanjutkan pencatatan rutin.'}
+                      {forecastExplanation.nextStepNote}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {prediction.risk === 'HIGH' || prediction.risk === 'MEDIUM' ? (
+                    {forecastExplanation.nextStep === 'DIAGNOSTICS' ? (
                       <Link
                         href={`/diagnostics?${businessQuery}`}
                         className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-extrabold text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)]"
@@ -1031,7 +1096,7 @@ export function AnalysisView({
           )}
 
           <p className="mt-5 text-xs text-[var(--muted)]">
-            Metode: {getOwnerFacingPredictionMethod(prediction.method)} · {prediction.historyMonths} bulan data · Gap {prediction.gapMonths} bulan.
+            Metode: {prediction.method ?? 'Belum tersedia'} · {forecastPlan.continuousHistoryMonths} bulan histori berurutan · Gap {prediction.gapMonths} bulan · Periode target {forecastExplanation.targetPeriodLabel}.
             {' '}Prediksi ini bukan data resmi PLN dan perlu dibaca sebagai indikasi.
           </p>
           {forecastPlan.eligible && (

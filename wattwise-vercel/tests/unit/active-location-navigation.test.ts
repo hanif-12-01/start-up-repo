@@ -25,6 +25,24 @@ describe('Lokasi Aktif sidebar navigation', () => {
     const html = renderToStaticMarkup(createElement(ProductShell, { businessCount: 2 } as Parameters<typeof ProductShell>[0], null));
     expect(html).toContain(`href="${href}">`);
     expect(html).toContain('Lokasi Aktif');
-    expect(html).toContain('href="/portfolio"');
+    const portfolioHref = href.startsWith('/dashboard?')
+      ? href.replace('/dashboard', '/portfolio')
+      : '/portfolio';
+    expect(html).toContain(`href="${portfolioHref}"`);
+  });
+
+  it('keeps the diagnostics nav entry only when the capability flag is on', () => {
+    state.query = '';
+    const enabled = renderToStaticMarkup(
+      createElement(ProductShell, { businessCount: 1, diagnosticsEnabled: true } as Parameters<typeof ProductShell>[0], null)
+    );
+    expect(enabled).toContain('/diagnostics');
+    expect(enabled).toContain('Cek Kenaikan');
+
+    const disabled = renderToStaticMarkup(
+      createElement(ProductShell, { businessCount: 1, diagnosticsEnabled: false } as Parameters<typeof ProductShell>[0], null)
+    );
+    expect(disabled).not.toContain('/diagnostics');
+    expect(disabled).toContain('/reports/monthly');
   });
 });
